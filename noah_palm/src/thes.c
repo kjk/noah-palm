@@ -594,7 +594,7 @@ void DisplayAbout(AppContext* appContext)
     currentY+=20;
     
     FntSetFont(boldFont);
-    DrawCenteredString(appContext, "Copyright (C) ArsLexis", currentY);
+    DrawCenteredString(appContext, "Copyright (c) ArsLexis", currentY);
     currentY+=24;
 
     FntSetFont(largeFont);
