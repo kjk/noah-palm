@@ -922,6 +922,7 @@ char* dictGetWord(AbstractFile* file, long wordNo)
     return NULL;
 }
 
+#ifdef _RECORD_SPEED_
 /**
     Starts the timer and remembers the description.
 */
@@ -953,11 +954,12 @@ void StopTiming(AppContext* appContext)
     CreateNewMemo(tmpString, -1);
     ebufDelete(buf);
 }
+#endif
 
 Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di)
 {
-#ifdef _RECORD_SPEED_
     Err              err;
+#ifdef _RECORD_SPEED_
     char             * word;
     ExtensibleBuffer * buf;
 #endif

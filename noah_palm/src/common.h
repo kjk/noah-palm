@@ -532,7 +532,8 @@ extern Char ToLower(Char in);
 extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars);
 extern void StrTrimTail(const Char* begin, const Char** end);
 extern void CreateNewMemo(char *memoBody, int memoBodySize);
+#ifdef _RECORD_SPEED_
 void StartTiming(AppContext* appContext, char * description);
 void StopTiming(AppContext* appContext);
-
+#endif
 #endif
