@@ -14,9 +14,14 @@
 #define maxResponseLength         8192           // reasonable limit so malicious response won't use all available memory
 #define responseBufferSize         256           // size of single chunk used to retrieve server response
 #define addressResolveTimeout    20000           // timeouts in milliseconds
-#define socketOpenTimeout         1000
+
+/*#define socketOpenTimeout       1000
 #define socketConnectTimeout     20000
-#define transmitTimeout           5000
+#define transmitTimeout           5000*/
+
+#define socketOpenTimeout        40000
+#define socketConnectTimeout     40000
+#define transmitTimeout          evtWaitForever
 
 #define netLibName "Net.lib"
 
@@ -259,8 +264,14 @@ static Err SendRequest(ConnectionData* connData)
     Log(GetAppContext(),request);
 #endif
 
+    Int32   timeoutInTicks;
+    if (evtWaitForever==transmitTimeout)
+        timeoutInTicks = evtWaitForever;
+    else
+        timeoutInTicks = MillisecondsToTicks(transmitTimeout);
+
     Int16 result=NetLibSend(connData->netLibRefNum, connData->socket, const_cast<char*>(request), requestLeft, 0, NULL, 0, 
-        MillisecondsToTicks(transmitTimeout), &error);
+        timeoutInTicks, &error);
 
     if (result>0)
     {
@@ -349,8 +360,15 @@ static Err ReceiveResponse(ConnectionData* connData)
     Err     error=errNone;
     Int16   bytesReceived;
     char    buffer[responseBufferSize];
+
+    Int32   timeoutInTicks;
+    if (evtWaitForever==transmitTimeout)
+        timeoutInTicks = evtWaitForever;
+    else
+        timeoutInTicks = MillisecondsToTicks(transmitTimeout);
+
     bytesReceived=NetLibReceive(connData->netLibRefNum, connData->socket, buffer, responseBufferSize, 0, NULL, 0, 
-        MillisecondsToTicks(transmitTimeout), &error);
+        timeoutInTicks, &error);
     if (bytesReceived>0) 
     {
         Assert(!error);
@@ -368,7 +386,7 @@ static Err ReceiveResponse(ConnectionData* connData)
         // 0 means the connection has been closed by the server
         Assert(!error);
         AdvanceConnectionStage(connData);
-        Int16 result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
+        Int16 result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, timeoutInTicks, &error);
         Assert( -1 != result ); // will get asked to drop into debugger (so that we can diagnose it) when fails; It's not a big deal, so continue anyway.
 
 #ifdef DEBUG
