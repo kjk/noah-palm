@@ -7,7 +7,7 @@ USABLE
 NOFRAME
 BEGIN
    SCROLLBAR ID     scrollDef       AT (152   1    7  142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
-   LABEL "Word:"    AUTOID          AT (2 147) FONT 0
+   LABEL "Word:" ID labelWord              AT (2 147) FONT 0
    FIELD ID fieldWordInput          AT (PrevRight+4 PrevTop 100 12) MAXCHARS 255 UNDERLINED EDITABLE
    BUTTON "Go"      buttonFind      AT (160-26 147 Auto Auto)
 END

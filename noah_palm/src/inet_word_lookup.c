@@ -25,6 +25,8 @@ typedef struct ConnectionData_
 {
     UInt16 netLibRefNum;
     ConnectionStage connectionStage;
+    Int16 percentsStatus;
+    const Char* errorMessage;
     NetIPAddr* serverIpAddress;
     const Char* wordToFind;
     ExtensibleBuffer request;
@@ -119,6 +121,8 @@ inline static ConnectionData* CreateConnectionData(const Char* wordToFind, NetIP
     {
         ebufInit(&connData->request, 0); // seems not required, but hell knows
         ebufInit(&connData->response, 0);
+        connData->percentsStatus=percentsNotSupported;
+        connData->errorMessage="unknown error";
         connData->wordToFind=wordToFind;
         connData->serverIpAddress=serverIpAddress;
         if (*serverIpAddress)
@@ -139,11 +143,22 @@ static void FreeConnectionData(ConnectionData* connData)
     new_free(connData);
 }
 
+inline static void RenderPercents(Char buffer[], Int16 percents)
+{
+    if (percentsNotSupported==percents)
+        buffer[0]=chrNull;
+    else 
+    {
+        buffer[0]=' ';
+        PercentProgress(buffer+1, percents, 100);
+    }        
+}
+
 static Boolean ConnectionProgressCallback(PrgCallbackDataPtr callbackData)
 {
+    ConnectionData* connData=(ConnectionData*)callbackData->userDataP;
     if (!callbackData->error)
     {
-        ConnectionData* connData=(ConnectionData*)callbackData->userDataP;
         const Char* message=NULL;
         UInt16 msgLen=0;
         switch (connData->connectionStage)
@@ -180,16 +195,17 @@ static Boolean ConnectionProgressCallback(PrgCallbackDataPtr callbackData)
             MemMove(callbackData->textP, message, msgLen);
             StrCopy(callbackData->textP+msgLen, "...");
         }      
+        if (connData->percentsStatus!=percentsNotSupported)
+        {
+            RenderPercents(callbackData->message, connData->percentsStatus);
+            StrNCat(callbackData->textP, callbackData->message, callbackData->textLen);
+        }            
     }
     else
     {
-        if (callbackData->message)
-            StrNCopy(callbackData->textP, "Error: ", callbackData->textLen);
-        else            
-            StrNCopy(callbackData->textP, "Connection failed", callbackData->textLen);
+        StrNCopy(callbackData->textP, "Error: ", callbackData->textLen);
+        StrNCat(callbackData->textP, connData->errorMessage, callbackData->textLen);
     }        
-    if (callbackData->message)
-        StrNCat(callbackData->textP, callbackData->message, callbackData->textLen);
     return true;
 }
 
@@ -209,7 +225,7 @@ static Boolean HandleConnectionProgressEvents(ProgressPtr progress, Boolean wait
     return !cancelled;
 }
 
-static Err ResolveServerAddress(ConnectionData* connData, Int16* percents, const Char** errorMessage)
+static Err ResolveServerAddress(ConnectionData* connData)
 {
     Err error=errNone;
     NetHostInfoBufType* infoBuf=(NetHostInfoBufType*)new_malloc_zero(sizeof(NetHostInfoBufType));
@@ -229,15 +245,15 @@ static Err ResolveServerAddress(ConnectionData* connData, Int16* percents, const
         AdvanceConnectionStage(connData);
     } 
     else
-        *errorMessage="unable to resolve host address";
+        connData->errorMessage="unable to resolve host address";
 OnError: 
     if (infoBuf) 
         new_free(infoBuf);
-    *percents=percentsNotSupported;        
+    connData->percentsStatus=percentsNotSupported;        
     return error;
 }
 
-static Err OpenConnection(ConnectionData* connData, Int16* percents, const Char** errorMessage)
+static Err OpenConnection(ConnectionData* connData)
 {
     Err error=errNone;
     Assert(*connData->serverIpAddress);
@@ -246,7 +262,7 @@ static Err OpenConnection(ConnectionData* connData, Int16* percents, const Char*
     if (-1==connData->socket)
     {
         Assert(error);
-        *errorMessage="unable to open socket";
+        connData->errorMessage="unable to open socket";
     }
     else
     {
@@ -260,12 +276,12 @@ static Err OpenConnection(ConnectionData* connData, Int16* percents, const Char*
         if (-1==result)
         {
             Assert(error);
-            *errorMessage="unable to connect socket";
+            connData->errorMessage="unable to connect socket";
         }
         else 
             AdvanceConnectionStage(connData);
     }
-    *percents=percentsNotSupported;
+    connData->percentsStatus=percentsNotSupported;
     return error;
 }
 
@@ -291,7 +307,7 @@ OnError:
     return error;    
 }
 
-static Err SendRequest(ConnectionData* connData, Int16* percents, const Char** errorMessage)
+static Err SendRequest(ConnectionData* connData)
 {
     Err error=errNone;
     Int16 result=0;
@@ -303,7 +319,7 @@ static Err SendRequest(ConnectionData* connData, Int16* percents, const Char** e
         error=PrepareRequest(connData);
         if (error)
         {
-            *errorMessage="not enough memory to prepare request";
+            connData->errorMessage="not enough memory to prepare request";
             goto OnError;
         }
         totalSize=ebufGetDataSize(&connData->request);
@@ -316,7 +332,7 @@ static Err SendRequest(ConnectionData* connData, Int16* percents, const Char** e
     {
         Assert(!error);
         connData->bytesSent+=result;
-        *percents=PercentProgress(NULL, connData->bytesSent, totalSize);
+        connData->percentsStatus=PercentProgress(NULL, connData->bytesSent, totalSize);
         if (connData->bytesSent==totalSize)
         {
             ebufFreeData(&connData->request);
@@ -329,16 +345,16 @@ static Err SendRequest(ConnectionData* connData, Int16* percents, const Char** e
         if (!result)
         {
             Assert(netErrSocketClosedByRemote==error);
-            *errorMessage="connection closed by remote host";
+            connData->errorMessage="connection closed by remote host";
         }
         else
         {
             Assert(error);
-            *errorMessage="error while sending request";
+            connData->errorMessage="error while sending request";
         }
         ebufFreeData(&connData->request);
         connData->bytesSent=0;
-        *percents=percentsNotSupported;
+        connData->percentsStatus=percentsNotSupported;
     }    
 OnError:
     return error;    
@@ -401,7 +417,7 @@ static void DumpConnectionResponseToMemo(ConnectionData * connData)
     CreateNewMemo( data, dataSize );
 }
 
-static Err ReceiveResponse(ConnectionData* connData, Int16* percents, const Char** errorMessage)
+static Err ReceiveResponse(ConnectionData* connData)
 {
     Err error=errNone;
     Int16 result=0;
@@ -413,21 +429,20 @@ static Err ReceiveResponse(ConnectionData* connData, Int16* percents, const Char
         Assert(!error);
         if (ebufGetDataSize(&connData->response)+result<maxResponseLength)
         {
-            *percents=PercentProgress(NULL, CalculateDummyProgress(connData->responseStep++), 100);
+            connData->percentsStatus=PercentProgress(NULL, CalculateDummyProgress(connData->responseStep++), 100);
             ebufAddStrN(&connData->response, buffer, result);
         }
         else
         {
             error=appErrMalformedResponse;
-            *errorMessage="server returned malformed response";
+            connData->errorMessage="server returned malformed response";
             ebufFreeData(&connData->response);
-            *percents=percentsNotSupported;
         }            
     }
     else if (!result)
     {
         Assert(!error);
-        *percents=100;
+        connData->percentsStatus=100;
         AdvanceConnectionStage(connData);
         result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
         Assert( -1 != result ); // will get asked to drop into debugger (so that we can diagnose it) when fails; It's not a big deal, so continue anyway.
@@ -439,22 +454,20 @@ static Err ReceiveResponse(ConnectionData* connData, Int16* percents, const Char
         error=ParseResponse(connData);
         if (error)
         {          
-            *errorMessage="server returned malformed response";
+            connData->errorMessage="server returned malformed response";
             ebufFreeData(&connData->response);
-            *percents=percentsNotSupported;
         }            
     }
     else 
     {
         Assert(error);
-        *errorMessage="error while receiving response";
+        connData->errorMessage="error while receiving response";
         ebufFreeData(&connData->response);
-        *percents=percentsNotSupported;
     }
     return error;
 }
 
-typedef Err (ConnectionStageHandler)(ConnectionData*, Int16*, const Char**);
+typedef Err (ConnectionStageHandler)(ConnectionData*);
 
 static ConnectionStageHandler* GetConnectionStageHandler(const ConnectionData* connData)
 {
@@ -486,25 +499,12 @@ static ConnectionStageHandler* GetConnectionStageHandler(const ConnectionData* c
     return handler;
 }
 
-inline static void RenderPercents(Char buffer[], Int16 percents)
-{
-    if (percentsNotSupported==percents)
-        buffer[0]=chrNull;
-    else 
-    {
-        buffer[0]=' ';
-        PercentProgress(buffer+1, percents, 100);
-    }        
-}
-
 static Err ShowConnectionProgress(ConnectionData* connData)
 {
     Char percentBuffer[6];
-    const Char* errorMessage=NULL;
     Err error=errNone;
     Boolean notCancelled=true;
     ConnectionStageHandler* handler=NULL;
-    Int16 percents=percentsNotSupported;
     ProgressPtr progress=PrgStartDialog(connectionProgressDialogTitle, ConnectionProgressCallback, connData);
     if (!progress)
     {
@@ -518,11 +518,10 @@ static Err ShowConnectionProgress(ConnectionData* connData)
         if (handler)
         {        
             ConnectionStage prevStage=connData->connectionStage;
-            error=(*handler)(connData, &percents, &errorMessage);
+            error=(*handler)(connData);
             if (prevStage!=connData->connectionStage)
-                percents=percentsNotSupported;
-            RenderPercents(percentBuffer, percents);
-            PrgUpdateDialog(progress, error, connData->connectionStage, error?errorMessage:percentBuffer, true);
+                connData->percentsStatus=percentsNotSupported;
+            PrgUpdateDialog(progress, error, connData->connectionStage, percentBuffer, true);
             notCancelled=HandleConnectionProgressEvents(progress, error);
         } 
     } while (notCancelled && !error && handler);

@@ -31,10 +31,6 @@ Boolean cbPenMoveEvent(struct _AppContext *appContext, Int16 screenX, Int16 scre
 void cbInvertSelection(struct _AppContext *appContext);
 void cbNoSelection(struct _AppContext *appContext);
 
-#ifdef I_NOAH
-void   MainFormFindButtonPressed(struct _AppContext* appContext, FormType* form);
-#endif
-
 /**
  * States of selection
  */

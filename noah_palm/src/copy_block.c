@@ -13,6 +13,10 @@
 
 #include "common.h"
 
+#ifdef I_NOAH
+#include "main_form.h"
+#endif
+
 /**
  *  Remove '//' if you want to work without selection
  */
@@ -142,7 +146,7 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
     FldDelete (field, 0,FldGetTextLength(field)); 
     FldInsert (field,txt, StrLen(txt)); 
     //click go button
-    MainFormFindButtonPressed(appContext, form);
+    MainFormPressFindButton(form);
     return true;
 #endif
     return false;

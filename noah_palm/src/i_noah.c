@@ -169,6 +169,10 @@ UInt32 PilotMain(UInt16 cmd, MemPtr cmdPBP, UInt16 launchFlags)
             case sysAppLaunchCmdNormalLaunch:
                 error=AppLaunch();
                 break;
+                
+            case sysAppLaunchCmdNotify:
+                error=AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
+                break;
         }
     }       
     return error;

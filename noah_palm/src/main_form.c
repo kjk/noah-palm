@@ -10,6 +10,18 @@
 #include "inet_definition_format.h"
 #include "five_way_nav.h"
 
+void MainFormPressFindButton(const FormType* form) 
+{
+    Assert(form);
+    Assert(formDictMain==FrmGetFormId(form));
+    UInt16 index=FrmGetObjectIndex(form, buttonFind);
+    Assert(frmInvalidObjectId!=index);
+    const ControlType* findButton=(const ControlType*)FrmGetObjectPtr(form, index);
+    Assert(findButton);
+    CtlHitControl(findButton);
+}
+
+
 static void MainFormDisplayAbout(AppContext* appContext)
 {
     UInt16 currentY=0;
@@ -90,7 +102,7 @@ static void FldSelectAllText(FieldType* field)
     FldGrabFocus(field);
 }
 
-void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
+static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
 {
     const Char* newWord=NULL;
     UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
@@ -107,7 +119,10 @@ void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
             Err error=LookupWord(appContext, newWord);
             FldSelectAllText(field);
             if (!error)
+            {
+                appContext->firstDispLine=0;
                 FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
+            }                
         }
     }
 }
@@ -147,7 +162,8 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
     {
         case returnChr:
         case linefeedChr:
-            MainFormFindButtonPressed(appContext,form);
+//            MainFormFindButtonPressed(appContext,form);
+            MainFormPressFindButton(form);
             handled = true;
             break;
 /*
@@ -172,7 +188,8 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
             {
                 if (FiveWayCenterPressed(appContext, event))
                 {
-                    MainFormFindButtonPressed(appContext,form);
+//                    MainFormFindButtonPressed(appContext,form);
+                    MainFormPressFindButton(form);
                     handled = true;
                     break;
                 }
@@ -223,6 +240,49 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
     return false;
 }
 
+static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&appContext->diaSettings))
+    {
+        UInt16 index=0;
+        RectangleType bounds;
+        WinGetBounds(WinGetDisplayWindow(), &bounds);
+        WinSetBounds(FrmGetWindowHandle(form), &bounds);
+        
+        index=FrmGetObjectIndex(form, buttonFind);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(form, index, &bounds);
+        bounds.topLeft.y=appContext->screenHeight-13;
+        bounds.topLeft.x=appContext->screenWidth-26;
+        FrmSetObjectBounds(form, index, &bounds);
+
+        index=FrmGetObjectIndex(form, fieldWordInput);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(form, index, &bounds);
+        bounds.topLeft.y=appContext->screenHeight-13;
+        bounds.extent.x=appContext->screenWidth-60;
+        FrmSetObjectBounds(form, index, &bounds);
+
+        index=FrmGetObjectIndex(form, labelWord);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(form, index, &bounds);
+        bounds.topLeft.y=appContext->screenHeight-13;
+        FrmSetObjectBounds(form, index, &bounds);
+
+        index=FrmGetObjectIndex(form, scrollDef);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(form, index, &bounds);
+        bounds.topLeft.x=appContext->screenWidth-8;
+        bounds.extent.y=appContext->screenHeight-18;
+        FrmSetObjectBounds(form, index, &bounds);
+
+        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
+        handled=true;
+    }
+    return handled;
+}
+
 static Boolean MainFormHandleEvent(EventType* event)
 {
     AppContext* appContext=GetAppContext();
@@ -230,6 +290,10 @@ static Boolean MainFormHandleEvent(EventType* event)
     Boolean handled=false;
     switch (event->eType)
     {
+        case winDisplayChangedEvent:
+            handled=MainFormDisplayChanged(appContext, form);
+            break;
+            
         case frmOpenEvent:
             handled=MainFormOpen(appContext, form, event);
             break;   
@@ -257,10 +321,7 @@ static Boolean MainFormHandleEvent(EventType* event)
             
         case penDownEvent:
             if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
-            {
-                handled = false;
                 break;
-            }
             cbPenDownEvent(appContext,event->screenX,event->screenY);
             handled = true;
             break;

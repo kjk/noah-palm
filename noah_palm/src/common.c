@@ -1817,9 +1817,8 @@ Err DefaultFormInit(AppContext* appContext, FormType* frm)
     return DIA_FrmEnableDIA(&appContext->diaSettings, frm, FRM_MIN_H, FRM_PREF_H, FRM_MAX_H, FRM_MIN_W, FRM_PREF_W, FRM_MAX_W);
 }
 
-#ifndef I_NOAH
+#if !(defined(NOAH_LITE) || defined(I_NOAH))
 
-#ifndef NOAH_LITE
 static Err AppHandleResidentLookup()
 {
     UInt16 cardNo=0;
@@ -1885,8 +1884,8 @@ static Err AppHandleMenuCmdBarOpen()
 OnError:	
     return error;
 }
-#endif
 
+#endif
 
 Err AppHandleSysNotify(SysNotifyParamType* param) 
 {
@@ -1902,7 +1901,7 @@ Err AppHandleSysNotify(SysNotifyParamType* param)
             DIA_HandleResizeEvent();
             break;
             
-#ifndef NOAH_LITE
+#if !(defined(NOAH_LITE) || defined(I_NOAH))
         case sysNotifyMenuCmdBarOpenEvent:
             error=AppHandleMenuCmdBarOpen();
             break;
@@ -1918,8 +1917,6 @@ Err AppHandleSysNotify(SysNotifyParamType* param)
     }
     return error;
 }
-
-#endif // I_NOAH
 
 AppContext* GetAppContext() 
 {
