@@ -1,6 +1,5 @@
 ;(load         "c:\\kjk\\src\\mine\\noah_palm\\converter\\convert.lsp")
 ;(compile-file "c:\\kjk\\src\\mine\\noah_palm\\converter\\convert.lsp")
-;(setf h (make-engpol-words-hash))
 ;(time (progn (make-engpol-words-hash) nil))
 
 (in-package :common-lisp-user)
@@ -108,23 +107,12 @@ zero-length subsequences too.
         (setq st1 (position-if pred seq :start st0 :end end :key key))
         :collect (subseq seq st0 st1)))
 
-;; simple word compressor
-(defun string-in-common (str-1 str-2)
-  "return number of characters that 2 strings have in common
-at the beggining"
-  (let ((min-len (min (length str-1) (length str-2))))
-    (do ((common 0 (1+ common)))
-	((or
-	  (>= common min-len)
-	  (not (eq (aref str-1 common) (aref str-2 common))))
-	 common))))
-
 (defun string-compress (prev-str next-str)
   "very simple differential compressor, given two strings returns
 string that consists of: first byte (<32) is the number of chars
 those strings have the same in the beginning and the rest is just
 those chars that are not common"
-  (let* ((in-common (min (string-in-common prev-str next-str) 31))
+  (let* ((in-common (min (mismatch prev-str next-str) 31))
 	 (c-str (make-string (1+ (- (length next-str) in-common))
 			     :initial-element (int->char in-common))))
     (setf (subseq c-str 1) (subseq next-str in-common))
@@ -850,7 +838,7 @@ in a record"
 
 (defmethod compress-word ((compressor word-compressor-state) (word string))
   (let* ((prev-word (word-compressor-state-prev-word compressor))
-	 (in-common (string-in-common prev-word word))
+	 (in-common (mismatch prev-word word))
 	 (compressed-word (string-compress prev-word  word)))
     (setf (word-compressor-state-prev-word compressor) word)
     (setf (word-compressor-state-last-common compressor) in-common)
@@ -870,7 +858,7 @@ in a record"
 	       (setq last-common 0))
 	      ((eql action 'compress)
 	       (let ((compressed-word (string-compress prev-word word)))
-		 (setq last-common (string-in-common prev-word word))
+		 (setq last-common (mismatch prev-word word))
 		 (setq prev-word word)
 		 compressed-word))
 	      ((eql action 'last-in-common)

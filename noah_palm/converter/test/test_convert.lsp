@@ -23,7 +23,14 @@
     (assert-equal (wn-synset-part-of-speech syn) "v")
     (assert-equal (wn-synset-lex-filenum syn) 34)
     (assert-equal 2 (length (wn-synset-list-of-lemmas syn)))
+    (assert-equal "put" (caar (wn-synset-list-of-lemmas syn)))
+    (assert-equal "assign" (caadr (wn-synset-list-of-lemmas syn)))
     ))
+
+(def-test-method test_mismatch ((ob utest))
+  (let ((test-data '(("abcd" "ab" 2) ("zdd" "re" 0) ("zdd" "" 0))))
+    (dolist (one-test test-data)
+      (assert-equal (third one-test) (mismatch (first one-test) (second one-test))))))
 
 (defun run-utests ()
   (textui-test-run (get-suite utest)))
