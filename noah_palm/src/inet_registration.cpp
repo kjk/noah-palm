@@ -62,17 +62,9 @@ static Err RegistrationResponseProcessor(AppContext* appContext, void* context, 
 {
     ResponseParsingResult result;
     Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
-        responseMessage|responseErrorMessage, result);
-    if (!error)
-    {
-        if (responseMessage==result || responseErrorMessage==result)
-        {
-            appContext->mainFormContent=mainFormShowsMessage;
-            appContext->firstDispLine=0;
-        }
-        else 
-            Assert(false);
-    }
+        responseRegistrationOk|responseRegistrationFailed, result);
+
+    Assert( error || (responseRegistrationOk==result) || (responseRegistrationFailed==result) );
     return error;
 }
 

@@ -45,6 +45,8 @@
 #define resAlertSimNotReadyCancel          0
 #define resAlertSimNotReadyCheck           1
 #define alertNoWebBrowser                  2018
+#define alertRegistrationFailed            2020
+#define alertRegistrationOk                2022
 
 #define bmpFind             3000
 
@@ -80,9 +82,9 @@
 #define fieldUserId                 4216
 
 #define ctlArrowLeft        4300
-#define ctlArrowRight      4301
-#define listProposals        4302
+#define ctlArrowRight       4301
+#define listProposals       4302
 
-#define buttonRegister	4400
-#define fieldSerialNumber	4401
+#define buttonRegister      4400
+#define fieldRegCode        4401
 

@@ -493,15 +493,13 @@ void DrawDescription(AppContext* appContext, long wordNo)
 
 #endif //I_NOAH
 
-// devnote: if we use this trick for more than one alert, we should send the
-// alert number in the data field
-void SendShowMalformedAlert(void)
+void SendEvtWithType(int eType)
 {
     EventType   newEvent;
     MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = (eventsEnum) evtShowMalformedAlert;
+    newEvent.eType = (eventsEnum) eType;
     EvtAddEventToQueue(&newEvent);
-}
+}    
 
 void ClearDisplayRectangle(AppContext* appContext)
 {
@@ -2393,7 +2391,7 @@ UInt16 PercentProgress(char* buffer, UInt32 current, UInt32 total)
     return current;
 }
 
-void SafeStrNCopy(char *dst, int dstLen, char *srcStr, int srcStrLen)
+void SafeStrNCopy(char *dst, int dstLen, const char *srcStr, int srcStrLen)
 {
     Assert( dst );
     Assert( dstLen > 0);
@@ -2529,7 +2527,7 @@ inline static void CharToHexString(char* buffer, char chr)
     buffer[1]=numbers[chr%16];
 }
 
-Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt16* encodedLength)
+Err StrUrlEncode(const char* begin, const char* end, char** encoded, UInt16* encodedLength)
 {
     Err error=errNone;
     if (encoded && encodedLength)
@@ -2538,12 +2536,12 @@ Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt16* enc
         ebufInit(&result, 0);
         while (begin<end)
         {
-            Char chr=*begin;
+            char chr=*begin;
             if (chrNull==chr || (chr>='a' && chr<='z') || (chr>='A' && chr<='Z') || (chr>='0' && chr<='9') || StrFindOneOf(begin, begin+1, uriUnreservedCharacters)==begin)
                 ebufAddChar(&result, chr);
             else
             {
-                Char buffer[3];
+                char buffer[3];
                 *buffer='%';
                 CharToHexString(buffer+1, chr);
                 ebufAddStrN(&result, buffer, 3);

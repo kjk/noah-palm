@@ -355,7 +355,7 @@ static Err ReceiveResponse(ConnectionData* connData)
         else
         {
             error=appErrMalformedResponse;
-            SendShowMalformedAlert();
+            SendEvtWithType(evtShowMalformedAlert);
             ebufFreeData(&connData->response);
         }            
     }
@@ -373,7 +373,7 @@ static Err ReceiveResponse(ConnectionData* connData)
         error=ParseResponse(connData);
         if (error)
         {          
-            SendShowMalformedAlert();
+            SendEvtWithType(evtShowMalformedAlert);
             ebufFreeData(&connData->response);
         }            
     }

@@ -359,7 +359,7 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
         case winEnterEvent:
             if ((reinterpret_cast<_WinEnterEventType&>(event->data)).enterWindow==(void*)form)
             {
-                index=FrmGetObjectIndex(form, fieldSerialNumber);
+                index=FrmGetObjectIndex(form, fieldRegCode);
                 Assert(frmInvalidObjectId!=index);
                 FrmSetFocus(form, index);
             }
@@ -382,43 +382,55 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
 static void MainFormHandleRegister(AppContext* appContext)
 {
     FormType* form=FrmInitForm(formRegistration);
-    if (form)
+    if (!form)
     {
-        DefaultFormInit(appContext, form);
-        FrmSetEventHandler(form, RegistrationFormHandleEvent);
-        UInt16 button=FrmDoDialog(form);
-        if (buttonRegister==button)
-        {
-            UInt16 index=FrmGetObjectIndex(form, fieldSerialNumber);
-            Assert(frmInvalidObjectId!=index);
-            const FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
-            Assert(field);
-            const char* serialNumber=FldGetTextPtr(field);
-            if (serialNumber && StrLen(serialNumber))
-            {
-                // save the registration number in preferences so that we can
-                // save it in all requests
-
-
-                // send a registration query to the server so that the user
-                // knows if he registered correctly
-                // it doesn't really matter, in the long run, because every time
-                // we send a request, we also send the registration number and
-                // if it's not correct, we'll reject the query
-                StartRegistration(appContext, serialNumber);
-            }
-        }
-        FrmDeleteForm(form);
-    }
-    else
         FrmAlert(alertMemError);
+        return;
+    }
+
+    DefaultFormInit(appContext, form);
+    FrmSetEventHandler(form, RegistrationFormHandleEvent);
+    UInt16 button=FrmDoDialog(form);
+    if (buttonRegister!=button)
+        goto Exit;
+
+    UInt16 index=FrmGetObjectIndex(form, fieldRegCode);
+    Assert(frmInvalidObjectId!=index);
+    const FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+    Assert(field);
+    const char* regCode=FldGetTextPtr(field);
+    if (regCode && StrLen(regCode))
+    {
+        // save the registration number in preferences so that we can
+        // send it in all requests
+        int regCodeLen = StrLen(regCode);
+        if (regCodeLen>MAX_REG_CODE_LENGTH)
+        {
+            // this is laziness: reg code longer than MAX_REG_CODE_LENGTH
+            // is invalid for sure so we should just display such message
+            // but we'll just use truncated version and go on with normal
+            // processing
+            regCodeLen=MAX_REG_CODE_LENGTH;
+        }
+        SafeStrNCopy((char*)appContext->prefs.regCode, sizeof(appContext->prefs.regCode), regCode, regCodeLen);
+        // save preferences just for sure - so that we don't loose regCode
+        // in case of a crash
+        SavePreferencesInoah(appContext);
+        // send a registration query to the server so that the user
+        // knows if he registered correctly
+        // it doesn't really matter, in the long run, because every time
+        // we send a request, we also send the registration number and
+        // if it's not correct, we'll reject the query
+        StartRegistration(appContext, regCode);
+    }
+Exit:
+    FrmDeleteForm(form);
 }
 
 inline static void MainFormHandleRecentLookups(AppContext* appContext)
 {
     StartRecentLookupsRequest(appContext);
 }
-
 
 static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, EventType* event)
 {
@@ -525,6 +537,24 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
     return true;
 }
 
+static void MainFormHandleWrongRegCode(AppContext *appContext)
+{
+    UInt16 buttonId;
+
+    buttonId = FrmAlert(alertRegistrationFailed);
+
+    if (0==buttonId)
+    {
+        // this is "Ok" button. Clear-out registration code (since it was invalid)
+        MemSet(appContext->prefs.regCode, sizeof(appContext->prefs.regCode), 0);
+        SavePreferencesInoah(appContext);
+        return;
+    }
+    Assert(1==buttonId);
+    // this must be "Re-enter registration code" button
+    MainFormHandleRegister(appContext);
+}
+
 static Boolean MainFormHandleEvent(EventType* event)
 {
     AppContext* appContext=GetAppContext();
@@ -588,6 +618,17 @@ static Boolean MainFormHandleEvent(EventType* event)
             FrmAlert(alertMalformedResponse);
             handled=true;
             break;
+
+        case evtRegistrationFailed:
+            MainFormHandleWrongRegCode(appContext);
+            handled=true;
+            break;
+
+        case evtRegistrationOk:
+            FrmAlert(alertRegistrationOk);
+            handled=true;
+            break;
+
     }
     return handled;
 }

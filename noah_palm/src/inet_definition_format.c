@@ -11,6 +11,10 @@
 #define cookieResponseLen       sizeof(cookieResponse)-1
 #define definitionResponse      "DEF\n"
 #define definitionResponseLen   sizeof(definitionResponse)-1
+#define registrationFailedResponse     "REGISTRATION_FAILED\n"
+#define registrationFailedResponseLen  sizeof(registrationFailedResponse)-1
+#define registrationOkResponse     "REGISTRATION_OK\n"
+#define registrationOkResponseLen  sizeof(registrationOkResponse)-1
 
 #define pronunciationTag        "PRON"
 #define pronunciationTagLen    sizeof(pronunciationTag)-1
@@ -173,8 +177,13 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
     // REQUESTS_LEFT tag is optional
     if (StrStartsWith(begin,end,requestsLeftTag))
     {
+#if 0
+        /* unfortunately this can be called as a result of redisplay-last-word
+           which might happen after we enter registration code but before we
+           get the next word with reg code */
         // shouldn't get this if we're registered
-        Assert(0==StrLen(appContext->prefs.regCode));
+        Assert(0==StrLen(appContext->prefs.regCode)); 
+#endif
         const char* reqLeftBegin=begin+requestsLeftTagLen+1;
         if ( !(reqLeftBegin<end) )
             return appErrMalformedResponse;
@@ -438,7 +447,19 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
         error=ProcessDefinitionResponse(appContext, begin, end);
         if (!error)
             result=responseDefinition;
-    } 
+    }
+    // slightly laxed parsing - we don't check if there's anything after that
+    // (since it shouldn't). but that's ok
+    else if ((responseRegistrationFailed & resMask) && StrStartsWith(begin, end, registrationFailedResponse))
+    {
+        SendEvtWithType(evtRegistrationFailed);
+    }
+    // slightly laxed parsing - we don't check if there's anything after that
+    // (since it shouldn't). but that's ok
+    else if ((responseRegistrationOk & resMask) && StrStartsWith(begin, end, registrationOkResponse))
+    {
+        SendEvtWithType(evtRegistrationOk);
+    }
     else
         error=appErrMalformedResponse;
 
@@ -447,7 +468,7 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
         // we used to do just FrmAlert() here but this is not healthy and leaves
         // the form in a broken state (objects not re-drawn, text field disabled
         // instead post a message telling form event handling code to show the alert
-        SendShowMalformedAlert();
+        SendEvtWithType(evtShowMalformedAlert);
 #ifdef DEBUG
         DumpStrToMemo(begin,end);
 #endif

@@ -16,7 +16,7 @@ import sys, re, socket, random, pickle, httplib, urllib
 # server string must be of form "name:port"
 g_serverList = ["dict-pc.arslexis.com:3000", "dict.arslexis.com:80", "dict-pc.local.org:80"]
 
-g_defaultServerNo = 2 # index within g_serverList
+g_defaultServerNo = 0 # index within g_serverList
 
 g_cookie = None
 g_exampleDeviceInfo = "HS50616C6D204F5320456D756C61746F72:OC70616C6D:OD00000000"

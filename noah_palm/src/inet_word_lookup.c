@@ -97,7 +97,7 @@ static void WordLookupContextDestructor(void* context)
     ebufDelete(wordBuffer);
 }
 
-static Err WordLookupPrepareRequest(const char* cookie, const char* word, ExtensibleBuffer& buffer)
+static Err WordLookupPrepareRequest(const char* cookie, const char* word, const char *regCode, ExtensibleBuffer& buffer)
 {
     Err     error=errNone;
     char *  url=NULL;
@@ -117,6 +117,17 @@ static Err WordLookupPrepareRequest(const char* cookie, const char* word, Extens
     }
     ebufAddStr(&buffer, url);
     MemPtrFree(url);
+
+    if (regCode && StrLen(regCode)>0)
+    {
+        char *urlEncodedRegCode;
+        error=StrUrlEncode(regCode, regCode+StrLen(regCode)+1, &urlEncodedRegCode, &wordLength);
+        if (error)
+            goto OnError;
+        ebufAddStr(&buffer, "&rc=");
+        ebufAddStr(&buffer,urlEncodedRegCode);
+        new_free(urlEncodedRegCode);
+    }
     ebufAddChar(&buffer, chrNull);
 OnError:        
     return error;    
@@ -126,7 +137,7 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
 {
     ResponseParsingResult result;
     Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
-        responseDefinition|responseMessage|responseErrorMessage|responseWordsList, result);
+        responseDefinition|responseMessage|responseErrorMessage|responseWordsList|responseRegistrationFailed, result);
     if (error)
     {
 #ifdef DEBUG
@@ -151,6 +162,10 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
         case responseWordsList:
             FrmPopupForm(formWordsList);
             break;
+
+        case responseRegistrationFailed:
+            SendEvtWithType(evtRegistrationFailed);
+            break;
             
         default:
             Assert(false);
@@ -166,7 +181,7 @@ void StartWordLookup(AppContext* appContext, const Char* word)
     {
         ExtensibleBuffer urlBuffer;
         ebufInit(&urlBuffer, 0);
-        Err error=WordLookupPrepareRequest(appContext->prefs.cookie, word, urlBuffer);
+        Err error=WordLookupPrepareRequest(appContext->prefs.cookie, word, appContext->prefs.regCode, urlBuffer);
         if (!error) 
         {
             const char* requestUrl=ebufGetDataPointer(&urlBuffer);

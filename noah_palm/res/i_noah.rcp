@@ -126,11 +126,11 @@ END
 FORM ID formRegistration  AT ( 2 85 156 70 )
 MODAL DEFAULTBTNID buttonOk
 BEGIN
-        TITLE "Registration"
-	LABEL "Enter your registration number:" AUTOID AT (5 20)
-	FIELD ID fieldSerialNumber   AT (5 PREVBOTTOM+5 146 AUTO) MAXCHARS 64 EDITABLE UNDERLINED 
-	BUTTON "Register" ID buttonRegister   AT (5 PREVBOTTOM+5 40 AUTO)
-	BUTTON "Cancel" ID buttonCancel  AT (PREVRIGHT+5 PREVTOP 40 AUTO)
+    TITLE "Registration"
+    LABEL "Enter your registration number:" AUTOID AT (5 20)
+    FIELD ID fieldRegCode   AT (5 PREVBOTTOM+5 146 AUTO) MAXCHARS 64 EDITABLE UNDERLINED 
+    BUTTON "Register" ID buttonRegister   AT (5 PREVBOTTOM+5 40 AUTO)
+    BUTTON "Cancel" ID buttonCancel  AT (PREVRIGHT+5 PREVTOP 40 AUTO)
 END
 
 ALERT alertMemError
@@ -167,6 +167,7 @@ BEGIN
     BUTTONS "OK"
 END
 
+/* Not used
 ALERT ID alertRegistrationSuccessful
     DEFAULTBUTTON 0
     INFORMATION
@@ -175,7 +176,9 @@ BEGIN
     MESSAGE "Registration was completed successfully."
     BUTTONS "OK"
 END
+*/
 
+/* Not used
 ALERT ID alertAlreadyRegistered
     DEFAULTBUTTON 0
     WARNING
@@ -184,7 +187,9 @@ BEGIN
     MESSAGE "You are already registered on this device with the same serial number."
     BUTTONS "OK"
 END
+*/
 
+/* Not used
 ALERT ID alertMultipleRegistration
     DEFAULTBUTTON 0
     ERROR
@@ -193,6 +198,7 @@ BEGIN
     MESSAGE "The serial number you entered is already registered on another device. To transfer your license visit www.arslexis.com."
     BUTTONS "OK"
 END
+*/
 
 ALERT ID alertUnableToInitializeNetLibrary
     DEFAULTBUTTON 0
@@ -267,6 +273,22 @@ BEGIN
     MESSAGE "Wireless Mode must be on until Radio has initialized and read " \
           "SIM card (up to 30-60 sec)."
     BUTTONS  "Cancel" "Check Again"
+END
+
+ALERT ID alertRegistrationFailed
+INFORMATION
+BEGIN
+    TITLE "Wrong registration code"
+    MESSAGE "Incorrect registration code. Contact support@arslexis.com in case of problems."
+    BUTTONS "OK" "Re-enter registration code"
+END
+
+ALERT ID alertRegistrationOk
+INFORMATION
+BEGIN
+    TITLE "Registration successful"
+    MESSAGE "Thank you for registaring iNoah."
+    BUTTONS "OK"
 END
 
 ICONFAMILYEX

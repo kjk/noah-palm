@@ -59,6 +59,8 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #define evtNewWordSelected       (firstUserEvent+2)
 #define evtNewDatabaseSelected   (firstUserEvent+3)
 #define evtShowMalformedAlert    (firstUserEvent+4)
+#define evtRegistrationFailed    (firstUserEvent+5)
+#define evtRegistrationOk        (firstUserEvent+6)
 
 // information about the area for displaying definitions:
 // start x, start y, number of lines (dy).
@@ -451,7 +453,7 @@ void CtlShowControlEx( FormType *frm, UInt16 objID);
 void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void SendNewWordSelected(void);
-void SendShowMalformedAlert(void);
+void SendEvtWithType(int eType);
 
 /* stores all the information about the stack of strings */
 typedef struct
@@ -556,7 +558,7 @@ DmOpenRef OpenDbByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator);
  */ 
 extern UInt16 PercentProgress(char* buffer, UInt32 current, UInt32 total);
 
-extern void SafeStrNCopy(char *dst, int dstLen, char *srcStr, int srcStrLen);
+extern void SafeStrNCopy(char *dst, int dstLen, const char *srcStr, int srcStrLen);
 
 #define MillisecondsToTicks(millis) ((((float)SysTicksPerSecond())*((float)(millis)))/1000.0)
 
@@ -648,6 +650,10 @@ Err  ErrWebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command,
 
 #ifdef THESAURUS
 void SavePreferencesThes(AppContext* appContext);
+#endif
+
+#ifdef I_NOAH
+void SavePreferencesInoah(AppContext* appContext);
 #endif
 
 void DumpStrToMemo(const char* begin, const char* end);

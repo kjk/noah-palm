@@ -77,11 +77,18 @@ function write_WORDLIST( $list )
     print "$list\n";
 }
 
-function report_wrong_registration_number()
+function report_registration_failed()
 {
-    print "WRONG_REGISTRATION_NUMBER\n";
+    print "REGISTRATION_FAILED\n";
     exit;
 }
+
+function report_registration_ok()
+{
+    print "REGISTRATION_OK\n";
+    exit;
+}
+
 
 function report_no_lookups_left()
 {
@@ -163,7 +170,7 @@ function f_reg_code_valid($reg_code)
 function check_reg_code($reg_code)
 {
     if ( ! f_reg_code_valid($reg_code) )
-        report_wrong_registration_number();
+        report_registration_failed();
 }
 
 # check if reg_code is valid. Return apropriate response to the client
@@ -171,9 +178,9 @@ function check_reg_code($reg_code)
 function serve_register($reg_code)
 {
     if ( f_reg_code_valid($reg_code) )
-        report_wrong_registration();
+        report_registration_ok();
     else
-        write_MSG("Registration successful. Enjoy iNoah.");
+        report_registration_failed();
     exit;
 }
 

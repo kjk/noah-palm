@@ -147,7 +147,7 @@ static void SetDisplayElementPrefs(PrefsStoreWriter *store, DisplayElementPrefs 
     Assert(!err);
 }
  
-static void SavePreferencesInoah(AppContext* appContext)
+void SavePreferencesInoah(AppContext* appContext)
 {
     AppPrefs *          prefs = &(appContext->prefs);
     PrefsStoreWriter    store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
