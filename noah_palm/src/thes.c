@@ -76,7 +76,7 @@ void *GetSerializedPreferencesThes(long *pBlobSize)
         serInt( gd.historyCount, prefsBlob, &blobSize );
         for (i=0; i<gd.historyCount; i++)
         {
-            serLong( gd.wordHistory[i], prefsBlob, &blobSize );
+            serString( gd.wordHistory[i], prefsBlob, &blobSize );
         }
         if ( 1 == phase )
         {
@@ -135,7 +135,7 @@ void DeserilizePreferencesThes(unsigned char *prefsBlob, long blobSize)
     gd.historyCount = deserInt( &prefsBlob, &blobSize );
     for (i=0; i<gd.historyCount; i++)
     {
-        gd.wordHistory[i] = deserLong( &prefsBlob, &blobSize );
+        gd.wordHistory[i] = deserString( &prefsBlob, &blobSize );
     }
 }
 
@@ -375,6 +375,7 @@ void StopThesaurus()
     DictCurrentFree();
     FreeDicts();
     FreeInfoData();
+    FreeHistory();
     FrmSaveAllForms();
     FrmCloseAllForms();
     FsDeinit();
@@ -520,6 +521,7 @@ Boolean MainFormHandleEventThes(EventType * event)
     AbstractFile *  fileToOpen;
     int             i;
     int             selectedDb;
+    char *          word;
 /*      RectangleType r; */
 /*      static     UInt16 start_x; */
 /*      static     UInt16 start_y; */
@@ -632,7 +634,8 @@ ChooseDatabase:
         switch (event->data.popSelect.listID)
         {
         case listHistory:
-            wordNo = gd.wordHistory[event->data.popSelect.selection];
+            word = gd.wordHistory[event->data.popSelect.selection];
+            wordNo = dictGetFirstMatching(word);
             if (wordNo != gd.currentWord)
             {
                 gd.currentWord = wordNo;

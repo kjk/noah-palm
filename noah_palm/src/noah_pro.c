@@ -25,7 +25,16 @@
 #include "simple_support.h"
 #endif
 
+#define PREF_REC_MIN_SIZE 4+5
+#define FONT_DY  11
+#define WORDS_IN_LIST 15
+
 char helpText[] = "Instructions:\n\255 to lookup a definition of a word \npress the find icon in the right \nlower corner and select the word \n\255 you can scroll the definition using \nhardware buttons, tapping on the \nscreen or using a scrollbar \n\255 left/right arrow moves to next \nor previous word\n";
+
+static char sa_txt[20];
+static char sdb_txt[10];
+static char but_txt[20];
+static char tap_txt[20];
 
 GlobalData gd;
 
@@ -105,14 +114,9 @@ void *GetSerializedPreferencesNoahPro(long *pBlobSize)
         serInt( gd.historyCount, prefsBlob, &blobSize );
 
         /* 7. all words in the history */
-        /* TODO: change those to strings instead of word numbers
-          (not valid when switching to a different database) */
         for (i=0; i<gd.historyCount; i++)
         {
-#if 0
-            serString()
-#endif
-            serLong( gd.wordHistory[i], prefsBlob, &blobSize );
+            serString(gd.wordHistory[i], prefsBlob, &blobSize);
         }
 
         if ( 1 == phase )
@@ -195,11 +199,9 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
     gd.historyCount = deserInt( &prefsBlob, &blobSize );
 
     /* 7. all words in the history */
-    /* TODO: change those to strings instead of word numbers
-       (not valid when switching to a different database) */
     for (i=0; i<gd.historyCount; i++)
     {
-        gd.wordHistory[i] = deserLong( &prefsBlob, &blobSize );
+        gd.wordHistory[i] = deserString( &prefsBlob, &blobSize );
     }
 }
 
@@ -288,8 +290,6 @@ CloseDbExit:
     new_free( prefsBlob );
 }
 
-#define PREF_REC_MIN_SIZE 4+5
-
 void LoadPreferencesNoahPro()
 {
     DmOpenRef    db;
@@ -315,7 +315,10 @@ void LoadPreferencesNoahPro()
         MemPtrUnlock(recData);
     }
     DmCloseDatabase(db);
-    gd.fFirstRun = !fRecFound;
+    if (fRecFound)
+        gd.fFirstRun = false;
+    else
+        gd.fFirstRun = true;
 }
 
 void DictFoundCBNoahPro( AbstractFile *file )
@@ -457,6 +460,7 @@ void StopNoahPro(void)
     DictCurrentFree();
     FreeDicts();
     FreeInfoData();
+    FreeHistory();
 
     if ( gd.prefs.fDelVfsCacheOnExit)
         dcDelCacheDb();
@@ -562,7 +566,6 @@ void DoWord(char *word)
     DrawDescription(wordNo);
 }
 
-#define FONT_DY  11
 /*
 Given a point on the screen calculate the bounds of the character that 
 this point belongs to and also line & position in the line of this character.
@@ -593,19 +596,6 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     return true;
 }
 
-
-#define WORDS_IN_LIST 15
-
-void FixWordHistory(void)
-{
-    int i;
-    for( i=0; i<gd.historyCount; i++)
-    {
-        if (gd.wordHistory[i]>=dictGetWordsCount())
-            gd.wordHistory[i] = 1;
-    }
-}
-
 Boolean MainFormHandleEventNoahPro(EventType * event)
 {
     static ExtensibleBuffer clipboard_buf = { 0 };
@@ -622,6 +612,7 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
     int             selectedDb;
     AbstractFile *  fileToOpen;
     char *          lastDbUsedName;
+    char *          word;
 
     frm = FrmGetActiveForm();
     switch (event->eType)
@@ -740,7 +731,6 @@ ChooseDatabase:
             {
                 DoWord( (char *)gd.prefs.lastWord );
             }
-            FixWordHistory();
             handled = true;
             break;
 
@@ -748,7 +738,8 @@ ChooseDatabase:
             switch (event->data.popSelect.listID)
             {
                 case listHistory:
-                    wordNo = gd.wordHistory[event->data.popSelect.selection];
+                    word = gd.wordHistory[event->data.popSelect.selection];
+                    wordNo = dictGetFirstMatching(word);
                     if (wordNo != gd.currentWord)
                     {
                         Assert(wordNo < gd.wordsCount);
@@ -880,7 +871,6 @@ ChooseDatabase:
                 DoWord( (char *)gd.prefs.lastWord );
             }
 
-            FixWordHistory();
             if (gd.historyCount > 0)
             {
                 CtlShowControlEx(frm, popupHistory);
@@ -1278,11 +1268,6 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
     }
     return false;
 }
-
-static char sa_txt[20];
-static char sdb_txt[10];
-static char but_txt[20];
-static char tap_txt[20];
 
 void PrefsToGUI(FormType * frm)
 {

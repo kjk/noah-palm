@@ -81,7 +81,7 @@ typedef struct
     Boolean            prefsPresentP;
     char               lastWord[WORD_MAX_LEN];
     int                historyCount;
-    long               wordHistory[HISTORY_ITEMS];
+    char *             wordHistory[HISTORY_ITEMS];
     NoahPrefs          prefs;
     Boolean            fFirstRun; /* is this first run or not */
     long               ticksEventTimeout;

@@ -133,6 +133,7 @@ void stress(long step);
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void strtolower(char *txt);
 void AddToHistory(UInt32 wordNo);
+void FreeHistory(void);
 void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, char *txtBuf);
 #endif
 
@@ -231,8 +232,9 @@ void            serString  (char *str, char *prefsBlob, long *pCurrBlobSize);
 char *          deserString(unsigned char **data, long *pCurrBlobSize);
 void            deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize);
 
-void RememberLastWord(FormType * frm);
-void DoFieldChanged(void);
-void SendFieldChanged(void);
+void            RememberLastWord(FormType * frm);
+void            DoFieldChanged(void);
+void            SendFieldChanged(void);
+char *          StrDup(char *s);
 
 #endif

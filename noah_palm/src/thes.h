@@ -77,7 +77,7 @@ typedef struct
     long               selectedWord;
     char               lastWord[WORD_MAX_LEN];
     int                historyCount;
-    long               wordHistory[HISTORY_ITEMS];
+    char *             wordHistory[HISTORY_ITEMS];
     ThesPrefs          prefs;
     Boolean            fFirstRun; /* is this first run or not */
     long               ticksEventTimeout;
