@@ -1196,8 +1196,8 @@ void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Boolean     truncatedP = false;
     long        realItemNo;
 
-    if ( gd.fListDisabled )
-        return;
+    //if ( gd.fListDisabled )
+    //    return;
     Assert(itemNum >= 0);
     realItemNo = gd.listItemOffset + itemNum;
     Assert((realItemNo >= 0) && (realItemNo < gd.wordsCount));
@@ -1535,5 +1535,65 @@ void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrB
     Assert( 0 == (*data)[strLen-1] );
     Assert( bufSize >= strLen );
     deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
+}
+
+void SetWordAsLastWord( char *txt, int wordLen )
+{
+    MemSet((void *) &(gd.lastWord[0]), WORD_MAX_LEN, 0);
+    if ( -1 == wordLen )
+        wordLen = StrLen( txt );
+    if (wordLen >= (WORD_MAX_LEN - 1))
+        wordLen = WORD_MAX_LEN - 1;
+    MemMove((void *) &(gd.lastWord[0]), txt, wordLen);
+}
+
+void RememberLastWord(FormType * frm)
+{
+    char *      word = NULL;
+    int         wordLen;
+    FieldType * fld;
+
+    Assert(frm);
+
+    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
+    word = FldGetTextPtr(fld);
+    wordLen = FldGetTextLength(fld);
+    SetWordAsLastWord( word, wordLen );
+    FldDelete(fld, 0, wordLen - 1);
+}
+
+void DoFieldChanged(void)
+{
+    char        *word;
+    FormPtr     frm;
+    FieldPtr    fld;
+    ListPtr     list;
+    long        newSelectedWord;
+
+    frm = FrmGetActiveForm();
+    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
+    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
+    word = FldGetTextPtr(fld);
+    /* DrawWord( word, 149 ); */
+    //gd.fListDisabled = false;
+    newSelectedWord = 0;
+    if (word && *word)
+    {
+        newSelectedWord = dictGetFirstMatching(word);
+    }
+    if (gd.selectedWord != newSelectedWord)
+    {
+        gd.selectedWord = newSelectedWord;
+        Assert(gd.selectedWord < gd.wordsCount);
+        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
+    }
+}
+
+void SendFieldChanged(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum)evtFieldChanged;
+    EvtAddEventToQueue(&newEvent);
 }
 

@@ -231,4 +231,8 @@ void            serString  (char *str, char *prefsBlob, long *pCurrBlobSize);
 char *          deserString(unsigned char **data, long *pCurrBlobSize);
 void            deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize);
 
+void RememberLastWord(FormType * frm);
+void DoFieldChanged(void);
+void SendFieldChanged(void);
+
 #endif

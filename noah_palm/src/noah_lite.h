@@ -39,6 +39,7 @@ typedef struct
     int                 penUpsToConsume;
     long                prevSelectedWord;
     long                selectedWord;
+    char                lastWord[WORD_MAX_LEN];
 } GlobalData;
 
 #endif

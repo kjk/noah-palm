@@ -206,226 +206,234 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
 
     switch (event->eType)
     {
-    case frmUpdateEvent:
-        LogG( "mainFrm - frmUpdateEvent" );
-        RedrawMainScreen();
-        handled = true;
-        break;
-    case frmOpenEvent:
-        frm = FrmGetActiveForm();
-        FrmDrawForm(frm);
-        WinDrawLine(0, 145, 160, 145);
-        WinDrawLine(0, 144, 160, 144);
+        case frmUpdateEvent:
+            LogG( "mainFrm - frmUpdateEvent" );
+            RedrawMainScreen();
+            handled = true;
+            break;
+        case frmOpenEvent:
+            frm = FrmGetActiveForm();
+            FrmDrawForm(frm);
+            WinDrawLine(0, 145, 160, 145);
+            WinDrawLine(0, 144, 160, 144);
 
-        ScanForDictsNoahLite();
-        if ( 0 == gd.dictsCount )
-        {
-NoDatabaseFound:
-            FrmAlert(alertNoDB);
-ExitProgram:
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = appStopEvent;
-            EvtAddEventToQueue(&newEvent);
-            return true;
-        }
-
-        dbsInInternalMemory = 0;
-        dbsOnExternalCard = 0;
-        for (i=0; i<gd.dictsCount; i++)
-        {
-            if ( eFS_MEM == gd.dicts[i]->fsType )
+            ScanForDictsNoahLite();
+            if ( 0 == gd.dictsCount )
             {
-                ++dbsInInternalMemory;
+    NoDatabaseFound:
+                FrmAlert(alertNoDB);
+    ExitProgram:
+                MemSet(&newEvent, sizeof(EventType), 0);
+                newEvent.eType = appStopEvent;
+                EvtAddEventToQueue(&newEvent);
+                return true;
+            }
+
+            dbsInInternalMemory = 0;
+            dbsOnExternalCard = 0;
+            for (i=0; i<gd.dictsCount; i++)
+            {
+                if ( eFS_MEM == gd.dicts[i]->fsType )
+                {
+                    ++dbsInInternalMemory;
+                }
+                else
+                {
+                    Assert( eFS_VFS == gd.dicts[i]->fsType );
+                    ++dbsOnExternalCard;
+                }
+            }
+            if (0==dbsInInternalMemory)
+            {
+                Assert( dbsOnExternalCard > 0 );
+                Assert( dbsOnExternalCard + dbsInInternalMemory == gd.dictsCount );
+                FrmAlert(alertNoInternalDB);
+                goto ExitProgram;
+            }
+
+            // TODO: select database if > 1 (but we want to only allow one anyway)
+            fileToOpen = NULL;
+            i = 0;
+            while ( (i<gd.dictsCount) && (fileToOpen == NULL) )
+            {
+                if ( eFS_MEM == gd.dicts[i]->fsType )
+                    fileToOpen = gd.dicts[i];
+                ++i;
+            }
+
+            Assert( NULL != fileToOpen );
+            if ( NULL == fileToOpen )
+                goto NoDatabaseFound;
+
+            if ( !DictInit(fileToOpen) )
+            {
+                FrmAlert(alertDbFailed);
+                goto ExitProgram;
+            }
+
+            DisplayAboutNoahLite();
+#if 0
+            /* start the timer, so we'll switch to info
+               text after a few seconds */
+            gd.start_seconds_count = TimGetSeconds();
+            gd.current_timeout = 50;
+#endif
+            handled = true;
+            break;
+
+        case ctlSelectEvent:
+            switch (event->data.ctlSelect.controlID)
+            {
+                case ctlArrowLeft:
+                    if (gd.currentWord > 0)
+                        DrawDescription(gd.currentWord - 1);
+                    break;
+                case ctlArrowRight:
+                    if (gd.currentWord < gd.wordsCount - 1)
+                        DrawDescription(gd.currentWord + 1);
+                    break;
+                case buttonFind:
+                    FrmPopupForm(formDictFind);
+                    break;
+                default:
+                    Assert(0);
+                    break;
+            }
+            handled = true;
+            break;
+
+        case evtNewWordSelected:
+            DrawDescription(gd.currentWord);
+            gd.penUpsToConsume = 1;
+            handled = true;
+            break;
+
+        case evtNewDatabaseSelected:
+            DisplayAboutNoahLite();
+            /* start the timer, so we'll switch to info
+               text after a few seconds */
+    /*      gd.start_seconds_count = TimGetSeconds();
+          gd.current_timeout = 50; */
+            handled = true;
+            break;
+
+        case keyDownEvent:
+            if (pageUpChr == event->data.keyDown.chr)
+            {
+                DefScrollUp( scrollLine );
+            }
+            else if (pageDownChr == event->data.keyDown.chr)
+            {
+                DefScrollDown( scrollLine );
+            }
+            else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
+                     || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
+                     || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
+            {
+                gd.lastWord[0] = event->data.keyDown.chr;
+                gd.lastWord[1] = 0;
+                FrmPopupForm(formDictFind);
+            }        
+            handled = true;
+            break;
+
+        case sclExitEvent:
+            newValue = event->data.sclRepeat.newValue;
+            if (newValue != gd.firstDispLine)
+            {
+                ClearDisplayRectangle();
+                gd.firstDispLine = newValue;
+                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+            }
+            handled = true;
+            break;
+
+        case penUpEvent:
+            if (0 != gd.penUpsToConsume > 0)
+            {
+                --gd.penUpsToConsume;
+                handled = true;
+                break;
+            }
+            if ((NULL == gd.currDispInfo) ||
+                (event->screenX > 150) || (event->screenY < 14))
+            {
+                handled = true;
+                break;
+            }
+
+            if (event->screenY > 87)
+            {
+                DefScrollDown( scrollLine );
             }
             else
             {
-                Assert( eFS_VFS == gd.dicts[i]->fsType );
-                ++dbsOnExternalCard;
+                DefScrollUp( scrollLine );
             }
-        }
-        if (0==dbsInInternalMemory)
-        {
-            Assert( dbsOnExternalCard > 0 );
-            Assert( dbsOnExternalCard + dbsInInternalMemory == gd.dictsCount );
-            FrmAlert(alertNoInternalDB);
-            goto ExitProgram;
-        }
-
-        // TODO: select database if > 1 (but we want to only allow one anyway)
-        fileToOpen = NULL;
-        i = 0;
-        while ( (i<gd.dictsCount) && (fileToOpen == NULL) )
-        {
-            if ( eFS_MEM == gd.dicts[i]->fsType )
-                fileToOpen = gd.dicts[i];
-            ++i;
-        }
-
-        Assert( NULL != fileToOpen );
-        if ( NULL == fileToOpen )
-            goto NoDatabaseFound;
-
-        if ( !DictInit(fileToOpen) )
-        {
-            FrmAlert(alertDbFailed);
-            goto ExitProgram;
-        }
-
-        DisplayAboutNoahLite();
-#if 0
-        /* start the timer, so we'll switch to info
-           text after a few seconds */
-        gd.start_seconds_count = TimGetSeconds();
-        gd.current_timeout = 50;
-#endif
-        handled = true;
-        break;
-
-    case ctlSelectEvent:
-        switch (event->data.ctlSelect.controlID)
-        {
-        case ctlArrowLeft:
-            if (gd.currentWord > 0)
-                DrawDescription(gd.currentWord - 1);
-            break;
-        case ctlArrowRight:
-            if (gd.currentWord < gd.wordsCount - 1)
-                DrawDescription(gd.currentWord + 1);
-            break;
-        case buttonFind:
-            FrmPopupForm(formDictFind);
-            break;
-        default:
-            Assert(0);
-            break;
-        }
-        handled = true;
-        break;
-
-    case evtNewWordSelected:
-        DrawDescription(gd.currentWord);
-        gd.penUpsToConsume = 1;
-        handled = true;
-        break;
-
-    case evtNewDatabaseSelected:
-        DisplayAboutNoahLite();
-        /* start the timer, so we'll switch to info
-           text after a few seconds */
-/*      gd.start_seconds_count = TimGetSeconds();
-      gd.current_timeout = 50; */
-        handled = true;
-        break;
-
-    case keyDownEvent:
-        if (11 == event->data.keyDown.chr)
-        {
-            DefScrollUp( scrollLine );
-        }
-        else if (12 == event->data.keyDown.chr)
-        {
-            DefScrollDown( scrollLine );
-        }
-        handled = true;
-        break;
-
-    case sclExitEvent:
-        newValue = event->data.sclRepeat.newValue;
-        if (newValue != gd.firstDispLine)
-        {
-            ClearDisplayRectangle();
-            gd.firstDispLine = newValue;
-            DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
-        }
-        handled = true;
-        break;
-
-    case penUpEvent:
-        if (0 != gd.penUpsToConsume > 0)
-        {
-            --gd.penUpsToConsume;
             handled = true;
             break;
-        }
-        if ((NULL == gd.currDispInfo) ||
-            (event->screenX > 150) || (event->screenY < 14))
-        {
-            handled = true;
-            break;
-        }
-
-        if (event->screenY > 87)
-        {
-            DefScrollDown( scrollLine );
-        }
-        else
-        {
-            DefScrollUp( scrollLine );
-        }
-        handled = true;
-        break;
-    case menuEvent:
-        switch (event->data.menu.itemID)
-        {
-        case menuItemFind:
-            FrmPopupForm(formDictFind);
-            break;
-        case menuItemAbout:
-            if (NULL != gd.currDispInfo)
+        case menuEvent:
+            switch (event->data.menu.itemID)
             {
-                diFree(gd.currDispInfo);
-                gd.currDispInfo = NULL;
-                gd.currentWord = 0;
-            }
-            DisplayAboutNoahLite();
-            break;
+                case menuItemFind:
+                    FrmPopupForm(formDictFind);
+                    break;
+                case menuItemAbout:
+                    if (NULL != gd.currDispInfo)
+                    {
+                        diFree(gd.currDispInfo);
+                        gd.currDispInfo = NULL;
+                        gd.currentWord = 0;
+                    }
+                    DisplayAboutNoahLite();
+                    break;
 #ifdef DEBUG
-        case menuItemStress:
-            stress(20);
-            break;
+                case menuItemStress:
+                    stress(20);
+                    break;
 #endif
-        case menuItemHelp:
-            DisplayHelp();
-            break;
-#if 0
-        case menuItemSelectDB:
-            FrmPopupForm(formSelectDict);
-            break;
-#endif
-        default:
-            Assert(0);
-            break;
-        }
-        handled = true;
-        break;
-#ifdef NEVER
-    case nilEvent:
-        if (-1 != gd.start_seconds_count)
-        {
-            /* we're still displaying About info, check
-               if it's time to switch to info */
-            Assert(gd.start_seconds_count <= TimGetSeconds());
-            if (NULL == gd.currDispInfo)
-            {
-                if (TimGetSeconds() - gd.start_seconds_count > 5)
-                {
+                case menuItemHelp:
                     DisplayHelp();
-                    /* we don't nid evtNil events anymore */
+                    break;
+#if 0
+                case menuItemSelectDB:
+                    FrmPopupForm(formSelectDict);
+                    break;
+#endif
+                default:
+                    Assert(0);
+                    break;
+            }
+            handled = true;
+            break;
+#ifdef NEVER
+        case nilEvent:
+            if (-1 != gd.start_seconds_count)
+            {
+                /* we're still displaying About info, check
+                   if it's time to switch to info */
+                Assert(gd.start_seconds_count <= TimGetSeconds());
+                if (NULL == gd.currDispInfo)
+                {
+                    if (TimGetSeconds() - gd.start_seconds_count > 5)
+                    {
+                        DisplayHelp();
+                        /* we don't nid evtNil events anymore */
+                        gd.start_seconds_count = -1;
+                        gd.current_timeout = -1;
+                    }
+                }
+                else
+                {
                     gd.start_seconds_count = -1;
                     gd.current_timeout = -1;
                 }
             }
-            else
-            {
-                gd.start_seconds_count = -1;
-                gd.current_timeout = -1;
-            }
-        }
-        handled = true;
-        break;
+            handled = true;
+            break;
 #endif
-    default:
-        break;
+        default:
+            break;
     }
     return handled;
 }
@@ -434,118 +442,131 @@ ExitProgram:
 
 Boolean FindFormHandleEventNoahLite(EventType * event)
 {
-    Boolean handled = false;
-    char *word;
-    FormPtr frm;
-    FieldPtr fld;
-    ListPtr list;
-    EventType newEvent;
+    Boolean     handled = false;
+    char *      word;
+    FormPtr     frm;
+    FieldPtr    fld;
+    ListPtr     list;
 
     switch (event->eType)
     {
-    case frmOpenEvent:
-        frm = FrmGetActiveForm();
-        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-        gd.prevSelectedWord = 0xffffffff;
-        LstSetListChoicesEx(list, NULL, dictGetWordsCount());
-        LstSetDrawFunction(list, ListDrawFunc);
-        Assert(gd.selectedWord < gd.wordsCount);
-        gd.selectedWord = 0;
-        LstSetSelectionEx(list, 0);
-        gd.prevTopItem = 0;
-        FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
-        FrmDrawForm(frm);
-        handled = true;
-        break;
-
-    case lstSelectEvent:
-        /* set the selected word as current word */
-        gd.currentWord = gd.listItemOffset + (long) event->data.lstSelect.selection;
-        /* send a msg to yourself telling that a new word
-           have been selected so we need to draw the
-           description */
-        Assert(gd.currentWord < gd.wordsCount);
-        SendNewWordSelected();
-        handled = true;
-        FrmReturnToForm(0);
-        break;
-
-    case keyDownEvent:
-        /* kind of ugly trick: there is no event that says, that
-           text field has changed, so I generate this event myself
-           every time I get keyDownEvent (since I assume, that it
-           comes when field has focus). To be more correct I should
-           store the old content of field and compare it with a new
-           content and do stuff only when they differ */
-        switch (event->data.keyDown.chr)
-        {
-        case returnChr:
-        case linefeedChr:
-            gd.currentWord = gd.selectedWord;
-            Assert(gd.currentWord < gd.wordsCount);
-            SendNewWordSelected();
-            FrmReturnToForm(0);
-            return true;
-            break;
-        case pageUpChr:
+        case frmOpenEvent:
             frm = FrmGetActiveForm();
-            fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
+            fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-            if (gd.selectedWord > WORDS_IN_LIST)
+            gd.prevSelectedWord = 0xffffffff;
+            LstSetListChoicesEx(list, NULL, dictGetWordsCount());
+            LstSetDrawFunction(list, ListDrawFunc);
+            gd.prevTopItem = 0;
+            gd.selectedWord = 0;
+            word = &(gd.lastWord[0]);
+            /* force updating the field */
+            if (0 == StrLen(word))
             {
-                gd.selectedWord -= WORDS_IN_LIST;
-                LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
-                return true;
+                // no word so focus on first word
+                LstSetSelectionEx(list, gd.selectedWord);
             }
-            break;
-        case pageDownChr:
-            frm = FrmGetActiveForm();
-            fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
-            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listMatching));
-            if (gd.selectedWord + WORDS_IN_LIST < gd.wordsCount)
+            else
             {
-                gd.selectedWord += WORDS_IN_LIST;
-                LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
-                return true;
+                FldInsert(fld, word, StrLen(word));
+                SendFieldChanged();
             }
-            break;
-        default:
-            break;
-        }
-        MemSet(&newEvent, sizeof(EventType), 0);
-        newEvent.eType = evtFieldChanged;
-        EvtAddEventToQueue(&newEvent);
-        handled = false;
-        break;
-
-    case evtFieldChanged:
-        frm = FrmGetActiveForm();
-        fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
-        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-        word = FldGetTextPtr(fld);
-        gd.selectedWord = 0;
-        if (word && *word)
-        {
-            gd.selectedWord = dictGetFirstMatching(word);
-        }
-        Assert(gd.selectedWord < gd.wordsCount);
-        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
-        handled = true;
-        break;
-    case ctlSelectEvent:
-        switch (event->data.ctlSelect.controlID)
-        {
-        case buttonCancel:
-            FrmReturnToForm(0);
+            FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
+            FrmDrawForm(frm);
             handled = true;
             break;
-        default:
-            Assert(0);
+
+        case lstSelectEvent:
+            /* copy word from text field to a buffer, so next time we
+               come back here, we'll come back to the same place */
+            RememberLastWord(FrmGetActiveForm());
+            /* set the selected word as current word */
+            gd.currentWord = gd.listItemOffset + (long) event->data.lstSelect.selection;
+            /* send a msg to yourself telling that a new word
+               have been selected so we need to draw the
+               description */
+            Assert(gd.currentWord < gd.wordsCount);
+            SendNewWordSelected();
+            handled = true;
+            FrmReturnToForm(0);
             break;
-        }
-        break;
-    default:
-        break;
+
+        case keyDownEvent:
+            /* kind of ugly trick: there is no event that says, that
+               text field has changed, so I generate this event myself
+               every time I get keyDownEvent (since I assume, that it
+               comes when field has focus). To be more correct I should
+               store the old content of field and compare it with a new
+               content and do stuff only when they differ */
+            switch (event->data.keyDown.chr)
+            {
+                case returnChr:
+                case linefeedChr:
+                    RememberLastWord(FrmGetActiveForm());
+                    gd.currentWord = gd.selectedWord;
+                    Assert(gd.currentWord < gd.wordsCount);
+                    SendNewWordSelected();
+                    FrmReturnToForm(0);
+                    return true;
+                case pageUpChr:
+                    frm = FrmGetActiveForm();
+                    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
+                    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
+                    if (gd.selectedWord > WORDS_IN_LIST)
+                    {
+                        gd.selectedWord -= WORDS_IN_LIST;
+                        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
+                        return true;
+                    }
+                    break;
+                case pageDownChr:
+                    frm = FrmGetActiveForm();
+                    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
+                    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listMatching));
+                    if (gd.selectedWord + WORDS_IN_LIST < gd.wordsCount)
+                    {
+                        gd.selectedWord += WORDS_IN_LIST;
+                        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
+                        return true;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            SendFieldChanged();
+            handled = false;
+            break;
+
+        case evtFieldChanged:
+            DoFieldChanged();
+    /*        frm = FrmGetActiveForm();
+            fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
+            word = FldGetTextPtr(fld);
+            gd.selectedWord = 0;
+            if (word && *word)
+            {
+                gd.selectedWord = dictGetFirstMatching(word);
+            }
+            Assert(gd.selectedWord < gd.wordsCount);
+            LstSetSelectionMakeVisibleEx(list, gd.selectedWord);*/
+            handled = true;
+            break;
+        case ctlSelectEvent:
+            switch (event->data.ctlSelect.controlID)
+            {
+                case buttonCancel:
+                    RememberLastWord(FrmGetActiveForm());
+                    handled = true;
+                    FrmReturnToForm(0);
+                    break;
+                default:
+                    Assert(0);
+                    break;
+            }
+            break;
+        default:
+            break;
     }
     return handled;
 }
@@ -560,54 +581,54 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
 
     switch (event->eType)
     {
-    case frmOpenEvent:
-        frm = FrmGetActiveForm();
-        list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listOfDicts));
-        LstSetDrawFunction(list, ListDbDrawFunc);
-        LstSetListChoices(list, NULL, gd.dictsCount);
-        LstSetSelection(list, selectedDb);
-        LstMakeItemVisible(list, selectedDb);
-        if (-1 == gd.currentDb)
-        {
-            FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
-        }
-        else
-        {
-            FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
-        }
-        FrmDrawForm(frm);
-        return true;
-        break;
-
-    case lstSelectEvent:
-        selectedDb = event->data.lstSelect.selection;
-        return true;
-        break;
-
-    case ctlSelectEvent:
-        switch (event->data.ctlSelect.controlID)
-        {
-        case buttonSelect:
-            if (gd.currentDb != selectedDb)
-            {
-                if (-1 != gd.currentDb)
-                    DictCurrentFree();
-                DictInit(selectedDb);
-            }
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
-            EvtAddEventToQueue(&newEvent);
-            FrmReturnToForm(0);
-            return true;
-        case buttonCancel:
+        case frmOpenEvent:
+            frm = FrmGetActiveForm();
+            list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listOfDicts));
+            LstSetDrawFunction(list, ListDbDrawFunc);
+            LstSetListChoices(list, NULL, gd.dictsCount);
+            LstSetSelection(list, selectedDb);
+            LstMakeItemVisible(list, selectedDb);
             if (-1 == gd.currentDb)
-                Assert(0);
-            FrmReturnToForm(0);
+            {
+                FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
+            }
+            else
+            {
+                FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
+            }
+            FrmDrawForm(frm);
             return true;
-        }
-        break;
-    default:
-        break;
+            break;
+
+        case lstSelectEvent:
+            selectedDb = event->data.lstSelect.selection;
+            return true;
+            break;
+
+        case ctlSelectEvent:
+            switch (event->data.ctlSelect.controlID)
+            {
+                case buttonSelect:
+                    if (gd.currentDb != selectedDb)
+                    {
+                        if (-1 != gd.currentDb)
+                            DictCurrentFree();
+                        DictInit(selectedDb);
+                    }
+                    MemSet(&newEvent, sizeof(EventType), 0);
+                    newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
+                    EvtAddEventToQueue(&newEvent);
+                    FrmReturnToForm(0);
+                    return true;
+                case buttonCancel:
+                    if (-1 == gd.currentDb)
+                        Assert(0);
+                    FrmReturnToForm(0);
+                    return true;
+            }
+            break;
+        default:
+            break;
     }
     return false;
 }
@@ -627,20 +648,20 @@ Boolean HandleEventNoahLite(EventType * event)
 
         switch (formId)
         {
-        case formDictMain:
-            FrmSetEventHandler(frm, MainFormHandleEventNoahLite);
-            break;
-        case formDictFind:
-            FrmSetEventHandler(frm, FindFormHandleEventNoahLite);
-            break;
+            case formDictMain:
+                FrmSetEventHandler(frm, MainFormHandleEventNoahLite);
+                break;
+            case formDictFind:
+                FrmSetEventHandler(frm, FindFormHandleEventNoahLite);
+                break;
 #if 0
-        case formSelectDict:
-            FrmSetEventHandler(frm, SelectDictFormHandleEventNoahLite);
-            break;
+            case formSelectDict:
+                FrmSetEventHandler(frm, SelectDictFormHandleEventNoahLite);
+                break;
 #endif
-        default:
-            Assert(0);
-            break;
+            default:
+                Assert(0);
+                break;
         }
         handled = true;
     }
@@ -651,6 +672,10 @@ void EventLoopNoahLite(void)
 {
     EventType event;
     Word error;
+
+#ifdef DEBUG
+    event.eType = (eventsEnum) 0;
+#endif
 
     event.eType = (eventsEnum) 0;
     while (event.eType != appStopEvent)
@@ -672,16 +697,16 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     Err err;
     switch (cmd)
     {
-    case sysAppLaunchCmdNormalLaunch:
-        err = InitNoahLite();
-        if (err)
-            return err;
-        FrmGotoForm(formDictMain);
-        EventLoopNoahLite();
-        StopNoahLite();
-        break;
-    default:
-        break;
+        case sysAppLaunchCmdNormalLaunch:
+            err = InitNoahLite();
+            if (err)
+                return err;
+            FrmGotoForm(formDictMain);
+            EventLoopNoahLite();
+            StopNoahLite();
+            break;
+        default:
+            break;
     }
     return 0;
 }
