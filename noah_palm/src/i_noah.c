@@ -7,9 +7,9 @@
 #include "five_way_nav.h"
 #include "main_form.h"
 
-#ifdef DEBUG
 #include "inet_word_lookup.h"
 
+#ifdef DEBUG
 // This is a full HTTP response we get on device when asking for word "glib"
 #pragma warn_a5_access off
 unsigned char deviceGlibResponse[] = "HTTP/1.0 200 OK\xd" "\xa" "Date: Thu, 25 Dec 2003 10:44:23 GMT\xd" "\xa" "Server: Apache/1.3.22 (Unix)  (Red-Hat/Linux) mod_ssl/2.8.4 OpenSSL/0.9.6b DAV/1.0.2 PHP/4.1.2 mod_perl/1.24_01\xd" "\xa" "X-Powered-By: PHP/4.1.2\xd" "\xa" "Content-Type: text/html\xd" "\xa" "Connection: close\xd" "\xa" "\xd" "\xa" "!glib\xd" "\xa" "!glib-tongued\xd" "\xa" "!smooth-tongued\xd" "\xa" "$s\xd" "\xa" "@artfully persuasive in speech\xd" "\xa" "#a glib tongue\xd" "\xa" "#a smooth-tongued hypocrite\xd" "\xa" "!glib\xd" "\xa" "!pat\xd" "\xa" "!slick\xd" "\xa" "$s\xd" "\xa" "@having only superficial plausibility\xd" "\xa" "#glib promises\xd" "\xa" "#a slick commercial\xd" "\xa" "!glib\xd" "\xa" "$s\xd" "\xa" "@marked by lack of intellectual depth\xd" "\xa" "#glib generalizations\xd" "\xa" "#a glib response to a complex question\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\xd" "\xa" "\x0";
