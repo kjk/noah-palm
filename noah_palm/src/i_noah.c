@@ -48,6 +48,11 @@ static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelo
 #define depPosList_id           0x70
 #define depPron_id              0x80
 
+#define historyCount_id         0x100
+#define historyFirstWord_id     0x101
+
+#define firstFreeAfterHistory_id 0x200 // use this for storing stuff after history
+
 static bool fValidFont(int id)
 {
     switch (id)
@@ -159,6 +164,19 @@ static void LoadPreferencesInoah(AppContext* appContext)
     GetDisplayElementPrefs(&store, &dp->defList, depDefList_id);
     GetDisplayElementPrefs(&store, &dp->posList, depPosList_id);
     GetDisplayElementPrefs(&store, &dp->pronunciation, depPron_id);
+
+    appContext->historyCount = 0;
+    int historyCount = 0;
+
+    err = store.ErrGetInt(historyCount_id, &historyCount);
+    for (int i=0; i<historyCount; i++)
+    {
+        err = store.ErrGetStr(historyCount_id+1+i, &tmpStr);
+        if (errNone==err)
+        {
+            AddWordToHistory(appContext,tmpStr);
+        }
+    }
 }
 
 // devnote: uniqueIdStart is the first unique id for storing given DisplayElementPrefs
@@ -219,6 +237,14 @@ void SavePreferencesInoah(AppContext* appContext)
     SetDisplayElementPrefs(&store, &dp->posList, depPosList_id);
     SetDisplayElementPrefs(&store, &dp->pronunciation, depPron_id);
 
+    err = store.ErrSetInt(historyCount_id, appContext->historyCount);
+    Assert(!err);
+
+    for (int i=0; i<appContext->historyCount; i++)
+    {
+        err = store.ErrSetStr(historyCount_id+1+i, (char*)appContext->wordHistory[i]);
+        Assert(!err);
+    }
     err = store.ErrSavePreferences();
     Assert(!err);
 
@@ -479,8 +505,11 @@ static Err AppLaunch()
     AppEventLoop(appContext);
     AppDispose(appContext);
 OnError: 
-    if (appContext) 
+    if (appContext)
+    {
+        FreeHistory(appContext);
         MemPtrFree(appContext);
+    }
     return error;
 }
 

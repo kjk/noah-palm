@@ -8,4 +8,5 @@ extern const UInt16 lookupStatusBarHeight;
 extern Err MainFormLoad(AppContext* appContext);
 extern void MainFormPressFindButton(const FormType* form);
 
+extern void UpdateHistoryButtons(AppContext *appContext);
 #endif

@@ -1,5 +1,9 @@
 iNoah
 * add prev/next button and menu item, like in iPedia. Release as v 1.1.
+  still to do: 
+  - cache the text of words locally during a session (or maybe even across sessions)
+  - show the history in a list or pop-up, as in Noah Pro (e.g. "Show history"
+  menu item in "Go" menu)
 * resident mode
 * display pronunciation
 * add spell-checking on the server

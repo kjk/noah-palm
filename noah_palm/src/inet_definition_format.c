@@ -1,5 +1,5 @@
 #include "inet_definition_format.h"
-#include "blowfish.h"
+#include "main_form.h"
 
 #define wordsListResponse       "WORDLIST\n"
 #define wordsListResponseLen    sizeof(wordsListResponse)-1
@@ -250,44 +250,6 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
         }
     }
     return error;
-}
-
-static void UpdateHistoryButtons(AppContext *appContext)
-{
-
-    UInt16  index;
-    void*   object;
-
-    FormType *form = FrmGetActiveForm();
-    index = FrmGetObjectIndex(form, backButton);
-    Assert(frmInvalidObjectId!=index);
-    object = FrmGetObjectPtr(form, index);
-
-    if (FHistoryCanGoBack(appContext))
-    {
-        CtlSetEnabled((ControlType*)object, true);
-        CtlSetGraphics((ControlType*)object, backBitmap, NULL);
-    }
-    else
-    {
-        CtlSetEnabled((ControlType*)object, false);
-        CtlSetGraphics((ControlType*)object, backDisabledBitmap, NULL);
-    }
-
-    index = FrmGetObjectIndex(form, forwardButton);
-    Assert(frmInvalidObjectId!=index);
-    object = FrmGetObjectPtr(form, index);
-
-    if (FHistoryCanGoForward(appContext))
-    {
-        CtlSetEnabled((ControlType*)object, true);
-        CtlSetGraphics((ControlType*)object, forwardBitmap, NULL);
-    }
-    else
-    {
-        CtlSetEnabled((ControlType*)object, false);
-        CtlSetGraphics((ControlType*)object, forwardDisabledBitmap, NULL);
-    }
 }
 
 Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
