@@ -234,6 +234,10 @@ void diCopyToClipboard(DisplayInfo *di)
     char *           defTxt;
     int              defTxtLen;
 
+    //if sth. is selected we will copy it instead of whole definition
+    if(cbCopyToClippboard(GetAppContext()))
+        return;
+
     Assert( di );
     ebufInit(&clipboardBuf,256);
     linesCount = diGetLinesCount(di);
@@ -243,6 +247,9 @@ void diCopyToClipboard(DisplayInfo *di)
         ebufAddStr(&clipboardBuf, defTxt);
         ebufAddChar(&clipboardBuf, '\n');
     }
+    //remove all display formating tags
+    bfStripBufferFromTags(&clipboardBuf);
+    
     defTxt = ebufGetDataPointer(&clipboardBuf);
     defTxtLen = StrLen(defTxt);
     ClipboardAddItem(clipboardText, defTxt, defTxtLen);

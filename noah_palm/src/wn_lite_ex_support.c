@@ -315,6 +315,7 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     unsigned char   *unpackedDef = NULL;
     numIter         ni;
     AppContext      *appContext = GetAppContext();
+    int             stopFlagSynonym;
 
     wi = (WnLiteInfo *) data;
 
@@ -411,34 +412,97 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         ++defData;
         --defDataSize;
 
-        /*TODO: remove word from list of synonyms!!!*/
-        ebufAddChar(&wi->buffer, FORMAT_TAG);
-        ebufAddChar(&wi->buffer, FORMAT_WORD);
-
-        /* read all words */
-        do
+        if(!FormatWantsWord(appContext))
         {
+            ebufAddChar(&wi->buffer, FORMAT_TAG);
+            ebufAddChar(&wi->buffer, FORMAT_WORD);
+            /* read all words */
+            do
+            {
+                thisWordNo = get_24bit_number(defData, &lastWordP);
+                defData += 3;
+                defDataSize -= 3;
+    
+                word = wnlex_get_word(wi, thisWordNo);
+                    ebufAddStr(&wi->buffer, word);
+                if (lastWordP)
+                {
+                    ebufAddChar(&wi->buffer, '\n');
+                }
+                else
+                {
+                    ebufAddStr(&wi->buffer, ", ");
+                }
+            }
+            while (!lastWordP);
+        }
+        else
+        {
+            /*We can't display "word". only synonyms*/
+            stopFlagSynonym = 0;
             thisWordNo = get_24bit_number(defData, &lastWordP);
             defData += 3;
             defDataSize -= 3;
-
-            word = wnlex_get_word(wi, thisWordNo);
-            ebufAddStr(&wi->buffer, word);
-            if (lastWordP)
+            if(thisWordNo == wordNo)
             {
-                ebufAddChar(&wi->buffer, '\n');
+                if(!lastWordP)
+                {
+                    thisWordNo = get_24bit_number(defData, &lastWordP);
+                    defData += 3;
+                    defDataSize -= 3;
+                    stopFlagSynonym = 0;
+                }
+                else
+                    stopFlagSynonym = 1;
             }
-            else
+
+            if(stopFlagSynonym == 0)
             {
-                ebufAddStr(&wi->buffer, ", ");
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_WORD);
+                
+                do
+                {
+                    word = wnlex_get_word(wi, thisWordNo);
+                    ebufAddStr(&wi->buffer, word);
+                    
+                    if(!lastWordP)                    
+                    {
+                        thisWordNo = get_24bit_number(defData, &lastWordP);
+                        defData += 3;
+                        defDataSize -= 3;
+                        if(thisWordNo == wordNo)
+                        {
+                            if(!lastWordP)
+                            {
+                                thisWordNo = get_24bit_number(defData, &lastWordP);
+                                defData += 3;
+                                defDataSize -= 3;
+                                stopFlagSynonym = 0;
+                            }
+                            else
+                                stopFlagSynonym = 1;
+                        }
+                    }
+                    else
+                        stopFlagSynonym = 1;
+                    
+                    if (stopFlagSynonym == 1)
+                    {
+                        ebufAddChar(&wi->buffer, '\n');
+                    }
+                    else
+                    {
+                        ebufAddStr(&wi->buffer, ", ");
+                    }
+                }while(stopFlagSynonym == 0);
             }
         }
-        while (!lastWordP);
-
+        
         Assert(defDataSize > 0);
         pcReset(&wi->defPackContext, defData, 0);
         pcUnpack(&wi->defPackContext, defDataSize, wi->curDefData, &unpackedLen);
-
+  
         Assert((unpackedLen > 0) && (unpackedLen <= wi->maxDefLen));
         wi->curDefLen = unpackedLen;
         unpackedDef = wi->curDefData;

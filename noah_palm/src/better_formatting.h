@@ -70,5 +70,6 @@ void ebufWrapLine(ExtensibleBuffer *buf, int lineStart, int lineLen, int spacesA
 void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y, int maxLines);
 
 void bfFreePTR(struct _AppContext *appContext);
+void bfStripBufferFromTags(ExtensibleBuffer *buf);
 
 #endif

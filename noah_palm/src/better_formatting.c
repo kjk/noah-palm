@@ -23,6 +23,7 @@ void bfFreePTR(AppContext *appContext)
 {
     if(appContext->ptrOldDisplayPrefs != NULL)
         new_free(appContext->ptrOldDisplayPrefs);
+    appContext->ptrOldDisplayPrefs = NULL;
 }
 
 /* When we change global background we need to change all backgrounds to global background color */
@@ -588,12 +589,33 @@ static Boolean DisplPrefFormDisplayChanged(AppContext* appContext, FormType* frm
     return handled;
 }
 
+static void InitOldDisplayPrefs(AppContext *appContext)
+{
+    appContext->ptrOldDisplayPrefs = new_malloc(sizeof(DisplayPrefs));
+}
+
+static void CopyParamsFromTo(DisplayPrefs *dP1, DisplayPrefs *dP2)
+{
+    if(dP1 == NULL || dP2 == NULL)
+        return;
+
+    dP2->listStyle = dP1->listStyle;
+    dP2->bgcolR = dP1->bgcolR;
+    dP2->bgcolG = dP1->bgcolG;
+    dP2->bgcolB = dP1->bgcolB;
+    dP2->pos = dP1->pos;
+    dP2->word = dP1->word;
+    dP2->definition = dP1->definition;
+    dP2->example = dP1->example;
+    dP2->synonym = dP1->synonym;
+    dP2->defList = dP1->defList;
+    dP2->posList = dP1->posList;
+}
+
 Boolean DisplayPrefFormHandleEvent(EventType * event)
 {
     int  setColor = 0;
     ActualTag  actTag = 0;
-    /*TODO : Find way to store prefs on Open and restore them if Cancel but without static!*/
-    //static DisplayPrefs DisplayPrefsOld;   //how to solve that?
     FormType *  frm = NULL;
     ListType *  list = NULL;
     char *      listTxt = NULL;
@@ -615,7 +637,8 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                 return true;
             break;
         case frmOpenEvent:
-            //DisplayPrefsOld = appContext->prefs.displayPrefs; //TODO: look up
+            InitOldDisplayPrefs(appContext);
+            CopyParamsFromTo(&appContext->prefs.displayPrefs, appContext->ptrOldDisplayPrefs);    
             FrmDrawForm(FrmGetActiveForm());
             actTag = 0;
             SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
@@ -792,18 +815,23 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     RedrawExampleDefinition(appContext);
                     break;
                 case buttonOk:
-                    //TODO:    (noah_pro && thes)                
 #ifdef NOAH_PRO 
                     SavePreferencesNoahPro(appContext);
 #endif                    
 #ifdef THESAURUS
+                    /*TODO: Andrzej please make SavePreferencesThes() runable 
+                        for other modules
+                        make it not "static"
+                    */
                     //SavePreferencesThes(appContext);
 #endif                  
+                    bfFreePTR(appContext);
                     SendNewWordSelected();
                     FrmReturnToForm(0);
                     break;
                 case buttonCancel:
-                    //appContext->prefs.displayPrefs = DisplayPrefsOld; //TODO: look up!
+                    CopyParamsFromTo(appContext->ptrOldDisplayPrefs, &appContext->prefs.displayPrefs);    
+                    bfFreePTR(appContext);
                     SendNewWordSelected();
                     FrmReturnToForm(0);
                     break;
@@ -850,6 +878,23 @@ static int  IsTag(char a, char b)
             return 1;
         default: 
             return 0;    
+    }
+}
+
+/* Remove all tags from buffer*/
+void bfStripBufferFromTags(ExtensibleBuffer *buf)
+{
+    int i;
+    i = 0;
+    while(i < buf->used)
+    {
+        if(IsTag(buf->data[i],buf->data[i+1])==1)
+        {
+            ebufDeleteChar(buf, i);
+            ebufDeleteChar(buf, i);
+        }  
+        else
+            i++;    
     }
 }
 
