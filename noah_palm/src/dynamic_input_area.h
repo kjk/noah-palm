@@ -1,5 +1,5 @@
 /**
- * @file DynamicInputArea.h
+ * @file dynamic_input_area.h
  * Generic interface to DynamicInputArea features present on some new PalmOS 5 devices.
  * @author Andrzej Ciarkowski (a.ciarkowski@interia.pl)
  * @date 2003-11-26

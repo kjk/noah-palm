@@ -1,3 +1,8 @@
+/**
+ * @file dynamic_input_area.c
+ * Implementation of Dynamic Input Area feature.
+ * @author Andrzej Ciarkowski (a.ciarkowski@interia.pl)
+ */
 #include "dynamic_input_area.h"
 #include <SonyCLIE.h>
 #include <assert.h>
