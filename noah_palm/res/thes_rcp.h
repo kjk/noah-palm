@@ -52,7 +52,6 @@
 #define   bmpFind             5001
 #define   bmpClose            5002
 #define   bmpMenuBarIcon      5003
-#define   bmpClose            5004
 
 #define   popupHistory            6001
 #define   popupStartupAction      6002
