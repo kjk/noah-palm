@@ -7,8 +7,9 @@
 
 #include "main_form.h"
 #include "inet_word_lookup.h"
-#include "inet_definition_format.h"
 #include "five_way_nav.h"
+
+const UInt16 lookupStatusBarHeight=14;
 
 void MainFormPressFindButton(const FormType* form) 
 {
@@ -16,7 +17,7 @@ void MainFormPressFindButton(const FormType* form)
     Assert(formDictMain==FrmGetFormId(form));
     UInt16 index=FrmGetObjectIndex(form, buttonFind);
     Assert(frmInvalidObjectId!=index);
-    const ControlType* findButton=(const ControlType*)FrmGetObjectPtr(form, index);
+    const ControlType* findButton=static_cast<const ControlType*>(FrmGetObjectPtr(form, index));
     Assert(findButton);
     CtlHitControl(findButton);
 }
@@ -55,24 +56,17 @@ static void MainFormDisplayAbout(AppContext* appContext)
     WinPopDrawState();    
 }
 
-static Err LookupWord(AppContext* appContext, const Char* word)
+static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
 {
-    Char* response=NULL;
-    UInt16 respSize=0;
-    Err error=INetWordLookup(word, &appContext->serverIpAddress, &response, &respSize);
-    if (!error)
-    {
-        Assert(response);
-        if (StrFind(response, response+respSize, noDefnitionResponse)==response)
-        {
-            FrmAlert(alertWordNotFound);
-            error=appErrWordNotFound;
-        }
-        else
-            error=PrepareDisplayInfo(appContext, word, response, response+respSize);
-        new_free(response);                    
-    }
-    return error;        
+    WinPushDrawState();
+    SetGlobalBackColor(appContext);
+    ClearRectangle(0, 0, appContext->screenWidth, lookupStatusBarHeight);
+    WinDrawLine(0, lookupStatusBarHeight, appContext->screenWidth, lookupStatusBarHeight);
+    const Char* text=GetLookupStatusText(appContext);
+    Assert(text);
+    UInt16 textLen=StrLen(text);    
+    WinDrawTruncChars(text, textLen, 1, 1, appContext->screenWidth - 14);
+    WinPopDrawState();
 }
 
 static void MainFormDraw(AppContext* appContext, FormType* form)
@@ -91,6 +85,8 @@ static void MainFormDraw(AppContext* appContext, FormType* form)
         SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
         WinPopDrawState();
     }        
+    if (LookupInProgress(appContext))
+        MainFormDrawLookupStatus(appContext, form);
 }
 
 /* Select all text in a given Field */
@@ -106,24 +102,14 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
 {
     const Char* newWord=NULL;
     UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
-
     Assert(frmInvalidObjectId!=index);
-
     {
-        FieldType* field=(FieldType*)FrmGetObjectPtr(form, index);
+        FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
         const Char* prevWord=ebufGetDataPointer(&appContext->currentWordBuf);
         Assert(field);
         newWord=FldGetTextPtr(field);
         if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
-        {
-            Err error=LookupWord(appContext, newWord);
-            FldSelectAllText(field);
-            if (!error)
-            {
-                appContext->firstDispLine=0;
-                FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
-            }                
-        }
+            StartLookup(appContext, newWord);            
     }
 }
 
@@ -162,7 +148,6 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
     {
         case returnChr:
         case linefeedChr:
-//            MainFormFindButtonPressed(appContext,form);
             MainFormPressFindButton(form);
             handled = true;
             break;

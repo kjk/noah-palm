@@ -19,7 +19,14 @@
 #define socketConnectTimeout     10000
 #define transmitTimeout              5000
 
-extern Err INetWordLookup(const Char* word, NetIPAddr* serverIpAddress, Char** response, UInt16* responseLength);
+extern void StartLookup(AppContext* appContext, const Char* word);
+extern void PerformLookupTask(AppContext* appContext);
+extern void AbortCurrentLookup(AppContext* appContext, Boolean updateForm);
+extern const Char* GetLookupStatusText(AppContext* appContext);
+
+#define LookupInProgress(appContext) (appContext)->currentLookupData
+
+//extern Err INetWordLookup(const Char* word, NetIPAddr* serverIpAddress, Char** response, UInt16* responseLength);
 
 #ifdef DEBUG
 void testParseResponse(char *txt);

@@ -4,9 +4,10 @@
 */
 
 #include "inet_word_lookup.h"
+#include "inet_definition_format.h"
 #include "http_response.h"
 
-#define connectionProgressDialogTitle   "Looking Up Word"
+//#define connectionProgressDialogTitle   "Looking Up Word"
 
 #define netLibName "Net.lib"
 
@@ -25,10 +26,10 @@ typedef struct ConnectionData_
 {
     UInt16 netLibRefNum;
     ConnectionStage connectionStage;
-    Int16 percentsStatus;
-    const Char* errorMessage;
+    Int16 percentsProgress;
+    ExtensibleBuffer statusText;
     NetIPAddr* serverIpAddress;
-    const Char* wordToFind;
+    ExtensibleBuffer wordToFind;
     ExtensibleBuffer request;
     Int16 bytesSent;
     ExtensibleBuffer response;
@@ -39,7 +40,7 @@ typedef struct ConnectionData_
 static void AdvanceConnectionStage(ConnectionData* connData)
 {
     ConnectionStage newStage = stageInvalid;
-
+    connData->percentsProgress=percentsNotSupported;
     switch( connData->connectionStage )
     {
         case stageResolvingAddress:
@@ -47,9 +48,11 @@ static void AdvanceConnectionStage(ConnectionData* connData)
             break;
         case stageOpeningConnection:
             newStage = stageSendingRequest;
+            connData->percentsProgress=0;
             break;
         case stageSendingRequest:
             newStage = stageReceivingResponse;
+            connData->percentsProgress=0;
             break;
        case stageReceivingResponse:
             newStage = stageFinished;
@@ -59,6 +62,46 @@ static void AdvanceConnectionStage(ConnectionData* connData)
             break;
     }
     connData->connectionStage = newStage;
+}
+
+static void RenderStatusText(ConnectionData* connData, const Char* baseText)
+{
+    Assert(connData);
+    ebufResetWithStr(&connData->statusText, const_cast<Char*>(baseText));
+    if (percentsNotSupported!=connData->percentsProgress) 
+    {
+        Int16 percentsProgress=connData->percentsProgress;
+        Assert(percentsProgress>=0 && percentsProgress<=100);        Char buffer[5];
+        buffer[0]=' ';
+        PercentProgress(buffer+1, percentsProgress, 100);        ebufAddStr(&connData->statusText, buffer);
+    }
+    ebufAddChar(&connData->statusText, chrNull);
+}
+
+const Char* GetLookupStatusText(AppContext* appContext)
+{
+    Assert(appContext);
+    ConnectionData* connData=static_cast<ConnectionData*>(appContext->currentLookupData);
+    Assert(connData);
+    switch (connData->connectionStage) 
+    {
+        case stageResolvingAddress:
+            RenderStatusText(connData, "Resolving host address");            break;
+        case stageOpeningConnection:
+            RenderStatusText(connData, "Opening connection");
+            break;
+        case stageSendingRequest:
+            RenderStatusText(connData, "Requesting: "); //! @todo Change text to Requesting "word"
+            break;                        
+        case stageReceivingResponse:
+            RenderStatusText(connData, "Retrieving: ");
+            break;
+        case stageFinished:
+            RenderStatusText(connData, "Finished");            break;
+        default:
+            Assert(false);
+    }
+    return ebufGetDataPointer(&connData->statusText);
 }
 
 inline static void CloseSocket(ConnectionData* connData)
@@ -114,16 +157,17 @@ static Err InitializeNetLib(ConnectionData* connData)
 
 inline static ConnectionData* CreateConnectionData(const Char* wordToFind, NetIPAddr* serverIpAddress) 
 {
-    ConnectionData* connData=(ConnectionData*)new_malloc_zero(sizeof(ConnectionData));
+    ConnectionData* connData=static_cast<ConnectionData*>(new_malloc_zero(sizeof(ConnectionData)));
     Assert(wordToFind);
     Assert(serverIpAddress);
     if (connData)
     {
         ebufInit(&connData->request, 0); // seems not required, but hell knows
         ebufInit(&connData->response, 0);
-        connData->percentsStatus=percentsNotSupported;
-        connData->errorMessage="unknown error";
-        connData->wordToFind=wordToFind;
+        ebufInitWithStr(&connData->wordToFind, const_cast<Char*>(wordToFind));
+        ebufAddChar(&connData->wordToFind, chrNull);
+        ebufInit(&connData->statusText, 0);
+        connData->percentsProgress=percentsNotSupported;
         connData->serverIpAddress=serverIpAddress;
         if (*serverIpAddress)
             AdvanceConnectionStage(connData);
@@ -140,99 +184,20 @@ static void FreeConnectionData(ConnectionData* connData)
         DisposeNetLib(connData);
     ebufFreeData(&connData->request);
     ebufFreeData(&connData->response);
+    ebufFreeData(&connData->statusText);
+    ebufFreeData(&connData->wordToFind);
     new_free(connData);
-}
-
-inline static void RenderPercents(Char buffer[], Int16 percents)
-{
-    if (percentsNotSupported==percents)
-        buffer[0]=chrNull;
-    else 
-    {
-        buffer[0]=' ';
-        PercentProgress(buffer+1, percents, 100);
-    }        
-}
-
-static Boolean ConnectionProgressCallback(PrgCallbackDataPtr callbackData)
-{
-    ConnectionData* connData=(ConnectionData*)callbackData->userDataP;
-    if (!callbackData->error)
-    {
-        const Char* message=NULL;
-        UInt16 msgLen=0;
-        switch (connData->connectionStage)
-        {
-            case stageResolvingAddress:
-                message="Resolving host adress...";
-                break;
-            
-            case stageOpeningConnection:
-                message="Opening connection...";
-                break;
-                
-            case stageSendingRequest:
-                message="Sending request...";
-                break;
-                
-            case stageReceivingResponse:
-                message="Receiving response...";
-                break;
-                
-            case stageFinished:
-                message="Done";
-                break;
-                
-            default:
-                Assert(false);
-        } 
-        msgLen=StrLen(message);
-        if (msgLen<callbackData->textLen) 
-            StrCopy(callbackData->textP, message);
-        else        
-        {
-            msgLen=callbackData->textLen-4;
-            MemMove(callbackData->textP, message, msgLen);
-            StrCopy(callbackData->textP+msgLen, "...");
-        }      
-        if (connData->percentsStatus!=percentsNotSupported)
-        {
-            RenderPercents(callbackData->message, connData->percentsStatus);
-            StrNCat(callbackData->textP, callbackData->message, callbackData->textLen);
-        }            
-    }
-    else
-    {
-        StrNCopy(callbackData->textP, "Error: ", callbackData->textLen);
-        StrNCat(callbackData->textP, connData->errorMessage, callbackData->textLen);
-    }        
-    return true;
-}
-
-static Boolean HandleConnectionProgressEvents(ProgressPtr progress, Boolean waitForever)
-{
-    EventType event;
-    Boolean cancelled=false;
-    Int32 timeout=0;
-    if (waitForever) timeout=evtWaitForever;
-    do {
-        EvtGetEvent(&event, timeout);
-        if (event.eType!=nilEvent && !PrgHandleEvent(progress, &event))
-            cancelled=PrgUserCancel(progress);
-        if (waitForever && ctlEnterEvent==event.eType)
-            cancelled=true;
-    } while (!cancelled && event.eType!=nilEvent);
-    return !cancelled;
 }
 
 static Err ResolveServerAddress(ConnectionData* connData)
 {
     Err error=errNone;
-    NetHostInfoBufType* infoBuf=(NetHostInfoBufType*)new_malloc_zero(sizeof(NetHostInfoBufType));
+    NetHostInfoBufType* infoBuf=static_cast<NetHostInfoBufType*>(new_malloc_zero(sizeof(NetHostInfoBufType)));
     NetHostInfoType* infoPtr=NULL;
     if (!infoBuf)
     {
         error=memErrNotEnoughSpace;
+        FrmAlert(alertMemError);
         goto OnError;
     }      
     Assert(0==*connData->serverIpAddress);
@@ -245,11 +210,10 @@ static Err ResolveServerAddress(ConnectionData* connData)
         AdvanceConnectionStage(connData);
     } 
     else
-        connData->errorMessage="unable to resolve host address";
+        FrmCustomAlert(alertCustomError, "Unable to resolve host address.", NULL, NULL);
 OnError: 
     if (infoBuf) 
         new_free(infoBuf);
-    connData->percentsStatus=percentsNotSupported;        
     return error;
 }
 
@@ -262,7 +226,7 @@ static Err OpenConnection(ConnectionData* connData)
     if (-1==connData->socket)
     {
         Assert(error);
-        connData->errorMessage="unable to open socket";
+        FrmCustomAlert(alertCustomError, "Unable to open socket.", NULL, NULL);
     }
     else
     {
@@ -276,12 +240,11 @@ static Err OpenConnection(ConnectionData* connData)
         if (-1==result)
         {
             Assert(error);
-            connData->errorMessage="unable to connect socket";
+            FrmCustomAlert(alertCustomError, "Unable to connect socket.", NULL, NULL);
         }
         else 
             AdvanceConnectionStage(connData);
     }
-    connData->percentsStatus=percentsNotSupported;
     return error;
 }
 
@@ -291,7 +254,7 @@ static Err PrepareRequest(ConnectionData* connData)
     Char* url=NULL;
     ExtensibleBuffer* buffer=&connData->request;
     ebufResetWithStr(buffer, "GET ");
-    url=TxtParamString(serverRelativeURL, connData->wordToFind, NULL, NULL, NULL);
+    url=TxtParamString(serverRelativeURL, ebufGetDataPointer(&connData->wordToFind), NULL, NULL, NULL);
     if (!url)
     {
         error=memErrNotEnoughSpace;
@@ -319,7 +282,7 @@ static Err SendRequest(ConnectionData* connData)
         error=PrepareRequest(connData);
         if (error)
         {
-            connData->errorMessage="not enough memory to prepare request";
+            FrmAlert(alertMemError);
             goto OnError;
         }
         totalSize=ebufGetDataSize(&connData->request);
@@ -332,7 +295,7 @@ static Err SendRequest(ConnectionData* connData)
     {
         Assert(!error);
         connData->bytesSent+=result;
-        connData->percentsStatus=PercentProgress(NULL, connData->bytesSent, totalSize);
+        connData->percentsProgress=PercentProgress(NULL, connData->bytesSent, totalSize);
         if (connData->bytesSent==totalSize)
         {
             ebufFreeData(&connData->request);
@@ -345,16 +308,15 @@ static Err SendRequest(ConnectionData* connData)
         if (!result)
         {
             Assert(netErrSocketClosedByRemote==error);
-            connData->errorMessage="connection closed by remote host";
+            FrmCustomAlert(alertCustomError, "Connection closed by remote host.", NULL, NULL);
         }
         else
         {
             Assert(error);
-            connData->errorMessage="error while sending request";
+            FrmCustomAlert(alertCustomError, "Error while sending request.", NULL, NULL);
         }
         ebufFreeData(&connData->request);
         connData->bytesSent=0;
-        connData->percentsStatus=percentsNotSupported;
     }    
 OnError:
     return error;    
@@ -429,20 +391,20 @@ static Err ReceiveResponse(ConnectionData* connData)
         Assert(!error);
         if (ebufGetDataSize(&connData->response)+result<maxResponseLength)
         {
-            connData->percentsStatus=PercentProgress(NULL, CalculateDummyProgress(connData->responseStep++), 100);
+            connData->percentsProgress=PercentProgress(NULL, CalculateDummyProgress(connData->responseStep++), 100);
             ebufAddStrN(&connData->response, buffer, result);
         }
         else
         {
             error=appErrMalformedResponse;
-            connData->errorMessage="server returned malformed response";
+            FrmCustomAlert(alertCustomError, "Server returned malformed response.", NULL, NULL);
             ebufFreeData(&connData->response);
         }            
     }
     else if (!result)
     {
         Assert(!error);
-        connData->percentsStatus=100;
+        connData->percentsProgress=100;
         AdvanceConnectionStage(connData);
         result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
         Assert( -1 != result ); // will get asked to drop into debugger (so that we can diagnose it) when fails; It's not a big deal, so continue anyway.
@@ -454,14 +416,14 @@ static Err ReceiveResponse(ConnectionData* connData)
         error=ParseResponse(connData);
         if (error)
         {          
-            connData->errorMessage="server returned malformed response";
+            FrmCustomAlert(alertCustomError, "Server returned malformed response.", NULL, NULL);
             ebufFreeData(&connData->response);
         }            
     }
     else 
     {
         Assert(error);
-        connData->errorMessage="error while receiving response";
+        FrmCustomAlert(alertCustomError, "Error while receiving response.", NULL, NULL);
         ebufFreeData(&connData->response);
     }
     return error;
@@ -499,62 +461,60 @@ static ConnectionStageHandler* GetConnectionStageHandler(const ConnectionData* c
     return handler;
 }
 
-static Err ShowConnectionProgress(ConnectionData* connData)
+void AbortCurrentLookup(AppContext* appContext, Boolean updateForm)
 {
-    Char percentBuffer[6];
-    Err error=errNone;
-    Boolean notCancelled=true;
-    ConnectionStageHandler* handler=NULL;
-    ProgressPtr progress=PrgStartDialog(connectionProgressDialogTitle, ConnectionProgressCallback, connData);
-    if (!progress)
-    {
-        error=memErrNotEnoughSpace;
-        goto OnError;
-    }
-    PrgUpdateDialog(progress, error, connData->connectionStage, NULL, true);
-    do 
-    {
-        handler=GetConnectionStageHandler(connData);
-        if (handler)
-        {        
-            ConnectionStage prevStage=connData->connectionStage;
-            error=(*handler)(connData);
-            if (prevStage!=connData->connectionStage)
-                connData->percentsStatus=percentsNotSupported;
-            PrgUpdateDialog(progress, error, connData->connectionStage, percentBuffer, true);
-            notCancelled=HandleConnectionProgressEvents(progress, error);
-        } 
-    } while (notCancelled && !error && handler);
-    if (!notCancelled)
-        error=netErrUserCancel;
-OnError:
-    if (progress)
-        PrgStopDialog(progress, false);
-    return error;    
+    Assert(appContext);
+    ConnectionData* connData=static_cast<ConnectionData*>(appContext->currentLookupData);
+    Assert(connData);
+    appContext->currentLookupData=NULL;
+    FreeConnectionData(connData);
+    if (updateForm)
+        FrmUpdateForm(formDictMain, frmRedrawUpdateCode); //! @todo Change FrmUpdateForm into sending custom event 
 }
 
-Err INetWordLookup(const Char* word, NetIPAddr* serverIpAddress, Char** response, UInt16* responseLength)
+void StartLookup(AppContext* appContext, const Char* wordToFind)
 {
-    Err error=errNone;
-    ConnectionData* connData=CreateConnectionData(word, serverIpAddress);
+    ConnectionData* connData=CreateConnectionData(wordToFind, &appContext->serverIpAddress);
     if (!connData)
     {
-        error=memErrNotEnoughSpace;
         FrmAlert(alertMemError);
-        goto OnError;
+        return;
     }
-    error=InitializeNetLib(connData);
-    if (error)
-        goto OnError;
-    error=ShowConnectionProgress(connData);
-    if (error)
-        goto OnError;
-    *responseLength=ebufGetDataSize(&connData->response);
-    *response=ebufGetTxtOwnership(&connData->response);
-OnError:
-    if (connData)
+    if (appContext->currentLookupData)
+        AbortCurrentLookup(appContext, false);
+    Err error=InitializeNetLib(connData);
+    if (!error)
+        appContext->currentLookupData=connData;
+    else 
+    {
         FreeConnectionData(connData);
-    return error;
+        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
+    }
+}
+
+void PerformLookupTask(AppContext* appContext)
+{
+    Assert(appContext);
+    ConnectionData* connData=static_cast<ConnectionData*>(appContext->currentLookupData);
+    Assert(connData);
+    ConnectionStageHandler* handler=GetConnectionStageHandler(connData);
+    if (handler)
+    {
+        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
+        Err error=(*handler)(connData);
+        if (error)
+            AbortCurrentLookup(appContext, true);
+    }
+    else
+    {
+        const Char* begin=ebufGetDataPointer(&connData->response);
+        const Char* end=begin+ebufGetDataSize(&connData->response);
+        if (0==StrNCmp(begin, noDefnitionResponse, end-begin))
+            FrmAlert(alertWordNotFound);
+        else
+            PrepareDisplayInfo(appContext, ebufGetDataPointer(&connData->wordToFind), begin, end);
+        AbortCurrentLookup(appContext, true);
+    }        
 }
 
 #ifdef DEBUG

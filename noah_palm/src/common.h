@@ -246,8 +246,9 @@ typedef struct _AppContext
 #endif // I_NOAH
 
     char               lastWord[WORD_MAX_LEN];
-    long               ticksEventTimeout;
+
 #ifndef NOAH_LITE  
+    long               ticksEventTimeout;
     int                historyCount;
     char*              wordHistory[HISTORY_ITEMS];
 
@@ -322,6 +323,7 @@ typedef struct _AppContext
     NetIPAddr serverIpAddress;
     ExtensibleBuffer currentDefinition;
     ExtensibleBuffer currentWordBuf;
+    void* currentLookupData;
 #endif      
 
 #ifdef _RECORD_SPEED_

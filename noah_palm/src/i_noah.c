@@ -56,10 +56,10 @@ static Err AppInit(AppContext* appContext)
     
     ebufInit(&appContext->currentDefinition, 0);
     ebufInit(&appContext->currentWordBuf, 0);
-    appContext->ticksEventTimeout=evtWaitForever;
 
     appContext->prefs.displayPrefs.listStyle = 2;
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
+
     SyncScreenSize(appContext);
 
 // define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
@@ -80,6 +80,9 @@ static void AppDispose(AppContext* appContext)
     FrmCloseAllForms();
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
+    
+    if (appContext->currentLookupData)
+        AbortCurrentLookup(appContext, false);
     
     if (appContext->currDispInfo)
     {
@@ -122,15 +125,25 @@ static void AppEventLoop(AppContext* appContext)
 {
     Err error=errNone;
     EventType event;
-    EvtGetEvent(&event, appContext->ticksEventTimeout);
-    while (event.eType != appStopEvent)
+    Int32 timeout=evtWaitForever;
+    do 
     {
-        if (!SysHandleEvent(&event))
-            if (!MenuHandleEvent(0, &event, &error))
-                if (!AppHandleEvent(appContext, &event))
-                    FrmDispatchEvent(&event);
-        EvtGetEvent(&event, appContext->ticksEventTimeout);
-    }
+        if (LookupInProgress(appContext)) 
+            timeout=0;
+        EvtGetEvent(&event, timeout);
+        if (appStopEvent!=event.eType)
+        {
+            if (nilEvent==event.eType && LookupInProgress(appContext))
+                PerformLookupTask(appContext);
+            else 
+            {                
+                if (!SysHandleEvent(&event))
+                    if (!MenuHandleEvent(0, &event, &error))
+                        if (!AppHandleEvent(appContext, &event))
+                            FrmDispatchEvent(&event);
+            }
+        }                                        
+    } while (appStopEvent!=event.eType);
 }
 
 static Err AppLaunch() 
