@@ -1046,6 +1046,24 @@ Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
         r = k - 1;
     }while(L <= r);
     //buffer is sorted!!!
+#ifdef WN_PRO_DICT  //we need to detect when we add "1) " or "I " in PRO!
+    if(!ret)
+    {
+        if(CmpPos(&txt[array[n-1]], &txt[array[n-2]]) == 0)
+        {
+            if(n <= 2)  
+                ret = true; //we added 2nd word and it have the same POS ("1) " and "2) " added)
+            else
+                if(CmpPos(&txt[array[n-3]], &txt[array[n-2]]) != 0)
+                    ret = true; //we added 2nd with the same POS ("1) " and "2) " added)
+        }
+        else
+        {
+            if(CmpPos(&txt[array[0]], &txt[array[n-2]]) == 0)
+                ret = true; //we added 2nd diffrent POS ("I " and "II " added)
+        }
+    }       
+#endif
     //free array!!!!!!!!!
     new_free((int *)array);
     return ret;
