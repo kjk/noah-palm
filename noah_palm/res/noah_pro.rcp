@@ -78,34 +78,36 @@ FORM formSelectDict AT (0 0 160 160)
 USABLE
 FRAME
 BEGIN
-   TITLE "Select database"
-   LIST "" listOfDicts AT (1 24 158 96) USABLE
-   BUTTON "Select" buttonSelect AT (40 124 AUTO AUTO) FONT 0
-   BUTTON "Cancel" buttonCancel AT (80 124 AUTO AUTO) NONUSABLE FONT 0
-   BUTTON "Find databases" buttonRescanDicts AT (50 160-18 AUTO AUTO) FONT 0
+   TITLE  "Select database"
+
+   LIST   ""                listOfDicts       AT (  4    20           152 AUTO) USABLE VISIBLEITEMS 8
+   BUTTON "Select"          buttonSelect      AT (  4  PREVBOTTOM+4  AUTO AUTO) FONT 0
+   BUTTON "Cancel"          buttonCancel      AT (118  PREVTOP       AUTO AUTO) FONT 0
+   BUTTON "Find databases"  buttonRescanDicts AT ( 43  PREVBOTTOM+6  AUTO AUTO) FONT 0
 END
 
 FORM formDisplayPrefs AT (0 0 160 160)
 USABLE
 FRAME
 BEGIN
-   TITLE "Display preferences"
-   BUTTON "Main text"    buttonHeadword AT (12 20 AUTO AUTO) FONT 0
-   BUTTON "Definition"   buttonDefinition AT (PrevLeft PrevTop+20 AUTO AUTO) FONT 0
-   BUTTON "Example"      buttonExample AT (PrevLeft PrevTop+20 AUTO AUTO) FONT 0
-   BUTTON "Ok"           buttonOk AT (40 120 AUTO AUTO) FONT 0
-   BUTTON "Cancel"       buttonCancel AT (80 120 AUTO AUTO) FONT 0
+   TITLE  "Display preferences"
+
+   BUTTON "Main text"    buttonHeadword     AT ( 12        20       AUTO AUTO) FONT 0
+   BUTTON "Definition"   buttonDefinition   AT (PrevLeft PrevTop+20 AUTO AUTO) FONT 0
+   BUTTON "Example"      buttonExample      AT (PrevLeft PrevTop+20 AUTO AUTO) FONT 0
+   BUTTON "Ok"           buttonOk           AT ( 40       120       AUTO AUTO) FONT 0
+   BUTTON "Cancel"       buttonCancel       AT ( 80       120       AUTO AUTO) FONT 0
 END
 
 FORM formDictFind AT (0 0 160 160)
 USABLE
 NOFRAME
 BEGIN
-   BUTTON "\002" ctlArrowLeft AT (0 148 8 11) FONT 4 NOFRAME
-   BUTTON "\003" ctlArrowRight AT (8 148 10 11) FONT 4 NOFRAME
-   LIST "" listMatching AT (0 0 160 AUTO) USABLE VISIBLEITEMS 13
-   FIELD fieldWord AT (20 147 94 AUTO) UNDERLINED MAXCHARS 20
-   BUTTON "Cancel" buttonCancel AT (160-40 160-14 AUTO AUTO) FONT 0
+   BUTTON "\002"    ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
+   BUTTON "\003"    ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
+   LIST   ""        listMatching    AT (  0   0  160 AUTO) USABLE VISIBLEITEMS 13
+   FIELD            fieldWord       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   BUTTON "Cancel"  buttonCancel    AT (120 146 AUTO AUTO) FONT 0
 END
 
 FORM formPrefs AT (0 0 160 160)
@@ -116,6 +118,7 @@ DEFAULTBTNID buttonOk
 HELPID helpPrefs
 BEGIN
    TITLE "Preferences"
+
    LABEL "Startup action:" AUTOID AT (5 20) FONT 1
    POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+19 PREVTOP AUTO AUTO) LEFTANCHOR
    LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
@@ -131,12 +134,12 @@ BEGIN
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popuphwButtonsAction listhwButtonsAction
 
-   LABEL "Tap:" AUTOID AT (5 PREVTOP+14) FONT 1
+   LABEL "Tap:" AUTOID                            AT (5            PREVTOP+14) FONT 1
    POPUPTRIGGER  "1/2 Page Scroll" popupTapAction AT (PREVRIGHT+43 PREVTOP AUTO AUTO) LEFTANCHOR
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listTapAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popupTapAction listTapAction
 
-   CHECKBOX "Delete vfs cache on exit" ID checkDeleteVfs AT (5 PREVTOP+14 AUTO AUTO) FONT 1
+   CHECKBOX "Delete vfs cache on exit" ID checkDeleteVfs AT (5 PREVTOP+18 AUTO AUTO) FONT 1
 
    BUTTON "Ok"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
    BUTTON "CANCEL" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
@@ -145,7 +148,7 @@ END
 ALERT alertMemError
 INFORMATION
 BEGIN
-    TITLE "Fatal Error"
+    TITLE   "Fatal Error"
     MESSAGE "Not enough memory."
     BUTTONS "OK"
 END
@@ -153,7 +156,7 @@ END
 ALERT alertNoDB
 INFORMATION
 BEGIN
-    TITLE "Error"
+    TITLE   "Error"
     MESSAGE "Cannot find database."
     BUTTONS "OK"
 END
@@ -161,32 +164,31 @@ END
 ALERT alertGenericError
 INFORMATION
 BEGIN
-    TITLE "Fatal Error"
+    TITLE   "Fatal Error"
     MESSAGE "Generic error."
     BUTTONS "OK"
 END
 
-
 ALERT alertDBName
 INFORMATION
 BEGIN
-	TITLE "Info"
-	MESSAGE "Dir name: ^1 DB name: ^2"
-	BUTTONS "OK"
+    TITLE   "Info"
+    MESSAGE "Dir name: ^1 DB name: ^2"
+    BUTTONS "OK"
 END
 
 ALERT alertBadRecSize
 INFORMATION
 BEGIN
-  TITLE "Info"
-  MESSAGE "Database corruption, record ^1 has size ^2 (should be less than 65536)"
-  BUTTONS "OK"
+    TITLE   "Info"
+    MESSAGE "Database corruption, record ^1 has size ^2 (should be less than 65536)"
+    BUTTONS "OK"
 END
 
 ALERT alertDbFailed
 INFORMATION
 BEGIN
-    TITLE "Error"
+    TITLE   "Error"
     MESSAGE "Failed to open database."
     BUTTONS "OK"
 END
@@ -194,31 +196,31 @@ END
 ALERT alertDbFailedGetAnother
 INFORMATION
 BEGIN
-    TITLE "Error"
+    TITLE   "Error"
     MESSAGE "Failed to open database. Please choose another one."
     BUTTONS "OK"
 END
 
 ICONFAMILYEX
 BEGIN
-    BITMAP "icons/no22x2.bmp" BPP 1 DENSITY 1
-    BITMAP "icons/no22x4.bmp" BPP 2 DENSITY 1
+    BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1
+    BITMAP "icons/no22x4.bmp"   BPP 2 DENSITY 1
     BITMAP "icons/no22x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
-    BITMAP "icons/no44x2.bmp" BPP 1 DENSITY 2
+    BITMAP "icons/no44x2.bmp"   BPP 1 DENSITY 2
     BITMAP "icons/no44x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
 END
 
 SMALLICONFAMILYEX
 BEGIN
-    BITMAP "icons/no15x2.bmp" BPP 1 DENSITY 1
+    BITMAP "icons/no15x2.bmp"   BPP 1 DENSITY 1
     BITMAP "icons/no15x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
-    BITMAP "icons/no30x2.bmp" BPP 1 DENSITY 2
+    BITMAP "icons/no30x2.bmp"   BPP 1 DENSITY 2
     BITMAP "icons/no30x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
 END
 
 BITMAPFAMILYEX ID bmpFind
 BEGIN
-    BITMAP "find.bmp" BPP 1 DENSITY 1
-    BITMAP "find-x2.bmp" BPP 1 DENSITY 2
+    BITMAP "find.bmp"       BPP 1 DENSITY 1
+    BITMAP "find-x2.bmp"    BPP 1 DENSITY 2
 END
 

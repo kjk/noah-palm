@@ -225,3 +225,27 @@ convertRawTextToDisplayInfo(DisplayInfo * di, char *rawTxt)
 
     diCreateLinesInfo(di);
 }
+
+void diCopyToClipboard(DisplayInfo *di)
+{
+    ExtensibleBuffer clipboardBuf;
+    int              linesCount;
+    int              i;
+    char *           defTxt;
+    int              defTxtLen;
+
+    Assert( di );
+    ebufInit(&clipboardBuf,256);
+    linesCount = diGetLinesCount(di);
+    for (i = 0; i < linesCount; i++)
+    {
+        defTxt = diGetLine(di, i);
+        ebufAddStr(&clipboardBuf, defTxt);
+        ebufAddChar(&clipboardBuf, '\n');
+    }
+    defTxt = ebufGetDataPointer(&clipboardBuf);
+    defTxtLen = StrLen(defTxt);
+    ClipboardAddItem(clipboardText, defTxt, defTxtLen);
+    ebufFreeData(&clipboardBuf);
+}
+

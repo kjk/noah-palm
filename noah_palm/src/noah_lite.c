@@ -9,8 +9,6 @@
 
 #define MAX_WORD_LABEL_LEN 18
 
-char helpText[] =
-    "Instructions:\n\255 to lookup a definition of a word\n  press the find button in the right\n  upper corner and select the word\n\255 you can scroll the definition using\n  hardware buttons, tapping on the\n  screen or using a scrollbar\n\255 left/right arrow moves to next\n  or previous word\n";
 
 #if 0
 static char wait_str[] = "Searching...";
@@ -79,74 +77,33 @@ Err InitNoahLite(void)
 
     FsInit();
 
-/* TODO: LoadPreferences() */
+    // UNDONE: LoadPreferences()
 
-    Assert( CreateInfoData() );
+    if (!CreateHelpData())
+        return !errNone;
 
     return errNone;
 }
 
 void DisplayAbout(void)
 {
-/*    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144); */
     ClearDisplayRectangle();
     HideScrollbar();
 
     dh_set_current_y(7);
 
     dh_save_font();
-    dh_display_string("Noah Lite", 2, 12);
-    dh_display_string("Ver 0.7 beta", 2, 30);
-    dh_display_string("(C) 2000-2003 ArsLexis", 1, 18);
-    dh_display_string("arslexis@pobox.com", 1, 20);
+    dh_display_string("Noah Lite", 2, 16);
+#ifdef DEBUG
+    dh_display_string("Ver 1.0 (debug)", 2, 20);
+#else
+    dh_display_string("Ver 1.0 (beta)", 2, 20);
+#endif
+    dh_display_string("(C) 2000-2003 ArsLexis", 1, 24);
     dh_display_string("get Noah Pro at:", 2, 20);
     dh_display_string("http://www.arslexis.com", 2, 0);
 
     dh_restore_font();
-}
-
-/* return 0 if didn't find anything in clipboard, 1 if 
-   got word from clipboard */
-int TryClipboard(void)
-{
-    MemHandle clipItemHandle;
-    UInt16 itemLen;
-    char txt[30];
-    char *clipTxt;
-    char *word;
-    long wordNo;
-    int idx;
-
-    clipItemHandle = ClipboardGetItem(clipboardText, &itemLen);
-    if (!clipItemHandle)
-        return 0;
-    if (0 == itemLen)
-        return 0;
-    clipTxt = (char *) MemHandleLock(clipItemHandle);
-    if (!clipTxt)
-        return 0;
-
-    MemSet(txt, 29, 0);
-    MemMove(txt, clipTxt, (itemLen < 28) ? itemLen : 28);
-
-    idx = 0;
-    while (txt[idx] && (txt[idx] == ' '))
-        ++idx;
-
-    MemHandleUnlock(clipItemHandle);
-
-    wordNo = dictGetFirstMatching(&(txt[idx]));
-    word = dictGetWord(wordNo);
-
-/*     if (0==StrNCaselessCompare(&(txt[idx]),word,
-                ((UInt16)StrLen(word)<itemLen)?StrLen(word):itemLen))
-*/
-    if (0 == p_instrcmp(&(txt[idx]), word, ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
-    {
-        DrawDescription(wordNo);
-        return 1;
-    }
-    return 0;
 }
 
 void DictFoundCBNoahLite( AbstractFile *file )
@@ -211,16 +168,17 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
     int             i;
     EventType       newEvent;
 
+    frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case frmUpdateEvent:
             LogG( "mainFrm - frmUpdateEvent" );
             RedrawMainScreen();
-            handled = true;
-            break;
+            return true;
+
         case frmOpenEvent:
-            frm = FrmGetActiveForm();
             FrmDrawForm(frm);
+
             WinDrawLine(0, 145, 160, 145);
             WinDrawLine(0, 144, 160, 144);
 
@@ -278,7 +236,7 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
                 goto ExitProgram;
             }
 
-            DisplayAbout);
+            DisplayAbout();
 #if 0
             /* start the timer, so we'll switch to info
                text after a few seconds */
@@ -478,10 +436,10 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
     FieldPtr    fld;
     ListPtr     list;
 
+    frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case frmOpenEvent:
-            frm = FrmGetActiveForm();
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
             gd.prevSelectedWord = 0xffffffff;
@@ -509,7 +467,7 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
         case lstSelectEvent:
             /* copy word from text field to a buffer, so next time we
                come back here, we'll come back to the same place */
-            RememberLastWord(FrmGetActiveForm());
+            RememberLastWord(frm);
             /* set the selected word as current word */
             gd.currentWord = gd.listItemOffset + (long) event->data.lstSelect.selection;
             /* send a msg to yourself telling that a new word
@@ -532,14 +490,13 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
             {
                 case returnChr:
                 case linefeedChr:
-                    RememberLastWord(FrmGetActiveForm());
+                    RememberLastWord(frm);
                     gd.currentWord = gd.selectedWord;
                     Assert(gd.currentWord < gd.wordsCount);
                     SendNewWordSelected();
                     FrmReturnToForm(0);
                     return true;
                 case pageUpChr:
-                    frm = FrmGetActiveForm();
                     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
                     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
                     if (gd.selectedWord > WORDS_IN_LIST)
@@ -550,7 +507,6 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
                     }
                     break;
                 case pageDownChr:
-                    frm = FrmGetActiveForm();
                     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
                     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listMatching));
                     if (gd.selectedWord + WORDS_IN_LIST < gd.wordsCount)
@@ -569,27 +525,15 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
 
         case evtFieldChanged:
             DoFieldChanged();
-    /*        frm = FrmGetActiveForm();
-            fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
-            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-            word = FldGetTextPtr(fld);
-            gd.selectedWord = 0;
-            if (word && *word)
-            {
-                gd.selectedWord = dictGetFirstMatching(word);
-            }
-            Assert(gd.selectedWord < gd.wordsCount);
-            LstSetSelectionMakeVisibleEx(list, gd.selectedWord);*/
-            handled = true;
-            break;
+            return true;
+
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
-                    RememberLastWord(FrmGetActiveForm());
-                    handled = true;
+                    RememberLastWord(frm);
                     FrmReturnToForm(0);
-                    break;
+                    return true;
                 default:
                     Assert(0);
                     break;

@@ -17,13 +17,6 @@
 #include "fs.h"
 #include "fs_mem.h"
 
-
-/* information about the area for displaying definitions:
-   start x, start y, number of lines (dy).
-   assume that width is full screen (160) */
-#define DRAW_DI_Y 0
-#define DRAW_DI_LINES 13
-
 #define  THES_CREATOR      'TheS'
 #define  ROGET_TYPE        'rget'
 #define  THES_PREF_TYPE    'thpr'
@@ -63,27 +56,27 @@ typedef struct
 
 typedef struct
 {
-    AbstractFile       *dicts[MAX_DICTS];
-    int                dictsCount;
-    NoahErrors         err;
-    DisplayInfo        *currDispInfo;
-    ExtensibleBuffer   *helpDipsBuf;
-    long               currentWord;
-    long               wordsCount;
-    int                firstDispLine;
-    long               listItemOffset;
-    long               prevTopItem;
-    int                penUpsToConsume;
-    long               prevSelectedWord;
-    long               selectedWord;
-    char               lastWord[WORD_MAX_LEN];
-    int                historyCount;
-    char *             wordHistory[HISTORY_ITEMS];
-    ThesPrefs          prefs;
-    Boolean            fFirstRun; /* is this first run or not */
-    long               ticksEventTimeout;
+    AbstractFile *      dicts[MAX_DICTS];
+    int                 dictsCount;
+    NoahErrors          err;
+    DisplayInfo *       currDispInfo;
+    ExtensibleBuffer *  helpDispBuf;
+    long                currentWord;
+    long                wordsCount;
+    int                 firstDispLine;
+    long                listItemOffset;
+    long                prevTopItem;
+    int                 penUpsToConsume;
+    long                prevSelectedWord;
+    long                selectedWord;
+    char                lastWord[WORD_MAX_LEN];
+    int                 historyCount;
+    char *              wordHistory[HISTORY_ITEMS];
+    ThesPrefs           prefs;
+    Boolean             fFirstRun; /* is this first run or not */
+    long                ticksEventTimeout;
 #ifdef DEBUG
-    long               currentStressWord;
+    long                currentStressWord;
 #endif
 } GlobalData;
 

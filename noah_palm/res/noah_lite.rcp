@@ -1,16 +1,16 @@
 #include "noah_lite_rcp.h"
 
-VERSION ID 1 "0.7"
+VERSION ID 1 "1.0"
 
 #ifdef DEBUG
 MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Stress"                  ID menuItemStress
-    MENUITEM "Info"                    ID menuItemHelp "I"
+    MENUITEM "Find word"               ID menuItemFind  "F"
+    MENUITEM "Help"                    ID menuItemHelp  "I"
     MENUITEM "About"                   ID menuItemAbout "A"
+    MENUITEM "Stress"                  ID menuItemStress
   END
 END
 #else
@@ -18,8 +18,8 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Info"                    ID menuItemHelp "I"
+    MENUITEM "Find word"               ID menuItemFind  "F"
+    MENUITEM "Help"                    ID menuItemHelp  "H"
     MENUITEM "About"                   ID menuItemAbout "A"
   END
 END
@@ -30,37 +30,33 @@ USABLE
 NOFRAME
 MENUID menuMain
 BEGIN
-   SCROLLBAR ID scrollDef AT (152 1 7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
-   BUTTON "\002" ctlArrowLeft AT (0 148 8 11) FONT 4 NOFRAME
-   BUTTON "\003" ctlArrowRight AT (8 148 10 11) FONT 4 NOFRAME
-   FORMBITMAP AT (147 147) BITMAP bmpFind
-   BUTTON "" buttonFind AT (146 146 14 14) NOFRAME
-
-/*   BUTTON "\002" ctlArrowLeft AT (0 2 8 11) FONT 4 NOFRAME
-   BUTTON "\003" ctlArrowRight AT (8 2 10 11) FONT 4 NOFRAME
-   BUTTON "F" buttonFind AT (160-17 1 AUTO AUTO)
-   SCROLLBAR ID scrollDef AT (160-8 20 7 140) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1 */
+   SCROLLBAR ID     scrollDef       AT (152   1    7  142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+   BUTTON "\002"    ctlArrowLeft    AT (0   148    8   11) FONT 4 NOFRAME
+   BUTTON "\003"    ctlArrowRight   AT (8   148   10   11) FONT 4 NOFRAME
+   FORMBITMAP                       AT (147 147)           BITMAP bmpFind
+   BUTTON ""        buttonFind      AT (146 146   14   14) NOFRAME
 END
 
 FORM formSelectDict AT (0 0 160 160)
 USABLE
 FRAME
 BEGIN
-   TITLE "Select database"
-   LIST "" listOfDicts AT (10 24 140 80) USABLE
-   BUTTON "Select" buttonSelect AT (40 120 AUTO AUTO) FONT 0
-   BUTTON "Cancel" buttonCancel AT (80 120 AUTO AUTO) NONUSABLE FONT 0
+   TITLE    "Select database"
+
+   LIST     ""       listOfDicts  AT (10  24  140   80) USABLE
+   BUTTON   "Select" buttonSelect AT (40 120 AUTO AUTO) FONT 0
+   BUTTON   "Cancel" buttonCancel AT (80 120 AUTO AUTO) NONUSABLE FONT 0
 END
 
 FORM formDictFind AT (0 0 160 160)
 USABLE
 NOFRAME
 BEGIN
-   BUTTON "\002" ctlArrowLeft AT (0 148 8 11) FONT 4 NOFRAME
-   BUTTON "\003" ctlArrowRight AT (8 148 10 11) FONT 4 NOFRAME
-   LIST "" listMatching AT (0 0 160 AUTO) USABLE VISIBLEITEMS 13
-   FIELD fieldWord AT (20 147 94 AUTO) UNDERLINED MAXCHARS 20
-   BUTTON "Cancel" buttonCancel AT (160-40 160-14 AUTO AUTO) FONT 0
+   BUTTON "\002"    ctlArrowLeft  AT (  0 148    8   11) FONT 4 NOFRAME
+   BUTTON "\003"    ctlArrowRight AT (  8 148    10  11) FONT 4 NOFRAME
+   LIST ""          listMatching  AT (  0   0  160 AUTO) USABLE VISIBLEITEMS 13
+   FIELD            fieldWord     AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   BUTTON "Cancel"  buttonCancel  AT (120 146 AUTO AUTO) FONT 0
 END
 
 ALERT alertMemError
@@ -99,25 +95,25 @@ END
 
 ICONFAMILYEX
 BEGIN
-    BITMAP "icons/nl22x2.bmp" BPP 1 DENSITY 1
-    BITMAP "icons/nl22x4.bmp" BPP 2 DENSITY 1
+    BITMAP "icons/nl22x2.bmp"   BPP 1 DENSITY 1
+    BITMAP "icons/nl22x4.bmp"   BPP 2 DENSITY 1
     BITMAP "icons/nl22x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
-    BITMAP "icons/nl44x2.bmp" BPP 1 DENSITY 2
+    BITMAP "icons/nl44x2.bmp"   BPP 1 DENSITY 2
     BITMAP "icons/nl44x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
 
 END
 
 SMALLICONFAMILYEX
 BEGIN
-    BITMAP "icons/nl15x2.bmp" BPP 1 DENSITY 1
+    BITMAP "icons/nl15x2.bmp"   BPP 1 DENSITY 1
     BITMAP "icons/nl15x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
-    BITMAP "icons/nl30x2.bmp" BPP 1 DENSITY 2
+    BITMAP "icons/nl30x2.bmp"   BPP 1 DENSITY 2
     BITMAP "icons/nl30x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
 END
 
 BITMAPFAMILYEX ID bmpFind
 BEGIN
-    BITMAP "find.bmp" BPP 1 DENSITY 1
-    BITMAP "find-x2.bmp" BPP 1 DENSITY 2
+    BITMAP "find.bmp"     BPP 1 DENSITY 1
+    BITMAP "find-x2.bmp"  BPP 1 DENSITY 2
 END
 

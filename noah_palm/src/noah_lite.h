@@ -17,15 +17,9 @@
 
 #define  NOAH_LITE_CREATOR     'NoaH'
 
-/* information about the area for displaying definitions:
-   start x, start y, number of lines (dy).
-   assume that width is full screen (160) */
-#define DRAW_DI_Y 0
-#define DRAW_DI_LINES 13
-
 typedef struct
 {
-    char                    lastWord[WORD_MAX_LEN];
+    char                lastWord[WORD_MAX_LEN];
 } NoahLitePrefs;
 
 typedef struct
@@ -34,7 +28,7 @@ typedef struct
     int                 dictsCount;
     NoahErrors          err;
     DisplayInfo *       currDispInfo;
-    ExtensibleBuffer *  helpDipsBuf;
+    ExtensibleBuffer *  helpDispBuf;
     long                currentWord;
     long                wordsCount;
     int                 firstDispLine;

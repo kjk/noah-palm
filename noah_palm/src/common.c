@@ -177,8 +177,8 @@ Boolean FTryClipboard(void)
         return false;
     }
 
-    MemSet(txt, 30, 0);
-    itemLen = (itemLen < 28) ? itemLen : 28;
+    MemSet(txt, sizeof(txt), 0);
+    itemLen = (itemLen < sizeof(txt)-1) ? itemLen : sizeof(txt)-1;
     MemMove(txt, clipTxt, itemLen);
 
     strtolower(txt);
@@ -187,8 +187,7 @@ Boolean FTryClipboard(void)
     while (txt[idx] && (txt[idx] == ' '))
         ++idx;
 
-    if (clipItemHandle)
-        MemHandleUnlock(clipItemHandle);
+    MemHandleUnlock(clipItemHandle);
 
     wordNo = dictGetFirstMatching(txt);
     word = dictGetWord(wordNo);
@@ -364,11 +363,11 @@ void DisplayHelp(void)
             return;
         }
     }
-    rawTxt = ebufGetDataPointer(gd.helpDipsBuf);
+    rawTxt = ebufGetDataPointer(gd.helpDispBuf);
     diSetRawTxt(gd.currDispInfo, rawTxt);
 
     gd.firstDispLine = 0;
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    ClearDisplayRectangle();
     DrawDisplayInfo(gd.currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
     SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
 }
@@ -404,7 +403,7 @@ void RedrawWordDefinition()
     MemMove(gd.prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
 
     DrawWord(word, 149);
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    ClearDisplayRectangle();
     SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
     DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
 
@@ -431,15 +430,15 @@ void DrawDescription(long wordNo)
 
     Assert(wordNo < gd.wordsCount);
 
-    /* if currDispInfo has not been yet allocated, allocate it now.
-       It'll be reused */
+    // if currDispInfo has not been yet allocated, allocate it now.
+    // It'll be reused
     if (NULL == gd.currDispInfo)
     {
         gd.currDispInfo = diNew();
         if (NULL == gd.currDispInfo)
         {
-            /* TODO: we should rather exit, since this means totally
-               out of ram */
+            // UNDONE: we should rather exit, since this means totally
+            // out of ram
             return;
         }
     }
@@ -478,7 +477,7 @@ void DrawCentered(char *txt)
 {
     FontID prev_font;
 
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    ClearDisplayRectangle();
     prev_font = FntGetFont();
     FntSetFont((FontID) 1);
     WinDrawChars(txt, StrLen(txt), 46, (160 - 20) / 2);
@@ -1004,22 +1003,35 @@ Err dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di)
     return 0;
 }
 
-extern char helpText[];
+char helpText[] =
+    " Instructions:\n" \
+    "\255 to lookup a definition of a word\n" \
+    "  press the find button in the right\n" \
+    "  lower corner and select the word\n" \
+    "\255 you can scroll the definition using\n" \
+    "  hardware buttons, tapping on the\n" \
+    "  screen or using a scrollbar\n" \
+    "\255 left/right arrow moves to next\n" \
+    "  or previous word\n" \
+    "\n" \
+    " For more information go to\n" \
+    " www.arslexis.com\n";
 
-Boolean CreateInfoData(void)
+Boolean CreateHelpData(void)
 {
-    gd.helpDipsBuf = ebufNew();
-    ebufAddStr(gd.helpDipsBuf, helpText);
-    ebufWrapBigLines(gd.helpDipsBuf);
+    gd.helpDispBuf = ebufNew();
+    ebufAddStr(gd.helpDispBuf, helpText);
+    ebufAddChar(gd.helpDispBuf, '\0');
+    ebufWrapBigLines(gd.helpDispBuf);
     return true;
 }
 
 void FreeInfoData(void)
 {
-    if (gd.helpDipsBuf)
+    if (gd.helpDispBuf)
     {
-        ebufDelete(gd.helpDipsBuf);
-        gd.helpDipsBuf = NULL;
+        ebufDelete(gd.helpDispBuf);
+        gd.helpDispBuf = NULL;
     }
     if (gd.currDispInfo)
     {
@@ -1123,9 +1135,12 @@ void DefScrollDown(ScrollType scroll_type)
     int to_scroll = 0;
 
     di = gd.currDispInfo;
-    invisible_lines = diGetLinesCount(di) - gd.firstDispLine - DRAW_DI_LINES;
 
-    if ((scrollNone == scroll_type) || (NULL == di) || (invisible_lines <= 0))
+    if ((scrollNone == scroll_type) || (NULL == di))
+        return;
+
+    invisible_lines = diGetLinesCount(di) - gd.firstDispLine - DRAW_DI_LINES;
+    if (invisible_lines <= 0)
         return;
 
     switch (scroll_type)

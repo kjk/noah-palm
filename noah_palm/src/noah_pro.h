@@ -24,16 +24,8 @@
 #define  NOAH_PRO_CREATOR    'NoAH'
 #define  NOAH_PREF_TYPE      'pref'
 
-/* information about the area for displaying definitions:
-   start x, start y, number of lines (dy).
-   assume that width is full screen (160) */
-#define DRAW_DI_Y 0
-#define DRAW_DI_LINES 13
-
-#if 0
 // old ids for preference records
-#define Noah10Pref      0x43212205
-#endif
+// #define Noah10Pref      0x43212205
 
 /* id for Noah Pro >v2.0 preferences */
 #define Noah21Pref      0x43212208
@@ -69,7 +61,7 @@ typedef struct
     int                dictsCount;
     NoahErrors         err;
     DisplayInfo *      currDispInfo;
-    ExtensibleBuffer * helpDipsBuf;
+    ExtensibleBuffer * helpDispBuf;
     long               currentWord;
     long               wordsCount;
     int                firstDispLine;

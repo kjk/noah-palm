@@ -12,19 +12,10 @@
 #define FONT_DY  11
 #define WORDS_IN_LIST 15
 
-#ifdef DEMO
+#ifdef NEVER
 char helpText[] =
     " This is a demo version. It's fully\n functional but has only 10% of\n the thesaurus data.\n" \
     " Go to www.arslexis.com to get the\n full version and find out about\n latest developments.\n";
-#endif
-
-#ifndef DEMO
-char helpText[] =
-    "Instructions:\n\255 to lookup a definition of a word\n  press the spyglass icon in the right\n" \
-    " lower corner and select the word\n\255 you can scroll the definition using\n" \
-    " hardware buttons, tapping on the\n  screen or using a scrollbar\n\255" \
-    " left/right arrow moves to next\n  or previous word\n\255 for more information go to\n" \
-    " WWW.ARSLEXIS.COM\n";
 #endif
 
 static char sa_txt[20];
@@ -452,8 +443,9 @@ Err InitThesaurus(void)
 
     LoadPreferencesThes();
 
-    if (!CreateInfoData())
+    if (!CreateHelpData())
         return !errNone;
+
     return errNone;
 }
 
@@ -516,29 +508,26 @@ void StopThesaurus()
 
 void DisplayAbout(void)
 {
-    FontID prev_font;
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    ClearDisplayRectangle();
     HideScrollbar();
 
-    prev_font = FntGetFont();
-    FntSetFont((FontID) 2);
-    DrawCenteredString("ArsLexis Thesaurus" , 16 + 8 - 17);
+    dh_set_current_y(7);
+
+    dh_save_font();
+    dh_display_string("ArsLexis Thesaurus", 2, 16);
 #ifdef DEMO
-    DrawCenteredString( "DEMO", 28 + 12 - 17 );
+    dh_display_string("Ver 1.2 DEMO", 2, 20);
 #else
   #ifdef DEBUG
-    DrawCenteredString("Ver 1.1 DEBUG", 28 + 12 - 17);
+    dh_display_string("Ver 1.2 (debug)", 2, 20);
   #else
-    DrawCenteredString("Ver 1.1", 28 + 12 - 17);
+    dh_display_string("Ver 1.2 (beta)", 2, 20);
   #endif
 #endif
-    FntSetFont((FontID) 1);
-    DrawCenteredString( "(C) 2000-2003 ArsLexis", 58 + 8 - 17);
-    DrawCenteredString( "arslexis@pobox.com", 76 + 8 - 17);
-    FntSetFont((FontID) 2);
-    DrawCenteredString( "http://www.arslexis.com", 96 + 8 - 17);
-
-    FntSetFont(prev_font);
+    dh_display_string("(C) 2000-2003 ArsLexis", 1, 24);
+    dh_display_string("http://www.arslexis.com", 2, 0); 
+    
+    dh_restore_font();
 }
 
 void DoWord(char *word)
@@ -583,16 +572,12 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
 
 Boolean MainFormHandleEventThes(EventType * event)
 {
-    static ExtensibleBuffer clipboard_buf = { 0 };
     Boolean         handled = false;
     FormType *      frm;
     Short           newValue;
     ListType *      list=NULL;
     long            wordNo;
-    char *          defTxt = NULL;
-    int             defTxtLen = 0;
     int             i;
-    int             linesCount;
     int             selectedDb;
     AbstractFile *  fileToOpen;
     char *          lastDbUsedName;
@@ -793,6 +778,7 @@ ChooseDatabase:
                             ++i;
                         }
                         --gd.dictsCount;
+                        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
                         LstSetListChoices(list, NULL, gd.dictsCount);
                         if ( gd.dictsCount > 1 )
                         {
@@ -941,6 +927,12 @@ ChooseDatabase:
                     FrmPopupForm(formDictFind);
                     break;
                 case menuItemAbout:
+                    if (NULL != gd.currDispInfo)
+                    {
+                        diFree(gd.currDispInfo);
+                        gd.currDispInfo = NULL;
+                        gd.currentWord = 0;
+                    }
                     DisplayAbout();
                     break;
                 case menuItemSelectDB:
@@ -951,20 +943,7 @@ ChooseDatabase:
                     break;
                 case menuItemCopy:
                     if (NULL != gd.currDispInfo)
-                    {
-                        ebufReset(&clipboard_buf);
-                        linesCount = diGetLinesCount(gd.currDispInfo);
-                        for (i = 0; i < linesCount; i++)
-                        {
-                            defTxt = diGetLine(gd.currDispInfo, i);
-                            ebufAddStr(&clipboard_buf, defTxt);
-                            ebufAddChar(&clipboard_buf, '\n');
-                        }
-                        defTxt = ebufGetDataPointer(&clipboard_buf);
-                        defTxtLen = StrLen(defTxt);
-                
-                        ClipboardAddItem(clipboardText, defTxt, defTxtLen);
-                    }
+                        diCopyToClipboard(gd.currDispInfo);
                     break;
                 case menuItemTranslate:
                     FTryClipboard();
@@ -1200,7 +1179,6 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
                 FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
             FrmDrawForm(frm);
             return true;
-            break;
 
         case lstSelectEvent:
             return true;
@@ -1216,10 +1194,12 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
                         SendNewDatabaseSelected(selectedDb);
                     FrmReturnToForm(0);
                     return true;
+
                 case buttonCancel:
                     Assert( NULL != GetCurrentFile() );
                     FrmReturnToForm(0);
                     return true;
+
                 case buttonRescanDicts:
                     DictCurrentFree();
                     FreeDicts();
@@ -1244,7 +1224,7 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
                         LstMakeItemVisible(list, 0);
                     }
                     FrmUpdateForm(FrmGetFormId(frm), frmRedrawUpdateCode);
-                    break;
+                    return true;
                 default:
                     Assert(0);
                     break;

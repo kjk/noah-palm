@@ -33,7 +33,12 @@
 #define evtNewWordSelected       (firstUserEvent+2)
 #define evtNewDatabaseSelected   (firstUserEvent+3)
 
-#define  DRAW_DI_X 0
+// information about the area for displaying definitions:
+// start x, start y, number of lines (dy).
+// assume that width is full screen (160)
+#define DRAW_DI_X 0
+#define DRAW_DI_Y 0
+#define DRAW_DI_LINES 13
 
 #define SEARCH_TXT   "Searching..."
 
@@ -159,7 +164,7 @@ int     GetCurrentScreenDepth();
 void    SetTextColorBlack(void);
 void    SetTextColorRed(void);
 
-Boolean CreateInfoData(void);
+Boolean CreateHelpData(void);
 void    FreeInfoData(void);
 long    CalcListOffset(long itemsCount, long itemNo);
 void    RemoveWhiteSpaces( char *src );

@@ -29,8 +29,6 @@
 #define FONT_DY  11
 #define WORDS_IN_LIST 15
 
-char helpText[] = "Instructions:\n\255 to lookup a definition of a word \npress the find icon in the right \nlower corner and select the word \n\255 you can scroll the definition using \nhardware buttons, tapping on the \nscreen or using a scrollbar \n\255 left/right arrow moves to next \nor previous word\n";
-
 static char sa_txt[20];
 static char sdb_txt[10];
 static char but_txt[20];
@@ -479,10 +477,9 @@ Err InitNoahPro(void)
 
     LoadPreferencesNoahPro();
 
-    if (!CreateInfoData())
-    {
+    if (!CreateHelpData())
         return !errNone;
-    }
+
     return errNone;
 }
 
@@ -543,21 +540,18 @@ void DisplayAbout(void)
 
     dh_set_current_y(7);
     dh_save_font();
-#ifdef DEBUG
-    dh_display_string("Noah Pro DEBUG", 2, 16);
-#elif DEMO
-    dh_display_string("Noah Pro DEMO", 2, 16);
-#else
     dh_display_string("Noah Pro", 2, 16);
-#endif
 
 #ifdef DEMO
-    dh_display_string("Ver 2.0", 2, 20);
+    dh_display_string("Ver 2.1 (demo)", 2, 20);
 #else
-    dh_display_string("Ver 2.1 alpha", 2, 20);
+  #ifdef DEBUG
+    dh_display_string("Ver 2.1 (debug)", 2, 20);
+  #else
+    dh_display_string("Ver 2.1 (beta)", 2, 20);
+  #endif
 #endif
     dh_display_string("(C) ArsLexis 2000-2003", 1, 24);
-    /* dh_display_string("arslexis@pobox.com", 2, 20); */
 #ifdef DEMO
     dh_display_string("http://www.arslexis.com", 2, 20);
     dh_display_string("To buy full version go to", 0, 12);
@@ -611,16 +605,12 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
 
 Boolean MainFormHandleEventNoahPro(EventType * event)
 {
-    static ExtensibleBuffer clipboard_buf = { 0 };
     Boolean         handled = false;
     FormType *      frm;
     Short           newValue;
     ListType *      list;
     long            wordNo;
-    char *          defTxt = NULL;
-    int             defTxtLen = 0;
     int             i;
-    int             linesCount;
     int             selectedDb;
     AbstractFile *  fileToOpen;
     char *          lastDbUsedName;
@@ -636,8 +626,8 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
             break;
 
         case frmOpenEvent:
-            HistoryListInit(frm);
             FrmDrawForm(frm);
+            HistoryListInit(frm);
 
             RemoveNonexistingDatabases();
             ScanForDictsNoahPro(false);
@@ -984,6 +974,12 @@ ChooseDatabase:
                     FrmPopupForm(formDictFind);
                     break;
                 case menuItemAbout:
+                    if (NULL != gd.currDispInfo)
+                    {
+                        diFree(gd.currDispInfo);
+                        gd.currDispInfo = NULL;
+                        gd.currentWord = 0;
+                    }
                     DisplayAbout();
                     break;
                 case menuItemHelp:
@@ -997,20 +993,7 @@ ChooseDatabase:
                     break;
                 case menuItemCopy:
                     if (NULL != gd.currDispInfo)
-                    {
-                        ebufReset(&clipboard_buf);
-                        linesCount = diGetLinesCount(gd.currDispInfo);
-                        for (i = 0; i < linesCount; i++)
-                        {
-                            defTxt = diGetLine(gd.currDispInfo, i);
-                            ebufAddStr(&clipboard_buf, defTxt);
-                            ebufAddChar(&clipboard_buf, '\n');
-                        }
-                        defTxt = ebufGetDataPointer(&clipboard_buf);
-                        defTxtLen = StrLen(defTxt);
-
-                        ClipboardAddItem(clipboardText, defTxt, defTxtLen);
-                    }
+                        diCopyToClipboard(gd.currDispInfo);
                     break;
                 case menuItemTranslate:
                     FTryClipboard();
@@ -1096,10 +1079,10 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
     if (event->eType == nilEvent)
         return true;
 
+    frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case frmOpenEvent:
-            frm = FrmGetActiveForm();
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
             gd.prevSelectedWord = 0xffffffff;
@@ -1121,13 +1104,12 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
             }
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
             FrmDrawForm(frm);
-            handled = true;
-            break;
+            return true;
 
         case lstSelectEvent:
             /* copy word from text field to a buffer, so next time we
                come back here, we'll come back to the same place */
-            RememberLastWord(FrmGetActiveForm());
+            RememberLastWord(frm);
             /* set the selected word as current word */
             gd.currentWord = gd.listItemOffset + (UInt32) event->data.lstSelect.selection;
             /* send a msg to yourself telling that a new word
@@ -1135,9 +1117,8 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                description */
             Assert(gd.currentWord < gd.wordsCount);
             SendNewWordSelected();
-            handled = true;
             FrmReturnToForm(0);
-            break;
+            return true;
 
         case keyDownEvent:
             /* kind of ugly trick: there is no event that says, that
@@ -1150,14 +1131,14 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
             {
                 case returnChr:
                 case linefeedChr:
-                    RememberLastWord(FrmGetActiveForm());
+                    RememberLastWord(frm);
                     gd.currentWord = gd.selectedWord;
                     Assert(gd.currentWord < gd.wordsCount);
                     SendNewWordSelected();
                     FrmReturnToForm(0);
                     return true;
+
                 case pageUpChr:
-                    frm = FrmGetActiveForm();
                     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
                     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
                     if (gd.selectedWord > WORDS_IN_LIST)
@@ -1167,8 +1148,8 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                         return true;
                     }
                     break;
+
                 case pageDownChr:
-                    frm = FrmGetActiveForm();
                     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
                     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
                     if (gd.selectedWord + WORDS_IN_LIST < gd.wordsCount)
@@ -1178,25 +1159,26 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                         return true;
                     }
                     break;
+
                 default:
                     break;
             }
             SendFieldChanged();
-            handled = false;
-            break;
+            return false;
+
         case fldChangedEvent:
         case evtFieldChanged:
             DoFieldChanged();
-            handled = true;
-            break;
+            return true;
+
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
-                    RememberLastWord(FrmGetActiveForm());
-                    handled = true;
+                    RememberLastWord(frm);
                     FrmReturnToForm(0);
-                    break;
+                    return true;
+
                 default:
                     Assert(0);
                     break;
@@ -1214,11 +1196,11 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
     ListPtr list;
     long    selectedDb;
 
+    frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case frmOpenEvent:
             selectedDb = FindCurrentDbIndex();
-            frm = FrmGetActiveForm();
             list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
             LstSetDrawFunction(list, ListDbDrawFunc);
             LstSetListChoices(list, NULL, gd.dictsCount);
@@ -1238,7 +1220,6 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonSelect:
-                    frm = FrmGetActiveForm();
                     list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
                     selectedDb = LstGetSelection(list);
                     if (selectedDb != noListSelection)
@@ -1254,7 +1235,6 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
                     FreeDicts();
                     // force scanning external memory for databases
                     ScanForDictsNoahPro(true);
-                    frm = FrmGetActiveForm();
                     list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
                     LstSetListChoices(list, NULL, gd.dictsCount);
                     if (0==gd.dictsCount)
@@ -1307,10 +1287,9 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
     switch (event->eType)
     {
         case frmOpenEvent:
-            PrefsToGUI(frm);
             FrmDrawForm(frm);
-            handled = true;
-            break;
+            PrefsToGUI(frm);
+            return true;
 
         case popSelectEvent:
             list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, event->data.popSelect.listID));
@@ -1376,16 +1355,12 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
 
 Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
 {
-    Boolean handled_p = true;
-    FormType *frm = NULL;
-
-    frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case frmOpenEvent:
-            /* PrefsToGUI(frm); */
-            FrmDrawForm(frm);
-            break;
+            FrmDrawForm(FrmGetActiveForm());
+            return true;
+
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
@@ -1394,20 +1369,22 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
                 case buttonCancel:
                     FrmReturnToForm(0);
                     break;
+                default:
+                    Assert(0);
+                    break;
             }
-            break;
+            return true;
+
         default:
-            handled_p = false;
             break;
     }
-    return handled_p;
+    return false;
 }
 
 Boolean HandleEventNoahPro(EventType * event)
 {
-    FormPtr frm;
-    UInt16 formId;
-    Boolean handled = false;
+    FormType *  frm;
+    UInt16      formId;
 
     if (event->eType == frmLoadEvent)
     {
@@ -1419,31 +1396,30 @@ Boolean HandleEventNoahPro(EventType * event)
         {
             case formDictMain:
                 FrmSetEventHandler(frm, MainFormHandleEventNoahPro);
-                handled = true;
-                break;
+                return true;
+
             case formDictFind:
                 FrmSetEventHandler(frm, FindFormHandleEventNoahPro);
-                handled = true;
-                break;
+                return true;
+
             case formSelectDict:
                 FrmSetEventHandler(frm, SelectDictFormHandleEventNoahPro);
-                handled = true;
-                break;
+                return true;
+
             case formPrefs:
                 FrmSetEventHandler(frm, PrefFormHandleEventNoahPro);
-                handled = true;
-                break;
+                return true;
+
             case formDisplayPrefs:
                 FrmSetEventHandler(frm, DisplayPrefFormHandleEventNoahPro);
-                handled = true;
-                break;
+                return true;
+
             default:
                 Assert(0);
-                handled = false;
                 break;
         }
     }
-    return handled;
+    return false;
 }
 
 void EventLoopNoahPro(void)
