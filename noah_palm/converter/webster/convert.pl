@@ -2,6 +2,15 @@
 require 5.001;
 ############################################################################
 
+$WEBSTER_FILES_PATH = "C:\\kjk\\src\\mine\\dicts_data\\webster\\";
+
+sub wb_full_path
+{
+	$file = shift;
+	$path = $WEBSTER_FILES_PATH . $file;
+	return $path;
+}
+
 ############################################################################
 # Find some bugs in dictionary
 #
@@ -895,17 +904,18 @@ $OUT_FILE_NOUN = "data.noun";
 $OUT_FILE_ADJ  = "data.adj";
 $OUT_FILE_ADV  = "data.adv";
 
-$IN_FILE_NAME[0]  = "pgw050ab.txt";
-$IN_FILE_NAME[1]  = "pgw050c.txt";
-$IN_FILE_NAME[2]  = "pgw050de.txt";
-$IN_FILE_NAME[3]  = "pgw050fh.txt";
-$IN_FILE_NAME[4]  = "pgw050il.txt";
-$IN_FILE_NAME[5]  = "pgw050mo.txt";
-$IN_FILE_NAME[6]  = "pgw050pq.txt";
-$IN_FILE_NAME[7]  = "pgw050r.txt";
-$IN_FILE_NAME[8]  = "pgw050s.txt";
-$IN_FILE_NAME[9]  = "pgw050tw.txt";
-$IN_FILE_NAME[10] = "pgw050xz.txt";
+$IN_FILE_NAME[0]  = wb_full_path("pgw050ab.txt");
+$IN_FILE_NAME[1]  = wb_full_path("pgw050c.txt");
+$IN_FILE_NAME[2]  = wb_full_path("pgw050de.txt");
+$IN_FILE_NAME[3]  = wb_full_path("pgw050fh.txt");
+$IN_FILE_NAME[4]  = wb_full_path("pgw050il.txt");
+$IN_FILE_NAME[5]  = wb_full_path("pgw050mo.txt");
+$IN_FILE_NAME[6]  = wb_full_path("pgw050pq.txt");
+$IN_FILE_NAME[7]  = wb_full_path("pgw050r.txt");
+$IN_FILE_NAME[8]  = wb_full_path("pgw050s.txt");
+$IN_FILE_NAME[9]  = wb_full_path("pgw050tw.txt");
+$IN_FILE_NAME[10] = wb_full_path("pgw050xz.txt");
+
 ############################################################################
 # Counters - to detect anomalies
 ############################################################################

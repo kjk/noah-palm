@@ -2044,3 +2044,8 @@ in a record"
 
 (defun do-wn-full ()
   (do-wordnet-full "WN full" "wn_full.pdb" nil 't))
+
+(defun do-webster ()
+  (defconstant *wordnet-dir*  "c:\\kjk\\src\\mine\\noah_palm\\converter\\webster\\")
+  (do-wordnet-full "Webster" "webster.pdb" nil 't))
+

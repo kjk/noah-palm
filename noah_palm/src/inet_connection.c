@@ -2,12 +2,12 @@
 #include "http_response.h"
 
 // this is a test server running on my pc, accessible from internet
-#define serverAddress                "dict-pc.arslexis.com"
-#define serverPort                   3000
+//#define serverAddress                "dict-pc.arslexis.com"
+//#define serverPort                   3000
 
 // this is an official server running on arslexis.com
-//#define serverAddress                "dict.arslexis.com"
-//#define serverPort                   80
+#define serverAddress                "dict.arslexis.com"
+#define serverPort                   80
 
 #define maxResponseLength         8192               // reasonable limit so malicious response won't use all available memory
 #define responseBufferSize         256               // size of single chunk used to retrieve server response
@@ -212,10 +212,12 @@ OnError:
 static Err OpenConnection(ConnectionData* connData)
 {
     Err     error;
+    Int32   timeout;
 
     Assert(*connData->serverIpAddress);
+    timeout = MillisecondsToTicks(socketOpenTimeout);
     connData->socket=NetLibSocketOpen(connData->netLibRefNum, netSocketAddrINET, netSocketTypeStream, netSocketProtoIPTCP, 
-        MillisecondsToTicks(socketOpenTimeout), &error);
+        timeout, &error);
     if (-1==connData->socket)
     {
         Assert(error);
@@ -229,8 +231,9 @@ static Err OpenConnection(ConnectionData* connData)
         address.family=netSocketAddrINET;
         address.port=NetHToNS(serverPort);
         address.addr=NetHToNL(*connData->serverIpAddress);
+        timeout = MillisecondsToTicks(socketConnectTimeout);
         result=NetLibSocketConnect(connData->netLibRefNum, connData->socket, (NetSocketAddrType*)&address, sizeof(address), 
-            MillisecondsToTicks(socketConnectTimeout), &error);
+            timeout, &error);
         if (-1==result)
         {
             Assert(error);
