@@ -3,8 +3,9 @@
 //#include <conio.h>
 #include <ctype.h>
 #include <string.h>
-#include <alloc.h>
+#include <malloc.h>
 //#include <dos.h>
+#include <assert.h>
 
 #define OFF_AppInfoArea          52
 #define OFF_SortInfoArea         56
@@ -360,7 +361,9 @@ int wcGetWord(FILE *in, char * wordIn, BB32 wordNo)
     if(data == NULL)
     {
         printf("malloc failed!!!\n");
+#ifdef NEVER
         printf("wordNo:%lu Coreleft:%lu\n",wordNo,coreleft());
+#endif
         printf("record:%u offset:%u nextrecord:%u nextoffset:%u\n",record,offset,ch_nextbb16,ch_nextcc16);
         printf("malloc size:%lu\n",recordSize);
 
@@ -376,7 +379,7 @@ int wcGetWord(FILE *in, char * wordIn, BB32 wordNo)
     currWord = firstWord;
     prevWord[0] = '\0';
 
-    pc.currData = data;
+    pc.currData = (unsigned char*)data;
     pc.currOffset = 0;
     pc.currPackStr = -1;
     pc.currPackStrLen = 0;
@@ -456,6 +459,75 @@ char RetNo(char a, char b)
     if(a == '2' && b ==  0 ) return 42;
 }
 
+/* Table mapping of pronunciation symbols to code. The code is offset in the array -1 */
+char *pronSymbolsTable[] =
+{
+    "AA", "AE", "AH", "AO", "AW", "AY", "B",  "CH", "D",  "DH",
+    "EH", "ER", "EY", "F",  "G",  "HH", "IH", "IY", "JH", "K",
+    "L",  "M",  "N",  "NG", "OW", "OY", "P",  "R",  "S",  "SH",
+    "T", "TH", "UH",  "UW", "V",  "W",  "Y",  "Z",  "ZH"
+};
+
+#define PRON_SYMBOLS_COUNT sizeof(pronSymbolsTable)/sizeof(pronSymbolsTable[0])
+
+/* Given pronunciation symbol return its code, an integer between 1..N.
+   -1 means the symbol has not been found */
+int GetCodeForPronSymbol(char *pronSymbol)
+{
+    for(int code=0; code<PRON_SYMBOLS_COUNT; code++)
+    {
+        if (0 == strcmp(pronSymbol, pronSymbolsTable[code]) )
+            return code+1;
+    }
+    return -1;
+}
+
+/* Given a string consisting of pronunciation symbols in pronString,
+   fill out codes with codes corresponding to those symbols.
+   Return 0 if everything went ok, 1 if there was an error.
+*/
+int  MakeNumbersFromPronunciation2(char *pronString, char *codes)
+{
+    /* pronunciation symbol is at most 2 characters long,
+    we give 3 for safety and 1 for terminating null */
+    char    pronSymbol[4];
+    int     currSymbolLen;
+    int     symbolsCount = 0;
+    int     code;
+
+    do
+    {
+        currSymbolLen = 0;
+        while ( ('\0' != *pronString) && (' ' != *pronString) )
+        {
+            pronSymbol[currSymbolLen++] = *pronString++;
+            assert(currSymbolLen <= sizeof(pronSymbol));
+        }
+        if (0==currSymbolLen)
+            break;  // was an empty string
+
+        // ignore terminating stress symbols ('0' or '1' or '2')
+        if ( ('0'==pronSymbol[currSymbolLen-1]) || 
+             ('1'==pronSymbol[currSymbolLen-1]) ||
+             ('2'==pronSymbol[currSymbolLen-1]) )
+            --currSymbolLen;
+
+        assert( currSymbolLen < sizeof(pronSymbol) );
+        pronSymbol[currSymbolLen] = '\0'; // null-terminate pron symbol
+        code = GetCodeForPronSymbol( (char*) &pronSymbol);
+        if ( -1 == code )
+            return 1;          // unknown symbol
+        assert( code >= 1 );
+        codes[symbolsCount++] = (char)code;
+        while( ' ' == *pronString) 
+            ++pronString; // in case symbols are separated by multiple spaces
+        if ( '\0' == *pronString )
+            break;
+    }    while (1);
+
+    return 0;
+}
+
 int  MakeNumbersFromPronunciation(char *we, char *wy)
 {
     int i,j,w,wyTmp;
@@ -526,15 +598,18 @@ ErrorDePron:
     return 1;
 }
 
+#define REFACTORING 1
+
 void MakePronBis()
 {
-    FILE *in, *o1, *o2, *o3;
+    FILE *in, *o2;
 
     char line[200];
     char unpack[100];
     char tmp[200];
     long index = 0;
-    int  i,j,k,wordLen;
+    int  i,j,wordLen;
+	int k;
     PRONBIS pronBisObj;
 
     in = fopen(pronIN,"rt");
@@ -573,21 +648,36 @@ void MakePronBis()
                 tmp[k] = line[i+k];
             tmp[k] = 0;
 
+#ifdef REFACTORING
+            // check if my re-written version works exactly the same as the original
+            char unpack2[100];
 
+            assert( sizeof(unpack) == sizeof(unpack2) );
+            memset(unpack, 0, sizeof(unpack) );
+            memset(unpack2,0, sizeof(unpack2));
+#endif
             //pronunciation to numbers
-            if(MakeNumbersFromPronunciation(tmp, unpack)==1)
+            if( 1==MakeNumbersFromPronunciation(tmp, unpack))
             {
                 printf("Find word:%s\n",line);
                 printf("Try to fix problem using editor. Good luck!\n");
                 exit(1);
             }
 
+#ifdef REFACTORING
+            if ( 1==MakeNumbersFromPronunciation2(tmp, unpack2) )
+            {
+                assert( 0 ); // works differently
+            }
+            assert( 0 == memcmp( unpack, unpack2, sizeof(unpack) ) );
+#endif
+
             for(k = 0;k < wordLen;k++)
                 pronBisObj.word[k] = line[k];
             for(     ;k < sizeof(pronBisObj.word);k++)
                 pronBisObj.word[k] = 0;
 
-            for(k = 0;k < strlen(unpack);k++)
+            for(k = 0;k < (int)strlen(unpack);k++)
                 pronBisObj.pron[k] = unpack[k];
             for(     ;k < sizeof(pronBisObj.pron);k++)
                 pronBisObj.pron[k] = 0;
@@ -611,7 +701,7 @@ void MakePronBis()
  */
 int CompareWords(char *w1, char *w2)
 {
-    int i,j,k;
+    int i;
 
 
     i = 0;
@@ -642,7 +732,7 @@ int CompareWords(char *w1, char *w2)
 
 int GetPron(FILE *pr,char *pron,char *word)
 {
-    int  i;
+    unsigned int  i;
     long r,a;
     long L,R,A;
     int  found = 0;
@@ -688,7 +778,7 @@ int GetPron(FILE *pr,char *pron,char *word)
         if(i == 0)
         {
             found = 1;
-            strcpy(pron,record.pron);
+            strcpy(pron, (const char*)record.pron);
         }
 
     }
@@ -804,6 +894,7 @@ int PutPron(FILE *pronData,char *pron)
         zero = compresed[i];
         Set8(&zero,pronData);
     }
+	return 0;
 }
 
 int PutIndex(FILE *pronIndex,BB32 wordNo,BB16 recordNo,BB16 pronOffset)
@@ -830,8 +921,7 @@ int MakeFiles()
     FILE *offsetsRL;
     FILE *pronIndex;
     FILE *pronData;
-    int  i,j,k;
-    BB32 offset;
+    BB16  i;
     BB32 x32;
     BB16 x16;
     BB32 wordsCount;
@@ -913,10 +1003,12 @@ int MakeFiles()
         }
 
 
+#ifdef NEVER
         if(actWord%1000 == 0)
         {
             printf("Word:%lu Coreleft:%lu\n",actWord,coreleft());
         }
+#endif
 
         offBefore = ftell(pronData);
         PutPron(pronData,pron);
@@ -965,7 +1057,6 @@ int MakeEndFile()
     FILE *in1, *in2, *in3, *in4;
     FILE *out;
     long act,pos;
-    int  z;
     char name[32];
     BB32 bb32;
     BB16 bb16,tmp;
