@@ -68,8 +68,15 @@ static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
 
 static Err AppInit(AppContext* appContext)
 {
-    Err error=errNone;
-    UInt32 value=0;
+    Err     error=errNone;
+    UInt32  value=0;
+
+#ifdef DEBUG
+    UInt8   *data;
+    UInt16  len;
+    error = SysGetDeviceId(&data,&len);
+#endif
+
     MemSet(appContext, sizeof(*appContext), 0);
     error=FtrSet(APP_CREATOR, appFtrContext, (UInt32)appContext);
     if (error) 

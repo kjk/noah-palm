@@ -7,7 +7,7 @@
 #define responseBufferSize          256                 // size of single chunk used to retrieve server response
 #define addressResolveTimeout   20000              // timeouts in milliseconds
 #define socketOpenTimeout         1000
-#define socketConnectTimeout     10000
+#define socketConnectTimeout     20000
 #define transmitTimeout              5000
 
 #define netLibName "Net.lib"

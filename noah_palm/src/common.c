@@ -2359,10 +2359,26 @@ Err SysGetDeviceId(UInt8** data, UInt16* length)
     Err error=SysGetROMToken(0, sysROMTokenSnum, data, length);
     if (!error)
     {
-        if (NULL==*data || 0xff==**data) 
+        if (NULL==*data || 0xff==**data)
+        {
             error=sysErrNotAllowed;
+#ifdef NEVER
+            CreateNewMemo( "SysGetROMToken() didn't return valid data",-1);
+#endif
+        }
+#ifdef NEVER
+        else
+            CreateNewMemo( (char*)*data, (int)*length);
+#endif
     }
+#ifdef NEVER
+    else
+        LogErrorToMemo_("SysGetROMToken() return", error);
+#endif
+
     return error;
+
+
 }
 
 Err SysGetDeviceIdAsNumber(UInt32* retVal)
