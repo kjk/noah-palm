@@ -554,7 +554,7 @@ static void CopyParamsFromTo(DisplayPrefs *src, DisplayPrefs *dst)
 }
 
 #ifdef I_NOAH
-static void ReformatLastResponse(AppContext* appContext)
+void ReformatLastResponse(AppContext* appContext)
 {
     if (mainFormShowsDefinition==appContext->mainFormContent)
     {
@@ -723,10 +723,10 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 #endif                  
                     bfFreePTR(appContext);
 
-#ifndef I_NOAH                    
-                    SendNewWordSelected();
-#else
+#ifdef I_NOAH                    
                     ReformatLastResponse(appContext);
+#else
+                    SendNewWordSelected();
 #endif
 
                     FrmReturnToForm(0);
@@ -1409,24 +1409,28 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 //from "extensible_buffer.c" cut lines to smaller ones
 int  ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start, AppContext* appContext)
 {
-    char *txt;
-    Int16 string_dx;
-    Int16 pos_dx;
-    Int16 pos_dx2;
-    Int16 string_len;
-    Int16 pos_len;
-    Int16 tagOffset;
+    char *  txt;
+    Int16   string_dx;
+    Int16   pos_dx;
+    Int16   pos_dx2;
+    Int16   string_len;
+    Int16   pos_len;
+    Int16   tagOffset;
     Boolean fits;
     Boolean found;
-    int pos, breakLine;
-    int i,j;
+    int     pos, breakLine;
+    int     i,j;
+
+    // Int16   displayDx=152;
+    Int16 displayDx = GetAppContext()->screenWidth-8;
 
     txt = buf->data;
     if (NULL == txt)
         return 0;
 
-    string_dx = 152;
-    pos_dx = 152;
+    string_dx = displayDx;
+    pos_dx = displayDx;
+
     string_len = line_len;
     txt += line_start;
     tagOffset = 0;

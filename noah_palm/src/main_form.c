@@ -491,7 +491,9 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
     FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
     FrmSetObjectPosByID(form, buttonAbortLookup, appContext->screenWidth-13, appContext->screenHeight-13);
 
+    ReformatLastResponse(appContext);
     FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
+
     return true;
 }
 

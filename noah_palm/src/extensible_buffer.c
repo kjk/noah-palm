@@ -205,6 +205,7 @@ void ebufDeleteChar(ExtensibleBuffer *buf, int pos)
         MemMove(&(buf->data[pos]), &(buf->data[pos+1]), buf->used - pos - 1);
     buf->used--;
 }
+
 //insert string into buf[pos]
 void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos)
 {
@@ -213,6 +214,7 @@ void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos)
     for(; i >= 0; i--)
         ebufInsertChar(buf, string[i], pos);
 }
+
 /*make a copy of buffer - faster then inserting char by char*/
 void ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src)
 {
@@ -230,18 +232,19 @@ void ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src)
     MemMove(dst->data, src->data, src->allocated);
     dst->used = src->used;
 }
+
 /* wrap all lines that are too long to fit on the screen */
 void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
 {
-    int len;
-    char *txt;
-    char *txt2;
-    char *txt3;
-    int curr_pos;
-    int spaces;
-    int line_len;
+    int         len;
+    char *      txt;
+    char *      txt2;
+    char *      txt3;
+    int         curr_pos;
+    int         spaces;
+    int         line_len;
     AppContext* appContext=GetAppContext();
-    FontID prevfont;
+    FontID      prevfont;
 
     prevfont = FntGetFont();
 

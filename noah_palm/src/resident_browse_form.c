@@ -20,11 +20,11 @@ static Boolean ResidentBrowseFormDisplayChanged(AppContext* appContext, FormType
     UpdateFrmBounds(form);
 
     SetListHeight(form, listMatching, appContext->dispLinesCount);
+    FrmSetObjectBoundsByID(form, listMatching, -1, -1, appContext->screenWidth, -1);
 
     FrmSetObjectPosByID(form, ctlArrowLeft,  -1, appContext->screenHeight-12);
     FrmSetObjectPosByID(form, ctlArrowRight, -1, appContext->screenHeight-12);
 
-    FrmSetObjectBoundsByID(form, listMatching, -1, -1, appContext->screenWidth, -1);
     FrmSetObjectBoundsByID(form, fieldWord, -1, appContext->screenHeight-13, appContext->screenWidth-66, -1);
     FrmSetObjectPosByID(form, buttonCancel, appContext->screenWidth-40, appContext->screenHeight-14);
 

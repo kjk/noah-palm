@@ -93,6 +93,7 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
 
 Boolean FormatWantsWord(struct _AppContext *appContext);
 Boolean DisplayPrefFormHandleEvent(EventType * event);
+void ReformatLastResponse(struct _AppContext* appContext);
 
 Boolean ShakeSortExtBuf(ExtensibleBuffer *buf);
 void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf);

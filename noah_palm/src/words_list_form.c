@@ -236,6 +236,25 @@ static Boolean WordsListFormKeyDown(AppContext* appContext, FormType* form, Even
     return handled;
 }    
 
+static Boolean WordListFormDisplayChanged(AppContext* appContext, FormType* form) 
+{
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
+
+    UpdateFrmBounds(form);
+
+    SetListHeight(form, listProposals, appContext->dispLinesCount);
+    FrmSetObjectBoundsByID(form, listProposals, -1, -1, appContext->screenWidth, -1);
+
+    FrmSetObjectPosByID(form, ctlArrowLeft, -1, appContext->screenHeight-12);
+    FrmSetObjectPosByID(form, ctlArrowRight, -1, appContext->screenHeight-12);
+
+    FrmSetObjectBoundsByID(form, fieldWordInput, -1, appContext->screenHeight-13, appContext->screenWidth-66, -1);
+    FrmSetObjectPosByID(form, buttonCancel,  appContext->screenWidth-40, appContext->screenHeight-14);
+
+    FrmUpdateForm(formWordsList, frmRedrawUpdateCode);        
+    return true;
+}
  
 static Boolean WordsListFormHandleEvent(EventType* event)
 {
@@ -248,6 +267,10 @@ static Boolean WordsListFormHandleEvent(EventType* event)
             handled=WordsListFormOpen(appContext, form, event);
             break;
         
+        case winDisplayChangedEvent:
+            handled=WordListFormDisplayChanged(appContext, form);
+            break;
+            
         case ctlSelectEvent:
             handled=WordsListFormControlSelected(appContext, form, event);
             break;
