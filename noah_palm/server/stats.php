@@ -1,4 +1,10 @@
 <html>
+
+<head>
+<title>Stats for iNoah/Palm</title>
+<link rel="stylesheet" type="text/css" href="main.css" />
+</head>
+
 <body>
 
 <?php
@@ -8,6 +14,8 @@ require( "dbsettings.inc" );
 require_once("ez_mysql.php");
 
 require_once("common.php");
+
+// $type = ;
 
 $dict_db = new inoah_db(DBUSER, '', DBNAME, DBHOST);
 
@@ -61,32 +69,83 @@ Unique cookies created so far: <?php total_and_day_avg($unique_cookies) ?>. <br>
 Unique devices registered so far: <?php total_and_day_avg($unique_devices) ?>. <br>
 Total requests so far: <?php total_and_day_avg($total_requests) ?> which is 
 <?php aveg($total_requests,$unique_devices) ?> per unique device (unique user?). <br>
-Recent registrations:
-<table>
+<p>
+Weekly stats:
+<p>
+<table id="stats" cellspacing="0">
+<tr class="header">
+  <td>Week</td>
+  <td>Registrations</td>
+  <td>Lookups</td>
+</tr>
+<?php
 
+function find_lookups_for_date($weekly_lookups_rows, $date)
+{
+    foreach( $weekly_lookups_rows as $row )
+    {
+        if ($row->when_date == $date )
+            return $row->lookups_count;
+    }
+    return 0;
+}
+
+    $weekly_regs_q = "select DATE_FORMAT(when_created, '%Y-%U') as when_date, count(*) as regs_count from cookies group by when_date order by when_date desc;";
+    $weekly_regs_rows = $dict_db->get_results($weekly_regs_q);
+
+    $weekly_lookups_q = "select DATE_FORMAT(query_time, '%Y-%U') as when_date, count(*) as lookups_count from request_log group by when_date order by when_date desc;";
+    $weekly_lookups_rows = $dict_db->get_results($weekly_lookups_q);
+
+    $selected = false;
+    foreach ( $weekly_regs_rows as $row )
+    {
+        $when_date = $row->when_date;
+        $regs_count = $row->regs_count;
+        $lookups_count = find_lookups_for_date($weekly_lookups_rows, $when_date);
+        if ($selected)
+            echo "<tr class=\"selected\">\n";
+        else
+            echo "<tr>\n";
+        echo "  <td>$when_date</td>\n";
+        echo "  <td>$regs_count</td>\n";
+        echo "  <td>$lookups_count</td>\n";
+        echo "</tr>\n";
+        if ($selected)
+            $selected = false;
+        else
+            $selected = true;
+    }
+?>
+</table>
+<p>
+Recent registrations:
+<p>
+<table id="stats" cellspacing="0">
 <?php
     $recent_regs_max = 15;
     $recent_regs_q = "SELECT * FROM cookies ORDER BY when_created DESC LIMIT $recent_regs_max;";
     $recent_regs_rows = $dict_db->get_results($recent_regs_q);
 
-    $color = "white";
+    $selected = false;
     foreach ( $recent_regs_rows as $row )
     {
         $when_created = $row->when_created;
         $dev_info = $row->dev_info;
         $dev_info_decoded = decode_di($dev_info);
-        echo "<tr>\n";
-        echo "  <td bgcolor=$color>$when_created</td>\n";
-        echo "  <td bgcolor=$color>$dev_info</td>\n";
-        echo "  <td bgcolor=$color>$dev_info_decoded</td>\n";
-        echo "</tr>\n";
-        if ($color=="white")
-            $color = "lightgray";
+        if ($selected)
+            echo "<tr class=\"selected\">\n";
         else
-            $color = "white";
+            echo "<tr>\n";
+        echo "  <td>$when_created</td>\n";
+        echo "  <td>$dev_info</td>\n";
+        echo "  <td>$dev_info_decoded</td>\n";
+        echo "</tr>\n";
+        if ($selected)
+            $selected = false;
+        else
+            $selected = true;
     }
 ?>
-
 </table>
 
 </body>
