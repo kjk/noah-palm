@@ -378,7 +378,7 @@ def _buildDummyStringCompressor():
     return comp
 
 def _getSmallestFreq( l ):
-    m = l[0] # min value
+    m = l[0][0] # min value
     for el in l[1:]:
         if el[0] < m:
             m = el[0]
@@ -703,18 +703,69 @@ def printFreqList(l):
         txt = chr(x) + chr(y)
         print "%s %d (%d,%d)" % (txt,freq,x,y)
 
+def _getStrFromCodes(codes,s):
+    prevLen = len(s)
+    while True:
+        tmp = ""
+        for c in s:
+            if codes[ord(c)] == None:
+                tmp += c
+            else:
+                tmp += codes[ord(c)]
+        if len(tmp) == prevLen:
+            break
+        s = tmp
+        prevLen = len(s)
+        print s
+    return tmp
+
 class CompInfoGenNew:
     """Given a list of strings, generate compression info (packStrings). This
     should be identical to the way original lisp version works"""
     def __init__(self,strList):
-        self.freqTable = Freq(256,256)
         self.strList = strList
+        self.reservedCodes = 32
 
+# UNDONE: THIS IS BROKEN. It should be:
+# - build freq for original strings
+# - get all used chars and encode them
+# - encode original strings using those codes
+# - do the same using encoded strings
     def buildPackStrings(self):
+        freqTable = Freq(256,256)
+        strList = self.strList
+        freqTable.buildFreqForStrings(strList)
+        packStrings = [chr(n) for n in range(self.reservedCodes)]
+        allValues = freqTable.getAllValues()
+        for v in allValues:
+            if v >= self.reservedCodes:
+                assert packStrings.count(chr(v)) == 0
+                packStrings.append(chr(v))
+        currCode = len(packStrings)
         pairs = []
-        codesUsed = 0
-        while codesUsed < 256:
-            pass            
+        while True:
+            flist = freqTable.getMostFrequent(1)
+            codeStr = flist[0][1]
+            print "code = %d, code string: %s" % (currCode,codeStr)
+            pairs.append( (codeStr,currCode) )
+            replaceChar = chr(currCode)
+            strList = [s.replace(codeStr,replaceChar) for s in strList]
+            currCode += 1
+            if currCode == 256:
+                break
+            assert currCode < 256
+            freqTable.buildFreqForStrings(strList)
+        codes = [None for t in range(256)]
+        for p in pairs:
+            strPair = p[0]
+            code = p[1]
+            codes[code] = strPair
+            strCode = _getStrFromCodes(codes,strPair)
+            print "strCode: %s" % strCode
+            packStrings.append(strCode)
+        sortStringsByLen(packStrings)
+        print packStrings
+        return packStrings
 
 class CompInfoGenOrig:
     """Given a list of strings, generate compression info (packStrings). This
@@ -846,11 +897,11 @@ class CompInfoGenOrig:
 def buildStringCompressor(strList):
     """Given a list of strings, build compressor object optimal for compressing
     those strings"""
-    ft = CompInfoGenWeak(strList)
+    #ft = CompInfoGenWeak(strList)
     #ft = CompInfoGen(strList)
     #ft = CompInfoGenOrig(strList)
     #ft = CompInfoNoCompression(strList)
-    #ft = CompInfoGenNew(strList)
+    ft = CompInfoGenNew(strList)
     packStrings = ft.buildPackStrings()
     #print packStrings
     assert 256 == len(packStrings)
