@@ -11,4 +11,3 @@ and calls apropriate parser, e.g. WordLookupResponseProcessor
 
 ProcessDefinitionResponse in inet_definition_format.c process the response.
 
-The problem: there's no word after DEF

@@ -61,6 +61,12 @@ static void MainFormDisplayAbout(AppContext* appContext)
     FntSetFont(largeFont);
     DrawCenteredString(appContext, "http://www.arslexis.com", currentY);
     currentY+=40;
+
+    FntSetFont(stdFont);
+    if (0==StrLen(appContext->prefs.regCode))
+    {
+        DrawCenteredString(appContext, "Trial mode", currentY);
+    }
     
     WinPopDrawState();    
 }
@@ -389,7 +395,18 @@ static void MainFormHandleRegister(AppContext* appContext)
             Assert(field);
             const char* serialNumber=FldGetTextPtr(field);
             if (serialNumber && StrLen(serialNumber))
+            {
+                // save the registration number in preferences so that we can
+                // save it in all requests
+
+
+                // send a registration query to the server so that the user
+                // knows if he registered correctly
+                // it doesn't really matter, in the long run, because every time
+                // we send a request, we also send the registration number and
+                // if it's not correct, we'll reject the query
                 StartRegistration(appContext, serialNumber);
+            }
         }
         FrmDeleteForm(form);
     }
@@ -469,7 +486,8 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             break;
 
         case menuItemGotoWebsite:
-            WebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com",NULL);
+            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com",NULL) )
+                FrmAlert(alertNoWebBrowser);
             handled=true;
             break;
             

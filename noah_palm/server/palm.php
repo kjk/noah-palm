@@ -16,6 +16,9 @@ define( 'ERR_RECENT_LOOKUPS_NOT_EMPTY', 13);
 define( 'ERR_COOKIE_UNKNOWN',   14);  # client sent a cookie that we didnt generate
 define( 'ERR_COOKIE_DISABLED',  15);  # client sent a cookie that we disabled for some reason
 
+define( 'TOTAL_REQUESTS_LIMIT', 10);  # how many total requests we allow for non-registered users
+define( 'DAILY_REQUESTS_LIMIT',  2);  # how many daily requests we allow for non-registered users
+
 require( "dbsettings.inc" );
 
 require_once("ez_mysql.php");
@@ -51,7 +54,8 @@ function write_MSG( $msg )
 }
 
 # write DEF response to returning stream
-function write_DEF( $word, $pron, $def )
+# if $requests_left < 0 => don't write it
+function write_DEF( $word, $pron, $def, $requests_left )
 {
     print "DEF\n";
     print "$word\n";
@@ -60,6 +64,10 @@ function write_DEF( $word, $pron, $def )
         $pron = strtolower($pron);
         print "PRON $pron\n";
     }
+    if ($requests_left>=0)
+    {
+        print "REQUESTS_LEFT $requests_left\n";
+    }
     print $def;
 }
 
@@ -67,6 +75,20 @@ function write_WORDLIST( $list )
 {
     print "WORDLIST\n";
     print "$list\n";
+}
+
+function report_wrong_registration_number()
+{
+    print "WRONG_REGISTRATION_NUMBER\n";
+    exit;
+}
+
+function report_no_lookups_left()
+{
+    $total_limit = TOTAL_REQUESTS_LIMIT;
+    $daily_limit = DAILY_REQUESTS_LIMIT;
+    write_MSG("You've reached the lookup limit for the trial version. Trial version allows $daily_limit free daily lookups. Please register iNoah at http://www.arslexis.com.");
+    exit;
 }
 
 define( 'COOKIE_LEN', 12);
@@ -141,10 +163,7 @@ function f_reg_code_valid($reg_code)
 function check_reg_code($reg_code)
 {
     if ( ! f_reg_code_valid($reg_code) )
-    {
-        write_MSG("Registration code $reg_code is not valid. Please re-enter registration code. In case of problems please contact support@arslexis.com" );
-        exit;
-    }
+        report_wrong_registration();
 }
 
 # check if reg_code is valid. Return apropriate response to the client
@@ -152,9 +171,9 @@ function check_reg_code($reg_code)
 function serve_register($reg_code)
 {
     if ( f_reg_code_valid($reg_code) )
-        write_MSG("Registration code $reg_code is not valid. Please re-enter registration code. In case of problems please contact support@arslexis.com" );
+        report_wrong_registration();
     else
-        write_MSG("Registration failed");
+        write_MSG("Registration successful. Enjoy iNoah.");
     exit;
 }
 
@@ -179,11 +198,12 @@ function serve_get_random_word()
     $word = $word_row->word;
     $pron = $word_row->pron;
 
-    write_DEF($word, $pron, $def);
+    write_DEF($word, $pron, $def, -1);
     exit;
 }
 
-function log_get_word_request($cookie,$word)
+# TODO: handle $reg_code
+function log_get_word_request($cookie,$word,$reg_code)
 {
     global $dict_db;
     $cookie = $dict_db->escape($cookie);
@@ -192,7 +212,26 @@ function log_get_word_request($cookie,$word)
     $dict_db->query( $query );
 }
 
-function serve_get_word($cookie,$word)
+function get_total_requests_for_cookie($cookie)
+{
+    global $dict_db;
+    $cookie = $dict_db->escape($cookie);
+    $query = "SELECT COUNT(*) FROM request_log WHERE cookie='$cookie';";
+    $requests_count = $dict_db->get_var($query);
+    return $requests_count;
+}
+
+function get_today_requests_for_cookie($cookie)
+{
+    global $dict_db;
+    $cookie = $dict_db->escape($cookie);
+    $query = "SELECT COUNT(*) FROM request_log WHERE cookie='$cookie' AND DATE_FORMAT(query_time,'%Y-%m-%d')=DATE_FORMAT(CURRENT_TIMESTAMP(),'%Y-%m-%d');";
+    $requests_count = $dict_db->get_var($query);
+    return $requests_count;
+}
+
+# if $reg_code is an empty string => unregistered lookup
+function serve_get_word($cookie,$word,$reg_code)
 {
 /*
     if ( $word=='wl' )
@@ -208,13 +247,27 @@ function serve_get_word($cookie,$word)
     }
 */
 
-    # TODO: capturing=>capture
+    $requests_left = -1;
+    if (!$reg_code)
+    {
+        $total_requests = get_total_requests_for_cookie($cookie);
+        $requests_left = TOTAL_REQUESTS_LIMIT-$total_requests+DAILY_REQUESTS_LIMIT;
+        if ($requests_left<=0)
+        {
+            $today_requests = get_today_requests_for_cookie($cookie);
+            $requests_left = DAILY_REQUESTS_LIMIT-$today_requests;
+            if ($requests_left<=0)
+                report_no_lookups_left();
+        }
+        else
+            $requests_left = TOTAL_REQUESTS_LIMIT-$total_requests+DAILY_REQUESTS_LIMIT;
+    }
 
-    log_get_word_request($cookie, $word);
+    log_get_word_request($cookie, $word, $reg_code);
 
     $word_row = get_word_row_try_stemming($word);
     if ( $word_row )
-        write_DEF($word_row->word, $word_row->pron,$word_row->def);
+        write_DEF($word_row->word, $word_row->pron,$word_row->def,$requests_left);
     else
         write_MSG("Definition of word '$word' has not been found");
     exit;
@@ -321,16 +374,6 @@ if ( isset($HTTP_GET_VARS['register']) )
     serve_register($reg_code);
 }
 
-$fRegistered = false;
-
-if ( isset($HTTP_GET_VARS['rc']) )
-{
-    $reg_code = $HTTP_GET_VARS['rc'];
-    check_reg_code($reg_code);
-    $fRegistered = true;
-}
-
-
 if ( isset($HTTP_GET_VARS['get_random_word'] ) )
 {
     $get_random_word = $HTTP_GET_VARS['get_random_word'];
@@ -349,8 +392,16 @@ if ( isset($HTTP_GET_VARS['recent_lookups'] ) )
 
 if ( isset($HTTP_GET_VARS['get_word']) )
 {
+    $reg_code = "";
+    # we only need to check for registration if we do get_word lookups
+    if ( isset($HTTP_GET_VARS['rc']) )
+    {
+        $reg_code = $HTTP_GET_VARS['rc'];
+        check_reg_code($reg_code);
+    }
+
     $get_word = $HTTP_GET_VARS['get_word'];
-    serve_get_word($cookie,$get_word);
+    serve_get_word($cookie,$get_word,$reg_code);
 }
 
 report_error(ERR_UKNOWN_REQUEST);

@@ -220,7 +220,7 @@ static HTTPErr SplitHttpHeader(char *hdr, char **keyOut, char **valueOut )
 static Err ParseChunkHeader(const Char* headerBegin, const Char* headerEnd, UInt16* chunkSize)
 {
     Err error=errNone;
-    const Char* end=StrFind(headerBegin, headerEnd, " ");
+    const char* end=StrFind(headerBegin, headerEnd, " ");
     Int32 size=0;
     error=StrAToIEx(headerBegin, end, &size, 16);
     if (error)
@@ -235,18 +235,18 @@ OnError:
     return error;                
 }
 
-static Err ParseChunkedBody(const Char* bodyBegin, const Char* bodyEnd, ExtensibleBuffer* buffer)
+static Err ParseChunkedBody(const char* bodyBegin, const char* bodyEnd, ExtensibleBuffer* buffer)
 {
     Err error=errNone;
-    const Char* lineBegin=bodyBegin;
+    const char* lineBegin=bodyBegin;
     UInt16 chunkSize=0;
     do 
     {
-        const Char* lineEnd=StrFind(lineBegin, bodyEnd, HTTP_LINE_ENDING);
+        const char* lineEnd=StrFind(lineBegin, bodyEnd, HTTP_LINE_ENDING);
         if (lineBegin<bodyEnd && lineEnd<bodyEnd && lineBegin<lineEnd)
         {
-            const Char* chunkBegin=lineEnd+2;
-            const Char* chunkEnd=NULL;
+            const char* chunkBegin=lineEnd+2;
+            const char* chunkEnd=NULL;
             error=ParseChunkHeader(lineBegin, lineEnd, &chunkSize);
             if (error)
                 break;                

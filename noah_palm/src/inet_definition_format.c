@@ -13,7 +13,10 @@
 #define definitionResponseLen   sizeof(definitionResponse)-1
 
 #define pronunciationTag        "PRON"
-#define pronunciationTagLength  sizeof(pronunciationTag)-1
+#define pronunciationTagLen    sizeof(pronunciationTag)-1
+#define requestsLeftTag         "REQUESTS_LEFT"
+#define requestsLeftTagLen      sizeof(requestsLeftTag)-1
+
 
 static Err ExpandPartOfSpeechSymbol(char symbol, const char** partOfSpeech)
 {
@@ -141,13 +144,18 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
         ebufAddChar(out, FORMAT_SYNONYM);
         ebufAddStr(out, (char*)word);
     }
+
+    // PRON tag is optional
     if (StrStartsWith(begin, end, pronunciationTag))
     {
-        const char* pronBegin=begin+pronunciationTagLength+1;
+        const char* pronBegin=begin+pronunciationTagLen+1;
         if ( !(pronBegin<end) )
             return appErrMalformedResponse;
 
         const char* pronEnd=StrFind(pronBegin, end, "\n");
+        if (NULL==pronEnd)
+            return appErrMalformedResponse;
+
         if (appContext->prefs.fEnablePronunciation)
         {
             if (appContext->prefs.fShowPronunciation)
@@ -160,6 +168,21 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
             }
         }
         begin=pronEnd+1;
+    }
+
+    // REQUESTS_LEFT tag is optional
+    if (StrStartsWith(begin,end,requestsLeftTag))
+    {
+        // shouldn't get this if we're registered
+        Assert(0==StrLen(appContext->prefs.regCode));
+        const char* reqLeftBegin=begin+requestsLeftTagLen+1;
+        if ( !(reqLeftBegin<end) )
+            return appErrMalformedResponse;
+        const char* reqLeftEnd=StrFind(reqLeftBegin, end, "\n");
+        if (NULL==reqLeftEnd)
+            return appErrMalformedResponse;
+
+        // TODO: parse the number
     }
 
     if (ebufGetDataSize(out))
@@ -425,6 +448,9 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
         // the form in a broken state (objects not re-drawn, text field disabled
         // instead post a message telling form event handling code to show the alert
         SendShowMalformedAlert();
+#ifdef DEBUG
+        DumpStrToMemo(begin,end);
+#endif
     }
     else if (!error)
     {

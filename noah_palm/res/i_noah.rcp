@@ -236,6 +236,14 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT alertNoWebBrowser
+INFORMATION
+BEGIN
+    TITLE "No web browser"
+    MESSAGE "Web browser not detected on this device."
+    BUTTONS "OK"
+END
+
 ALERT alertNoLookupsYet
 INFORMATION
 BEGIN

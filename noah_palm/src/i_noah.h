@@ -16,6 +16,8 @@
 
 #define MAX_COOKIE_LENGTH 64
 
+#define MAX_REG_CODE_LENGTH 32 // should be more than enough
+
 /* structure of the general preferences record */
 typedef struct
 {
@@ -29,6 +31,7 @@ typedef struct
     BookmarkSortType        bookmarksSortType;
 
     char                    cookie[MAX_COOKIE_LENGTH+1];
+    char                    regCode[MAX_REG_CODE_LENGTH+1];
     Boolean                 fShowPronunciation;
     /* run-time switch for pron-related features. It's just so that I can develop
     code for pronunciation and ship it without pronunciation enabled. */

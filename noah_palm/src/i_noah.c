@@ -29,6 +29,7 @@ static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelo
 #define dpBgCol_id               8
 #define dpfEnablePron_id         9
 #define dpfEnablePronFont_id    10
+#define reg_code_id             11
 
 // each of those marks the beginning of unique ids for storing
 // a given DisplayElementPrefs. Currently we only need to store
@@ -115,6 +116,14 @@ static void LoadPreferencesInoah(AppContext* appContext)
     err = store.ErrGetBool(dpfEnablePron_id,&dp->fEnablePronunciation);
     err = store.ErrGetBool(dpfEnablePronFont_id,&dp->fEnablePronunciationSpecialFonts);
 
+    MemSet(prefs->regCode, sizeof(prefs->regCode), 0);
+    err = store.ErrGetStr(reg_code_id, &tmpStr);
+    if (!err)
+    {
+        Assert(StrLen(tmpStr)<sizeof(prefs->regCode));
+        SafeStrNCopy(prefs->regCode, sizeof(prefs->regCode), tmpStr, -1);
+    }
+
     GetDisplayElementPrefs(&store, &dp->pos, depPos_id);
     GetDisplayElementPrefs(&store, &dp->word, depWord_id);
     GetDisplayElementPrefs(&store, &dp->definition, depDefinition_id);
@@ -168,6 +177,9 @@ static void SavePreferencesInoah(AppContext* appContext)
     err = store.ErrSetBool(dpfEnablePron_id, dp->fEnablePronunciation);
     Assert(!err);
     err = store.ErrSetBool(dpfEnablePronFont_id, dp->fEnablePronunciationSpecialFonts);
+    Assert(!err);
+
+    err = store.ErrSetStr(reg_code_id,(char*)prefs->regCode);
     Assert(!err);
 
     SetDisplayElementPrefs(&store, &dp->pos, depPos_id);

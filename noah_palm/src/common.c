@@ -2561,7 +2561,7 @@ Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt16* enc
 
 /* Create new MemoPad record with a given header and body of the memo.
    header can be NULL, if bodySize is -1 => calc it from body via StrLen */
-static void CreateNewMemoRec(DmOpenRef dbMemo, char *header, char *body, int bodySize)
+static void CreateNewMemoRec(DmOpenRef dbMemo, const char *header, const char *body, int bodySize)
 {
     UInt16      newRecNo;
     MemHandle   newRecHandle;
@@ -2593,7 +2593,7 @@ static void CreateNewMemoRec(DmOpenRef dbMemo, char *header, char *body, int bod
 
 /* Create a new memo with a given memoBody of size of memoBodySize.
    If memoBodySize is -1 => calculate the size via StrLen(memoBody). */
-void CreateNewMemo(char *memoBody, int memoBodySize)
+void CreateNewMemo(const char *memoBody, int memoBodySize)
 {
     LocalID     id;
     UInt16      cardno;
@@ -2629,7 +2629,7 @@ void CreateNewMemo(char *memoBody, int memoBodySize)
 
 #ifdef DEBUG
 #ifdef I_NOAH
-void LogErrorToMemo_(const Char* message, Err error)
+void LogErrorToMemo_(const char* message, Err error)
 {
     ExtensibleBuffer  buffer;
     char *            errorCodeBuffer;
@@ -2806,7 +2806,7 @@ FoundBrowser:
     return true;
 }
 
-Err WebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command, char *parameterP, UInt32 *resultP)
+Err ErrWebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command, char *parameterP, UInt32 *resultP)
 {
     UInt16  cardNo;
     LocalID dbID;
@@ -2846,4 +2846,11 @@ Err WebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command, cha
     }
     return error;
 } 
+
+void DumpStrToMemo(const char* begin, const char* end)
+{
+    Assert(end>=begin);
+    int size = (int)(end-begin);    
+    CreateNewMemo(begin,size);
+}
 

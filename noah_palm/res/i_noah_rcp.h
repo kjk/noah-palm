@@ -38,14 +38,13 @@
 #define alertAlreadyRegistered             2010
 #define alertMultipleRegistration          2011
 #define alertNoLookupsYet                  2012
-
 #define alertPhoneNotReady                 2014
 #define resAlertPhoneNotReadyOK            0
 #define resAlertPhoneNotReadyTurnOn        1
 #define alertSimNotReady                   2016
 #define resAlertSimNotReadyCancel          0
 #define resAlertSimNotReadyCheck           1
-
+#define alertNoWebBrowser                  2018
 
 #define bmpFind             3000
 

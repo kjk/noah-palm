@@ -12,6 +12,7 @@ function get_word_row($word)
 # for a given word try to get a row with word, its definition and pron
 # if exact match is not found, try stemming the word
 # if didnt find even after stemming, return null
+# TODO: capturing=>capture
 function get_word_row_try_stemming($word)
 {
     $word_row = get_word_row($word);

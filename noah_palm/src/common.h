@@ -619,7 +619,7 @@ extern Err StrUrlEncode(const char* begin, const char* end, char** encoded, UInt
 
 extern Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID);
 
-extern void CreateNewMemo(char *memoBody, int memoBodySize);
+extern void CreateNewMemo(const char *memoBody, int memoBodySize);
 
 #ifdef DEBUG 
 
@@ -644,10 +644,11 @@ void RedisplayWord(AppContext *appContext);
 long GenRandomLong(long range);
 void ParseResidentWord(AppContext *appContext, char *cmdPBP);
 void DoWord(AppContext* appContext, char *word);
-Err WebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command, char *parameterP, UInt32 *resultP);
+Err  ErrWebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command, char *parameterP, UInt32 *resultP);
 
 #ifdef THESAURUS
 void SavePreferencesThes(AppContext* appContext);
 #endif
 
+void DumpStrToMemo(const char* begin, const char* end);
 #endif
