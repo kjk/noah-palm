@@ -1,3 +1,8 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: Andrzej Ciarkowski
+*/
+
 #ifndef _I_NOAH_H_
 #define _I_NOAH_H_
 

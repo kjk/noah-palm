@@ -1,3 +1,8 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: Krzysztof Kowalczyk
+*/
+
 /**
  * @file noah_pro_2nd_segment.c
  * Implementation of Noah Pro functions that don't need to reside in 1st segment, because they are used only

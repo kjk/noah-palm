@@ -18,6 +18,7 @@ typedef struct
 ExtensibleBuffer *ebufNew(void);
 void    ebufInit(ExtensibleBuffer *buf, int minSize);
 void    ebufInitWithStr(ExtensibleBuffer *buf, char *s);
+void    ebufInitWithStrN(ExtensibleBuffer *buf, char *s, int len);
 void    ebufReset(ExtensibleBuffer *buf);
 void    ebufResetWithStr(ExtensibleBuffer *buf, char *s);
 void    ebufDelete(ExtensibleBuffer *buf);

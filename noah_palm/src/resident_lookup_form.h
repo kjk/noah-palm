@@ -1,3 +1,8 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: Andrzej Ciarkowski
+*/
+
 /**
  * @file resident_lookup_form.h
  * Interface of <code>formResidentLookup</code>.

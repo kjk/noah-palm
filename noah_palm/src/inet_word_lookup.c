@@ -1,10 +1,14 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: Andrzej Ciarkowski
+*/
+
 #include "inet_word_lookup.h"
+#include "http_response.h"
 
 #define connectionProgressDialogTitle   "Looking Up Word"
 
 #define netLibName "Net.lib"
-
-#define strCrLf "\r\n"
 
 static const Int16 percentsNotSupported=-1;
 
@@ -14,6 +18,7 @@ typedef enum ConnectionStage_ {
     stageSendingRequest,
     stageReceivingResponse,
     stageFinished,
+    stageInvalid
 } ConnectionStage;
 
 typedef struct ConnectionData_ 
@@ -28,6 +33,31 @@ typedef struct ConnectionData_
     UInt16 responseStep;
     NetSocketRef socket;
 } ConnectionData;
+
+static void AdvanceConnectionStage(ConnectionData* connData)
+{
+    ConnectionStage newStage = stageInvalid;
+
+    switch( connData->connectionStage )
+    {
+        case stageResolvingAddress:
+            newStage = stageOpeningConnection;
+            break;
+        case stageOpeningConnection:
+            newStage = stageSendingRequest;
+            break;
+        case stageSendingRequest:
+            newStage = stageReceivingResponse;
+            break;
+       case stageReceivingResponse:
+            newStage = stageFinished;
+            break;
+       default:
+            Assert( false );
+            break;
+    }
+    connData->connectionStage = newStage;
+}
 
 inline static void CloseSocket(ConnectionData* connData)
 {
@@ -92,7 +122,7 @@ inline static ConnectionData* CreateConnectionData(const Char* wordToFind, NetIP
         connData->wordToFind=wordToFind;
         connData->serverIpAddress=serverIpAddress;
         if (*serverIpAddress)
-            connData->connectionStage++;
+            AdvanceConnectionStage(connData);
     }
     return connData;
 }   
@@ -196,7 +226,7 @@ static Err ResolveServerAddress(ConnectionData* connData, Int16* percents, const
         Assert(netSocketAddrINET==infoPtr->addrType);
         Assert(infoBuf->address[0]);
         *connData->serverIpAddress=infoBuf->address[0];
-        connData->connectionStage++;
+        AdvanceConnectionStage(connData);
     } 
     else
         *errorMessage="unable to resolve host address";
@@ -233,7 +263,7 @@ static Err OpenConnection(ConnectionData* connData, Int16* percents, const Char*
             *errorMessage="unable to connect socket";
         }
         else 
-            connData->connectionStage++;
+            AdvanceConnectionStage(connData);
     }
     *percents=percentsNotSupported;
     return error;
@@ -254,7 +284,7 @@ static Err PrepareRequest(ConnectionData* connData)
     }
     ebufAddStr(buffer, url);
     MemPtrFree(url);
-    ebufAddStr(buffer, " HTTP/1.1\r\nHost: ");
+    ebufAddStr(buffer, " HTTP/1.0\r\nHost: ");
     ebufAddStr(buffer, serverAddress);
     ebufAddStr(buffer, "\r\nAccept-Encoding: identity\r\nAccept: text/plain\r\nConnection: close\r\n\r\n");
 OnError:        
@@ -291,7 +321,7 @@ static Err SendRequest(ConnectionData* connData, Int16* percents, const Char** e
         {
             ebufFreeData(&connData->request);
             connData->bytesSent=0;
-            connData->connectionStage++;
+            AdvanceConnectionStage(connData);
         } 
     }
     else 
@@ -339,7 +369,7 @@ static Err ParseChunkedBody(const Char* bodyBegin, const Char* bodyEnd, Extensib
     UInt16 chunkSize=0;
     do 
     {
-        const Char* lineEnd=StrFind(lineBegin, bodyEnd, strCrLf);
+        const Char* lineEnd=StrFind(lineBegin, bodyEnd, HTTP_LINE_ENDING);
         if (lineBegin<bodyEnd && lineEnd<bodyEnd && lineBegin<lineEnd)
         {
             const Char* chunkBegin=lineEnd+2;
@@ -369,40 +399,39 @@ OnError:
     return error;
 }
 
-static Err ParseStatusLine(const Char* lineStart, const Char* lineEnd)
-{
-    Err error=appErrMalformedResponse;
-    const Char* statusBegin=StrFind(lineStart, lineEnd, " ")+1;
-    if (statusBegin<lineEnd-3 && 0==StrNCmp(statusBegin, "200", 3))
-        error=errNone;
-    return error;
-}
-
 static Err ParseResponse(ConnectionData* connData)
 {
-    Err error=errNone;
-    const Char* responseBegin=ebufGetDataPointer(&connData->response);
-    const Char* responseEnd=responseBegin+ebufGetDataSize(&connData->response);
-    const Char* lineBegin=responseBegin;
-    const Char* lineEnd=StrFind(lineBegin, responseEnd, strCrLf);
-    const Char* bodyBegin=NULL;
-    error=ParseStatusLine(lineBegin, lineEnd);
-    if (error)
+    Err              error=errNone;
+    ExtensibleBuffer bufResponseBody;
+    char *           responseBody;
+    int              responseBodySize;
+
+    HttpResponse httpResponse(
+        ebufGetDataPointer(&connData->response),
+        ebufGetDataSize(&connData->response) );
+
+    if ( HTTPErr_OK != httpResponse.parseResponse() )
+    {
+        error = appErrMalformedResponse;
         goto OnError;
-    bodyBegin=StrFind(lineEnd+2, responseEnd, strCrLf strCrLf)+4;
-    if (bodyBegin<responseEnd)
-    {        
-        ExtensibleBuffer buffer;
-        ebufInit(&buffer, 0);
-        error=ParseChunkedBody(bodyBegin, responseEnd, &buffer);
-        if (!error)
-            ebufSwap(&buffer, &connData->response);
-        ebufFreeData(&buffer);
     }
-    else 
-        error=appErrMalformedResponse;
+
+    if ( 200 != httpResponse.getResponseCode() )
+    {
+        error = appErrMalformedResponse;
+        goto OnError;
+    }
+
+    responseBody = httpResponse.getBody(&responseBodySize);
+    Assert( NULL != responseBody );
+
+    ebufInitWithStrN(&bufResponseBody, responseBody, responseBodySize);
+    ebufSwap(&bufResponseBody, &connData->response);
+
+    ebufFreeData(&bufResponseBody);
 OnError:        
     return error;
+    
 }
 
 inline static UInt16 CalculateDummyProgress(UInt16 step)
@@ -522,7 +551,7 @@ static Err ReceiveResponse(ConnectionData* connData, Int16* percents, const Char
     {
         Assert(!error);
         *percents=100;
-        connData->connectionStage++;
+        AdvanceConnectionStage(connData);
         result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
         Assert( -1 != result ); // will get asked to drop into debugger (so that we can diagnose it) when fails; It's not a big deal, so continue anyway.
 

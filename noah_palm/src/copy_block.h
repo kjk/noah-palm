@@ -1,3 +1,8 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: Szymon Knitter
+*/
+
 /**
  * @file copy_block.h
  * Interface of copy_block.c

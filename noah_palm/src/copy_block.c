@@ -1,3 +1,9 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: Szymon Knitter (szknitter@wp.pl) 
+*/
+
+
 /**
  * @file copy_block.c
  * Implementation of select part of definition (use penEvents) 

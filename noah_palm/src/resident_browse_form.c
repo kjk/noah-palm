@@ -1,3 +1,8 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: Andrzej Ciarkowski
+*/
+
 /**
  * @file resident_browse_form.c
  * @author Andrzej Ciarkowski (a.ciarkowski@interia.pl)

@@ -1,7 +1,6 @@
 /*
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
-  Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
-
+  Author: szymon knitter (szknitter@wp.pl)
 */
 
 #ifndef _BETTER_FORMATTING_H_

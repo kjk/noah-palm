@@ -47,6 +47,14 @@ void ebufInitWithStr(ExtensibleBuffer *buf, char *s)
     ebufAddStr(buf,s);
 }
 
+/* Initilize buffer with a string of given length */
+void ebufInitWithStrN(ExtensibleBuffer *buf, char *s, int len)
+{
+    ebufInit(buf, len+1);
+    ebufAddStrN(buf,s,len);
+}
+
+
 /* Reset the buffer i.e., mark as clear but don't free the data.
 Essential for re-use to avoid re-allocating this over and
 over again */
