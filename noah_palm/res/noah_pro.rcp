@@ -156,8 +156,8 @@ END
 ALERT alertNoDB
 INFORMATION
 BEGIN
-    TITLE   "Error"
-    MESSAGE "Cannot find database."
+    TITLE "Error"
+    MESSAGE "Cannot find database . Please see manual for more information."
     BUTTONS "OK"
 END
 

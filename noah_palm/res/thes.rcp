@@ -116,7 +116,7 @@ BEGIN
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listTapAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popupTapAction listTapAction
 
-   CHECKBOX "Delete vfs cache on exit" ID checkDeleteVfs AT (5 PREVTOP+18 AUTO AUTO) FONT 1
+   /* CHECKBOX "Delete vfs cache on exit" ID checkDeleteVfs AT (5 PREVTOP+18 AUTO AUTO) FONT 1 */
 
    BUTTON "Ok"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
    BUTTON "CANCEL" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
@@ -134,7 +134,7 @@ ALERT alertNoDB
 INFORMATION
 BEGIN
     TITLE "Error"
-    MESSAGE "Cannot find database."
+    MESSAGE "Cannot find database . Please see manual for more information."
     BUTTONS "OK"
 END
 

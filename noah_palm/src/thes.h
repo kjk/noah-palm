@@ -18,8 +18,12 @@
 #include "fs_mem.h"
 
 #define  THES_CREATOR      'TheS'
-#define  ROGET_TYPE        'rget'
 #define  THES_PREF_TYPE    'thpr'
+#ifdef DEMO
+#define  ROGET_TYPE        'rgde'
+#else
+#define  ROGET_TYPE        'rget'
+#endif
 
 #define WORD_MAX_LEN 40
 

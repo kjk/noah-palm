@@ -56,6 +56,6 @@
 #define   popuphwButtonsAction    6004
 #define   popupTapAction          6005
 
-#define   checkDeleteVfs          6500
+// #define   checkDeleteVfs          6500
 
 #define   helpPrefs               7001

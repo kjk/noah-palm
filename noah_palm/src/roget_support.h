@@ -8,12 +8,6 @@
 #include "word_compress.h"
 #include "display_info.h"
 
-#ifdef DEMO
-#define  ROGET_TYPE      'rgde'
-#else
-#define  ROGET_TYPE      'rget'
-#endif
-
 typedef struct
 {
     long    wordsCount;

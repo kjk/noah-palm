@@ -424,6 +424,7 @@ void RedrawMainScreen()
     WinDrawLine(0, 144, 160, 144);
     RedrawWordDefinition();
 }
+
 void DrawDescription(long wordNo)
 {
     Err err;
@@ -459,7 +460,7 @@ void DrawDescription(long wordNo)
 
 void ClearDisplayRectangle()
 {
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X - 7,
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X,
                     160 - DRAW_DI_Y - 16);
 }
 

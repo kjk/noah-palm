@@ -97,7 +97,7 @@ void DisplayAbout(void)
 #ifdef DEBUG
     dh_display_string("Ver 1.0 (debug)", 2, 20);
 #else
-    dh_display_string("Ver 1.0 (beta)", 2, 20);
+    dh_display_string("Ver 1.0", 2, 20);
 #endif
     dh_display_string("(C) 2000-2003 ArsLexis", 1, 24);
     dh_display_string("get Noah Pro at:", 2, 20);

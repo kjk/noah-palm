@@ -549,17 +549,19 @@ void DisplayAbout(void)
   #ifdef DEBUG
     dh_display_string("Ver 2.1 (debug)", 2, 20);
   #else
-    dh_display_string("Ver 2.1 (beta)", 2, 20);
+    dh_display_string("Ver 2.1", 2, 20);
   #endif
 #endif
     dh_display_string("(C) ArsLexis 2000-2003", 1, 24);
-#ifdef DEMO
-    dh_display_string("http://www.arslexis.com", 2, 20);
-    dh_display_string("To buy full version go to", 0, 12);
-    dh_display_string("www.handango.com/purchase", 0, 12 );
-    dh_display_string("and enter 10421", 0, 0);
-#else
-    dh_display_string("http://www.arslexis.com", 2, 0);
+
+    dh_display_string("(C) 2000-2003 ArsLexis", 1, 24);
+    dh_display_string("http://www.arslexis.com", 2, 40); 
+#ifdef DEMO_HANDANGO
+    dh_display_string("Buy at: www.handango.com/purchase", 0, 14);
+    dh_display_string("        Product ID: 10421", 0, 0);
+#endif
+#ifdef DEMO_PALMGEAR
+    dh_display_string("Buy at: www.palmgear.com?7775", 2, 0);
 #endif
     dh_restore_font();
 }
@@ -1274,7 +1276,9 @@ void PrefsToGUI(FormType * frm)
     SetPopupLabel(frm, listStartupDB, popupStartupDB, gd.prefs.dbStartupAction, (char *) sdb_txt);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, gd.prefs.hwButtonScrollType, (char *) but_txt);
     SetPopupLabel(frm, listTapAction, popupTapAction, gd.prefs.tapScrollType, (char *) tap_txt);
-//    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.fDelVfsCacheOnExit );
+#if 0
+    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.fDelVfsCacheOnExit );
+#endif
 }
 
 Boolean PrefFormHandleEventNoahPro(EventType * event)
