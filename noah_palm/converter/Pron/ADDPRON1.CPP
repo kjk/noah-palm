@@ -1,4 +1,3 @@
-//--------------------------------------------------------------------
 #include <stdio.h>
 #include <stdlib.h>
 //#include <conio.h>
@@ -6,7 +5,6 @@
 #include <string.h>
 #include <alloc.h>
 //#include <dos.h>
-//--------------------------------------------------------------------
 
 #define OFF_AppInfoArea          52
 #define OFF_SortInfoArea         56
@@ -15,31 +13,24 @@
 
 #define MAX_RecordSize			 65000
 
-//--------------------------------------------------------------------
 typedef unsigned char BB8;
 typedef unsigned int  BB16;
 typedef unsigned long BB32;
-//--------------------------------------------------------------------
-
 
 char *baseIN  = "thesbase.pdb";
 char *baseOUT = "base.pdb";
 char *pronIN  = "c06d";
-
 
 char *pronBIS  = "PIndxBis.mag";
 char *pronRL   = "PRL.mag";
 char *pronIND  = "PIndxFil.mag";
 char *pronDATA = "PDataFil.mag";
 
-
-//--------------------------------------------------------------------
 typedef struct
 {
 	char word[25];
 	BB8  pron[32];
-}PRONBIS;
-
+} PRONBIS;
 
 typedef struct
 {
@@ -47,16 +38,15 @@ typedef struct
 	BB16 recNumber;
 	BB16 recAdded;
 	BB32 additionalOffset;
-}NEWFILESTRUCT;
-//--------------------------------------------------------------------
+} NEWFILESTRUCT;
 
 NEWFILESTRUCT newFileStruct;
-//---------------------------------------------------
+
 void Set8(BB8 *val,FILE *in)
 {
 	fwrite(val,1,1,in);
 }
-//---------------------------------------------------
+
 void Set16(BB16 *val,FILE *in)
 {
 	BB8 x,y;
@@ -65,7 +55,7 @@ void Set16(BB16 *val,FILE *in)
 	Set8(&x,in);
 	Set8(&y,in);
 }
-//---------------------------------------------------
+
 void Set32(BB32 *val,FILE *in)
 {
 	BB16 x,y;
@@ -74,12 +64,12 @@ void Set32(BB32 *val,FILE *in)
 	Set16(&x,in);
 	Set16(&y,in);
 }
-//---------------------------------------------------
+
 void Get8(BB8 *val,FILE *in)
 {
 	fread(val,1,1,in);
 }
-//---------------------------------------------------
+
 void Get16(BB16 *val,FILE *in)
 {
 	BB8 x,y;
@@ -87,7 +77,7 @@ void Get16(BB16 *val,FILE *in)
 	Get8(&y,in);
 	*val = x*256 + y;
 }
-//---------------------------------------------------
+
 void Get32(BB32 *val,FILE *in)
 {
 	BB16 x,y;
@@ -95,43 +85,6 @@ void Get32(BB32 *val,FILE *in)
 	Get16(&y,in);
 	*val = (BB32)x*65536 + y;
 }
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-/**********************************/
 
 typedef struct
 {
@@ -146,10 +99,8 @@ typedef struct
 	int             currPackStrLen;
 	int             currPackStrUsed;
 } PackContext;
-/**********************************/
 
 PackContext pc;
-
 
 void pcInit(FILE *in, int recWithComprData)
 {
@@ -226,7 +177,7 @@ void pcInit(FILE *in, int recWithComprData)
 	free(dataM);
 	return;
 }
-/**********************************/
+
 unsigned char pcGetChar()
 {
 	unsigned char code;
@@ -256,7 +207,7 @@ unsigned char pcGetChar()
 	++pc.currPackStrUsed;
 	return code;
 }
-/**********************************/
+
 void pcUngetChar()
 {
 	unsigned char code;
@@ -274,7 +225,7 @@ void pcUngetChar()
 		pc.currPackStrUsed = pc.currPackStrLen - 1;
 	}
 }
-/**********************************/
+
 void wcUnpackWord(char *prevWord, char *unpacked)
 {
 	unsigned char c;
@@ -295,8 +246,7 @@ void wcUnpackWord(char *prevWord, char *unpacked)
 	pcUngetChar();
 	*unpacked = 0;
 }
-/**********************************/
-/**********************************/
+
 int wcGetWord(FILE *in, char * wordIn, BB32 wordNo)
 {
 	BB16            record;
@@ -451,53 +401,13 @@ int wcGetWord(FILE *in, char * wordIn, BB32 wordNo)
 }
 /************************************/
 
-
-
-//---------------------------------------------------
 int	GetWord(FILE *in,char *word,long wordNo)
 {
 	return wcGetWord(in, word, wordNo);
 }
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
-//---------------------------------------------------
+
 char RetNo(char a, char b)
 {
-
-
 	if(a == 'A' && b == 'A') return 1;
 	if(a == 'A' && b == 'E') return 2;
 	if(a == 'A' && b == 'H') return 3;
@@ -545,7 +455,7 @@ char RetNo(char a, char b)
 	if(a == '1' && b ==  0 ) return 41;
 	if(a == '2' && b ==  0 ) return 42;
 }
-//---------------------------------------------------
+
 int  MakeNumbersFromPronunciation(char *we, char *wy)
 {
 	int i,j,w,wyTmp;
@@ -610,12 +520,12 @@ int  MakeNumbersFromPronunciation(char *we, char *wy)
 ErrorDePron:
 
 	printf("\n\nError while trying to convert pronunciation to numbers!\n");
-	printf("Edit file:%s\n",pronIN);
-	printf("Find pronunciation:%s\n",we);
-	printf("Pabobly:%c%c%c\n",we[i],we[i+1],we[i+2]);
+	printf("Edit file: %s\n",pronIN);
+	printf("Find pronunciation: %s\n",we);
+	printf("Pabobly: %c%c%c\n",we[i],we[i+1],we[i+2]);
 	return 1;
 }
-//---------------------------------------------------
+
 void MakePronBis()
 {
 	FILE *in, *o1, *o2, *o3;
@@ -668,7 +578,7 @@ void MakePronBis()
 			if(MakeNumbersFromPronunciation(tmp, unpack)==1)
 			{
 				printf("Find word:%s\n",line);
-				printf("Try to fix problem using editor. Good luck!\n",line);
+				printf("Try to fix problem using editor. Good luck!\n");
 				exit(1);
 			}
 
@@ -693,7 +603,7 @@ void MakePronBis()
 	fclose(o2);
 	fclose(in);
 }
-//---------------------------------------------------
+
 /**
  *	return x>0 if w1 >  w2
  *  return x<0 if w1 <  w2
@@ -729,7 +639,7 @@ int CompareWords(char *w1, char *w2)
 		return 0;
 	}
 }
-//---------------------------------------------------
+
 int GetPron(FILE *pr,char *pron,char *word)
 {
 	int  i;
@@ -787,7 +697,7 @@ int GetPron(FILE *pr,char *pron,char *word)
 
 	return found%2;
 }
-//---------------------------------------------------
+
 int IsPronComplex(FILE *pr, char* word)
 {
 	char wordT[60];
@@ -828,7 +738,7 @@ int IsPronComplex(FILE *pr, char* word)
 
 	return 0;
 }
-//---------------------------------------------------
+
 int PutPron(FILE *pronData,char *pron)
 {
 	/**
@@ -895,7 +805,7 @@ int PutPron(FILE *pronData,char *pron)
 		Set8(&zero,pronData);
 	}
 }
-//---------------------------------------------------
+
 int PutIndex(FILE *pronIndex,BB32 wordNo,BB16 recordNo,BB16 pronOffset)
 {
 	Set32(&wordNo,pronIndex);
@@ -904,7 +814,7 @@ int PutIndex(FILE *pronIndex,BB32 wordNo,BB16 recordNo,BB16 pronOffset)
 
 	return 0;
 }
-//---------------------------------------------------
+
 int PutRecordList(FILE *offsetsRL, BB32 recordOffset)
 {
 	BB32 zero = 0;
@@ -913,7 +823,7 @@ int PutRecordList(FILE *offsetsRL, BB32 recordOffset)
 	Set32(&zero        ,offsetsRL);
 	return 0;
 }
-//---------------------------------------------------
+
 int	MakeFiles()
 {
 	FILE *in, *o1, *pr;
@@ -1039,15 +949,15 @@ int	MakeFiles()
 
 	printf("All records added.\n");
 
-	printf("Words count  : %lu\n", wordsCount);
-	printf("Without pron.: %lu\n", withoutPron);
-	printf("With pron. but complex : %lu\n", complexPron);
-	printf("Absolutly without pron.: %lu\n", withoutPron - complexPron);
+	printf("Words count              : %lu\n", wordsCount);
+	printf("Without pron.            : %lu\n", withoutPron);
+	printf("With pron. but complex   : %lu\n", complexPron);
+	printf("Absolutely without pron. : %lu\n", withoutPron - complexPron);
 
 
 	return 0;
 }
-//---------------------------------------------------
+
 int	MakeEndFile()
 {
 	printf("Start getting files together: ");
@@ -1183,7 +1093,7 @@ int	MakeEndFile()
 	printf("done\n");
 	return 0;
 }
-//---------------------------------------------------
+
 int  TestIfNoahPro()
 {
 	FILE *in;
@@ -1235,7 +1145,7 @@ int  TestIfNoahPro()
 	fclose(in);
 	return ret;
 }
-//---------------------------------------------------
+
 void RemoveFiles()
 {
 	remove(pronBIS);
@@ -1243,7 +1153,7 @@ void RemoveFiles()
 	remove(pronIND);
 	remove(pronDATA);
 }
-//---------------------------------------------------
+
 int TryOpenFiles()
 {
 	FILE *in;
@@ -1273,7 +1183,7 @@ int TryOpenFiles()
 	fclose(in);
 	return 0;
 }
-//---------------------------------------------------
+
 void DrawInfo()
 {
 	printf("Program add pronunciation data to given dictionary.\n");
@@ -1286,7 +1196,7 @@ void DrawInfo()
 
 	printf("\nIMPORTANT: use dirs/filenames under DOS rules! <8.3, without spaces>\n");
 }
-//---------------------------------------------------
+
 int main(int argc, char *argv[])
 {
 	printf("START\n");
@@ -1316,8 +1226,4 @@ int main(int argc, char *argv[])
 	printf("END\n");
 	return 0;
 }
-//---------------------------------------------------
-
-
-
 
