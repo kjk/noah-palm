@@ -1,7 +1,16 @@
 /*
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: szymon knitter (szknitter@wp.pl)
+  
+  Set of functions that improve the word display format:
+  
+  +  window event handle function for DisplayPrefsForm
+  +  functions that format word definition in extBuffer
+  +  ebufWrapLine (moved from extensible_buffer.c)
+  +  functions used to draw word
+  
 */
+//#pragma warn_a5_access on
 
 #include "common.h"
 
@@ -34,30 +43,41 @@ static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
     displayPrefs -> bigList.bgcolG = displayPrefs -> bgcolG;
     displayPrefs -> bigList.bgcolB = displayPrefs -> bgcolB;
 }
+/*   sets &prefs (only used by SetDefaultDisplayParam)*/
+static void SetPrefsAs(DisplayElementPrefs *prefs,FontID font, int colR, int colG, int colB, int bgR, int bgG, int bgB)
+{
+    prefs->font = font;
+    prefs->colorR = colR;
+    prefs->colorG = colG;
+    prefs->colorB = colB;
+    prefs->bgcolR = bgR;
+    prefs->bgcolG = bgG;
+    prefs->bgcolB = bgB;
+}
 /*   Sets rest of display params to actual listStyle   */
 void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolean onlyColor)
 {
-    DisplayElementPrefs prefs[] = {
-                                            //format 3(0): (old)
-        {0x00, 0,  0,  0, 255,255,255 },      // black & small 
-                                            //format 1:
-        {0x07,  63,127, 63, 255,255,255 },    //word
-        {0x07,   0,100,100, 255,255,255 },    //pos
-        {0x00,   0,  0,  0, 255,255,255 },    //definition
-        {0x00, 128,128,  0, 255,255,255 },    //example
-        {0x01,   0,  0, 68, 255,255,255 },    //synonyms
-        {0x01,  60, 60,  0, 255,255,255 },    //small list
-        {0x07,  60, 60,  0, 255,255,255 },    //big list
-                                            //format 2: (default)
-        {0x07,  63,168, 63, 255,255,255 },    //word
-        {0x07,  80, 80,  0, 255,255,255 },    //pos
-        {0x00,   0,  0,  0, 255,255,255 },    //definition
-        {0x00, 127,127,  0, 255,255,255 },    //example
-        {0x01,   0, 68, 68, 255,255,255 },    //synonyms
-        {0x01,  60, 60,  0, 255,255,255 },    //small list
-        {0x07,  60, 60,  0, 255,255,255 }     //big list
-    };
+    DisplayElementPrefs prefs[15];
     DisplayElementPrefs *prefsToSet;
+
+    //format 3(0): (old)
+    SetPrefsAs(&prefs[ 0], 0x00,   0,  0,  0, 255,255,255 );      // black & small 
+    //format 1:
+    SetPrefsAs(&prefs[ 1], 0x07,  63,127, 63, 255,255,255 );    //word
+    SetPrefsAs(&prefs[ 2], 0x07,   0,100,100, 255,255,255 );    //pos
+    SetPrefsAs(&prefs[ 3], 0x00,   0,  0,  0, 255,255,255 );    //definition
+    SetPrefsAs(&prefs[ 4], 0x00, 128,128,  0, 255,255,255 );    //example
+    SetPrefsAs(&prefs[ 5], 0x01,   0,  0, 68, 255,255,255 );    //synonyms
+    SetPrefsAs(&prefs[ 6], 0x01,  60, 60,  0, 255,255,255 );    //small list
+    SetPrefsAs(&prefs[ 7], 0x07,  60, 60,  0, 255,255,255 );    //big list
+    //format 2: (default)
+    SetPrefsAs(&prefs[ 8], 0x07,  63,168, 63, 255,255,255 );    //word
+    SetPrefsAs(&prefs[ 9], 0x07,  80, 80,  0, 255,255,255 );    //pos
+    SetPrefsAs(&prefs[10], 0x00,   0,  0,  0, 255,255,255 );    //definition
+    SetPrefsAs(&prefs[11], 0x00, 127,127,  0, 255,255,255 );    //example
+    SetPrefsAs(&prefs[12], 0x01,   0, 68, 68, 255,255,255 );    //synonyms
+    SetPrefsAs(&prefs[13], 0x01,  60, 60,  0, 255,255,255 );    //small list
+    SetPrefsAs(&prefs[14], 0x07,  60, 60,  0, 255,255,255 );    //big list
 
     prefsToSet = &prefs[0];
 
@@ -421,12 +441,15 @@ static void RedrawExampleDefinition(AppContext* appContext)
     ExtensibleBuffer *Buf;
     char *rawTxt;
     
-    char pos[]     = {FORMAT_TAG,FORMAT_POS,0};
-    char word[]    = {FORMAT_TAG,FORMAT_WORD,0};
-    char def[]     = {FORMAT_TAG,FORMAT_DEFINITION,0};
-    char example[] = {FORMAT_TAG,FORMAT_EXAMPLE,0};
-    char synonym[] = {FORMAT_TAG,FORMAT_SYNONYM,0};
-    char point[]   = {149,' ',0};
+    char pos[3], word[3], def[3], example[3], synonym[3], point[3];  
+    
+    //initialize data (resident mode)
+    pos[0]=FORMAT_TAG;  pos[1]=FORMAT_POS;  pos[2]=0;
+    word[0]=FORMAT_TAG; word[1]=FORMAT_WORD; word[2]=0;
+    def[0]=FORMAT_TAG; def[1]=FORMAT_DEFINITION; def[2]=0;
+    example[0]=FORMAT_TAG; example[1]=FORMAT_EXAMPLE; example[2]=0;
+    synonym[0]=FORMAT_TAG; synonym[1]=FORMAT_SYNONYM; synonym[2]=0;
+    point[0]=149; point[1]=' '; point[2]=0;
 
 
     Buf = ebufNew();
@@ -1144,7 +1167,19 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     int  number;    
     int  bignumber;    
     char str_number[10];
-    char *roman[] = {""," I"," II"," III"," IV"," V"," VI"," VII"," VIII"," IX"};
+    char *roman[10];// = {""," I"," II"," III"," IV"," V"," VI"," VII"," VIII"," IX"};
+
+    //initialize data (resident mode)
+    roman[0] = " ";
+    roman[1] = " I";
+    roman[2] = " II";
+    roman[3] = " III";
+    roman[4] = " IV";
+    roman[5] = " V";
+    roman[6] = " VI";
+    roman[7] = " VII";
+    roman[8] = " VIII";
+    roman[9] = " IX";
 
     if(format_id != 2)  //as it was without formatting
         return;
