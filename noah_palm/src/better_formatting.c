@@ -1336,10 +1336,17 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
         while(j < buf->used && !IsTagInLine(buf->data[j],buf->data[j+1]))
             j++;
     
+        //some problems with unformated data
+        if(!(j+1 < buf->used))
+            return; 
         k = j;
         //set k on pos //but not if its reached
         if(buf->data[j+1] != (char)FORMAT_POS)
+        {
             k = j+2;
+            if(!(k+1 < buf->used))
+                return; 
+        }    
         while(k < buf->used && buf->data[k]!='\0' && !(buf->data[k]==(char)FORMAT_TAG && buf->data[k+1]==(char)FORMAT_POS))
             k++;
             
