@@ -239,7 +239,7 @@ Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
     fsUnlockRecord(info->file, info->synPosRec);
 
     ebufAddChar(&info->buffer, '\0');
-    ebufWrapBigLines(&info->buffer);
+    ebufWrapBigLines(&info->buffer,true);
 
     rawTxt = ebufGetDataPointer(&info->buffer);
     diSetRawTxt(di, rawTxt);

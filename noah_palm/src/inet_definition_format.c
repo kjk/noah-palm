@@ -247,7 +247,7 @@ Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin,
             if (!error)
             {
                 ebufAddChar(&buffer, chrNull);
-                ebufWrapBigLines(&buffer);
+                ebufWrapBigLines(&buffer,true);
                 ebufSwap(&buffer, &appContext->currentDefinition);
                 diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
                 ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
@@ -348,7 +348,7 @@ static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBe
             else 
                 messageBegin=responseEnd;
         }                
-        ebufWrapBigLines(&buffer);
+        ebufWrapBigLines(&buffer,true);
         ebufSwap(&appContext->lastMessage, &buffer);
         diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->lastMessage));
         ebufFreeData(&buffer);

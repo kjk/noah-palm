@@ -29,7 +29,7 @@ typedef Char WordStorageType[WORD_MAX_LEN];
 #include "copy_block.h"
 #include "bookmarks.h"
 
-//#define _RECORD_SPEED_ 1
+#define _RECORD_SPEED_ 1
 
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)

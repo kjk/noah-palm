@@ -249,7 +249,7 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
     ebufAddStrN(&si->buffer, (char *) unpackedDef, unpackedLen);
     ebufAddChar(&si->buffer, '\0');
-    ebufWrapBigLines(&si->buffer);
+    ebufWrapBigLines(&si->buffer,true);
 
     rawTxt = ebufGetDataPointer(&si->buffer);
 

@@ -579,7 +579,7 @@ static void RedrawExampleDefinition(AppContext* appContext)
 #endif
 
     ebufAddChar(Buf, '\0');
-    ebufWrapBigLines(Buf);
+    ebufWrapBigLines(Buf,true);
 
     if (NULL == appContext->currDispInfo)
     {
@@ -1013,7 +1013,7 @@ void bfStripBufferFromTags(ExtensibleBuffer *buf)
 /*return:   r<0 if pos1 < pos2
             r=0 if pos1 = pos2
             r>0 if pos1 > pos2   */
-static int  CmpPos(char *pos1, char *pos2)
+int  CmpPos(char *pos1, char *pos2)
 {
     int i,len1,len2;
     
@@ -1046,34 +1046,47 @@ static int  CmpPos(char *pos1, char *pos2)
 /*  before: abCdefghijKlmnopqrstuwXyz                */
 /*  after:  abKlmnopqrstuwCdefghijXyz                */
 /*                        |off2 - return             */
-static int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
+int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
 {
     int  i;
     char z;
-    
+    char *txt1;
+    char *txt2;
     //reverse all
+    txt1 = txt + offset1;
+    txt2 = txt + end2 - 1;
     for(i = 0; i < (end2-offset1)/2 ; i++)
     {
-        z                 = txt[offset1 + i];
-        txt[offset1 + i]  = txt[end2 - i - 1];
-        txt[end2 - i - 1] = z;
+        z       = txt1[0];
+        txt1[0] = txt2[0];
+        txt2[0] = z;
+        txt1++;
+        txt2--;
     }
     //mirror offset2
     i = offset2 - offset1;
     offset2 = end2 - i;
     //reverse 1st
+    txt1 = txt + offset1;
+    txt2 = txt + offset2 - 1;
     for(i = 0; i < (offset2-offset1)/2 ; i++)
     {
-        z                    = txt[offset1 + i];
-        txt[offset1 + i]     = txt[offset2 - i - 1];
-        txt[offset2 - i - 1] = z;
+        z       = txt1[0];
+        txt1[0] = txt2[0];
+        txt2[0] = z;
+        txt1++;
+        txt2--;
     }
     //reverse 2nd
+    txt1 = txt + offset2;
+    txt2 = txt + end2 - 1;
     for(i = 0; i < (end2-offset2)/2 ; i++)
     {
-        z                 = txt[offset2 + i];
-        txt[offset2 + i]  = txt[end2 - i - 1];
-        txt[end2 - i - 1] = z;
+        z       = txt1[0];
+        txt1[0] = txt2[0];
+        txt2[0] = z;
+        txt1++;
+        txt2--;
     }
     return offset2;
 }
@@ -1150,6 +1163,7 @@ Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
         r = k - 1;
     }while(L <= r);
     //buffer is sorted!!!
+/*
 #ifdef WN_PRO_DICT  //we need to detect when we add "1) " or "I " in PRO!
     if(!ret)
     {
@@ -1168,6 +1182,7 @@ Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
         }
     }       
 #endif
+*/
     //free array!!!!!!!!!
     new_free((int *)array);
     return ret;
@@ -1354,7 +1369,6 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     ebufInsertChar(buf, ':', j + 2);
     ebufInsertChar(buf, ' ', j + 3);
 }
-
 //format 2
 void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 {
@@ -1522,7 +1536,6 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
         }
     }
 }
-
 //from "extensible_buffer.c" cut lines on smaller ones
 void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start, AppContext* appContext)
 {

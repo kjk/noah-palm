@@ -1168,7 +1168,7 @@ Boolean CreateHelpData(AppContext* appContext)
     appContext->helpDispBuf = ebufNew();
     ebufAddStr(appContext->helpDispBuf, (char*)helpText);
     ebufAddChar(appContext->helpDispBuf, '\0');
-    ebufWrapBigLines(appContext->helpDispBuf);
+    ebufWrapBigLines(appContext->helpDispBuf,false);
     return true;
 }
 

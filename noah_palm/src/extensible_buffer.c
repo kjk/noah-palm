@@ -189,7 +189,7 @@ void ebufAddStrN(ExtensibleBuffer *buf, char *str, int strLen)
 {
     int i;
     for (i = 0; i < strLen; i++)
-        ebufAddChar(buf, str[i]);
+        ebufInsertChar(buf, str[i], buf->used);
 }
 
 void ebufAddStr(ExtensibleBuffer * buf, char *str)
@@ -216,6 +216,22 @@ void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos)
         ebufInsertChar(buf, string[i], pos);
 }
 
+void ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src)
+{
+    char *newData;
+    if(dst->allocated < src->allocated)
+    {
+
+        newData = (char *) new_malloc(src->allocated);
+        if (!newData)
+            return;
+        if(dst->data)
+            new_free(dst->data);
+        dst->data = newData;    
+    }
+    MemMove(dst->data, src->data, src->allocated);
+    dst->used = src->used;
+}
 /*
   if a give line doesn't fit in one line on a display, wrap it
   into as many lines as needed
@@ -280,7 +296,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
 }
 */
 /* wrap all lines that are too long to fit on the screen */
-void ebufWrapBigLines(ExtensibleBuffer *buf)
+void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
 {
     int len;
     char *txt;
@@ -294,17 +310,16 @@ void ebufWrapBigLines(ExtensibleBuffer *buf)
     prevfont = FntGetFont();
 
     curr_pos = 0;
-    txt = ebufGetDataPointer(buf);
-    len = ebufGetDataSize(buf);
 
     if(appContext->prefs.displayPrefs.listStyle!=0)
     {
-        ShakeSortExtBuf(buf);
+        if(sort)
+            ShakeSortExtBuf(buf);
         Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
         Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
-        txt = ebufGetDataPointer(buf);
-        len = ebufGetDataSize(buf);
     }    
+    txt = ebufGetDataPointer(buf);
+    len = ebufGetDataSize(buf);
 
     /* find every line, calculate the number of spaces at its
        beginning & fetch this to a proc that will wrap this line

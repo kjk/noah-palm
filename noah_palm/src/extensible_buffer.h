@@ -34,9 +34,9 @@ void    ebufAddChar(ExtensibleBuffer *buf, char c);
 void    ebufAddStrN(ExtensibleBuffer *buf, char *str, int strLen);
 void    ebufAddStr(ExtensibleBuffer *buf, char *str);
 //void    ebufWrapLine(ExtensibleBuffer *buf, int lineStart, int lineLen, int spacesAtStart, struct _AppContext * appContext);
-void    ebufWrapBigLines(ExtensibleBuffer *buf);
+void    ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort);
 void    ebufDeleteChar(ExtensibleBuffer *buf, int pos);
 void    ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos);
 void    ebufSwap(ExtensibleBuffer* buf1, ExtensibleBuffer* buf2);
-
+void    ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src);
 #endif

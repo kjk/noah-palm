@@ -878,6 +878,80 @@ static int wn_get_synset_count(WnInfo * wi, long wordNo)
     return synset_count;
 }
 
+/**
+ *  Sorts only last inserted word!
+ */
+static Boolean wn_pseudoSortBuffer(ExtensibleBuffer *buf)
+{
+    int  i, n;
+    char *txt;
+    int  len;
+    int  last = -1, prevLast = -1, prevPrevLast = -1;
+    int  first = -1;
+
+    txt = ebufGetDataPointer(buf);
+    len = ebufGetDataSize(buf);
+    
+    //if buffer without '\0' at the end
+    if(txt[len-1] != '\0')
+        len++;
+        
+    //get number of elements (n)
+    n = 0;
+    for(i = 0; i < len-1; i++)
+        if(txt[i] == (char)FORMAT_TAG && txt[i+1] == (char)FORMAT_POS)
+        {
+            if(first == -1)
+                first = i;
+            prevPrevLast = prevLast;
+            prevLast = last;
+            last = i;
+            n++;
+        }
+        
+    if(n < 2)
+        return false;
+    Assert(last >= 0);
+    Assert(first >= 0);
+    Assert(prevLast >= 0);
+    //we have at least 2 elements
+    if(CmpPos(&txt[last], &txt[prevLast]) < 0)
+    {   
+        //need to sort
+        i = 0;
+        while(1)
+        {
+            if(txt[i] == (char)FORMAT_TAG)
+                if(txt[i+1] == (char)FORMAT_POS)
+                    if(CmpPos(&txt[last], &txt[i]) < 0)
+                    {
+                        XchgInBuffer(txt, i, last, len-1);
+                        return true;
+                    }
+            i++;
+        }        
+    }
+
+    //nothing sorted but...
+    if(CmpPos(&txt[last], &txt[prevLast]) == 0)
+    {
+        if(n <= 2)
+            return true; //we added 2nd word and it have the same POS ("1) " and "2) " added)
+        else
+        {
+            Assert(prevPrevLast >= 0);
+            if(CmpPos(&txt[prevPrevLast], &txt[prevLast]) != 0)
+                return true; //we added 2nd with the same POS ("1) " and "2) " added)
+        }
+    }    
+    else
+    {
+        if(CmpPos(&txt[first], &txt[prevLast]) == 0)
+            return true; //we added 2nd diffrent POS ("I " and "II " added)
+    }
+    return false;
+}
+
 
 Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 {
@@ -909,6 +983,8 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     SynsetsInfo *   si;
     unsigned char * defData = NULL;
     unsigned char * unpackedDef = NULL;
+
+    UInt32      speedTmp;
 
     wi = (WnInfo *) data;
 
@@ -962,6 +1038,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 ebufAddChar(&wi->buffer, '\n');
         }
     }
+
 
     while (!end_p)
     {
@@ -1121,19 +1198,31 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 ++unpackedDef;
                 Assert(unpackedLen >= 0);
             }
+
+//speeder start
+//speedTmp = TimGetTicks();
             //shakesort is natural sort method! if its sorted it's only =O(N)
             if(appContext->prefs.displayPrefs.listStyle!=0)
-                if(ShakeSortExtBuf(&wi->buffer))
+                if(wn_pseudoSortBuffer(&wi->buffer))
                 {
                     SetGlobalBackColor(appContext);
                     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth - DRAW_DI_X - 8, appContext->screenHeight - DRAW_DI_Y - FRM_RSV_H);
                 }
+//speeder end
+//appContext->recordSpeedTicksCount += (TimGetTicks() - speedTmp);
+            //ebufReset(&wi->bufferTemp);
+            //ebufAddStrN(&wi->bufferTemp, ebufGetDataPointer(&wi->buffer), ebufGetDataSize(&wi->buffer));
 
-            ebufReset(&wi->bufferTemp);
-            ebufAddStrN(&wi->bufferTemp, ebufGetDataPointer(&wi->buffer), ebufGetDataSize(&wi->buffer));
+            //new faseter function
+            ebufCopyBuffer(&wi->bufferTemp, &wi->buffer);
             ebufAddChar(&wi->bufferTemp, '\0');
+//speeder start
+//speedTmp = TimGetTicks();
 
-            ebufWrapBigLines(&wi->bufferTemp);
+            ebufWrapBigLines(&wi->bufferTemp,false);
+//speeder end
+//appContext->recordSpeedTicksCount += (TimGetTicks() - speedTmp);
+
             rawTxt = ebufGetDataPointer(&wi->bufferTemp);
             diSetRawTxt(&wi->displayInfo, rawTxt);
             if (0 == syn_found_count)
@@ -1144,6 +1233,9 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             DrawDisplayInfo(&wi->displayInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
             SetScrollbarState(&wi->displayInfo, appContext->dispLinesCount, 0);
             DrawWord(SEARCH_TXT, appContext->screenHeight-FRM_RSV_H+5);
+
+//speeder end
+//appContext->recordSpeedTicksCount += (TimGetTicks() - speedTmp);
             ++syn_found_count;
             if (syn_found_count == syn_count)
                 break;
@@ -1176,7 +1268,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     si_destroy(wi->file, si);
 
     ebufAddChar(&wi->buffer, '\0');
-    ebufWrapBigLines(&wi->buffer);
+    ebufWrapBigLines(&wi->buffer,false);
     rawTxt = ebufGetDataPointer(&wi->buffer);
     diSetRawTxt(di, rawTxt);
     SetScrollbarState(di, appContext->dispLinesCount, 0);

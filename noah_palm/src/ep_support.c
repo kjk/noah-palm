@@ -565,7 +565,7 @@ static void ep_dsc_to_raw_txt(EngPolInfo* epi, unsigned char *defData, int defDa
 
     ep_fix_description_formatting(&epi->buffer);
 
-    ebufWrapBigLines(&epi->buffer);
+    ebufWrapBigLines(&epi->buffer,true);
     txt = ebufGetTxtCopy(&epi->buffer);
     unpolishString(txt, StrLen(txt));
     *rawTxt = txt;

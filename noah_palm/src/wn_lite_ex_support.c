@@ -549,7 +549,7 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     numIterDestroy(wi->file, &ni);
 
     ebufAddChar(&wi->buffer, '\0');
-    ebufWrapBigLines(&wi->buffer);
+    ebufWrapBigLines(&wi->buffer,true);
 
     rawTxt = ebufGetDataPointer(&wi->buffer);
 
