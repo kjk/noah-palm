@@ -582,13 +582,13 @@ unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP,
     funID = Read68KUnaligned32(&inptr->functionID);
     switch(funID)
     {
-        case 1: //test function
+        case ARM_FUN_TESTIFPRESENT: //test function
                 Function1((void*)Read68KUnaligned32(&inptr->functionData));
-                Write68KUnaligned32(&inptr->functionID, funID+100);
+                Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
             break;
-        case 10: //format 2 on sorted buffer
+        case ARM_FUN_FORMAT2ONBUFF: //format 2 on sorted buffer
                 Function10((void*)Read68KUnaligned32(&inptr->functionData));
-                Write68KUnaligned32(&inptr->functionID, funID+100);
+                Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
             break;
         default: break;
     }                  
