@@ -594,22 +594,22 @@ static void InitOldDisplayPrefs(AppContext *appContext)
     appContext->ptrOldDisplayPrefs = new_malloc(sizeof(DisplayPrefs));
 }
 
-static void CopyParamsFromTo(DisplayPrefs *dP1, DisplayPrefs *dP2)
+static void CopyParamsFromTo(DisplayPrefs *src, DisplayPrefs *dst)
 {
-    if(dP1 == NULL || dP2 == NULL)
+    if(src == NULL || dst == NULL)
         return;
 
-    dP2->listStyle = dP1->listStyle;
-    dP2->bgcolR = dP1->bgcolR;
-    dP2->bgcolG = dP1->bgcolG;
-    dP2->bgcolB = dP1->bgcolB;
-    dP2->pos = dP1->pos;
-    dP2->word = dP1->word;
-    dP2->definition = dP1->definition;
-    dP2->example = dP1->example;
-    dP2->synonym = dP1->synonym;
-    dP2->defList = dP1->defList;
-    dP2->posList = dP1->posList;
+    dst->listStyle = src->listStyle;
+    dst->bgcolR = src->bgcolR;
+    dst->bgcolG = src->bgcolG;
+    dst->bgcolB = src->bgcolB;
+    dst->pos = src->pos;
+    dst->word = src->word;
+    dst->definition = src->definition;
+    dst->example = src->example;
+    dst->synonym = src->synonym;
+    dst->defList = src->defList;
+    dst->posList = src->posList;
 }
 
 Boolean DisplayPrefFormHandleEvent(EventType * event)
@@ -861,11 +861,11 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 
 #endif I_NOAH
 
-//return 1 if "ab" is tag else return 0
-static int  IsTag(char a, char b)
+// return true if a,b represents a tag
+static Boolean IsTag(char a, char b)
 {
     if(a != (char)FORMAT_TAG)
-        return 0;
+        return false;
     switch(b)
     {
         case (char)FORMAT_POS:
@@ -875,20 +875,20 @@ static int  IsTag(char a, char b)
         case (char)FORMAT_BIG_LIST:
         case (char)FORMAT_SYNONYM:
         case (char)FORMAT_EXAMPLE: 
-            return 1;
+            return true
         default: 
-            return 0;    
+            return false
     }
 }
 
 /* Remove all tags from buffer*/
 void bfStripBufferFromTags(ExtensibleBuffer *buf)
 {
-    int i;
-    i = 0;
-    while(i < buf->used)
+    int i = 0;
+
+    while(i+1 < buf->used)
     {
-        if(IsTag(buf->data[i],buf->data[i+1])==1)
+        if(IsTag(buf->data[i],buf->data[i+1]))
         {
             ebufDeleteChar(buf, i);
             ebufDeleteChar(buf, i);
@@ -906,12 +906,12 @@ static int  CmpPos(char *pos1, char *pos2)
     int i,len1,len2;
     
     i = 1;
-    while( IsTag(pos1[i],pos1[i+1])==0 && pos1[i+1]!='\0')
+    while( !IsTag(pos1[i],pos1[i+1]) && pos1[i+1]!='\0')
         i++;
     len1 = i;
     
     i = 1;
-    while( IsTag(pos2[i],pos2[i+1])==0 && pos2[i+1]!='\0')
+    while( !IsTag(pos2[i],pos2[i+1]) && pos2[i+1]!='\0')
         i++;
     len2 = i;
 
@@ -1046,7 +1046,7 @@ Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
 //delete all text until tag or EOB is reached
 static void ebufDeletePos(ExtensibleBuffer *buf, int pos)
 {
-    while( IsTag(buf->data[pos],buf->data[pos+1])==0 && pos < buf->used)
+    while( !IsTag(buf->data[pos],buf->data[pos+1]) && pos < buf->used)
         ebufDeleteChar(buf, pos);
 }
 
@@ -1080,7 +1080,7 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
         }
         //set j on next tag
         j = i+2;
-        while(j < buf->used && IsTag(buf->data[j],buf->data[j+1])==0)
+        while(j < buf->used && !IsTag(buf->data[j],buf->data[j+1]))
             j++;
     
         k = j;
@@ -1167,7 +1167,7 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
                 }
 
                 j = 0;
-                while(IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1])==0)
+                while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
                 {
                     if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
                     {
@@ -1207,7 +1207,7 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
         ebufDeleteChar(buf, first_pos);
     }
     j = 0;
-    while(IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1])==0)
+    while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
     {
         if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
         {
@@ -1299,7 +1299,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
                 }
 
                 j = 0;
-                while(IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1])==0)
+                while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
                 {
                     if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
                     {
@@ -1354,7 +1354,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     }
 
     j = 0;
-    while(IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1])==0)
+    while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
     {
         if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
         {
@@ -1366,7 +1366,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 
     //goto end of pos
     j = first_pos + 1;
-    while(IsTag(buf->data[j], buf->data[j+1])==0)
+    while( !IsTag(buf->data[j], buf->data[j+1]) )
         j++;
 
     ebufInsertChar(buf, '\n', j);
@@ -1418,7 +1418,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     txt += line_start;
     tagOffset = 0;
 
-    if(IsTag(txt[0],txt[1])==1)
+    if( IsTag(txt[0],txt[1]) )
     {
         SetOnlyFont(txt[1],&appContext->prefs.displayPrefs);    //we dont reset it to default before return!
         string_len -= 2;
@@ -1430,7 +1430,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     
     //is there more than one tag in his line???
     j = 1;    
-    while(j < string_len && IsTag(txt[j],txt[j+1])==0)
+    while(j < string_len && !IsTag(txt[j],txt[j+1]))
         j++;
      
     //more than one tag in line!!!    
@@ -1455,12 +1455,12 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
             }        
             else
             {
-                if(IsTag(txt[j],txt[j+1])==1)
+                if( IsTag(txt[j],txt[j+1]) )
                 {
                     SetOnlyFont(txt[j+1],&appContext->prefs.displayPrefs);
                     tagOffset = j+2;
                     j += 2;
-                    while(j < string_len && IsTag(txt[j],txt[j+1])==0)
+                    while(j < string_len && !IsTag(txt[j],txt[j+1]))
                         j++;
                 }
                 else
@@ -1553,14 +1553,14 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     if(firstLine > 0)
     {    
         line = diGetLine(di, firstLine);
-        if(IsTag(line[0],line[1])==0)   //no tag at the begining
+        if( !IsTag(line[0],line[1]) )   //no tag at the begining
         {
             i = firstLine - 1;
             while(i >= 0)
             {
                 line = diGetLine(di, i);
                 for(j = strlen(line) - 2; j >= 0; j--)
-                    if(IsTag(line[j],line[j+1])==1)
+                    if( IsTag(line[j],line[j+1]) )
                     { 
                         SetDrawParam(line[j+1], &appContext->prefs.displayPrefs,appContext);
                         j = -1;
@@ -1578,7 +1578,7 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
         tagOffset = 0;
         curX = x;
   
-        if(IsTag(line[0],line[1])==1)
+        if( IsTag(line[0],line[1]) )
         {
             SetDrawParam(line[1],&appContext->prefs.displayPrefs,appContext);
             tagOffset += 2; 
@@ -1589,7 +1589,7 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
         j = tagOffset;
         while(line[j] != '\0')
         {
-            while(IsTag(line[j],line[j+1])==0 && line[j] != '\0')
+            while( !IsTag(line[j],line[j+1]) && line[j] != '\0')
                 j++;
 
             if(curY + fontDY < (appContext->screenHeight - DRAW_DI_Y - 16))	
