@@ -22,6 +22,19 @@
 #include "inet_definition_format.h"
 #endif
 
+#if 0
+// just in case PackRGB macro turns out to be buggy
+PackedRGB PackRGB_f(int r,int g, int b)
+{
+    PackedRGB res;
+    res = (long)r<<16;
+    res &= 0xff0000L;
+    res |= (g<<8)&0xff00L;
+    res |= b&0xffL;
+    return res;
+}
+#endif
+
 /* Free ptrOldDisplayPrefs if its not NULL*/
 void bfFreePTR(AppContext *appContext)
 {
@@ -30,39 +43,26 @@ void bfFreePTR(AppContext *appContext)
     appContext->ptrOldDisplayPrefs = NULL;
 }
 
-#define SetBgCol(dep, r, g, b) \
-    (dep)->bgcolR = r; \
-    (dep)->bgcolG = g; \
-    (dep)->bgcolB = b; \
-
-#define SetFgCol(dep, r, g, b) \
-    (dep)->colorR = r; \
-    (dep)->colorG = g; \
-    (dep)->colorB = b; \
-
 /* When we change global background we need to change all backgrounds to global background color */
-static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
+static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs, PackedRGB rgb)
 {
-    int r = displayPrefs->bgcolR;
-    int g = displayPrefs->bgcolG;
-    int b = displayPrefs->bgcolB;
 
-    SetBgCol( &displayPrefs->pos, r, g, b);
-    SetBgCol( &displayPrefs->word, r, g, b);
-    SetBgCol( &displayPrefs->definition, r, g, b);
-    SetBgCol( &displayPrefs->example, r, g, b);
-    SetBgCol( &displayPrefs->synonym, r, g, b);
-    SetBgCol( &displayPrefs->defList, r, g, b);
-    SetBgCol( &displayPrefs->posList, r, g, b);
-    SetBgCol( &displayPrefs->pronunciation, r, g, b);
+    displayPrefs->pos.bgCol = rgb;
+    displayPrefs->word.bgCol = rgb;
+    displayPrefs->definition.bgCol = rgb;
+    displayPrefs->example.bgCol = rgb;
+    displayPrefs->synonym.bgCol = rgb;
+    displayPrefs->defList.bgCol = rgb;
+    displayPrefs->posList.bgCol = rgb;
+    displayPrefs->pronunciation.bgCol = rgb;
 }
 
 /* Sets &prefs (only used by SetDefaultDisplayParam) */
-static void SetPrefsAs(DisplayElementPrefs *prefs,FontID font, int colR, int colG, int colB, int bgR, int bgG, int bgB)
+static void SetPrefsAs(DisplayElementPrefs *prefs, FontID font, PackedRGB color, PackedRGB bgCol)
 {
     prefs->font = font;
-    SetFgCol(prefs, colR, colG, colB);
-    SetBgCol(prefs, bgR, bgG, bgB);
+    prefs->color = color;
+    prefs->bgCol = bgCol;
 }
 
 /* Sets rest of display params to actual listStyle */
@@ -72,30 +72,30 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
     DisplayElementPrefs *prefsToSet;
 
     // format 3(0): (old)
-    SetPrefsAs(&prefs[ 0], stdFont,        0,  0,  0, 255,255,255 );    // color is black, font is small
+    SetPrefsAs(&prefs[ 0], stdFont,        BLACK_Packed, WHITE_Packed);    // color is black, font is small
 
     // format 1:
-    SetPrefsAs(&prefs[ 1], largeBoldFont,  0,  0,255, 255,255,255 );    // word
-    SetPrefsAs(&prefs[ 2], boldFont,       0,220,  0, 255,255,255 );    // pos
-    SetPrefsAs(&prefs[ 3], stdFont,        0,  0,  0, 255,255,255 );    // definition
+    SetPrefsAs(&prefs[ 1], largeBoldFont,  PackRGB(0,0,255), WHITE_Packed );    // word
+    SetPrefsAs(&prefs[ 2], boldFont,       PackRGB(0,220,0), WHITE_Packed );    // pos
+    SetPrefsAs(&prefs[ 3], stdFont,        BLACK_Packed, WHITE_Packed );    // definition
 
-    SetPrefsAs(&prefs[ 4], stdFont,  221, 34, 17, 255,255,255 );    // example
-    SetPrefsAs(&prefs[ 5], boldFont,   0,  0, 68, 255,255,255 );    // synonyms
-    SetPrefsAs(&prefs[ 6], stdFont,    0,  0,  0, 255,255,255 );    // definition list
-    SetPrefsAs(&prefs[ 7], boldFont,   0,220,  0, 255,255,255 );    // pos list
+    SetPrefsAs(&prefs[ 4], stdFont,  PackRGB(221,34,17), WHITE_Packed );    // example
+    SetPrefsAs(&prefs[ 5], boldFont, PackRGB(0,0,68),    WHITE_Packed );    // synonyms
+    SetPrefsAs(&prefs[ 6], stdFont,  BLACK_Packed,       WHITE_Packed );    // definition list
+    SetPrefsAs(&prefs[ 7], boldFont, PackRGB(0,220,0),   WHITE_Packed );    // pos list
 
     // format 2: (default)
-    SetPrefsAs(&prefs[ 8], largeBoldFont,  0,  0,255, 255,255,255 );    // word
-    SetPrefsAs(&prefs[ 9], boldFont,       0,220,  0, 255,255,255 );    // pos
-    SetPrefsAs(&prefs[10], stdFont,        0,  0,  0, 255,255,255 );    // definition
+    SetPrefsAs(&prefs[ 8], largeBoldFont,  PackRGB(0,0,255), WHITE_Packed );    // word
+    SetPrefsAs(&prefs[ 9], boldFont,       PackRGB(0,220,0), WHITE_Packed );    // pos
+    SetPrefsAs(&prefs[10], stdFont,        BLACK_Packed,     WHITE_Packed );    // definition
 
-    SetPrefsAs(&prefs[11], stdFont,  221, 34, 17, 255,255,255 );    // example
-    SetPrefsAs(&prefs[12], boldFont,   0,  0, 68, 255,255,255 );    // synonyms
-    SetPrefsAs(&prefs[13], stdFont,    0,  0,  0, 255,255,255 );    // definition list
-    SetPrefsAs(&prefs[14], boldFont,   0,220,  0, 255,255,255 );    // pos list
+    SetPrefsAs(&prefs[11], stdFont,   PackRGB(221,34,17), WHITE_Packed );    // example
+    SetPrefsAs(&prefs[12], boldFont,  PackRGB(0,0,68),    WHITE_Packed );    // synonyms
+    SetPrefsAs(&prefs[13], stdFont,   BLACK_Packed,       WHITE_Packed );    // definition list
+    SetPrefsAs(&prefs[14], boldFont,  PackRGB(0,220,0),   WHITE_Packed );    // pos list
 
     //pronunciation for both
-    SetPrefsAs(&prefs[15], largeBoldFont,  80, 160,  0, 255,255,255 );    //pronunciation
+    SetPrefsAs(&prefs[15], largeBoldFont, PackRGB(80,160,0), WHITE_Packed );    //pronunciation
     
     prefsToSet = &prefs[0];
 
@@ -134,22 +134,22 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
             }
             // settings common to all styles
             displayPrefs->pronunciation = prefsToSet[15];
-            SetBgCol(displayPrefs, 255, 255, 255);
+            displayPrefs->bgCol = WHITE_Packed;
             displayPrefs->enablePronunciation = true;
             displayPrefs->enablePronunciationSpecialFonts = false;
 
             if(!IsColorSupported(GetAppContext())) //we need to set all colors to black&white
             {   
-                SetBgCol( displayPrefs, 255, 255, 255);
-                SetAllBackGroundLikeGlobal(displayPrefs);                                            
-                SetFgCol( &displayPrefs->pos, 0, 0, 0);
-                SetFgCol( &displayPrefs->word, 0, 0, 0);
-                SetFgCol( &displayPrefs->definition, 0, 0, 0);
-                SetFgCol( &displayPrefs->example, 0, 0, 0);
-                SetFgCol( &displayPrefs->synonym, 0, 0, 0);
-                SetFgCol( &displayPrefs->defList, 0, 0, 0);
-                SetFgCol( &displayPrefs->posList, 0, 0, 0);
-                SetFgCol( &displayPrefs->pronunciation, 0, 0, 0);
+                displayPrefs->bgCol = WHITE_Packed;
+                SetAllBackGroundLikeGlobal(displayPrefs, displayPrefs->bgCol);
+                displayPrefs->pos.color = BLACK_Packed;
+                displayPrefs->word.color = BLACK_Packed;
+                displayPrefs->definition.color = BLACK_Packed;
+                displayPrefs->example.color = BLACK_Packed;
+                displayPrefs->synonym.color = BLACK_Packed;
+                displayPrefs->defList.color = BLACK_Packed;
+                displayPrefs->posList.color = BLACK_Packed;
+                displayPrefs->pronunciation.color = BLACK_Packed;
             }
     }   
 }
@@ -195,14 +195,8 @@ void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
 static void SetFontAndCols(AppContext *appContext, DisplayElementPrefs *displayPrefs)
 {
     FntSetFont(displayPrefs->font);
-    SetTextColorRGB(appContext,
-                    displayPrefs->colorR,
-                    displayPrefs->colorG,
-                    displayPrefs->colorB);
-    SetBackColorRGB(appContext,
-                    displayPrefs->bgcolR,
-                    displayPrefs->bgcolG,
-                    displayPrefs->bgcolB);
+    SetTextColorRGB(appContext, displayPrefs->color);
+    SetBackColorRGB(appContext, displayPrefs->bgCol);
 }
 
 /* used in display */
@@ -239,8 +233,8 @@ void SetDrawParam(char type, DisplayPrefs *displayPrefs, AppContext * appContext
            break;
         default:
             FntSetFont((FontID) 0x00);
-            SetBackColorWhite(appContext);
-            SetTextColorBlack(appContext);
+            SetBackColorRGB(appContext, WHITE_Packed);
+            SetTextColorRGB(appContext, BLACK_Packed);
             break;
     }
 }
@@ -290,44 +284,55 @@ static void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
     *Binout = rgb_color.b;
 }
 
+// devnote: return the same color if colors are not supported or the user didn't
+// canceled the color selection process
+static PackedRGB RunColorSetForm(PackedRGB rgb)
+{
+    RGBColorType rgb_color;
+
+    if( !IsColorSupported(GetAppContext()))
+        return rgb;
+
+    rgb_color.index = 0;
+    rgb_color.r = RGBGetR(rgb);
+    rgb_color.g = RGBGetG(rgb);
+    rgb_color.b = RGBGetB(rgb);
+
+    if ( UIPickColor (&rgb_color.index, &rgb_color, UIPickColorStartRGB,"Choose color", NULL) )
+        return PackRGB(rgb_color.r,rgb_color.g,rgb_color.b);
+    else
+        return rgb;
+}
+
 static void RunColorSetFormForTag(DisplayPrefs *dp, ActualTag tag, Boolean bgCol)
 {
     DisplayElementPrefs *dep;
     dep = GetDEPForTag(dp, tag);
     if (bgCol)
-        RunColorSetForm(&dep->bgcolR, &dep->bgcolG, &dep->bgcolB);
+        dep->bgCol = RunColorSetForm(dep->bgCol);
     else
-        RunColorSetForm(&dep->colorR, &dep->colorG, &dep->colorB);
+        dep->color = RunColorSetForm(dep->color);
 }
 
-static void GetRGBForTag(DisplayPrefs *dp, ActualTag tag, Boolean fBgCol, RGBColorType *rgb)
+static PackedRGB GetRGBForTag(DisplayPrefs *dp, ActualTag tag, Boolean fBgCol)
 {
     DisplayElementPrefs *dep;
 
     dep = GetDEPForTag(dp, tag);
-    if ( !fBgCol )
-    {
-        rgb->r = dep->colorR;
-        rgb->g = dep->colorG;
-        rgb->b = dep->colorB;
-    } else {
-        rgb->r = dep->bgcolR;
-        rgb->g = dep->bgcolG;
-        rgb->b = dep->bgcolB;
-    }
+    if ( fBgCol )
+        return dep->bgCol;
+    else
+        return dep->color;
 }
 
 /* Set color to draw buttons */
-static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *displayPrefs,AppContext * appContext)
+static void SetColorButton(AppContext * appContext, ActualTag actTag, Boolean fBgCol, DisplayPrefs *displayPrefs)
 {
-    RGBColorType  rgb;
-
-    GetRGBForTag(displayPrefs, actTag, back, &rgb);
-    SetTextColor(appContext, &rgb);
+    SetTextColorRGB(appContext, GetRGBForTag(displayPrefs, actTag, fBgCol));
 }
 
 /* Draw color rectangles over the buttons */
-static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, AppContext *appContext)
+static void RedrawFormElements( AppContext *appContext, ActualTag actTag, DisplayPrefs *displayPrefs)
 {
 /* Now we dont use Font button draw in current font... but we can do it here!*/
 //    FontID prev_font;
@@ -337,31 +342,28 @@ static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, App
 //    prev_font = FntGetFont();
 //    WinDrawChars("Aa",2, 70, 30);
     
+    SetTextColorRGB(appContext,appContext->prefs.displayPrefs.bgCol);
     r.topLeft.x = 160 - 22;
     r.topLeft.y = 16;
     r.extent.x  = 20;
     r.extent.y  = 10;
-    SetTextColorRGB(appContext,
-                    appContext->prefs.displayPrefs.bgcolR,
-                    appContext->prefs.displayPrefs.bgcolG,
-                    appContext->prefs.displayPrefs.bgcolB);
     WinDrawRectangle(&r, 4);
 
+    SetColorButton(appContext,actTag,false,displayPrefs);
     r.topLeft.x = 95;
     r.topLeft.y = 29;
     r.extent.x  = 20;
     r.extent.y  = 12;
-    SetColorButton(actTag,false,displayPrefs,appContext);
     WinDrawRectangle(&r, 4);
 
+    SetColorButton(appContext,actTag,true,displayPrefs);
     r.topLeft.x = 160 - 22;
     r.topLeft.y = 29;
     r.extent.x  = 20;
     r.extent.y  = 12;
-    SetColorButton(actTag,true,displayPrefs,appContext);
     WinDrawRectangle(&r, 4);
 
-    SetTextColorBlack(appContext);
+    SetTextColorRGB(appContext, BLACK_Packed);
 //    FntSetFont(prev_font);
 #ifdef NOAH_PRO
     if(actTag == actTagPronunciation)
@@ -511,7 +513,7 @@ static void RedrawExampleDefinition(AppContext* appContext)
     appContext->firstDispLine = 0;
     SetGlobalBackColor(appContext);
     ClearRectangle(DRAW_DI_X, 42, appContext->screenWidth, appContext->screenHeight-42-15);
-    SetBackColorWhite(appContext);
+    SetBackColorRGB(appContext, WHITE_Packed);
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, 30+12, appContext->dispLinesCount);
 }
 
@@ -537,13 +539,10 @@ static void InitOldDisplayPrefs(AppContext *appContext)
 
 static void CopyParamsFromTo(DisplayPrefs *src, DisplayPrefs *dst)
 {
-    if(src == NULL || dst == NULL)
-        return;
-
+    Assert(src);
+    Assert(dst);
     dst->listStyle = src->listStyle;
-    dst->bgcolR = src->bgcolR;
-    dst->bgcolG = src->bgcolG;
-    dst->bgcolB = src->bgcolB;
+    dst->bgCol = src->bgCol;
     dst->pos = src->pos;
     dst->word = src->word;
     dst->definition = src->definition;
@@ -584,28 +583,30 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 
     frm = FrmGetActiveForm();
     appContext=GetAppContext();
-    
+    AppPrefs *prefs = &(appContext->prefs);
+    DisplayPrefs *displayPrefs = &(prefs->displayPrefs);
+
     switch (event->eType)
     {
         case winDisplayChangedEvent:
             DisplPrefFormDisplayChanged(appContext, frm);
             actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-            SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
+            SetPopupLabel(frm, listListStyle, popupListStyle, 2 - displayPrefs->listStyle);
             SetPopupLabel(frm, listActTag, popupActTag, actTag);
-            RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+            RedrawFormElements(appContext,actTag,displayPrefs);
             RedrawExampleDefinition(appContext);
             return true;
 
         case frmOpenEvent:
             cbNoSelection(appContext);
             InitOldDisplayPrefs(appContext);
-            CopyParamsFromTo(&appContext->prefs.displayPrefs, (DisplayPrefs*)appContext->ptrOldDisplayPrefs);    
+            CopyParamsFromTo(displayPrefs, (DisplayPrefs*)appContext->ptrOldDisplayPrefs);    
             FrmDrawForm(FrmGetActiveForm());
             actTag = actTagWord;
-            SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
+            SetPopupLabel(frm, listListStyle, popupListStyle, 2 - displayPrefs->listStyle);
             SetPopupLabel(frm, listActTag, popupActTag, actTag);
             RedrawExampleDefinition(appContext);
-            RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+            RedrawFormElements(appContext,actTag,displayPrefs);
             
 #ifdef NOAH_PRO            
             if(appContext->pronData.isPronInUsedDictionary)
@@ -626,19 +627,19 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
             switch (event->data.popSelect.listID)
             {
                 case listListStyle:
-                    appContext->prefs.displayPrefs.listStyle = 2 - (LayoutType) event->data.popSelect.selection;
+                    displayPrefs->listStyle = 2 - (LayoutType) event->data.popSelect.selection;
                     SafeStrNCopy(txt, sizeof(txt), listTxt, -1);
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupListStyle)),txt);
-                    SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
+                    SetDefaultDisplayParam(displayPrefs,false,false);
                     RedrawExampleDefinition(appContext);
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     break;
                 case listActTag:
                     actTag = (ActualTag) event->data.popSelect.selection;
                     SafeStrNCopy(txt, sizeof(txt), listTxt, -1);
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupActTag)),txt);
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     break;
                 default:
                     Assert(0);
@@ -659,38 +660,36 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 
                     if ( actTagPronunciation == actTag )
                     {
-                        if(!appContext->prefs.displayPrefs.enablePronunciationSpecialFonts)
-                            appContext->prefs.displayPrefs.pronunciation.font = FontSelect (appContext->prefs.displayPrefs.pronunciation.font);
+                        if(! displayPrefs->enablePronunciationSpecialFonts)
+                            displayPrefs->pronunciation.font = FontSelect(displayPrefs->pronunciation.font);
                     } else {
-                        dep = GetDEPForTag(&appContext->prefs.displayPrefs, actTag);
+                        dep = GetDEPForTag(displayPrefs, actTag);
                         dep->font = FontSelect(dep->font);
                     }
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     RedrawExampleDefinition(appContext);
                     break;
                 case buttonCOLpos:
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag)));
-                    RunColorSetFormForTag(&appContext->prefs.displayPrefs, actTag, false);
+                    RunColorSetFormForTag(displayPrefs, actTag, false);
 
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     RedrawExampleDefinition(appContext);
                     setColor = 2;
                     break;
                 case buttonBGpos:
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag)));
-                    RunColorSetFormForTag(&appContext->prefs.displayPrefs, actTag, true);
+                    RunColorSetFormForTag(displayPrefs, actTag, true);
 
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     RedrawExampleDefinition(appContext);
                     setColor = 2;
                     break;
                 case buttonGlobalBGcol:
-                    RunColorSetForm(&appContext->prefs.displayPrefs.bgcolR,
-                                    &appContext->prefs.displayPrefs.bgcolG,
-                                    &appContext->prefs.displayPrefs.bgcolB);
-                    SetAllBackGroundLikeGlobal(&appContext->prefs.displayPrefs);
+                    displayPrefs->bgCol = RunColorSetForm(displayPrefs->bgCol);
+                    SetAllBackGroundLikeGlobal(displayPrefs, displayPrefs->bgCol);
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     RedrawExampleDefinition(appContext);
                     setColor = 2;
                     break;
@@ -698,17 +697,17 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                 case checkEnablePron:
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
                     if(FrmGetControlValue (frm, FrmGetObjectIndex(frm, checkEnablePron)))
-                         appContext->prefs.displayPrefs.enablePronunciation = true;
+                         displayPrefs->enablePronunciation = true;
                     else
-                         appContext->prefs.displayPrefs.enablePronunciation = false;
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                         displayPrefs->enablePronunciation = false;
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     RedrawExampleDefinition(appContext);
                     break;
 #endif                    
                 case buttonDefault:
-                    SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
+                    SetDefaultDisplayParam(displayPrefs,false,false);
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawFormElements(appContext,actTag,displayPrefs);
                     RedrawExampleDefinition(appContext);
                     break;
                 case buttonOk:
@@ -733,7 +732,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     FrmReturnToForm(0);
                     break;
                 case buttonCancel:
-                    CopyParamsFromTo((DisplayPrefs*)appContext->ptrOldDisplayPrefs, &appContext->prefs.displayPrefs);    
+                    CopyParamsFromTo((DisplayPrefs*)appContext->ptrOldDisplayPrefs, displayPrefs);    
                     bfFreePTR(appContext);
 #ifndef I_NOAH                    
                     SendNewWordSelected();
@@ -751,9 +750,9 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
             {
                 actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
                 FrmDrawForm(FrmGetActiveForm());
-                SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
+                SetPopupLabel(frm, listListStyle, popupListStyle, 2 - displayPrefs->listStyle);
                 SetPopupLabel(frm, listActTag, popupActTag, actTag);
-                RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                RedrawFormElements(appContext,actTag,displayPrefs);
                 RedrawExampleDefinition(appContext);
                 setColor--;
                 if(setColor > 0)
@@ -1640,8 +1639,8 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
             i = totalLines; 	
     }
     FntSetFont(prev_font);
-    SetBackColorWhite(appContext);
-    SetTextColorBlack(appContext);
+    SetBackColorRGB(appContext, WHITE_Packed);
+    SetTextColorRGB(appContext, BLACK_Packed);
 
 //#ifndef I_NOAH
     cbInvertSelection(appContext);

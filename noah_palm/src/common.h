@@ -427,12 +427,9 @@ int GetMaxScreenDepth(AppContext* appContext);
 Boolean IsColorSupported(AppContext* appContext);
 int GetCurrentScreenDepth(AppContext* appContext);
 void SetTextColor(AppContext* appContext, RGBColorType *color);
-void SetTextColorBlack(AppContext* appContext);
-void SetTextColorRed(AppContext* appContext);
+void SetTextColorRGB(AppContext* appContext, PackedRGB rgb);
 void SetBackColor(AppContext* appContext,RGBColorType *color);
-void SetBackColorWhite(AppContext* appContext);
-void SetBackColorRGB(AppContext* appContext, int r, int g, int b);
-void SetTextColorRGB(AppContext* appContext, int r, int g, int b);
+void SetBackColorRGB(AppContext* appContext, PackedRGB rgb);
 void SetGlobalBackColor(AppContext* appContext);
 
 Boolean CreateHelpData(AppContext* appContext);

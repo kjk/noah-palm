@@ -75,14 +75,12 @@ static void LoadPreferencesInoah(AppContext* appContext)
 
     prefs->fShowPronunciation = true;
     err = store.ErrGetBool(fShowPronunciation_id, &prefs->fShowPronunciation);
-    Assert(!err);
 
     prefs->displayPrefs.listStyle = 2;
     err = store.ErrGetUInt16(dpListStyle_id, (UInt16*)&prefs->displayPrefs.listStyle);
-    Assert(!err);
 
-// TODO: display prefs
-//    SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
+    // TODO: display prefs
+    SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
 
 }
 
@@ -112,6 +110,7 @@ static void SavePreferencesInoah(AppContext* appContext)
     err = store.ErrSavePreferences();
     Assert(!err);
 
+    // TODO: display prefs
 };
 
 static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
@@ -134,10 +133,40 @@ static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
     return error;
 }
 
+#ifdef DEBUG
+static void TestRGBStandardColors()
+{
+    // those are defined in display_format.h
+    // don't forget to update this list if new colors are added to display_format.h
+    Assert(WHITE_Packed == PackRGB(0xff,0xff,0xff)); 
+    Assert(BLACK_Packed == PackRGB(0x00,0x00,0x00)); 
+    Assert(RED_Packed   == PackRGB(0xff,0x00,0x00)); 
+    Assert(BLUE_Packed  == PackRGB(0x00,0x00,0xff)); 
+}
+
+static void TestRGBColorPacking(int r,int g, int b)
+{
+    PackedRGB   rgb = PackRGB(r,g,b);
+    int   newR = RGBGetR(rgb);
+    int   newG = RGBGetG(rgb);
+    int   newB = RGBGetB(rgb);
+    Assert(newG==g);
+    Assert(newR==r);
+    Assert(newB==b);
+
+/*    rgb = PackRGB_f(r,g,b);
+    newR = RGBGetR(rgb);
+    newG = RGBGetG(rgb);
+    newB = RGBGetB(rgb);
+    Assert(newG==g);
+    Assert(newR==r);
+    Assert(newB==b);*/
+}
+#endif
+
 static Err AppInit(AppContext* appContext)
 {
-    Err     error=errNone;
-    UInt32  value=0;
+    Err     error;
 
     MemSet(appContext, sizeof(*appContext), 0);
     error=FtrSet(APP_CREATOR, appFtrContext, (UInt32)appContext);
@@ -157,15 +186,6 @@ static Err AppInit(AppContext* appContext)
 
     appContext->currBookmarkDbType = bkmInvalid; // has anybody idea why it isn't 0?
 
-/*    
-    appContext->prefs.startupAction      = startupActionNone;
-    appContext->prefs.hwButtonScrollType = scrollPage;
-    appContext->prefs.navButtonScrollType = scrollPage;
-    appContext->prefs.bookmarksSortType  = bkmSortByTime;
-
-    appContext->prefs.displayPrefs.listStyle = 2;
-    SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
-*/
     appContext->currDispInfo=diNew();
     if (!appContext->currDispInfo)
     {
@@ -173,6 +193,17 @@ static Err AppInit(AppContext* appContext)
         goto OnError;
     }
 
+#ifdef DEBUG
+    TestRGBStandardColors();
+    TestRGBColorPacking(0xff,0xff,0xff);
+    TestRGBColorPacking(0xff,0xfe,0xfd);
+    TestRGBColorPacking(0xff,0x7f,0x00);
+    TestRGBColorPacking(0x00,0x7f,0xff);
+    TestRGBColorPacking(0x00,0x00,0x00);
+    TestRGBColorPacking(0x7f,0x80,0x7e);
+    TestRGBColorPacking(0xfe,0x34,0x04);
+#endif
+    
     LoadPreferencesInoah(appContext);
 
     // we don't store this in preferences database

@@ -260,24 +260,6 @@ void SetTextColor(AppContext* appContext, RGBColorType *color)
     }
 }
 
-void SetTextColorBlack(AppContext* appContext)
-{
-    RGBColorType rgb_color;
-    rgb_color.index = 0;
-    rgb_color.r = 0;
-    rgb_color.g = 0;
-    rgb_color.b = 0;
-    SetTextColor( appContext, &rgb_color );
-}
-void SetTextColorRed(AppContext* appContext)
-{
-    RGBColorType rgb_color;
-    rgb_color.r = 255;
-    rgb_color.g = 0;
-    rgb_color.b = 0;
-    SetTextColor( appContext, &rgb_color );
-
-}
 void SetBackColor(AppContext* appContext,RGBColorType *color)
 {
     if ( GetOsVersion(appContext) >= 40 )
@@ -285,42 +267,28 @@ void SetBackColor(AppContext* appContext,RGBColorType *color)
         WinSetBackColorRGB (color, NULL);
     }
 }
-void SetBackColorWhite(AppContext* appContext)
+
+void SetBackColorRGB(AppContext* appContext, PackedRGB rgb)
 {
     RGBColorType rgb_color;
 
-    rgb_color.index = 0;
-    rgb_color.r = 255;
-    rgb_color.g = 255;
-    rgb_color.b = 255;
+    rgb_color.r = RGBGetR(rgb);
+    rgb_color.g = RGBGetG(rgb);
+    rgb_color.b = RGBGetB(rgb);
     SetBackColor( appContext, &rgb_color );
 }
-void SetBackColorRGB(AppContext* appContext, int r, int g, int b)
+void SetTextColorRGB(AppContext* appContext, PackedRGB rgb)
 {
     RGBColorType rgb_color;
 
-    rgb_color.r = r;
-    rgb_color.g = g;
-    rgb_color.b = b;
-    SetBackColor( appContext, &rgb_color );
-}
-void SetTextColorRGB(AppContext* appContext, int r, int g, int b)
-{
-    RGBColorType rgb_color;
-
-    rgb_color.r = r;
-    rgb_color.g = g;
-    rgb_color.b = b;
+    rgb_color.r = RGBGetR(rgb);
+    rgb_color.g = RGBGetG(rgb);
+    rgb_color.b = RGBGetB(rgb);
     SetTextColor(appContext, &rgb_color );
 }
 void SetGlobalBackColor(AppContext* appContext)
 {
-    RGBColorType rgb_color;
-
-    rgb_color.r = appContext->prefs.displayPrefs.bgcolR;
-    rgb_color.g = appContext->prefs.displayPrefs.bgcolG;
-    rgb_color.b = appContext->prefs.displayPrefs.bgcolB;
-    SetBackColor( appContext, &rgb_color);
+    SetBackColorRGB(appContext, appContext->prefs.displayPrefs.bgCol);
 }
 
 void HideScrollbar(void)
@@ -340,14 +308,14 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     if ((appContext->lastDispLine - firstLine + 1) > diGetLinesCount(di))
     {
         HideScrollbar();
-        SetBackColorWhite(appContext); 
+        SetBackColorRGB(appContext, WHITE_Packed);
         return;
     }
 
     if ((appContext->lastDispLine + 1) > diGetLinesCount(di))
     {
         /* ??? */
-        SetBackColorWhite(appContext); 
+        SetBackColorRGB(appContext, WHITE_Packed);
         return;
     }
 
@@ -361,7 +329,7 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     // Noah Pro and not lite/thes
     SclDrawScrollBar( (ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)) );
     SclSetScrollBar((ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)), value, min, max, page_size);
-    SetBackColorWhite(appContext); 
+    SetBackColorRGB(appContext, WHITE_Packed);
 }
 
 /* max width of the word displayed at the bottom */
@@ -452,7 +420,7 @@ static void RedrawWordDefinition(AppContext* appContext)
 
     SetWordAsLastWord(appContext, word, -1);
 
-    SetBackColorWhite(appContext);
+    SetBackColorRGB(appContext, WHITE_Packed);
     /* DrawWord(word, appContext->screenHeight-FONT_DY); */
 #ifndef I_NOAH    
     ClearRectangle(21, appContext->screenHeight-FONT_DY - 1, MAX_WORD_DX, FONT_DY);

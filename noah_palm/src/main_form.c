@@ -82,7 +82,7 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
 static void MainFormDrawCurrentDisplayInfo(AppContext* appContext)
 {
     WinPushDrawState();
-    SetBackColorWhite(appContext);
+    SetBackColorRGB(appContext, WHITE_Packed);
     ClearRectangle(0, 0, appContext->screenWidth, appContext->screenHeight - FRM_RSV_H);
     DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, 0, 0, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);

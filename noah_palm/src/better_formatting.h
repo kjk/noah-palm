@@ -5,6 +5,32 @@
 
 #ifndef _BETTER_FORMATTING_H_
 #define _BETTER_FORMATTING_H_
+
+// storing rgb color as UInt32 is easier to code for
+typedef UInt32 PackedRGB;
+
+
+//extern PackedRGB PackRGB_f(int r, int g, int b);
+
+#define PackRGB(r,g,b)  ((((unsigned long)r)<<16)&0xFF0000L) | \
+                        (((g)<<8)&0xFF00L) | \
+                        ((b)&0xFFL)
+
+#define RGBGetR(packed) ((packed & 0xff0000L)>>16)
+#define RGBGetG(packed) ((packed & 0xff00L)>>8)
+#define RGBGetB(packed) ((packed & 0xff))
+
+// this saves memory. Don't forget to update TestRGBStandardColors() in i_noah.c
+// when you add new colors to this list
+//#define WHITE_Packed PackRGB(0xff,0xff,0xff)
+#define WHITE_Packed 0xffffff
+//#define BLACK_Packed PackRGB(0x00,0x00,0x00)
+#define BLACK_Packed 0x0
+//#define RED_Packed   PackRGB(0xff,0x00,0x00)
+#define RED_Packed   0xff0000
+//#define BLUE_Packed  PackRGB(0x00,0x00,0xff)
+#define BLUE_Packed  0x0000ff
+
 //formatting tag code (an unused in database asci code)
 //and DisplayPrefs structure
 #define FORMAT_TAG        152
@@ -19,13 +45,13 @@
 
 typedef struct {
     FontID font;
-    int    colorR, colorG, colorB;
-    int    bgcolR, bgcolG, bgcolB;
+    PackedRGB color;
+    PackedRGB bgCol;
 } DisplayElementPrefs;
 
 typedef struct {
-    int listStyle;
-    int bgcolR, bgcolG, bgcolB;
+    int         listStyle;
+    PackedRGB   bgCol;
     DisplayElementPrefs pos;
     DisplayElementPrefs word;
     DisplayElementPrefs definition;
