@@ -447,12 +447,9 @@ static Err AppCommonInit(AppContext* appContext)
     FsInit(&appContext->fsSettings);
     LoadPreferencesThes(appContext);
     
-// define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
-#ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
     error=DIA_Init(&appContext->diaSettings);
     if (error) 
         goto OnError;
-#endif  
     
 OnError:
     return error;
@@ -620,7 +617,6 @@ static void DoWord(AppContext* appContext, char *word)
 {
     long wordNo;
 
-    LogV1("DoWord(%s)", word );
     Assert( word );
     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
     DrawDescription(appContext, wordNo);

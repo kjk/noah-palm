@@ -2099,55 +2099,91 @@ Err DefaultFormInit(AppContext* appContext, FormType* frm)
 
 #if !(defined(NOAH_LITE) || defined(I_NOAH))
 
+
+static void LaunchMyselfWithWord(char *word)
+{
+    Err                 error;
+    DmSearchStateType   searchState;
+    UInt16              appCard;
+    LocalID             appID;
+    char *              cmdPBP;
+    int                 wordLen;
+
+    // find myself
+    error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, APP_CREATOR, true, &appCard, &appID);
+    Assert( errNone == error );
+    if (error) return;
+
+    wordLen = StrLen(word);
+    cmdPBP = (char *) MemPtrNew(wordLen + 1);
+    if (NULL == cmdPBP) return;
+
+    // give the ownership of the block to OS
+    MemPtrSetOwner((MemPtr)cmdPBP, 0);
+    SafeStrNCopy(cmdPBP, wordLen+1, word, -1);
+
+    error = SysUIAppSwitch(appCard, appID, sysAppLaunchCmdNormalLaunch, cmdPBP);
+}
+
+
 static Err AppHandleResidentLookup()
 {
-    UInt16 cardNo=0;
-    LocalID localId=0;
-    FormType* form=FrmGetActiveForm();
-    FieldType* field=NULL;
-    Err error=SysCurAppDatabase(&cardNo, &localId);
-    Char* buffer=NULL;
-    UInt16 length=0;
-    UInt16 fieldIndex=noFocus;
+    UInt16      cardNo=0;
+    LocalID     localId;
+    FormType *  form=FrmGetActiveForm();
+    FieldType * field;
+    Err         error;
+    char *      buffer;
+    int         bufSize;
+    UInt16      fieldIndex;
+    char *      word;
+    int         wordLen;
+
     Assert(form);
-    fieldIndex=FrmGetFocus(form);
-    if (noFocus!=fieldIndex)
-        field=(FieldType*)FrmGetObjectPtr(form, fieldIndex);
-        
+
+    error = SysCurAppDatabase(&cardNo, &localId);
     if (error) 
         goto Exit;
+
     error=SysNotifyUnregister(cardNo, localId, appNotifyResidentLookupEvent, sysNotifyNormalPriority);
-    if (sysNotifyErrEntryNotFound==error) 
-        Assert(false);
+    Assert (sysNotifyErrEntryNotFound!=error);
     if (error) 
         goto Exit;
-    if (field) 
-    {    
-        length=FldGetSelectedText(field, NULL, 0);
-        if (length) 
-        {
-            // This MUST be MemPtrNew as we don't have AppContext yet.
-            buffer=(Char*)MemPtrNew((++length)*sizeof(Char));
-            if (buffer)
-            {
-                length=FldGetSelectedText(field, buffer, length);
-                Assert(length==StrLen(buffer));
-                error=AppPerformResidentLookup(buffer);
-                MemPtrFree(buffer);
-            }
-            else
-                error=memErrNotEnoughSpace;        
-        }
-        else
-            goto NoWordSelected;
-    }
-    else 
-        goto NoWordSelected;       
+
+    fieldIndex=FrmGetFocus(form);
+    if (noFocus == fieldIndex)
+        goto NoWordSelected;
+
+    field=(FieldType*)FrmGetObjectPtr(form, fieldIndex);
+    if (!field)
+        goto NoWordSelected;
+
+    wordLen=FldGetSelectedText(field, NULL, 0);
+    if (0==wordLen) 
+        goto NoWordSelected;
+
+    bufSize = MAGIC_RESIDENT_LOOKUP_PREFIX_LEN + wordLen + 1;
+    // This MUST be MemPtrNew as we don't have AppContext yet.
+    buffer=(char*)MemPtrNew(bufSize);
+    if (NULL==buffer)
+        return memErrNotEnoughSpace;
+    MemSet(buffer,bufSize,0);
+    MemMove(buffer,MAGIC_RESIDENT_LOOKUP_PREFIX,MAGIC_RESIDENT_LOOKUP_PREFIX_LEN);
+
+    word = buffer + MAGIC_RESIDENT_LOOKUP_PREFIX_LEN;
+
+    wordLen=FldGetSelectedText(field, word, wordLen+1);
+    Assert(wordLen==StrLen(word));
+/*    error=AppPerformResidentLookup(buffer);*/
+    LaunchMyselfWithWord(buffer);
+    MemPtrFree(buffer);
+
 Exit:
     return error;
     
 NoWordSelected:
-    error=AppPerformResidentLookup(NULL);
+    /* error=AppPerformResidentLookup(NULL); */
+    LaunchMyselfWithWord(MAGIC_RESIDENT_LOOKUP_PREFIX);
     goto Exit;
 }
 
@@ -2168,7 +2204,7 @@ static Err AppHandleMenuCmdBarOpen()
     error=SysNotifyRegister(cardNo, localId, appNotifyResidentLookupEvent, NULL, sysNotifyNormalPriority, NULL);
     if (sysNotifyErrDuplicateEntry==error) 
         error=errNone;
-OnError:	
+OnError:
     return error;
 }
 
@@ -2189,16 +2225,23 @@ Err AppHandleSysNotify(SysNotifyParamType* param)
             SyncScreenSize(appContext);
             DIA_HandleResizeEvent();
             break;
-            
+
 #if !(defined(NOAH_LITE) || defined(I_NOAH))
         case sysNotifyMenuCmdBarOpenEvent:
-            if ( appContext->prefs.fResidentModeEnabled)
+            //TODO: add ability to disable resident mode
+            //Assert(true==appContext->prefs.fResidentModeEnabled);
+            //if (appContext->prefs.fResidentModeEnabled)
                 error=AppHandleMenuCmdBarOpen();
             break;
 
         case appNotifyResidentLookupEvent:
-            error=AppHandleResidentLookup();
-            param->handled=true;
+            //TODO: add ability to disable resident mode
+            //Assert(true==appContext->prefs.fResidentModeEnabled);
+            //if (appContext->prefs.fResidentModeEnabled)
+            {
+                error=AppHandleResidentLookup();
+                param->handled=true;
+            }
             break;
 #endif
 
@@ -2226,25 +2269,23 @@ void FldSelectAllText(FieldType* field)
 
 #ifndef I_NOAH
 
-UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize) 
+UInt16 FldGetSelectedText(FieldType* field, char* buffer, UInt16 bufferSize) 
 {
     UInt16 start=0;
     UInt16 len=0;
-    Char* text=NULL;
+    char * text=NULL;
+
     Assert(field);
+
     FldGetSelection(field, &start, &len);
-    len-=start;
-    if (buffer!=NULL)
-    {
-        text=FldGetTextPtr(field);
-        if (len<bufferSize)
-        {
-            StrNCopy(buffer, text+start, len);
-            buffer[len]=chrNull;
-        }
-        else 
-            StrNCopy(buffer, text+start, bufferSize);
-    }
+    len -= start;
+
+    if (NULL == buffer)
+        return len;
+
+    text = FldGetTextPtr(field);
+    SafeStrNCopy(buffer, bufferSize, text+start, len);
+
     return len;      
 }
 
@@ -2307,8 +2348,7 @@ OnError:
     if (!beResident)
     {
         tmpErr=DisposeSupportDatabase(SUPPORT_DATABASE_NAME);
-        if (tmpErr)
-            Assert(false);
+        Assert(errNone==tmpErr);
     }
 #endif    
     return error;

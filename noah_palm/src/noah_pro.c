@@ -268,6 +268,7 @@ Err AppCommonInit(AppContext* appContext)
     appContext->currentStressWord = 0;
 #endif
 
+    appContext->residentWordLookup = NULL;
     // fill out the default values for Noah preferences
     // and try to load them from pref database
     appContext->prefs.startupAction      = startupActionNone;
@@ -291,12 +292,9 @@ Err AppCommonInit(AppContext* appContext)
     
     LoadPreferencesNoahPro(appContext);
     
-// define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
-#ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
     error=DIA_Init(&appContext->diaSettings);
     if (error) 
         goto OnError;
-#endif  
     
 OnError:
     return error;
@@ -338,6 +336,8 @@ Err AppCommonFree(AppContext* appContext)
 {
     Err error=errNone;
 
+    Assert(true==appContext->prefs.fResidentModeEnabled);
+
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
 
@@ -358,6 +358,9 @@ Err AppCommonFree(AppContext* appContext)
         CloseBookmarksDB(appContext);
 
     FsDeinit(&appContext->fsSettings);
+
+    Assert(true==appContext->prefs.fResidentModeEnabled);
+
     return error;
 }
 
@@ -406,35 +409,40 @@ Err AppPerformResidentLookup(char* term)
     RemoveNonexistingDatabases(appContext);
     ScanForDictsNoahPro(appContext, false);
     if (0 == appContext->dictsCount)
+    {
         FrmAlert(alertNoDB);
+        goto Exit;
+    }
+    else
+
+    if (1 == appContext->dictsCount )
+        chosenDb = appContext->dicts[0];
+    else 
+    {
+        // because we can't start resident mode without previously gracefully exiting at least one time
+        Assert(appContext->prefs.lastDbUsedName); 
+        chosenDb=FindOpenDatabase(appContext, appContext->prefs.lastDbUsedName);
+    }            
+
+    if (!chosenDb || !DictInit(appContext, chosenDb))
+    {
+        FrmAlert(alertDbFailed);
+        goto Exit;
+    }
+
+    if (term)
+    {
+        appContext->currentWord=dictGetFirstMatching(chosenDb, term);
+        error=PopupResidentLookupForm(appContext);
+    }
     else
     {
-        if (1 == appContext->dictsCount )
-            chosenDb = appContext->dicts[0];
-        else 
-        {
-            // because we can't start resident mode without previously gracefully exiting at least one time
-            Assert(appContext->prefs.lastDbUsedName); 
-            chosenDb=FindOpenDatabase(appContext, appContext->prefs.lastDbUsedName);
-        }            
-        if (!chosenDb || !DictInit(appContext, chosenDb))
-            FrmAlert(alertDbFailed);
-        else 
-        {
-            if (term)
-            {
-                appContext->currentWord=dictGetFirstMatching(chosenDb, term);
-                error=PopupResidentLookupForm(appContext);
-            }
-            else
-            {
-                appContext->currentWord=-1;
-                error=PopupResidentBrowseForm(appContext);
-                if (!error && appContext->currentWord!=-1)
-                    error=PopupResidentLookupForm(appContext);
-            }                    
-        }          
+        appContext->currentWord=-1;
+        error=PopupResidentBrowseForm(appContext);
+        if (!error && appContext->currentWord!=-1)
+            error=PopupResidentLookupForm(appContext);
     }
+Exit:
     AppCommonFree(appContext);
 OnError:
     if (appContext)
@@ -449,7 +457,7 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     switch (cmd)
     {
     case sysAppLaunchCmdNormalLaunch:
-        err=AppLaunch();
+        err=AppLaunch(cmdPBP);
         break;
         
     case sysAppLaunchCmdNotify:

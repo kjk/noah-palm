@@ -50,12 +50,13 @@
 #define   menuItemAbout             2010
 #define   menuItemPrefs             2012
 #define   menuItemCopy              2014
-#define   menuItemLookupClipboard         2016
+#define   menuItemLookupClipboard   2016
 #define   menuItemDispPrefs         2018
 #define   menuItemBookmarkWord      2020
 #define   menuItemBookmarkView      2022
 #define   menuItemBookmarkDelete    2024
 #define   menuItemRandomWord        2026
+#define   menuItemExit              2028
 
 #define   buttonCancel        3001
 #define   buttonFind          3002

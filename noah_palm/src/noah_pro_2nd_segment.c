@@ -50,7 +50,6 @@ void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
         serByte( prefs->bookmarksSortType, prefsBlob, &blobSize );
 
-
         /* 2. number of databases found */
         serByte( appContext->dictsCount, prefsBlob, &blobSize );
 
@@ -210,7 +209,7 @@ Err InitNoahPro(AppContext* appContext)
     error=AppCommonInit(appContext);
     if (error) 
         goto OnError;
-    
+
     error=AppNotifyInit(appContext);
     if (error)
         goto OnErrorCommonFree;
@@ -256,12 +255,12 @@ void DisplayAbout(AppContext* appContext)
     currentY+=16;
 
 #ifdef DEMO
-    DrawCenteredString(appContext, "Ver 3.0 (demo)", currentY);
+    DrawCenteredString(appContext, "Ver 3.1 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 3.0 (debug)", currentY);
+    DrawCenteredString(appContext, "Ver 3.1 (debug)", currentY);
   #else
-    DrawCenteredString(appContext, "Ver 3.0", currentY);
+    DrawCenteredString(appContext, "Ver 3.1", currentY);
   #endif
 #endif
     currentY+=20;
@@ -292,9 +291,9 @@ void DoWord(AppContext* appContext, char *word)
 {
     long wordNo;
 
-    LogV1( "DoWord(%s)", word );
     Assert( word );
     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
+    FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
     DrawDescription(appContext, wordNo);
 }
 
@@ -318,6 +317,112 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
     return true;
 }
 
+static Boolean MainFormOpen(AppContext* appContext, FormType* frm, EventType* event)
+{
+    AbstractFile *  fileToOpen;
+    char *          lastDbUsedName;
+    int             i;
+
+    FrmDrawForm(frm);
+    FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
+
+    HistoryListInit(appContext, frm);
+
+    RemoveNonexistingDatabases(appContext);
+    ScanForDictsNoahPro(appContext, false);
+
+    if (0 == appContext->dictsCount)
+    {
+        FrmAlert(alertNoDB);
+        SendStopEvent();
+        return true;
+    }
+
+ChooseDatabase:
+    fileToOpen = NULL;
+    if (1 == appContext->dictsCount )
+        fileToOpen = appContext->dicts[0];
+    else
+    {
+        lastDbUsedName = appContext->prefs.lastDbUsedName;
+
+        if ( (NULL != lastDbUsedName) &&
+            (dbStartupActionLast == appContext->prefs.dbStartupAction) )
+        {
+            for( i=0; i<appContext->dictsCount; i++)
+            {
+                if (0==StrCompare( lastDbUsedName, appContext->dicts[i]->fileName ) )
+                {
+                    fileToOpen = appContext->dicts[i];
+                    LogV1( "found db=%s", fileToOpen->fileName );
+                    break;
+                }
+            }
+        }
+    }
+
+    if (NULL == fileToOpen)
+    {
+        // ask the user which database to use
+        FrmPopupForm(formSelectDict);
+        return true;
+    }
+
+    if ( !DictInit(appContext, fileToOpen) )
+    {
+        // failed to initialize dictionary. If we have more - retry,
+        // if not - just quit
+        if ( appContext->dictsCount > 1 )
+        {
+            i = 0;
+            while ( fileToOpen != appContext->dicts[i] )
+            {
+                ++i;
+                Assert( i<appContext->dictsCount );
+            }
+            AbstractFileFree( appContext->dicts[i] );
+            while ( i<appContext->dictsCount )
+            {
+                appContext->dicts[i] = appContext->dicts[i+1];
+                ++i;
+            }
+            --appContext->dictsCount;
+            FrmAlert( alertDbFailed);
+            goto ChooseDatabase;
+        }
+        else
+        {
+            FrmAlert( alertDbFailed);
+            SendStopEvent();
+            return true;                    
+        }
+    }
+
+    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
+
+    if ( appContext->residentWordLookup )
+    {
+        DoWord(appContext, appContext->residentWordLookup);
+        return true;
+    }
+
+    if ( startupActionClipboard == appContext->prefs.startupAction )
+    {
+        if (!FTryClipboard(appContext))
+            DisplayAbout(appContext);
+    }
+    else
+        DisplayAbout(appContext);
+
+    if ( (startupActionLast == appContext->prefs.startupAction) &&
+        appContext->prefs.lastWord[0] )
+    {
+        DoWord(appContext, (char *)appContext->prefs.lastWord);
+    }
+    return true;
+}
+
 static Boolean MainFormHandleEventNoahPro(EventType * event)
 {
     Boolean         handled = false;
@@ -327,10 +432,9 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
     long            wordNo;
     int             i;
     int             selectedDb;
-    AbstractFile *  fileToOpen;
-    char *          lastDbUsedName;
     char *          word;
     AppContext*     appContext=GetAppContext();
+    AbstractFile *  fileToOpen;
 
     Assert(appContext);
 
@@ -353,105 +457,7 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
             break;
 
         case frmOpenEvent:
-            FrmDrawForm(frm);
-            HistoryListInit(appContext, frm);
-
-            RemoveNonexistingDatabases(appContext);
-            ScanForDictsNoahPro(appContext, false);
-
-            if (0 == appContext->dictsCount)
-            {
-                FrmAlert(alertNoDB);
-                SendStopEvent();
-                return true;
-            }
-
-ChooseDatabase:
-            fileToOpen = NULL;
-            if (1 == appContext->dictsCount )
-                fileToOpen = appContext->dicts[0];
-            else
-            {
-                lastDbUsedName = appContext->prefs.lastDbUsedName;
-                if ( NULL != lastDbUsedName )
-                {
-                    LogV1( "db name from prefs: %s", lastDbUsedName );
-                }
-                else
-                {
-                    LogG( "no db name from prefs" );
-                }
-
-                if ( (NULL != lastDbUsedName) &&
-                    (dbStartupActionLast == appContext->prefs.dbStartupAction) )
-                {
-                    for( i=0; i<appContext->dictsCount; i++)
-                    {
-                        if (0==StrCompare( lastDbUsedName, appContext->dicts[i]->fileName ) )
-                        {
-                            fileToOpen = appContext->dicts[i];
-                            LogV1( "found db=%s", fileToOpen->fileName );
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (NULL == fileToOpen)
-            {
-                // ask the user which database to use
-                FrmPopupForm(formSelectDict);
-                return true;
-            }
-            else
-            {
-                if ( !DictInit(appContext, fileToOpen) )
-                {
-                    // failed to initialize dictionary. If we have more - retry,
-                    // if not - just quit
-                    if ( appContext->dictsCount > 1 )
-                    {
-                        i = 0;
-                        while ( fileToOpen != appContext->dicts[i] )
-                        {
-                            ++i;
-                            Assert( i<appContext->dictsCount );
-                        }
-                        AbstractFileFree( appContext->dicts[i] );
-                        while ( i<appContext->dictsCount )
-                        {
-                            appContext->dicts[i] = appContext->dicts[i+1];
-                            ++i;
-                        }
-                        --appContext->dictsCount;
-                        FrmAlert( alertDbFailed);
-                        goto ChooseDatabase;
-                    }
-                    else
-                    {
-                        FrmAlert( alertDbFailed);
-                        SendStopEvent();
-                        return true;                    
-                    }
-                }
-            }
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
-            if ( startupActionClipboard == appContext->prefs.startupAction )
-            {
-                if (!FTryClipboard(appContext))
-                    DisplayAbout(appContext);
-            }
-            else
-                DisplayAbout(appContext);
-
-            if ( (startupActionLast == appContext->prefs.startupAction) &&
-                appContext->prefs.lastWord[0] )
-            {
-                DoWord(appContext, (char *)appContext->prefs.lastWord);
-            }
-            FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
-            handled = true;
+            handled = MainFormOpen(appContext, frm, event);
             break;
 
         case popSelectEvent:
@@ -790,6 +796,10 @@ ChooseDatabase:
 #endif
                 case menuItemPrefs:
                     FrmPopupForm(formPrefs);
+                    break;
+
+                case menuItemExit:
+                    SendStopEvent();
                     break;
 
                 case sysEditMenuCopyCmd:
@@ -1285,7 +1295,27 @@ static void EventLoopNoahPro(AppContext* appContext)
 #endif
 }
 
-Err AppLaunch() 
+static void ParseResidentWord(AppContext *appContext, char *cmdPBP)
+{
+    Assert( cmdPBP );
+
+    if (StrLen(cmdPBP)<MAGIC_RESIDENT_LOOKUP_PREFIX_LEN)
+        goto NoResidentLaunch;
+
+    if ( 0 != StrNCompare(cmdPBP, MAGIC_RESIDENT_LOOKUP_PREFIX, MAGIC_RESIDENT_LOOKUP_PREFIX_LEN) )
+        goto NoResidentLaunch;
+
+    // the real word is after the prefix
+    appContext->residentWordLookup = cmdPBP+MAGIC_RESIDENT_LOOKUP_PREFIX_LEN;
+    return;
+NoResidentLaunch:
+    // we have not been launched by ourselves. don't know what it might mean
+    // but don't mark this launch as resident mode launch
+    appContext->residentWordLookup = NULL;
+    return;
+}
+
+Err AppLaunch(char *cmdPBP) 
 {
     Err error=errNone;
     AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
@@ -1298,6 +1328,10 @@ Err AppLaunch()
     error=InitNoahPro(appContext);
     if (error) 
         goto OnError;
+
+    if (cmdPBP)
+        ParseResidentWord(appContext, cmdPBP);
+
     FrmGotoForm(formDictMain);
     EventLoopNoahPro(appContext);
     StopNoahPro(appContext);

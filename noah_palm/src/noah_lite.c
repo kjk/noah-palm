@@ -104,10 +104,7 @@ static Err InitNoahLite(AppContext* appContext)
     res=CreateHelpData(appContext);
     Assert(res);
 
-// define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
-#ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
     error=DIA_Init(&appContext->diaSettings);
-#endif  
 
 OnError:
     return error;

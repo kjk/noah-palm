@@ -28,7 +28,8 @@ BEGIN
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
     MENUITEM "Lookup clipboard"        ID menuItemLookupClipboard  "L"
-    MENUITEM "Stress"                  ID menuItemStress        "E"
+    MENUITEM "Exit"                    ID menuItemExit          "E"
+    MENUITEM "Stress"                  ID menuItemStress        "T"
   END
 
 /* there must a bug in pilrc since it doesn't accept #ifdef before PULLDOWN */
@@ -62,6 +63,7 @@ BEGIN
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
     MENUITEM "Lookup clipboard"        ID menuItemLookupClipboard     "L"
+    MENUITEM "Exit"                    ID menuItemExit          "E"
   END
 
   PULLDOWN "Bookmarks"

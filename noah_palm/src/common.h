@@ -15,13 +15,7 @@
 #include <PalmOS.h>
 #include "cw_defs.h"
 
-
 #include "dynamic_input_area.h"
-
-#define WORD_MAX_LEN 40
-
-typedef char WordStorageType[WORD_MAX_LEN];
-
 #include "mem_leak.h"
 #include "display_info.h"
 #include "extensible_buffer.h"
@@ -38,6 +32,12 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #endif
 
 #define strlen StrLen
+
+#define WORD_MAX_LEN 40
+typedef char WordStorageType[WORD_MAX_LEN];
+
+#define MAGIC_RESIDENT_LOOKUP_PREFIX "arslexis.res.lookup:"
+#define MAGIC_RESIDENT_LOOKUP_PREFIX_LEN sizeof(MAGIC_RESIDENT_LOOKUP_PREFIX)-1
 
 #ifndef I_NOAH
 
@@ -344,7 +344,7 @@ typedef struct _AppContext
     Boolean lookupStatusBarVisible;
     ExtensibleBuffer lastMessage;
     
-    Char** wordsList;
+    char** wordsList;
     UInt16 wordsInListCount;
     MainFormContent mainFormContent;
     
@@ -354,6 +354,8 @@ typedef struct _AppContext
     char * recordSpeedDescription;
     UInt32 recordSpeedTicksCount;
 #endif
+    // if this resident mode lookup, this points to a word to lookup
+    char * residentWordLookup;
 } AppContext;
 
 #define AppTestFlag(appContext, flag) (((appContext)->flags & (1<<(flag)))!=0)

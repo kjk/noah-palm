@@ -10,4 +10,4 @@ extern void SavePreferencesNoahPro(AppContext* appContext);
 extern Err InitNoahPro(AppContext* appContext);
 extern void StopNoahPro(AppContext* appContext);
 extern void DoWord(AppContext* appContext, char *word);
-extern Err AppLaunch();
+extern Err AppLaunch(char *cmdPBP);
