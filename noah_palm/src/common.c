@@ -450,17 +450,6 @@ void DrawCenteredString(AppContext* appContext, const char *str, int dy)
     WinDrawChars(str, strLen, (appContext->screenWidth - strDx) / 2, dy);
 }
 
-#define WAIT_CACHE_TXT "Caching rec:  "
-
-void DrawCacheRec(AppContext* appContext, int recNum)
-{
-    char buf[30];
-    StrCopy(buf, WAIT_CACHE_TXT);
-    StrIToA(buf + sizeof(WAIT_CACHE_TXT) - 2, recNum);
-    DrawWord(buf, appContext->screenHeight - FRM_RSV_H + 5);
-    /*DrawCentered(buf);*/
-}
-
 //static int curr_y;
 //static FontID curr_font;
 //static FontID original_font;

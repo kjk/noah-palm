@@ -287,7 +287,6 @@ char *  GetNthTxt(int n, char *txt);
 char *  GetWnPosTxt(int partOfSpeech);
 
 void DrawCentered(AppContext* appContext, char *txt);
-void DrawCacheRec(AppContext* appContext, int recNum);
 
 #ifdef DEBUG
 void stress(long step);
