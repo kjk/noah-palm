@@ -44,12 +44,12 @@ static void MainFormDisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "ArsLexis iNoah", currentY);
     currentY+=16;
 #ifdef DEMO
-    DrawCenteredString(appContext, "Ver 0.6 (demo)", currentY);
+    DrawCenteredString(appContext, "Ver 1.0 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 0.6 (beta)", currentY);
+    DrawCenteredString(appContext, "Ver 1.0 (beta)", currentY);
   #else
-    DrawCenteredString(appContext, "Ver 0.6", currentY);
+    DrawCenteredString(appContext, "Ver 1.0", currentY);
   #endif
 #endif
     currentY+=20;
@@ -378,6 +378,7 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
                 Assert(frmInvalidObjectId!=index);
                 FrmSetFocus(form, index);
             }
+            handled = true;
             break;
 
         case keyDownEvent:

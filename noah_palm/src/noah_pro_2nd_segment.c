@@ -274,7 +274,7 @@ void DisplayAbout(AppContext* appContext)
     
     currentY+=20;
     FntSetFont(boldFont);
-    DrawCenteredString(appContext, (appContext->armIsPresent==true)?"ARM supported":"ARM not present", currentY);
+//    DrawCenteredString(appContext, (appContext->armIsPresent==true)?"ARM supported":"ARM not present", currentY);
     
     currentY+=20;
     

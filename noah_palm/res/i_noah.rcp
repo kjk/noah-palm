@@ -208,7 +208,7 @@ ALERT ID alertUnableToInitializeNetLibrary
     ERROR
 BEGIN
     TITLE "Error"
-    MESSAGE "Unable to initialize network library."
+    MESSAGE "Unable to initialize network library. iNoah requires a device with an internet connection. Visit http://arslexis.com for more information."
     BUTTONS "OK"
 END
 

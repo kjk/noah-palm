@@ -27,7 +27,7 @@ require_once("common.php");
 
 $dict_db = new inoah_db(DBUSER, '', DBNAME, DBHOST);
 
-$f_force_upgrade = 0;
+$f_force_upgrade = false;
 
 # write MSG response to returning stream
 function write_MSG( $msg )
@@ -44,6 +44,7 @@ function validate_protocol_version( $pv )
 
 function validate_client_version( $cv )
 {
+    global $f_force_upgrade;
     if ( $f_force_upgrade && $cv!='1' )
     {
         write_MSG("You're using an older version $cv of the client. Please upgrade to the latest 1.0 version by downloading it from http://www.arslexis.com");

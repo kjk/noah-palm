@@ -23,29 +23,33 @@ static Err CookieRequestResponseProcessorCommon(AppContext* appContext, void* co
     ResponseParsingResult   result;
     Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
         responseCookie|responseMessage|responseErrorMessage, result);
-    if (!error)
+    if (error)
+        return error;
+
+    if (responseCookie==result)
     {
-        if (responseCookie==result)
+        Assert(HasCookie(appContext->prefs));
+        if (context)
         {
-            Assert(HasCookie(appContext->prefs));
-            if (context)
-            {
-                ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
-                const char* word=ebufGetDataPointer(wordBuffer);
-                Assert(word);
-                wordOut=word;
-            }
-            else
-                wordOut=NULL;
+            ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
+            const char*       word=ebufGetDataPointer(wordBuffer);
+            Assert(word);
+            wordOut=word;
         }
-        else if (responseMessage==result || responseErrorMessage==result)
-        {
-            appContext->mainFormContent=mainFormShowsMessage;
-            appContext->firstDispLine=0;
-        }
-        else 
-            Assert(false);
+        else
+            wordOut=NULL;
     }
+    else if (responseMessage==result || responseErrorMessage==result)
+    {
+        appContext->mainFormContent=mainFormShowsMessage;
+        appContext->firstDispLine=0;
+        // if we didn't get cookie, we need to notify the caller that he
+        // can't proceed. We do that by returning an error
+        // TODO: figure out some better error?
+        error = 1;
+    }
+    else 
+        Assert(false);
     return error;
 }
 
