@@ -2,12 +2,12 @@
 #include "http_response.h"
 
 // this is a test server running on my pc, accessible from internet
-//#define serverAddress                "dict-pc.arslexis.com"
-//#define serverPort                   3000
+#define serverAddress                "dict-pc.arslexis.com"
+#define serverPort                   3000
 
 // this is an official server running on arslexis.com
-#define serverAddress                "dict.arslexis.com"
-#define serverPort                   80
+//#define serverAddress                "dict.arslexis.com"
+//#define serverPort                   80
 
 #define maxResponseLength         8192               // reasonable limit so malicious response won't use all available memory
 #define responseBufferSize         256               // size of single chunk used to retrieve server response
@@ -342,9 +342,9 @@ static void DumpConnectionResponseToMemo(ConnectionData * connData)
 
 static Err ReceiveResponse(ConnectionData* connData)
 {
-    Err error=errNone;
-    Int16 bytesReceived=0;
-    Char buffer[responseBufferSize];
+    Err     error=errNone;
+    Int16   bytesReceived;
+    char    buffer[responseBufferSize];
     bytesReceived=NetLibReceive(connData->netLibRefNum, connData->socket, buffer, responseBufferSize, 0, NULL, 0, 
         MillisecondsToTicks(transmitTimeout), &error);
     if (bytesReceived>0) 
@@ -355,7 +355,7 @@ static Err ReceiveResponse(ConnectionData* connData)
         else
         {
             error=appErrMalformedResponse;
-            FrmAlert(alertMalformedResponse);
+            SendShowMalformedAlert();
             ebufFreeData(&connData->response);
         }            
     }
@@ -373,7 +373,7 @@ static Err ReceiveResponse(ConnectionData* connData)
         error=ParseResponse(connData);
         if (error)
         {          
-            FrmAlert(alertMalformedResponse);
+            SendShowMalformedAlert();
             ebufFreeData(&connData->response);
         }            
     }
@@ -383,6 +383,13 @@ static Err ReceiveResponse(ConnectionData* connData)
         FrmCustomAlert(alertCustomError, "Error while receiving response.", NULL, NULL);
         ebufFreeData(&connData->response);
     }
+#ifdef DEBUG
+    if (error)
+    {
+        Log(GetAppContext(),ebufGetDataPointer(&connData->response));
+        DumpConnectionResponseToMemo(connData);
+    }
+#endif
     return error;
 }
 
@@ -464,8 +471,8 @@ static void FinalizeConnection(AppContext* appContext, ConnectionData* connData)
     ExtensibleBuffer response;
     ebufInit(&response, 0);
     ebufSwap(&response, &connData->response);
-    const Char* begin=ebufGetDataPointer(&response);
-    const Char* end=begin+ebufGetDataSize(&response);
+    const char* begin=ebufGetDataPointer(&response);
+    const char* end=begin+ebufGetDataSize(&response);
        
     void* context=connData->context;
     connData->context=NULL;

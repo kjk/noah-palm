@@ -89,11 +89,12 @@ function decode_di_tag_value($tag_value)
 
 # each di tag consists of tag name and tag value
 # known tag names are:
-#  HS - hex-bin encoded hotsync name
-#  SN - hex-bin encoded device serial number (if exists)
-#  PN - hex-bin encoded phone number (if exists)
-#  OC - hex-bin encoded OEM company ID
-#  OD - hex-bin encoded OEM device ID
+#  HS - hex-bin-encoded hotsync name
+#  SN - hex-bin-encoded device serial number (if exists)
+#  HN - hex-bin-encoded handspring device serial number (if exists)
+#  PN - hex-bin-encoded phone number (if exists)
+#  OC - hex-bin-encoded OEM company ID
+#  OD - hex-bin-encoded OEM device ID
 function is_valid_di_tag($tag)
 {
 
@@ -101,7 +102,7 @@ function is_valid_di_tag($tag)
         return false;
 
     $tag_name  = substr($tag,0,2);
-    $valid_tag_names = array('HS', 'SN', 'PN', 'OC', 'OD', 'DN');
+    $valid_tag_names = array('HS', 'SN', 'HN', 'PN', 'OC', 'OD', 'DN');
 
     if ( !in_array($tag_name, $valid_tag_names) )
         return false;

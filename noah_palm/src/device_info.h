@@ -20,6 +20,8 @@
  */
 extern Err GetDeviceSerialNumber(ExtensibleBuffer* out);
 
+extern Err GetHsSerialNum(ExtensibleBuffer* out);
+
 /**
  * Queries system for user's HotSync name.
  * @param out pointer to @c ExtensibleBuffer that will be filled with data on successful return.

@@ -214,7 +214,7 @@ function serve_get_word($cookie,$word)
 
     $word_row = get_word_row_try_stemming($word);
     if ( $word_row )
-        write_DEF($word_row->$word, $word_row->pron,$word_row->def);
+        write_DEF($word_row->word, $word_row->pron,$word_row->def);
     else
         write_MSG("Definition of word '$word' has not been found");
     exit;

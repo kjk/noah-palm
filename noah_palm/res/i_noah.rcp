@@ -244,6 +244,23 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT ID alertPhoneNotReady
+INFORMATION
+BEGIN
+    TITLE "Wireless Mode Not Ready"
+    MESSAGE  "Wireless Mode must be on."
+    BUTTONS  "Cancel" "Turn On"
+END
+
+ALERT ID alertSimNotReady
+INFORMATION
+BEGIN
+    TITLE "SIM Not Ready"
+    MESSAGE "Wireless Mode must be on until Radio has initialized and read " \
+          "SIM card (up to 30-60 sec)."
+    BUTTONS  "Cancel" "Check Again"
+END
+
 ICONFAMILYEX
 BEGIN
     BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1
