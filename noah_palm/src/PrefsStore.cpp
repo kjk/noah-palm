@@ -3,8 +3,67 @@
   Owner: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 */
 
-#include "common.h"
 #include "PrefsStore.hpp"
+
+#ifndef ARSLEXIS_USE_NEW_FRAMEWORK
+
+#include "common.h"
+
+#else
+
+#include <Debug.hpp>
+
+#define Assert assert
+
+#ifdef new
+#undef new
+#endif
+
+#ifndef NDEBUG
+#define new_malloc(size) ::operator new ((size), __FILE__, __LINE__)
+#else
+#define new_malloc(size) ::operator new ((size))
+#endif // NDEBUG
+
+#define new_free(ptr) ::operator delete ((ptr))
+
+//! @todo implement IsValidPrefRecord()
+#define IsValidPrefRecord(recData) true
+
+
+namespace {
+
+    //! @todo do something with ErrFindDatabaseByNameTypeCreator()
+    static Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, LocalID *dbId)
+    {
+        Err                 err;
+        DmSearchStateType   stateInfo;
+        UInt16              cardNo = 0;
+        char                dbNameBuf[dmDBNameLength];
+
+        Assert(dbName);
+        Assert(StrLen(dbName)<dmDBNameLength);
+        Assert(dbId);
+
+        err = DmGetNextDatabaseByTypeCreator(true, &stateInfo, type, creator, 0, &cardNo, dbId);
+        while (errNone == err)
+        {
+            MemSet(dbNameBuf, sizeof(dbName), 0);
+            DmDatabaseInfo(cardNo, *dbId, (char*)dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
+
+            if (0==StrCompare(dbName,dbNameBuf))
+                return errNone;
+            err = DmGetNextDatabaseByTypeCreator(false, &stateInfo, type, creator, 0, &cardNo, dbId);
+        }
+        return dmErrCantFind;
+    }
+
+}
+
+namespace ArsLexis 
+{
+
+#endif // ARSLEXIS_USE_NEW_FRAMEWORK
 
 /*
 The idea is to provide an API for storing/reading preferences
@@ -742,3 +801,8 @@ CloseDbExit:
     new_free( prefsBlob );
     return err;
 }
+
+#ifdef ARSLEXIS_USE_NEW_FRAMEWORK
+} // namespace ArsLexis
+#endif // ARSLEXIS_USE_NEW_FRAMEWORK
+

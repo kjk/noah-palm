@@ -8,8 +8,25 @@
 #ifndef _PREFS_STORE_HPP_
 #define _PREFS_STORE_HPP_
 
+#ifndef ARSLEXIS_USE_NEW_FRAMEWORK
+
 #include "ErrBase.h"
 #include "PalmOS.h"
+
+#define NON_COPYABLE
+
+#else
+
+#include <ErrBase.h>
+#include <Utility.hpp>
+#include <PalmOS.h>
+
+#define NON_COPYABLE : private NonCopyable
+
+namespace ArsLexis 
+{
+
+#endif // ARSLEXIS_USE_NEW_FRAMEWORK
 
 // tried to set the item with an id of existing item
 #define psErrDuplicateId        psErrorClass+1
@@ -45,7 +62,7 @@ typedef struct _prefItem
     } value;
 } PrefItem;
 
-class PrefsStoreReader
+class PrefsStoreReader NON_COPYABLE
 {
 private:
     char *      _dbName;
@@ -71,7 +88,7 @@ public:
 
 #define MAX_PREFS_ITEMS   60
 
-class PrefsStoreWriter
+class PrefsStoreWriter NON_COPYABLE
 {
 private:
     char *      _dbName;
@@ -105,5 +122,9 @@ void            deserData  (unsigned char *valOut, int len, unsigned char **data
 void            serString  (char *str, char *prefsBlob, long *pCurrBlobSize);
 char *          deserString(unsigned char **data, long *pCurrBlobSize);
 void            deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize);
+
+#ifdef ARSLEXIS_USE_NEW_FRAMEWORK
+} // namespace ArsLexis
+#endif // ARSLEXIS_USE_NEW_FRAMEWORK
 
 #endif
