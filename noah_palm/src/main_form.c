@@ -236,7 +236,7 @@ static void MainFormLookupClipboard(AppContext* appContext)
 
 
 /* Send query dict.php?get_random_word to the server */
-static void LookupRandomWord(AppContext* appContext)
+inline static void LookupRandomWord(AppContext* appContext)
 {
     StartRandomWordLookup(appContext);
 }
@@ -389,6 +389,12 @@ static void MainFormHandleRegister(AppContext* appContext)
         FrmAlert(alertMemError);
 }
 
+inline static void MainFormHandleRecentLookups(AppContext* appContext)
+{
+    StartRecentLookupsRequest(appContext);
+}
+
+
 static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, EventType* event)
 {
     Boolean handled=false;
@@ -411,6 +417,11 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
 
         case menuItemRandomWord:
             LookupRandomWord(appContext);
+            handled=true;
+            break;
+            
+        case menuItemRecentLookups:
+            MainFormHandleRecentLookups(appContext);
             handled=true;
             break;
 
@@ -542,7 +553,7 @@ static Boolean MainFormHandleEvent(EventType* event)
             break;
             
         case penDownEvent:
-            if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
+            if ((mainFormShowsDefinition != appContext->mainFormContent) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
                 break;
             cbPenDownEvent(appContext,event->screenX,event->screenY);
             handled = true;

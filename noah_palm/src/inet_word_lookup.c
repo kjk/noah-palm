@@ -9,6 +9,11 @@
 #include "cookie_request.h"
 
 #define wordLookupURL           "/palm.php?pv=^0&cv=^1&c=^2&get_word=^3"
+
+#define genericURL                  "/palm.php?pv=^0&cv=^1&c=^2&^3"
+#define randomWordRequestParam "get_random_word"
+#define recentLookupsRequestParam "recent_lookups"
+
 #define randomWordURL           "/palm.php?pv=^0&cv=^1&c=^2&get_random_word"
 
 #ifdef DEBUG
@@ -158,7 +163,8 @@ OnError:
 static Err WordLookupResponseProcessor(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
 {
     ResponseParsingResult result;
-    Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
+    Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
+        responseDefinition|responseMessage|responseErrorMessage|responseWordsList, result);
     if (!error) 
     {
         switch (result)
@@ -178,11 +184,6 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
                 FrmPopupForm(formWordsList);
                 break;
                 
-            case responseCookie:
-                FrmAlert(alertMalformedResponse);
-                error=appErrMalformedResponse;
-                break;
-
             default:
                 Assert(false);
         }
@@ -218,22 +219,27 @@ void StartWordLookup(AppContext* appContext, const Char* word)
     }
 }
 
-static Err RandomWordPrepareRequest(const char* cookie, ExtensibleBuffer& buffer)
+static Err PrepareGenericRequest(const char* cookie, const char* param, ExtensibleBuffer& buffer)
 {
-    Err     error=errNone;
-    char *  url=NULL;
-
-    url=TxtParamString(randomWordURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, NULL);
-    if (!url)
-    {
-        error=memErrNotEnoughSpace;
-        goto OnError;
+    Assert(cookie);
+    Assert(param);
+    char* urlEncParam=NULL;
+    UInt16 paramLength=StrLen(param);
+    Err error=StrUrlEncode(param, param+paramLength, &urlEncParam, &paramLength);
+    if (!error)
+    {    
+        char* url=TxtParamString(randomWordURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncParam);
+        if (url)
+        {
+            ebufAddStr(&buffer, url);
+            MemPtrFree(url);
+            ebufAddChar(&buffer, chrNull);
+        }
+        else
+            error=memErrNotEnoughSpace;
+        new_free(urlEncParam);
     }
-    ebufAddStr(&buffer, url);
-    MemPtrFree(url);
-    ebufAddChar(&buffer, chrNull);
-OnError:        
-    return error;    
+    return error;
 }
 
 void StartRandomWordLookup(AppContext* appContext)
@@ -244,7 +250,7 @@ void StartRandomWordLookup(AppContext* appContext)
     {
         ExtensibleBuffer urlBuffer;
         ebufInit(&urlBuffer, 0);
-        Err error=RandomWordPrepareRequest(appContext->prefs.cookie, urlBuffer);
+        Err error=PrepareGenericRequest(appContext->prefs.cookie, randomWordRequestParam, urlBuffer);
         if (!error) 
         {
             const char* requestUrl=ebufGetDataPointer(&urlBuffer);
@@ -262,5 +268,41 @@ void StartRandomWordLookup(AppContext* appContext)
             FrmAlert(alertMemError);
         ebufFreeData(&urlBuffer);
     }
+}
+
+static Err RecentLookupsResponseProcessor(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
+{
+    ResponseParsingResult result;
+    Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
+        responseWordsList|responseMessage|responseErrorMessage, result);
+    if (!error) 
+    {
+        if (responseWordsList==result)
+            FrmPopupForm(formWordsList);
+        else if (responseMessage==result || responseErrorMessage==result)
+        {
+            appContext->mainFormContent=mainFormShowsMessage;
+            appContext->firstDispLine=0;
+        }
+        else
+            Assert(false);
+    }        
+    return error;
+}
+
+void StartRecentLookupsRequest(AppContext* appContext)
+{
+    ExtensibleBuffer urlBuffer;
+    ebufInit(&urlBuffer, 0);
+    Err error=PrepareGenericRequest(appContext->prefs.cookie, recentLookupsRequestParam, urlBuffer);
+    if (!error) 
+    {
+        const char* requestUrl=ebufGetDataPointer(&urlBuffer);
+        StartConnection(appContext, NULL, requestUrl, GeneralStatusTextRenderer,
+            RecentLookupsResponseProcessor, NULL);
+    }
+    else 
+        FrmAlert(alertMemError);
+    ebufFreeData(&urlBuffer);
 }
 

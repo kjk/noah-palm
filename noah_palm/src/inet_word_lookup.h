@@ -10,6 +10,7 @@
 
 extern void StartWordLookup(AppContext* appContext, const Char* word);
 extern void StartRandomWordLookup(AppContext* appContext);
+extern void StartRecentLookupsRequest(AppContext* appContext);
 
 #ifdef DEBUG
 void testParseResponse(char *txt);

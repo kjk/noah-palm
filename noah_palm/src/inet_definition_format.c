@@ -382,36 +382,36 @@ static Err ProcessCookieResponse(AppContext* appContext, const Char* responseBeg
     return error;
 }
 
-Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, ResponseParsingResult& result)
+Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, UInt16 resMask, ResponseParsingResult& result)
 {
     Assert(begin);
     Assert(end);
     Err error=errNone;
-    if (StrStartsWith(begin, end, cookieResponse))
+    if ((responseCookie & resMask) && StrStartsWith(begin, end, cookieResponse))
     {
         error=ProcessCookieResponse(appContext, begin, end);
         if (!error)
             result=responseCookie;
     }
-    else if (StrStartsWith(begin, end, wordsListResponse))
+    else if ((responseWordsList & resMask) && StrStartsWith(begin, end, wordsListResponse))
     {
         error=ProcessWordsListResponse(appContext, begin, end);
         if (!error)
             result=responseWordsList;
     }
-    else if (StrStartsWith(begin, end, messageResponse))
+    else if ((responseMessage & resMask) && StrStartsWith(begin, end, messageResponse))
     {
         error=ProcessMessageResponse(appContext, begin, end);
         if (!error)
             result=responseMessage;
     }
-    else if (StrStartsWith(begin, end, errorMessageResponse))
+    else if ((responseErrorMessage & resMask) && StrStartsWith(begin, end, errorMessageResponse))
     {
         error=ProcessMessageResponse(appContext, begin, end);
         if (!error)
             result=responseErrorMessage;
     }
-    else if (StrStartsWith(begin, end, definitionResponse))
+    else if ((responseDefinition & resMask) && StrStartsWith(begin, end, definitionResponse))
     {
         error=ProcessDefinitionResponse(appContext, begin, end);
         if (!error)

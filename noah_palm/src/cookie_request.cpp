@@ -21,7 +21,8 @@
 static Err CookieRequestResponseProcessorCommon(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd, const char*& wordOut)
 {
     ResponseParsingResult   result;
-    Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
+    Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
+        responseCookie|responseMessage|responseErrorMessage, result);
     if (!error)
     {
         if (responseCookie==result)
@@ -37,16 +38,13 @@ static Err CookieRequestResponseProcessorCommon(AppContext* appContext, void* co
             else
                 wordOut=NULL;
         }
-        else if (responseMessage!=result && responseErrorMessage!=result)
-        {
-            error=appErrMalformedResponse;
-            FrmAlert(alertMalformedResponse);
-        }
-        else
+        else if (responseMessage==result || responseErrorMessage==result)
         {
             appContext->mainFormContent=mainFormShowsMessage;
             appContext->firstDispLine=0;
         }
+        else 
+            Assert(false);
     }
     return error;
 }

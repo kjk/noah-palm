@@ -13,6 +13,7 @@
 #define menuItemCopy            1103
 #define menuItemLookupClipboard 1106
 #define menuItemRandomWord      1109
+#define menuItemRecentLookups   1110
 
 #define menuItemBookmarkWord    1124
 #define menuItemBookmarkDelete  1127

@@ -5,14 +5,14 @@
 
 typedef enum ResponseParsingResult_
 {
-    responseDefinition,
-    responseWordsList,
-    responseMessage,
-    responseErrorMessage,
-    responseCookie,
+    responseDefinition=1,
+    responseWordsList=2,
+    responseMessage=4,
+    responseErrorMessage=8,
+    responseCookie=16,
 } ResponseParsingResult;    
 
-extern Err ProcessResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd, ResponseParsingResult& result);
+extern Err ProcessResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd, UInt16 allowedResponsesMask, ResponseParsingResult& result);
 extern Err ProcessDefinitionResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd);
 
 #endif

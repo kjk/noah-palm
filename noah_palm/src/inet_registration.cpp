@@ -61,19 +61,17 @@ static Err RegistrationPrepareRequest(const char* cookie, const char* serialNumb
 static Err RegistrationResponseProcessor(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd)
 {
     ResponseParsingResult result;
-    Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
+    Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
+        responseMessage|responseErrorMessage, result);
     if (!error)
     {
-        if (!(responseMessage==result || responseErrorMessage==result))
-        {
-            FrmAlert(alertMalformedResponse);
-            error=appErrMalformedResponse;
-        }
-        else
+        if (responseMessage==result || responseErrorMessage==result)
         {
             appContext->mainFormContent=mainFormShowsMessage;
             appContext->firstDispLine=0;
         }
+        else 
+            Assert(false);
     }
     return error;
 }
@@ -83,7 +81,8 @@ void StartRegistration(AppContext* appContext, const char* serialNumber)
 {
     Assert(serialNumber);
     if (!HasCookie(appContext->prefs))
-        StartCookieRequestWithRegistration(appContext, serialNumber);    else 
+        StartCookieRequestWithRegistration(appContext, serialNumber);
+    else 
     {
         ExtensibleBuffer requestBuffer;
         ebufInit(&requestBuffer, 0);

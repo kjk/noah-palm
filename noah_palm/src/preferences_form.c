@@ -10,7 +10,8 @@ static Boolean PreferencesFormOpen(AppContext* appContext, FormType* form, Event
 #ifndef _DONT_DO_PRONUNCIATION_
     UInt16 index=FrmGetObjectIndex(form, cbShowPronunctiation);
     Assert(frmInvalidObjectId!=index);
-    FrmSetControlValue(form, index, !appContext->prefs.dontShowPronunciation);#endif
+    FrmSetControlValue(form, index, !appContext->prefs.dontShowPronunciation);
+#endif
     
     FrmUpdateForm(formPrefs, frmRedrawUpdateCode);
     return true;
