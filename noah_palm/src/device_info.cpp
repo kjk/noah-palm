@@ -224,7 +224,7 @@ Exit:
     return error;
 }
 
-#define HEX_DIGITS "0123456789ABSCDEF"
+#define HEX_DIGITS "0123456789ABCDEF"
 
 static void HexBinEncode(ExtensibleBuffer* inOut)
 {

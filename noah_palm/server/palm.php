@@ -2,6 +2,7 @@
 
 # this is the file that serves 0.5 Palm client.
 
+# $f_force_upgrade = true;
 $f_force_upgrade = false;
 
 define( 'ERR_NO_PV',             1);
@@ -45,7 +46,7 @@ function validate_client_version( $cv )
 
     if ( $f_force_upgrade )
     {
-        write_MSG("You're using an older version $cv of the client. Please upgrade to the latest 1.0 version by downloading it from http://www.arslexis.com");
+        write_MSG("You're using a version of iNoah older than 1.0. Please upgrade to the latest 1.0 version by downloading it from http://www.arslexis.com");
         exit;
     }
 }
@@ -384,24 +385,33 @@ if ( empty($cookie) )
     report_error(ERR_NO_COOKIE);
 validate_cookie($cookie);
 
-$reg_code = $HTTP_GET_VARS['register'];
-if ( !is_null($reg_code) )
-    serve_register($reg_code);
-
-$get_random_word = $HTTP_GET_VARS['get_random_word'];
-if ( !is_null($get_random_word) )
+if ( isset( $HTTP_GET_VARS['register'] ) )
 {
-    if ($get_random_word != "")
-        report_error(ERR_RANDOM_NOT_EMPTY);
-    serve_get_random_word();
+    $reg_code = $HTTP_GET_VARS['register'];
+    if ( !is_null($reg_code) )
+        serve_register($reg_code);
 }
 
-$recent_lookups = $HTTP_GET_VARS['recent_lookups'];
-if ( !is_null( $recent_lookups ) )
+if ( isset($HTTP_GET_VARS['get_random_word']) )
 {
-    if ($recent_lookups != "")
-        report_error(ERR_RECENT_LOOKUPS_NOT_EMPTY);
-    serve_recent_lookups($cookie);
+    $get_random_word = $HTTP_GET_VARS['get_random_word'];
+    if ( !is_null($get_random_word) )
+    {
+        if ($get_random_word != "")
+            report_error(ERR_RANDOM_NOT_EMPTY);
+        serve_get_random_word();
+    }
+}
+
+if ( isset($HTTP_GET_VARS['recent_lookups']) )
+{
+    $recent_lookups = $HTTP_GET_VARS['recent_lookups'];
+    if ( !is_null( $recent_lookups ) )
+    {
+        if ($recent_lookups != "")
+            report_error(ERR_RECENT_LOOKUPS_NOT_EMPTY);
+        serve_recent_lookups($cookie);
+    }
 }
 
 $get_word = $HTTP_GET_VARS['get_word'];

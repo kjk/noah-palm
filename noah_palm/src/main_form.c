@@ -415,11 +415,12 @@ static void MainFormHandleRegister(AppContext* appContext)
     const FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
     Assert(field);
     const char* regCode=FldGetTextPtr(field);
-    if (regCode && StrLen(regCode))
+    int regCodeLen = (int)FldGetTextLength(field);
+
+    if ( (NULL != regCode) && (regCodeLen>0) )
     {
         // save the registration number in preferences so that we can
         // send it in all requests
-        int regCodeLen = StrLen(regCode);
         if (regCodeLen>MAX_REG_CODE_LENGTH)
         {
             // this is laziness: reg code longer than MAX_REG_CODE_LENGTH
@@ -437,7 +438,7 @@ static void MainFormHandleRegister(AppContext* appContext)
         // it doesn't really matter, in the long run, because every time
         // we send a request, we also send the registration number and
         // if it's not correct, we'll reject the query
-        StartRegistration(appContext, regCode);
+        StartRegistration(appContext, (const char*)appContext->prefs.regCode);
     }
 Exit:
     FrmDeleteForm(form);

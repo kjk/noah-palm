@@ -27,9 +27,9 @@
  */
 static Err RegistrationPrepareRequest(const char* cookie, const char* serialNumber, ExtensibleBuffer& buffer)
 {
-    Err error=errNone;
-    UInt16 snLength=StrLen(serialNumber);
-    char* urlEncSn=NULL;
+    Err     error;
+    UInt16  snLength=StrLen(serialNumber);
+    char *  urlEncSn=NULL;
     error=StrUrlEncode(serialNumber, serialNumber+snLength+1, &urlEncSn, &snLength); // StrUrlEncode preserves null-terminator
     if (!error) 
     {

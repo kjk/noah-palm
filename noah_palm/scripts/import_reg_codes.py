@@ -53,8 +53,9 @@ def main():
         purpose = codes[c][0]
         assert purpose in ["h","pg", "es"] or "s:" == purpose[:2]
         assert len(purpose) < 200 # the column is 255, use 200 just in case
-        
-            
+
+    insertedCount = 0
+    existingCount = 0
     for c in codes.keys():
         reg_code = c
         purpose = codes[c][0]
@@ -62,8 +63,6 @@ def main():
         # print "code='%s', purpose='%s', date='%s'" % (reg_code, purpose, date)
         query = "INSERT INTO reg_codes VALUES ('%s','%s','%s', 'f');" % \
             (sql_qq(reg_code), sql_qq(purpose), sql_qq(date))
-        insertedCount = 0
-        existingCount = 0
         if not fCodeExists(reg_code):
             g_cur.execute(query)
             insertedCount += 1

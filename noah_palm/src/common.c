@@ -1813,7 +1813,7 @@ void LogStrN(AppContext* appContext, const char *txt, long size)
     }
 }
 
-#endif
+#endif // DEBUG
 
 void EvtSetInt( EventType *event, int i)
 {
@@ -2423,6 +2423,10 @@ UInt16 PercentProgress(char* buffer, UInt32 current, UInt32 total)
     return current;
 }
 
+// Copies srcStr of length srcStrLen (if -1 assumes NULL-terminated string and
+// calculates the length itself) to a buffer dst of length dstLen.
+// Makes sure to not overwrite the buffer. Always NULL-terminates resulting
+// string.
 void SafeStrNCopy(char *dst, int dstLen, const char *srcStr, int srcStrLen)
 {
     Assert( dst );

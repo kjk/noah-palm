@@ -85,6 +85,7 @@ static Boolean WordsListFormFieldChanged(AppContext* appContext, FormType* form,
     ListType* list=static_cast<ListType*>(FrmGetObjectPtr(form, index));
     Assert(list);
     const char* word=FldGetTextPtr(field);
+    // TODO: get length of the word via FldGetTextLength()
     if (word && *word)
     {
         UInt16 proposal=WordsListFormFindClosestProposal(appContext, list, word);

@@ -374,6 +374,7 @@ static void FindPatternFormFindButtonPressed(AppContext *appContext,FormType *fr
     fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
     list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
     pattern = FldGetTextPtr(fld);
+    // TODO: get length of the word via FldGetTextLength()
     if (pattern != NULL)
     {
         ClearMatchingPatternDB(appContext);

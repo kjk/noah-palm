@@ -136,6 +136,7 @@ static Boolean ResidentBrowseFormFieldChanged(AppContext* appContext, FormType* 
     list=(ListType*)FrmGetObjectPtr(form, index);
     Assert(list);
     word=FldGetTextPtr(field);
+    // TODO: get length of the word via FldGetTextLength()
     if (word && *word)
         newSelectedWord = dictGetFirstMatching(GetCurrentFile(appContext), word);
     if (appContext->selectedWord != newSelectedWord)
