@@ -4,6 +4,8 @@
 
 #define netLibName "Net.lib"
 
+#define strCrLf "\r\n"
+
 static const Int16 percentsNotSupported=-1;
 
 typedef enum ConnectionStage_ {
@@ -85,7 +87,8 @@ inline static ConnectionData* CreateConnectionData(const Char* wordToFind, NetIP
     Assert(serverIpAddress);
     if (connData)
     {
-        ebufInit(&connData->request, 0); // seems not required, but hell knows        ebufInit(&connData->response, 0);
+        ebufInit(&connData->request, 0); // seems not required, but hell knows
+        ebufInit(&connData->response, 0);
         connData->wordToFind=wordToFind;
         connData->serverIpAddress=serverIpAddress;
         if (*serverIpAddress)
@@ -146,7 +149,7 @@ static Boolean ConnectionProgressCallback(PrgCallbackDataPtr callbackData)
             msgLen=callbackData->textLen-4;
             MemMove(callbackData->textP, message, msgLen);
             StrCopy(callbackData->textP+msgLen, "...");
-        }        
+        }      
     }
     else
     {
@@ -163,15 +166,17 @@ static Boolean ConnectionProgressCallback(PrgCallbackDataPtr callbackData)
 static Boolean HandleConnectionProgressEvents(ProgressPtr progress, Boolean waitForever)
 {
     EventType event;
-    Boolean notCancelled=true;
+    Boolean cancelled=false;
     Int32 timeout=0;
     if (waitForever) timeout=evtWaitForever;
     do {
         EvtGetEvent(&event, timeout);
         if (event.eType!=nilEvent && !PrgHandleEvent(progress, &event))
-            notCancelled=!PrgUserCancel(progress);
-    } while (notCancelled && event.eType!=nilEvent);
-    return notCancelled;
+            cancelled=PrgUserCancel(progress);
+        if (waitForever && ctlEnterEvent==event.eType)
+            cancelled=true;
+    } while (!cancelled && event.eType!=nilEvent);
+    return !cancelled;
 }
 
 static Err ResolveServerAddress(ConnectionData* connData, Int16* percents, const Char** errorMessage)
@@ -185,7 +190,7 @@ static Err ResolveServerAddress(ConnectionData* connData, Int16* percents, const
         goto OnError;
     }      
     Assert(0==*connData->serverIpAddress);
-    infoPtr=NetLibGetHostByName(connData->netLibRefNum, serverAddress, infoBuf, addressResolveTimeout, &error);
+    infoPtr=NetLibGetHostByName(connData->netLibRefNum, serverAddress, infoBuf, MillisecondsToTicks(addressResolveTimeout), &error);
     if (infoPtr && !error)
     {
         Assert(netSocketAddrINET==infoPtr->addrType);
@@ -204,7 +209,8 @@ static Err OpenConnection(ConnectionData* connData, Int16* percents, const Char*
 {
     Err error=errNone;
     Assert(*connData->serverIpAddress);
-    connData->socket=NetLibSocketOpen(connData->netLibRefNum, netSocketAddrINET, netSocketTypeStream, netSocketProtoIPTCP, socketOpenTimeout, &error);
+    connData->socket=NetLibSocketOpen(connData->netLibRefNum, netSocketAddrINET, netSocketTypeStream, netSocketProtoIPTCP, 
+        MillisecondsToTicks(socketOpenTimeout), &error);
     if (-1==connData->socket)
     {
         Assert(error);
@@ -217,7 +223,8 @@ static Err OpenConnection(ConnectionData* connData, Int16* percents, const Char*
         address.family=netSocketAddrINET;
         address.port=NetHToNS(serverPort);
         address.addr=NetHToNL(*connData->serverIpAddress);
-        result=NetLibSocketConnect(connData->netLibRefNum, connData->socket, (NetSocketAddrType*)&address, sizeof(address), socketConnectTimeout, &error);
+        result=NetLibSocketConnect(connData->netLibRefNum, connData->socket, (NetSocketAddrType*)&address, sizeof(address), 
+            MillisecondsToTicks(socketConnectTimeout), &error);
         if (-1==result)
         {
             Assert(error);
@@ -271,12 +278,14 @@ static Err SendRequest(ConnectionData* connData, Int16* percents, const Char** e
     }
     request=ebufGetDataPointer(&connData->request)+connData->bytesSent;
     requestLeft=totalSize-connData->bytesSent;
-    result=NetLibSend(connData->netLibRefNum, connData->socket, request, requestLeft, 0, NULL, 0, transmitTimeout, &error);
+    result=NetLibSend(connData->netLibRefNum, connData->socket, request, requestLeft, 0, NULL, 0, 
+        MillisecondsToTicks(transmitTimeout), &error);
     if (result>0)
     {
         Assert(!error);
         connData->bytesSent+=result;
-        *percents=PercentProgress(NULL, connData->bytesSent, totalSize);        if (connData->bytesSent==totalSize)
+        *percents=PercentProgress(NULL, connData->bytesSent, totalSize);
+        if (connData->bytesSent==totalSize)
         {
             ebufFreeData(&connData->request);
             connData->bytesSent=0;
@@ -303,6 +312,46 @@ OnError:
     return error;    
 }
 
+static Err ParseChunkedBody(const Char* bodyStart, const Char* bodyEnd, ExtensibleBuffer* buffer)
+{
+    return appErrMalformedResponse;
+}
+
+static Err ParseStatusLine(const Char* lineStart, const Char* lineEnd)
+{
+    Err error=appErrMalformedResponse;
+    const Char* statusBegin=StrFind(lineStart, lineEnd, " ")+1;
+    if (statusBegin<lineEnd-3 && 0==StrNCmp(statusBegin, "200", 3))        error=errNone;
+    return error;
+}
+
+static Err ParseResponse(ConnectionData* connData)
+{
+    Err error=errNone;
+    const Char* responseBegin=ebufGetDataPointer(&connData->response);
+    const Char* responseEnd=responseBegin+ebufGetDataSize(&connData->response);
+    const Char* lineBegin=responseBegin;
+    const Char* lineEnd=StrFind(lineBegin, responseEnd, strCrLf);
+    const Char* bodyBegin=NULL;
+    error=ParseStatusLine(lineBegin, lineEnd);
+    if (error)
+        goto OnError;
+    bodyBegin=StrFind(lineEnd+2, responseEnd, strCrLf strCrLf)+4;
+    if (bodyBegin<responseEnd)
+    {        
+        ExtensibleBuffer buffer;
+        ebufInit(&buffer, 0);
+        error=ParseChunkedBody(bodyBegin, responseEnd, &buffer);
+        if (!error)
+            ebufSwap(&buffer, &connData->response);
+        ebufFreeData(&buffer);
+    }
+    else 
+        error=appErrMalformedResponse;
+OnError:        
+    return error;
+}
+
 inline static UInt16 CalculateDummyProgress(UInt16 step)
 {
     double progress=0.5;
@@ -317,18 +366,39 @@ static Err ReceiveResponse(ConnectionData* connData, Int16* percents, const Char
     Err error=errNone;
     Int16 result=0;
     Char buffer[responseBufferSize];
-    result=NetLibReceive(connData->netLibRefNum, connData->socket, buffer, responseBufferSize, 0, NULL, 0, transmitTimeout, &error);
+    result=NetLibReceive(connData->netLibRefNum, connData->socket, buffer, responseBufferSize, 0, NULL, 0, 
+        MillisecondsToTicks(transmitTimeout), &error);
     if (result>0) 
     {
         Assert(!error);
-        *percents=PercentProgress(NULL, CalculateDummyProgress(connData->responseStep++), 100);
-        ebufAddStrN(&connData->response, buffer, result);
+        if (ebufGetDataSize(&connData->response)+result<maxResponseLength)
+        {
+            *percents=PercentProgress(NULL, CalculateDummyProgress(connData->responseStep++), 100);
+            ebufAddStrN(&connData->response, buffer, result);
+        }
+        else
+        {
+            error=appErrMalformedResponse;
+            *errorMessage="server returned malformed response";
+            ebufFreeData(&connData->response);
+            *percents=percentsNotSupported;
+        }            
     }
     else if (!result)
     {
         Assert(!error);
         *percents=100;
         connData->connectionStage++;
+        result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
+        if (-1==result)
+            Assert(false); // Get breakpoint so that we could diagnose what's wrong. But it's not a big case, so continue anyway.
+        error=ParseResponse(connData);
+        if (error)
+        {          
+            *errorMessage="server returned malformed response";
+            ebufFreeData(&connData->response);            
+            *percents=percentsNotSupported;
+        }            
     }
     else 
     {
@@ -434,11 +504,10 @@ Err INetWordLookup(const Char* word, NetIPAddr* serverIpAddress, Char** response
     if (error)
         goto OnError;
     error=ShowConnectionProgress(connData);
-    if (!error)
-    {
-        *responseLength=ebufGetDataSize(&connData->response);
-        *response=ebufGetTxtOwnership(&connData->response);
-    }
+    if (error)
+        goto OnError;
+    *responseLength=ebufGetDataSize(&connData->response);
+    *response=ebufGetTxtOwnership(&connData->response);
 OnError:
     if (connData)
         FreeConnectionData(connData);

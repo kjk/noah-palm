@@ -5,8 +5,6 @@
 static const UInt32 ourMinVersion = sysMakeROMVersion(3,0,0,sysROMStageDevelopment,0);
 static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelopment,0);
 
-static const UInt16 defaultEventTimeout=50; // In milliseconds
-
 static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
 {
     UInt32 romVersion;
@@ -41,7 +39,7 @@ static Err AppInit(AppContext* appContext)
     
     LogInit( appContext, "c:\\thes_log.txt" );
     InitFiveWay(appContext);
-    appContext->ticksEventTimeout=(1000.0*(float)SysTicksPerSecond())/((float)defaultEventTimeout);
+    appContext->ticksEventTimeout=evtWaitForever;
 
     appContext->prefs.displayPrefs.listStyle = 2;
 #ifdef DONT_DO_BETTER_FORMATTING
@@ -57,15 +55,6 @@ static Err AppInit(AppContext* appContext)
         goto OnError;
 #endif  
 
-/*    
-    error=INetInit(&appContext->inetSettings);
-    if (error) 
-    {
-        FrmAlert(alertNoWirelessInternetLibrary);
-        DIA_Free(&appContext->diaSettings);
-    }    
-*/   
-    
 OnError:
     return error;
 }

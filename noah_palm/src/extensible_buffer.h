@@ -36,5 +36,6 @@ void    ebufAddStr(ExtensibleBuffer *buf, char *str);
 void    ebufWrapBigLines(ExtensibleBuffer *buf);
 void    ebufDeleteChar(ExtensibleBuffer *buf, int pos);
 void    ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos);
+void    ebufSwap(ExtensibleBuffer* buf1, ExtensibleBuffer* buf2);
 
 #endif

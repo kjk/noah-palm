@@ -2017,3 +2017,36 @@ UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total)
     }
     return current;
 }
+
+inline Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length)
+{
+    while (length--) 
+    {
+        if (*str1<*str2) return -1;
+        else if (*str1>*str2) return 1;
+        else 
+        {
+            str1++;
+            str2++;
+        }        
+    }
+    return 0;
+}
+
+const Char* StrFind(const Char* begin, const Char* end, const Char* subStr)
+{
+    UInt16 subLen=StrLen(subStr);
+    const Char* result=NULL;
+    while (end-begin>=subLen)
+    {
+        if (0!=StrNCmp(begin, subStr, subLen))
+            begin++;
+        else
+        {
+            result=begin;
+            break;
+        }            
+    }        
+    if (!result) result=end;
+    return result;         
+}

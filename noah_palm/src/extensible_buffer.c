@@ -330,3 +330,10 @@ void ebufWrapBigLines(ExtensibleBuffer *buf)
     FntSetFont(prevfont);
 }
 
+void ebufSwap(ExtensibleBuffer* buf1, ExtensibleBuffer* buf2)
+{
+    ExtensibleBuffer temp=*buf1;
+    *buf1=*buf2;
+    *buf2=temp;
+}
+

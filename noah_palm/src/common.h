@@ -188,7 +188,8 @@ typedef enum _AppFeature
  */
 typedef enum _AppErr
 {
-    appErrWordNotFound=appErrorClass
+    appErrWordNotFound=appErrorClass,
+    appErrMalformedResponse
 } AppErr;    
 
 #define appNotifyResidentLookupEvent APP_CREATOR
@@ -500,5 +501,10 @@ extern AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name);
  * @return ratio in percents.
  */ 
 extern UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total);
+
+#define MillisecondsToTicks(millis) ((((float)SysTicksPerSecond())*((float)(millis)))/1000.0)
+
+extern const Char* StrFind(const Char* begin, const Char* end, const Char* subStr);
+extern Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length);
 
 #endif
