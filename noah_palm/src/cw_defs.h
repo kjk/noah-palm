@@ -18,7 +18,6 @@ to provide per-target defines. In gcc version they're set via Makefile.
 #define SIMPLE_DICT 1
 #define EP_DICT 1
 #define FS_VFS 1
-/* #define ERROR_CHECK_LEVEL 2 */
 #define MEM_LEAKS 1
 #define DEBUG 1
 #endif
@@ -30,9 +29,34 @@ to provide per-target defines. In gcc version they're set via Makefile.
 #define SIMPLE_DICT 1
 #define EP_DICT 1
 #define FS_VFS 1
-/* #define ERROR_CHECK_LEVEL 0 */
 #endif
 
+#if __ide_target("NL Debug")
+#define NOAH_LITE 1
+#define WNLEX_DICT 1
+#define FS_VFS 1
+#define MEM_LEAKS 1
+#define DEBUG 1
 #endif
 
+#if __ide_target("NL Release")
+#define NOAH_LITE 1
+#define WNLEX_DICT 1
+#define FS_VFS 1
 #endif
+
+#if __ide_target("Thes Debug")
+#define THESAURUS 1
+#define FS_VFS 1
+#define MEM_LEAKS 1
+#define DEBUG 1
+#endif
+
+#if __ide_target("Thes Release")
+#define THESAURUS 1
+#define FS_VFS 1
+#endif
+
+#endif /* __MWERKS__ */
+
+#endif /* _CW_DEFS_H_ */
