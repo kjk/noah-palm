@@ -282,7 +282,10 @@ static PrefItem * FindPrefItemById(PrefItem *items, int itemsCount, int uniqueId
 Err PrefsStoreWriter::ErrSetItem(PrefItem *item)
 {
     if ( NULL != FindPrefItemById((PrefItem*)_items, _itemsCount, item->uniqueId) )
+    {
+        Assert(0); // we assert because we never want this to happen
         return psErrDuplicateId;
+    }
 
     // TODO: make it grow dynamically in the future
     if (_itemsCount>=MAX_PREFS_ITEMS)

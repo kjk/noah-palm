@@ -14,219 +14,105 @@
 static const UInt32 ourMinVersion = sysMakeROMVersion(3,0,0,sysROMStageDevelopment,0);
 static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelopment,0);
 
-// Create a blob containing serialized preferences.
-// Caller needs to free returned memory
-static void *SerializePreferencesInoah(AppContext* appContext, long *pBlobSize)
-{
-    AppPrefs *      prefs;
-    long            blobSize;
-    char *          prefsBlob;
-    UInt32 *        prefRecordId;
-
-    Assert(appContext);
-    Assert(pBlobSize);
-
-    prefs = &appContext->prefs;
-    blobSize = sizeof(UInt32) + sizeof(AppPrefs);
-    prefsBlob = (char*)new_malloc(blobSize);
-    if (NULL == prefsBlob)
-        return NULL;
-    prefRecordId = (UInt32*)prefsBlob;
-    *prefRecordId = AppPrefId;
-    MemMove(prefsBlob+sizeof(UInt32), (char*)prefs, sizeof(AppPrefs));
-    *pBlobSize = blobSize;
-    return prefsBlob;
-}
-
-
-// Given a blob containing serialized prefrences deserilize the blob
-// and set the preferences accordingly.
-static void DeserializePreferencesInoah(AppContext* appContext, unsigned char *prefsBlob, long blobSize)
-{
-    AppPrefs * prefs;
-
-    Assert(prefsBlob);
-    Assert(blobSize > 8);
-
-    prefs = &appContext->prefs;
-    /* skip the 4-byte signature of the preferences record */
-    Assert( IsValidPrefRecord(prefsBlob) );
-    prefsBlob += 4;
-    blobSize -= 4;
-
-    Assert( blobSize == sizeof(AppPrefs) );
-
-    MemMove((char*)prefs,prefsBlob, blobSize);
-}
-
-#if 0
-/* format of preferences database for 0.5 version. We need that for migration
-   code */
-typedef struct
-{
-    StartupAction           startupAction;
-    ScrollType              hwButtonScrollType;
-    ScrollType              navButtonScrollType;
-    char                    lastWord[WORD_MAX_LEN];
-    DisplayPrefs            displayPrefs;
-
-    // how do we sort bookmarks
-    BookmarkSortType        bookmarksSortType;
-
-    char                    cookie[MAX_COOKIE_LENGTH+1];
-    Boolean                 fShowPronunciation;
-} iNoah05Prefs;
-#endif
-
-static void LoadPreferencesInoah(AppContext* appContext)
-{
-    DmOpenRef    db;
-    UInt         recNo;
-    void *       recData;
-    MemHandle    recHandle;
-    UInt         recsCount;
-
-    db = DmOpenDatabaseByTypeCreator(APP_PREF_TYPE, APP_CREATOR, dmModeReadWrite);
-    if (!db) return;
-    recsCount = DmNumRecords(db);
-    for (recNo = 0; recNo < recsCount; recNo++)
-    {
-        recHandle = DmQueryRecord(db, recNo);
-        recData = MemHandleLock(recHandle);
-        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && IsValidPrefRecord(recData) )
-        {
-            DeserializePreferencesInoah(appContext, (unsigned char*)recData, MemHandleSize(recHandle) );
-            MemHandleUnlock(recHandle);
-            break;
-        }
-        MemHandleUnlock(recHandle);
-    }
-    DmCloseDatabase(db);
-
-}
-
 #include "PrefsStore.hpp"
 
 #define PREFS_DB_NAME "iNoah Prefs"
 
-#define p_startupAction         0
-#define p_hwButtonScrolType     1
-#define p_navButtonScrollType   2
-#define p_lastWord              3
-#define p_bookmarksSortType     4
-#define p_cookie                5
-#define p_fShowPronunciation    6
+#define startupAction_id         0
+#define hwButtonScrolType_id     1
+#define navButtonScrollType_id   2
+#define lastWord_id              3
+#define bookmarksSortType_id     4
+#define cookie_id                5
+#define fShowPronunciation_id    6
+#define dpListStyle_id           7
 
-#if 0
-    StartupAction           startupAction;
-    ScrollType              hwButtonScrollType;
-    ScrollType              navButtonScrollType;
-    char                    lastWord[WORD_MAX_LEN];
-    DisplayPrefs            displayPrefs;
-
-    // how do we sort bookmarks
-    BookmarkSortType        bookmarksSortType;
-
-    char                    cookie[MAX_COOKIE_LENGTH+1];
-    Boolean                 fShowPronunciation;
-    /* run-time switch for pron-related features. It's just so that I can develop
-    code for pronunciation and ship it without pronunciation enabled. */
-    Boolean                 fEnablePronunciation;
-#endif
-
-static void SavePreferencesInoah2(AppContext* appContext)
+// General idea is to load all the preferences setting from the database,
+// set a default value if setting is not in the database
+static void LoadPreferencesInoah(AppContext* appContext)
 {
-    Err                 err;
-    AppPrefs *          prefs = &(appContext->prefs);
-    PrefsStoreWriter    prefsStore(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
+    Err               err;
+    AppPrefs *        prefs = &(appContext->prefs);
+    PrefsStoreReader  store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
+    UInt16            tmpUInt16;
+    char *            tmpStr;
 
-    err = prefsStore.ErrSetUInt16(p_startupAction, (UInt16)prefs->startupAction );
-    Assert( errNone != err );
-    err = prefsStore.ErrSetUInt16(p_hwButtonScrolType, (UInt16)prefs->hwButtonScrollType);
-    Assert( errNone != err );
-    err = prefsStore.ErrSavePreferences();
-    Assert( errNone == err ); // can't do much more
+    // general pattern: set a given setting, try to read it from the database
+    // ignore errors (they could be due to database not being there (first run)
+    // or a given setting not being there (pref settings changed between program
+    // versions)
+    tmpUInt16 = startupActionNone;
+    err = store.ErrGetUInt16(startupAction_id, &tmpUInt16);
+    prefs->startupAction = (StartupAction)tmpUInt16;
 
-};
+    tmpUInt16 = scrollPage;
+    err = store.ErrGetUInt16(hwButtonScrolType_id, &tmpUInt16);
+    prefs->hwButtonScrollType = (ScrollType)tmpUInt16;
+
+    tmpUInt16 = scrollPage;
+    err = store.ErrGetUInt16(navButtonScrollType_id, &tmpUInt16);
+    prefs->navButtonScrollType = (ScrollType)tmpUInt16;
+
+    tmpUInt16 = bkmSortByTime;
+    err = store.ErrGetUInt16(bookmarksSortType_id, &tmpUInt16);
+    prefs->bookmarksSortType  = (BookmarkSortType)bkmSortByTime;
+
+    MemSet(prefs->lastWord, sizeof(prefs->lastWord), 0);
+    err = store.ErrGetStr(lastWord_id, &tmpStr);
+    if (!err)
+    {
+        Assert(StrLen(tmpStr)<sizeof(prefs->lastWord));
+        SafeStrNCopy(prefs->lastWord, sizeof(prefs->lastWord), tmpStr, -1);
+    }
+
+    MemSet(prefs->cookie, sizeof(prefs->cookie), 0);
+    err = store.ErrGetStr(cookie_id, &tmpStr);
+    if (!err)
+    {
+        Assert(StrLen(tmpStr)<sizeof(prefs->cookie));
+        SafeStrNCopy(prefs->cookie, sizeof(prefs->cookie), tmpStr, -1);
+    }
+
+    prefs->fShowPronunciation = true;
+    err = store.ErrGetBool(fShowPronunciation_id, &prefs->fShowPronunciation);
+    Assert(!err);
+
+    prefs->displayPrefs.listStyle = 2;
+    err = store.ErrGetUInt16(dpListStyle_id, (UInt16*)&prefs->displayPrefs.listStyle);
+    Assert(!err);
+
+// TODO: display prefs
+//    SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
+
+}
 
 static void SavePreferencesInoah(AppContext* appContext)
 {
-    DmOpenRef      db;
-    UInt           recNo;
-    UInt           recsCount;
-    Boolean        fRecFound = false;
-    Err            err;
-    void *         recData;
-    long           recSize;
-    MemHandle      recHandle;
-    void *         prefsBlob;
-    long           blobSize;
-    Boolean        fRecordBusy = false;
+    Err                 err;
+    AppPrefs *          prefs = &(appContext->prefs);
+    PrefsStoreWriter    store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
 
-    prefsBlob = SerializePreferencesInoah(appContext, &blobSize );
-    if ( NULL == prefsBlob ) return;
+    // ignore all errors, we can't do much about them anyway
+    err = store.ErrSetUInt16(startupAction_id, (UInt16)prefs->startupAction );
+    Assert(!err);
+    err = store.ErrSetUInt16(hwButtonScrolType_id, (UInt16)prefs->hwButtonScrollType);
+    Assert(!err);
+    err = store.ErrSetUInt16(navButtonScrollType_id, (UInt16)prefs->navButtonScrollType);
+    Assert(!err);
+    err = store.ErrSetUInt16(bookmarksSortType_id, (UInt16)prefs->bookmarksSortType);
+    Assert(!err);
+    err = store.ErrSetStr(lastWord_id,(char*)prefs->lastWord);
+    Assert(!err);
+    err = store.ErrSetStr(cookie_id,(char*)prefs->cookie);
+    Assert(!err);
+    err = store.ErrSetBool(fShowPronunciation_id,prefs->fShowPronunciation);
+    Assert(!err);
+    err = store.ErrSetUInt16(dpListStyle_id,(UInt16)prefs->displayPrefs.listStyle);
+    Assert(!err);
+    err = store.ErrSavePreferences();
+    Assert(!err);
 
-    db = DmOpenDatabaseByTypeCreator(APP_PREF_TYPE, APP_CREATOR, dmModeReadWrite);
-    if (!db)
-    {
-        err = DmCreateDatabase(0, "iNoah Prefs", APP_CREATOR,  APP_PREF_TYPE, false);
-        if ( errNone != err)
-            return;
-
-        db = DmOpenDatabaseByTypeCreator(APP_PREF_TYPE, APP_CREATOR, dmModeReadWrite);
-        if (!db)
-            return;
-    }
-    recNo = 0;
-    recsCount = DmNumRecords(db);
-    while (recNo < recsCount)
-    {
-        recHandle = DmGetRecord(db, recNo);
-        fRecordBusy = true;
-        recData = MemHandleLock(recHandle);
-        recSize = MemHandleSize(recHandle);
-        if (IsValidPrefRecord(recData))
-        {
-            fRecFound = true;
-            break;
-        }
-        MemPtrUnlock(recData);
-        DmReleaseRecord(db, recNo, true);
-        fRecordBusy = false;
-        ++recNo;
-    }
-
-    if (fRecFound && blobSize>recSize)
-    {
-        /* need to resize the record */
-        MemPtrUnlock(recData);
-        DmReleaseRecord(db,recNo,true);
-        fRecordBusy = false;
-        recHandle = DmResizeRecord(db, recNo, blobSize);
-        if ( NULL == recHandle )
-            return;
-        recData = MemHandleLock(recHandle);
-        Assert( MemHandleSize(recHandle) == blobSize );        
-    }
-
-    if (!fRecFound)
-    {
-        recNo = 0;
-        recHandle = DmNewRecord(db, &recNo, blobSize);
-        if (!recHandle)
-            goto CloseDbExit;
-        recData = MemHandleLock(recHandle);
-        fRecordBusy = true;
-    }
-
-    DmWrite(recData, 0, prefsBlob, blobSize);
-    MemPtrUnlock(recData);
-    if (fRecordBusy)
-        DmReleaseRecord(db, recNo, true);
-CloseDbExit:    
-    DmCloseDatabase(db);
-    new_free( prefsBlob );
-}
+};
 
 static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
 {
@@ -268,9 +154,10 @@ static Err AppInit(AppContext* appContext)
     ebufInit(&appContext->currentWordBuf, 0);
     ebufInit(&appContext->lastResponse, 0);
     ebufInit(&appContext->lastMessage, 0);
-    
+
     appContext->currBookmarkDbType = bkmInvalid; // has anybody idea why it isn't 0?
 
+/*    
     appContext->prefs.startupAction      = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
     appContext->prefs.navButtonScrollType = scrollPage;
@@ -278,7 +165,7 @@ static Err AppInit(AppContext* appContext)
 
     appContext->prefs.displayPrefs.listStyle = 2;
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
-
+*/
     appContext->currDispInfo=diNew();
     if (!appContext->currDispInfo)
     {
@@ -288,6 +175,7 @@ static Err AppInit(AppContext* appContext)
 
     LoadPreferencesInoah(appContext);
 
+    // we don't store this in preferences database
     appContext->prefs.fEnablePronunciation = false;
 
     SyncScreenSize(appContext);

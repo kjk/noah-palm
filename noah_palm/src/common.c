@@ -1791,8 +1791,6 @@ void Log(AppContext* appContext, const char *txt)
 }
 #endif
 
-#ifndef I_NOAH
-
 void EvtSetInt( EventType *event, int i)
 {
     int *pInt = (int*) (&event->data.generic);
@@ -1926,6 +1924,8 @@ void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrB
     Assert( bufSize >= strLen );
     deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
 }
+
+#ifndef I_NOAH
 
 void RememberLastWord(AppContext* appContext, FormType * frm, int objId)
 {
