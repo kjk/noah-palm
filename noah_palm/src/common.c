@@ -2132,12 +2132,14 @@ static Err AppHandleResidentLookup()
     LocalID     localId;
     FormType *  form=FrmGetActiveForm();
     FieldType * field;
+    TableType * table;
     Err         error;
     char *      buffer;
     int         bufSize;
-    UInt16      fieldIndex;
+    UInt16      objIndex;
     char *      word;
     int         wordLen;
+    FormObjectKind objKind;
 
     Assert(form);
 
@@ -2149,12 +2151,30 @@ static Err AppHandleResidentLookup()
     Assert(errNone==error);
     // we shouldn't get an error but if we do, we just ignore it
 
-    fieldIndex=FrmGetFocus(form);
-    if (noFocus == fieldIndex)
+    objIndex=FrmGetFocus(form);
+    if (noFocus == objIndex)
         goto NoWordSelected;
 
-    field=(FieldType*)FrmGetObjectPtr(form, fieldIndex);
-    if (!field)
+    objKind = FrmGetObjectType(form, objIndex);
+    switch( objKind )
+    {
+        case frmFieldObj:
+            field=(FieldType*)FrmGetObjectPtr(form, objIndex);
+            break;
+        case frmTableObj:
+            table = (TableType*)FrmGetObjectPtr(form, objIndex);
+            Assert( table );
+            // but playing it safe
+            if (NULL == table)
+                goto NoWordSelected;
+            field=(FieldType*)TblGetCurrentField(table);
+            break;
+        default:
+            // we don't know how to get selection from other objects
+            goto NoWordSelected;
+    }
+
+    if (NULL == field)
         goto NoWordSelected;
 
     wordLen=FldGetSelectedText(field, NULL, 0);
@@ -2297,21 +2317,22 @@ void FldSelectAllText(FieldType* field)
 
 UInt16 FldGetSelectedText(FieldType* field, char* buffer, UInt16 bufferSize) 
 {
-    UInt16 start=0;
-    UInt16 len=0;
-    char * text=NULL;
+    UInt16  startPos=0, endPos=0;
+    UInt16  len;
+    char *  text;
 
     Assert(field);
 
-    FldGetSelection(field, &start, &len);
-    len -= start;
+    FldGetSelection(field, &startPos, &endPos);
+    len = endPos - startPos;
 
     if (NULL == buffer)
         return len;
 
+    Assert( bufferSize >= len+1);
     text = FldGetTextPtr(field);
     if (NULL!=text)
-        SafeStrNCopy(buffer, bufferSize, text+start, len);
+        SafeStrNCopy(buffer, bufferSize, text+startPos, len);
 
     return len;      
 }

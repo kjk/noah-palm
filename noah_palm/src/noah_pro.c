@@ -358,36 +358,6 @@ Err AppCommonFree(AppContext* appContext)
     return error;
 }
 
-/*
-Given a point on the screen calculate the bounds of the character that 
-this point belongs to and also line & position in the line of this character.
-Returns true if there is a char that falls within, false otherwise.
-*/
-static Boolean GetCharBounds(AppContext* appContext, UInt16 x, UInt16 y, RectangleType * r, int *line, int *charPos)
-{
-    DisplayInfo *  di;
-    int            lineOnScreen;
-
-    Assert(r);
-    Assert(line);
-    Assert(charPos);
-
-    di = appContext->currDispInfo;
-    if (NULL == di)
-        return false;
-
-    lineOnScreen = y / FONT_DY;    /* should be font height */
-    r->topLeft.x = 0;
-    r->topLeft.y = lineOnScreen * FONT_DY;
-    r->extent.x = appContext->screenWidth-40;
-    r->extent.y = FONT_DY;
-
-    *line = lineOnScreen;
-    *charPos = 0;
-
-    return true;
-}
-
 Err AppPerformResidentLookup(char* term)
 {
     Err             error;
