@@ -290,6 +290,9 @@ static Err AppInit(AppContext* appContext)
     LoadPreferencesInoah(appContext);
 
     // we don't store this in preferences database
+#ifdef DEBUG
+    appContext->fInStress = false;
+#endif
     appContext->prefs.fEnablePronunciation = false;
 
     SyncScreenSize(appContext);

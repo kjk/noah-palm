@@ -25,6 +25,9 @@
 #define menuItemRegister        1118
 #define menuItemAbout           1121
 
+#define menuItemStress          1123
+
+
 #define alertMemError                      2000
 #define alertRomIncompatible               2001
 #define alertNetworkLibraryNotFound        2002

@@ -7,6 +7,7 @@
 #  - codes can be for handango, palmgear and esellerate
 #  - codes should be unique and random and not easy to find
 #  - generate *.sql file that we can import into inoahdb to install those regcodes
+#  - generate *.txt file with codes ready to be uploaded to esellerate/pg/handango
 #
 # How it works.
 #
@@ -22,6 +23,14 @@
 #   'purpose' describes to whom it was assigned (i.e. 'pg' for PalmGear,
 #             'h' for handango, 'es' for eSellerate
 # and custom strings for special reg codes)
+#
+# We also generate a *.txt file with serial numbers ready to be uploaded to
+# eSellerate/PalmGear/Handango. The format of this file:
+#  eSellerate: serial number per line, at least 500 serial numbers
+#  TODO: PalmGear, Handango
+#
+# We also generate a *.sql file that must be imported to the inoahdb.reg_codes
+# table so that those codes are 
 #
 # Usage:
 #  -count N : generate $N reg codes
@@ -39,7 +48,7 @@
 import sys,os,csv,random,time,StringIO
 
 g_regCodesFileName        = "reg_codes.csv"
-g_regCodeLen = 12
+REG_CODE_LEN = 12
 
 # given argument name in argName, tries to return argument value
 # in command line args and removes those entries from sys.argv
@@ -129,14 +138,13 @@ def saveNewCodesToSQL(newCodes):
     fo.close()
 
 def genNewCodes(count, purpose, prevCodes):
-    global g_regCodeLen
     newCodes = {}
     dateTime = getStableDateTxt()
     for t in range(count):
-         newCode = genRegCode(g_regCodeLen)
+         newCode = genRegCode(REG_CODE_LEN)
          while prevCodes.has_key(newCode) or newCodes.has_key(newCode):
             print "found dup: %s" % newCode
-            newCode = genRegCode(g_regCodeLen)
+            newCode = genRegCode(REG_CODE_LEN)
          newCodes[newCode] = [purpose,dateTime]
     return newCodes
 

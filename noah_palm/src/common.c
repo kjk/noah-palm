@@ -681,7 +681,7 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
     int curr_record = 0;
     long curr_rec_size = 0;
     long idx_in_rec = 0;
-    unsigned char *def_lens = NULL;
+    unsigned char *def_lens;
     unsigned char *def_lens_fast = NULL;
     unsigned char *def_lens_fast_end = NULL;
     long current_entry = 0;

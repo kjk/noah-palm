@@ -8,6 +8,9 @@ BEGIN
     MENUITEM "Copy to clipboard"    ID menuItemCopy              "C"
     MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard   "L"
     MENUITEM "Recent lookups"       ID menuItemRecentLookups     "S"
+#ifdef DEBUG
+    MENUITEM "Stress"               ID menuItemStress
+#endif
   END
 
   PULLDOWN "Bookmarks"
@@ -246,7 +249,7 @@ ALERT alertNoWebBrowser
 INFORMATION
 BEGIN
     TITLE "No web browser"
-    MESSAGE "Web browser not detected on this device."
+    MESSAGE "Web browser is not installed on this device."
     BUTTONS "OK"
 END
 

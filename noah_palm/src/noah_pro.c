@@ -283,7 +283,6 @@ Err AppCommonInit(AppContext* appContext)
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     appContext->ptrOldDisplayPrefs = NULL;
     // set ARM state
-    appContext->armIsPresent = false;
 #ifndef DONT_DO_ARMLET
     appContext->armIsPresent = armTestArmLet();
 #endif

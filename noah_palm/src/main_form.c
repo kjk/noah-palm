@@ -179,6 +179,11 @@ static void MainFormHandleConnectionProgress(AppContext* appContext, FormType* f
         }
         FrmUpdateForm(formDictMain, redrawAll); 
     }        
+
+    if (connectionFinished==data->flag)
+    {
+        SendEvtWithType(evtConnectionFinished);
+    }
 }
 
 static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
@@ -513,6 +518,14 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             handled=true;
             break;
 
+#ifdef DEBUG
+        case menuItemStress:
+            appContext->fInStress = true;
+            LookupRandomWord(appContext);
+            handled=true;
+            break;
+#endif
+
         case sysEditMenuCopyCmd:
         case sysEditMenuCutCmd:
         case sysEditMenuPasteCmd:
@@ -639,6 +652,15 @@ static Boolean MainFormHandleEvent(EventType* event)
             handled=true;
             break;
 
+        case evtConnectionFinished:
+#ifdef DEBUG
+            if (appContext->fInStress)
+            {
+                LookupRandomWord(appContext);
+            }
+#endif
+            handled=true;
+            break;
     }
     return handled;
 }

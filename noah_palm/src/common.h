@@ -23,7 +23,7 @@
 #include "copy_block.h"
 #include "bookmarks.h"
 
-//#define _RECORD_SPEED_ 1
+#define _RECORD_SPEED_ 1
 
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)
@@ -61,6 +61,7 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #define evtShowMalformedAlert    (firstUserEvent+4)
 #define evtRegistrationFailed    (firstUserEvent+5)
 #define evtRegistrationOk        (firstUserEvent+6)
+#define evtConnectionFinished    (firstUserEvent+7)
 
 // information about the area for displaying definitions:
 // start x, start y, number of lines (dy).
@@ -288,11 +289,14 @@ typedef struct _AppContext
     AppPrefs           prefs;
     AppPrefs           tmpPrefs;
     
-#ifndef I_NOAH    
 #ifdef DEBUG
+#ifdef I_NOAH
+    Boolean            fInStress;
+#endif
+#ifndef I_NOAH    
     long               currentStressWord;
 #endif
-#endif // I_NOAH
+#endif 
 
     /**
      * Number of displayed lines. Replaces DRAW_DI_LINES from common.h to accomodate DynamicInputArea.

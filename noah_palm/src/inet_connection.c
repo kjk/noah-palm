@@ -3,7 +3,7 @@
 
 // this is a test server running on my pc, accessible from internet
 #define serverAddress                "dict-pc.arslexis.com"
-#define serverPort                   3000
+#define serverPort                   4080
 
 // this is an official server running on arslexis.com
 //#define serverAddress                "dict.arslexis.com"
