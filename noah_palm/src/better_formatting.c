@@ -1655,8 +1655,8 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     SetBackColorWhite(appContext);
     SetTextColorBlack(appContext);
 
-#ifndef I_NOAH
+//#ifndef I_NOAH
     cbInvertSelection(appContext);
-#endif    
+//#endif    
 }
 

@@ -31,6 +31,10 @@ Boolean cbPenMoveEvent(struct _AppContext *appContext, Int16 screenX, Int16 scre
 void cbInvertSelection(struct _AppContext *appContext);
 void cbNoSelection(struct _AppContext *appContext);
 
+#ifdef I_NOAH
+void   MainFormFindButtonPressed(struct _AppContext* appContext, FormType* form);
+#endif
+
 /**
  * States of selection
  */
@@ -64,13 +68,17 @@ typedef struct _CopyBlock{
     cbSelectionPoint    right;          //right end of selection
     cbSelectionPoint    oldLeft;        //used to detect double click
     cbSelectionPoint    oldRight;       //used to detect double click
-    
+   
     Int16   maxDx[CB_MAX_DISPLAY_LINES];        
     Int16   nextDy[CB_MAX_DISPLAY_LINES + 1];   
     char    firstTag;                   //to store format of first displayed line
     char    actTag;                     //format of actPosition char
     
+#ifndef I_NOAH
     long    wordNoOld;    
+#else
+    char    wordTxtOld[WORD_MAX_LEN + 1];   //in I_Noah words have no No!
+#endif
 } CopyBlock;
 
 #endif

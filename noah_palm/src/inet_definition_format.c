@@ -124,7 +124,6 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     {
         ebufAddChar(out, FORMAT_TAG);
         ebufAddChar(out, FORMAT_SYNONYM);
-        ebufAddChar(out, ' ');
         ebufAddStr(out, (Char*)word);
         ebufAddChar(out, '\n');
     }
@@ -142,9 +141,10 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
                 {
                     ebufAddChar(out, FORMAT_TAG);
                     ebufAddChar(out, FORMAT_POS);
+                    ebufAddChar(out, 149);
                     ebufAddStr(out, " (");
                     ebufAddStr(out, (Char*)partOfSpeech);
-                    ebufAddStr(out, ")\n");
+                    ebufAddStr(out, ") ");
                     error=ConvertSynonymsBlock(appContext, word, begin, partBlock, out);
                     if (!error)
                     {

@@ -94,8 +94,10 @@ Boolean cbCopyToClippboard(AppContext *appContext)
 static Boolean cbTryWord(AppContext* appContext, char *wordInput)
 {
     char        txt[WORD_MAX_LEN+1];
+#ifndef I_NOAH
     char *      word;
     UInt32      wordNo;
+#endif
     int         idx;
     UInt16      itemLen;
 
@@ -103,15 +105,18 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
     itemLen = (StrLen(wordInput) < sizeof(txt)-1) ? StrLen(wordInput) : sizeof(txt)-1;
     MemMove(txt, wordInput, itemLen);
 
+#ifndef I_NOAH
 #ifndef NOAH_LITE
     strtolower(txt);
     RemoveWhiteSpaces( txt );
+#endif
 #endif
 
     idx = 0;
     while (txt[idx] && (txt[idx] == ' '))
         ++idx;
 
+#ifndef I_NOAH
     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), txt);
     word = dictGetWord(GetCurrentFile(appContext), wordNo);
 
@@ -126,6 +131,20 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
         FrmPopupForm(formDictFind);
         return true;
     }
+#else
+    //translate word in I_NOAH
+    FormType* form=FrmGetFormPtr(formDictMain);
+    UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
+    Assert(frmInvalidObjectId!=index);
+    FieldType* field=(FieldType*)FrmGetObjectPtr(form, index);
+    Assert(field);
+    //set new word in edit window
+    FldDelete (field, 0,FldGetTextLength(field)); 
+    FldInsert (field,txt, StrLen(txt)); 
+    //click go button
+    MainFormFindButtonPressed(appContext, form);
+    return true;
+#endif
     return false;
 }
 
@@ -329,9 +348,9 @@ static Boolean cbIsActBetweenLR(AppContext *appContext)
  */
 static Boolean cbIsCharNotAlfa(char a)
 {
-    if(TxtCharIsAlpha(a))
+    if(TxtCharIsAlpha((unsigned char) a))
         return false; 
-    if(TxtCharIsDigit(a))
+    if(TxtCharIsDigit((unsigned char) a))
         return false; 
     return true;
 } 
@@ -593,7 +612,6 @@ Boolean cbPenUpEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
 
         cbNoSelection(appContext);
         
-        //TODO: translate selected word!!!
         cbGetWordFromSelectionAndTranslate(appContext, &start, &stop);
 
         return true;
@@ -666,13 +684,23 @@ void cbInvertSelection(AppContext *appContext)
 #ifdef DONT_DO_COPY_WORD_DEFINITION
     return;
 #endif
-
+    
+#ifndef I_NOAH
     if(appContext->currentWord != appContext->copyBlock.wordNoOld)
     {
         appContext->copyBlock.wordNoOld = appContext->currentWord;
         cbNoSelection(appContext);
         return;
     }
+#else
+    //in I_noah. detect when word was changed
+    if(StrCompare(appContext->copyBlock.wordTxtOld,ebufGetDataPointer(&appContext->currentWordBuf))!=0)
+    {
+        StrNCopy(appContext->copyBlock.wordTxtOld,ebufGetDataPointer(&appContext->currentWordBuf),WORD_MAX_LEN-1);
+        cbNoSelection(appContext);
+        return;
+    }
+#endif
 
     //nothing selected 
     if(appContext->copyBlock.state == cbNothingSelected || appContext->copyBlock.state == cbWasPenDown)

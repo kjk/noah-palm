@@ -90,7 +90,7 @@ static void FldSelectAllText(FieldType* field)
     FldGrabFocus(field);
 }
 
-static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
+void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
 {
     const Char* newWord=NULL;
     UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
@@ -255,7 +255,25 @@ static Boolean MainFormHandleEvent(EventType* event)
             handled=MainFormMenuCommand(appContext, form, event);
             break;
             
+        case penDownEvent:
+            if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
+            {
+                handled = false;
+                break;
+            }
+            cbPenDownEvent(appContext,event->screenX,event->screenY);
+            handled = true;
+            break;
 
+        case penMoveEvent:
+            cbPenMoveEvent(appContext,event->screenX,event->screenY);
+            handled = true;
+            break;
+
+        case penUpEvent:
+            cbPenUpEvent(appContext,event->screenX,event->screenY);
+            handled = true;
+            break;
 /*            
         case winEnterEvent:
             // workaround for probable Sony CLIE's bug that causes only part of screen to be repainted on return from PopUps
