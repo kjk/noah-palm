@@ -164,7 +164,7 @@ static void FreeConnectionData(ConnectionData* connData)
     ebufFreeData(&connData->request);
     ebufFreeData(&connData->response);
     ebufFreeData(&connData->statusText);
-    if (connData->contextDestructor && connData->context)
+    if (connData->context && connData->contextDestructor)
         (*connData->contextDestructor)(connData->context);
     new_free(connData);
 }
@@ -439,7 +439,32 @@ void StartConnection(AppContext* appContext, void* context, const Char* requestT
             SendConnectionProgressEvent(connectionFinished);
     }
     
-}                                          
+}              
+
+static void FinalizeConnection(AppContext* appContext, ConnectionData* connData)
+{
+    ExtensibleBuffer response;
+    ebufInit(&response, 0);
+    ebufSwap(&response, &connData->response);
+    const Char* begin=ebufGetDataPointer(&response);
+    const Char* end=begin+ebufGetDataSize(&response);
+
+/*
+        const Char* begin=deviceMessageResponse;
+        const Char* end=begin+StrLen(begin);
+*/        
+    void* context=connData->context;
+    connData->context=NULL;
+    ConnectionResponseProcessor* responseProcessor=connData->responseProcessor;
+    ConnectionContextDestructor* contextDestructor=connData->contextDestructor;
+    
+    AbortCurrentConnection(appContext, true); // store needed data and abort connection before processing response, so that responseProcessor can start another connection
+    
+    if (responseProcessor)
+        (*responseProcessor)(appContext, context, begin, end);
+    if (context && contextDestructor)
+        (*contextDestructor)(context);
+}                            
 
 
 void PerformConnectionTask(AppContext* appContext)
@@ -457,15 +482,5 @@ void PerformConnectionTask(AppContext* appContext)
             SendConnectionProgressEvent(connectionProgress);
     }
     else
-    {
-/*
-        const Char* begin=deviceMessageResponse;
-        const Char* end=begin+StrLen(begin);
-*/        
-        const Char* begin=ebufGetDataPointer(&connData->response);
-        const Char* end=begin+ebufGetDataSize(&connData->response);
-        if (connData->responseProcessor)
-            (*connData->responseProcessor)(appContext, connData->context, begin, end);
-        AbortCurrentConnection(appContext, true);
-    }
+        FinalizeConnection(appContext, connData);
 }

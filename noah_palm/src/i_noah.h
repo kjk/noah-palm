@@ -22,6 +22,9 @@ typedef struct
 
     // how do we sort bookmarks
     BookmarkSortType        bookmarksSortType;
+    
+    Char                    userId[MAX_USER_ID_LENGTH+1];
+    Boolean               registrationNeeded;
 } iNoahPrefs;
 
 typedef iNoahPrefs AppPrefs;
@@ -29,7 +32,7 @@ typedef iNoahPrefs AppPrefs;
 #define appVersionMajor 0
 #define appVersionMinor 5
 
-#define appPreferencesVersion 0x0100
+#define appPreferencesVersion 0x0101
 #define appPreferencesId    0
 
 typedef enum AppEvent_

@@ -8,6 +8,7 @@
  */
 
 #include "inet_registration.h"
+#include "inet_word_lookup.h"
 #include "inet_connection.h"
 
 /**
@@ -63,16 +64,6 @@ static Err RegistrationStatusTextRenderer(void* context, ConnectionStage stage, 
 }
 
 /**
- * Callback used by internet connection framework to free connection context data.
- * Empty, as we don't use context during registration.
- * @see ConnectionContextDestructor
- */
-static void RegistrationContextDestructor(void* context)
-{
-    Assert(NULL==context);
-}
-
-/**
  * Prepares request string to be sent to the server.
  * Fills @c buffer with properly formatted server-relative url that contains user and device id.
  * @param userId user id.
@@ -100,8 +91,7 @@ static Err RegistrationPrepareRequest(const Char* userId, ExtensibleBuffer& buff
                 ExtensibleBuffer urlEncDidBuffer; // urlEncDid still needs to be null-terminated :-(
                 ebufInitWithStrN(&urlEncDidBuffer, urlEncDid, urlEncDidLength);
                 ebufAddChar(&urlEncDidBuffer, chrNull);
-                urlEncDid=ebufGetDataPointer(&urlEncDidBuffer);
-                Char* url=TxtParamString(registrationRequestUrl, urlEncUid, urlEncDid, NULL, NULL);
+                Char* url=TxtParamString(registrationRequestUrl, urlEncUid, ebufGetDataPointer(&urlEncDidBuffer), NULL, NULL);
                 if (url)
                 {
                     ebufAddStr(&buffer, url);
@@ -126,11 +116,16 @@ static Err RegistrationPrepareRequest(const Char* userId, ExtensibleBuffer& buff
 static Err RegistrationResponseProcessor(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
-    Assert(NULL==context);
-    if (StrStartsWith(responseBegin, responseEnd, registrationSuccessfulResponse))
-        FrmAlert(alertRegistrationSuccessful);
-    else if (StrStartsWith(responseBegin, responseEnd, alreadyRegisteredResponse))
-        FrmAlert(alertAlreadyRegistered);
+    Boolean startLookup=false;
+    if (StrStartsWith(responseBegin, responseEnd, registrationSuccessfulResponse) ||
+        StrStartsWith(responseBegin, responseEnd, alreadyRegisteredResponse))
+    {
+        ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
+        Assert(wordBuffer);
+        appContext->prefs.registrationNeeded=false;
+        const Char* word=ebufGetDataPointer(wordBuffer);
+        StartWordLookup(appContext, word);
+    }
     else if (StrStartsWith(responseBegin, responseEnd, multipleNotAllowedResponse))
         FrmAlert(alertMultipleRegistration);
     else 
@@ -141,15 +136,37 @@ static Err RegistrationResponseProcessor(AppContext* appContext, void* context, 
     return error;
 }
 
-void StartRegistration(AppContext* appContext, const Char* userId)
+
+/**
+ * Callback used by internet connection framework to free context data.
+ * @see ConnectionContextDestructor
+ */
+static void RegistrationContextDestructor(void* context)
+{
+    ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
+    Assert(wordBuffer);
+    ebufDelete(wordBuffer);
+}
+
+void StartRegistrationWithLookup(AppContext* appContext, const Char* userId, const Char* word)
 {
     Assert(userId);
     ExtensibleBuffer requestBuffer;
-    ebufInit(&requestBuffer, 0);    Err error=RegistrationPrepareRequest(userId, requestBuffer);
+    ebufInit(&requestBuffer, 0);
+    Err error=RegistrationPrepareRequest(userId, requestBuffer);
     if (!error)
     {
         const Char* requestText=ebufGetDataPointer(&requestBuffer);
-        StartConnection(appContext, NULL, requestText, RegistrationStatusTextRenderer,            RegistrationResponseProcessor, RegistrationContextDestructor);
+        ExtensibleBuffer* wordBuffer=ebufNew();
+        if (wordBuffer)
+        {
+            ebufInitWithStr(wordBuffer, const_cast<Char*>(word));
+            ebufAddChar(wordBuffer, chrNull);
+            StartConnection(appContext, wordBuffer, requestText, RegistrationStatusTextRenderer,
+                RegistrationResponseProcessor, RegistrationContextDestructor);
+        }
+        else
+            error=memErrNotEnoughSpace;
     }
     if (error)
         FrmAlert(alertMemError);

@@ -1,3 +1,4 @@
+#define MAX_USER_ID_LENGTH  12
 #define _ADD_BOOKMARKS_ 1
 #define HISTORY_ITEMS 12
 
@@ -65,6 +66,7 @@
 #define listhwButtonsAction     4213
 #define popupNavButtonsAction   4214
 #define listNavButtonsAction    4215
+#define fieldUserId                 4216
 
 #define ctlArrowLeft        4300
 #define ctlArrowRight      4301

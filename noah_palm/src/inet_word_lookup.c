@@ -6,6 +6,7 @@
 #include "inet_word_lookup.h"
 #include "inet_connection.h"
 #include "inet_definition_format.h"
+#include "inet_registration.h"
 
 #define wordLookupURL           "/dict-raw.php?word=^0&ver=^1&uid=^2"
 
@@ -192,23 +193,31 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
 
 void StartWordLookup(AppContext* appContext, const Char* word)
 {
-    ExtensibleBuffer urlBuffer;
-    ebufInit(&urlBuffer, 0);
-    Err error=WordLookupPrepareRequest(word, urlBuffer);
-    if (!error) 
+    if (appContext->prefs.registrationNeeded)
     {
-        const Char* requestUrl=ebufGetDataPointer(&urlBuffer);
-        ExtensibleBuffer* context=ebufNew();
-        if (context)
+        Assert(StrLen(appContext->prefs.userId));
+        StartRegistrationWithLookup(appContext, appContext->prefs.userId, word);
+    }
+    else
+    {
+        ExtensibleBuffer urlBuffer;
+        ebufInit(&urlBuffer, 0);
+        Err error=WordLookupPrepareRequest(word, urlBuffer);
+        if (!error) 
         {
-            ebufInitWithStr(context, const_cast<Char*>(word));
-            StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
-                WordLookupResponseProcessor, WordLookupContextDestructor);
+            const Char* requestUrl=ebufGetDataPointer(&urlBuffer);
+            ExtensibleBuffer* context=ebufNew();
+            if (context)
+            {
+                ebufInitWithStr(context, const_cast<Char*>(word));
+                StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
+                    WordLookupResponseProcessor, WordLookupContextDestructor);
+            }
+            else 
+                FrmAlert(alertMemError);            
         }
         else 
-            FrmAlert(alertMemError);            
+            FrmAlert(alertMemError);
+        ebufFreeData(&urlBuffer);
     }
-    else 
-        FrmAlert(alertMemError);
-    ebufFreeData(&urlBuffer);
 }

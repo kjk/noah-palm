@@ -221,6 +221,9 @@ BEGIN
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listNavButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popupNavButtonsAction listNavButtonsAction
 
+   LABEL "User ID:" AUTOID AT (5 PREVTOP+12) FONT 1
+   FIELD                    fieldUserId       AT ( 55 PREVTOP 94 AUTO) UNDERLINED MAXCHARS MAX_USER_ID_LENGTH NUMERIC
+
    BUTTON "OK"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
    BUTTON "Cancel" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
 END
