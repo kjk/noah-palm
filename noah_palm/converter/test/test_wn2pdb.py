@@ -24,6 +24,12 @@ class Wn2PdbTest(unittest.TestCase):
         for s in invalidPos:
             self.assertEqual( False, wn2pdb._isPos(s) )
 
+
+    def test_calcNewCodesCount(self):
+        testData = ((0,50), (256-204,50), (250,6), (256,0))
+        for el in testData:
+            self.assertEqual(el[1],wn2pdb.calcNewCodesCount(el[0])) 
+
     def test_stateNoToName(self):
         self.assertEqual(wn2pdb._getStateName(wn2pdb.SS_NONE), "SS_NONE")
         self.assertEqual(wn2pdb._getStateName(wn2pdb.SS_HAS_LEMMA), "SS_HAS_LEMMA")
@@ -82,7 +88,7 @@ class Wn2PdbTest(unittest.TestCase):
         print "compressed size for CompInfoGenWeak : %d" % compressionTwo[1]
 
         assert compressionOne[0] == compressionTwo[0]
-        assert comprssionTwo[0] == compressionThree[0]
+        assert compressionTwo[0] == compressionThree[0]
 
 def getLinesFromFile():
     fileName = os.path.join("..", "wn2pdb.py")

@@ -241,6 +241,18 @@ def compressedWordsGen(words):
             #yield struct.pack("c%ds"%(len(w)-prefixLen),chr(prefixLen),w[prefixLen:])
             yield chr(prefixLen) + w[prefixLen:]
 
+def _dumpTable(table):
+    keys = table.keys()
+    keys.sort()
+    for t in keys:
+        v = table[t]
+        if t.isalnum():
+            s = "%3d (%c) = " % (ord(t),t)
+        else:
+            s = "%3d (.) = " % ord(t)
+        sys.stdout.write(s)
+        print v
+
 class StringCompressor:
     """Compress/uncompress strings."""
     def __init__(self,packStrings):
@@ -253,6 +265,7 @@ class StringCompressor:
 
     def buildCompressTable(self,packStrings):
         """given an array of pack strings build a table for fast compression"""
+        print packStrings
         table = {}
         code = 0
         for str in packStrings:
@@ -285,9 +298,24 @@ class StringCompressor:
                     lastValidCode = currTable[c][self.CODE_IDX]
                 currTable = currTable[c][self.NEXT_TABLE_IDX]
             else:
-                assert lastValidCode != -1
-                return lastValidCode
+                break
         # the whole string matched
+        if lastValidCode == -1:
+            print "Couldn't compress string '%s' (char %d,%s)" % (str,ord(c),c)
+            print self.mainTable[' ']
+            if self.mainTable.has_key(c):
+                print "self.mainTable has key %s" % c
+                print self.mainTable[c]
+                if currTable == self.mainTable:
+                    print "currTable is self.mainTable"
+                else:
+                    print "currTable is not self.mainTable"
+                    print currTable
+            else:
+                print "self.mainTable doesn't have a key %s" % c
+            #print "table:"
+            #_dumpTable(self.mainTable)
+            #print self.mainTable
         assert lastValidCode != -1
         return lastValidCode
 
@@ -451,18 +479,23 @@ class Freq:
         self.dx = dx
         self.dy = dy
         self.freq = [[0 for y in range(self.dy)] for x in range(self.dx)]
+        self.freqFlat = [0 for x in range(max(self.dx,self.dy))]
 
     def clearFreq(self):
         for x in range(self.dx):
             for y in range(self.dy):
                 self.freq[x][y] = 0
+        for x in range(len(self.freqFlat)):
+            self.freqFlat[x] = 0
 
     def addStr(self,s):
         x = ord(s[0])
         for c in s[1:]:
+            self.freqFlat[x] += 1
             y = ord(c)
             self.freq[x][y] += 1
             x = y
+        self.freqFlat[x] += 1
 
     def val(self,x,y):
         assert (x>=0) and (x<self.dx)
@@ -538,13 +571,22 @@ class Freq:
         res.reverse()
         return res
 
+    def getAllValues(self):
+        """Return a list of all encountered values, sorted by their value"""
+        result = []
+        for pos in range(len(self.freqFlat)):
+            if self.freqFlat[pos] > 0:
+                result.append(pos)
+        #print result
+        return result
+
 class CompInfoGen:
     """Given a list of strings, generate compression info (packStrings).
     Compression is slightly worse than in the original Lisp implementation."""
     def __init__(self,strList):
         self.strList = strList
         self.table = None
-        self.reservedCodes = 0
+        self.reservedCodes = 32
         self.FREQ_IDX = 0
         self.NEXT_TABLE_IDX = 1
         self.FULL_STR_IDX = 2
@@ -588,9 +630,6 @@ class CompInfoGen:
             self._getFlattenedFreqList(result,newTable)
         return result
 
-    def reserveCodes(self,codesToReserve):
-        self.reservedCodes = codesToReserve
-
     def buildPackStrings(self):
         """Given frequency table filled in, generate packStrings for best
         compression (except it probably isn't optimal)"""
@@ -614,37 +653,36 @@ class CompInfoGen:
             assert codesLeft > 0
             packStrings.append(el)
             codesLeft -= 1
-        #print packStrings
         return packStrings
 
+class CompInfoNoCompression:
+    def __init__(self,strList):
+        pass
+    def buildPackStrings(self):
+        packStrings = [chr(c) for c in range(256)]
+        return packStrings
+    
 class CompInfoGenWeak:
     """Given a list of strings, generate compression info (packStrings).
     It works and is simple but compression is worse than in CompInfoGen"""
     def __init__(self,strList):
         self.freqTable = Freq(256,256)
         self.strList = strList
-        self.reservedCodes = 0
-
-    def reserveCodes(self,codesToReserve):
-        self.reservedCodes = codesToReserve
+        self.reservedCodes = 32
 
     def buildPackStrings(self):
         self.freqTable.buildFreqForStrings(self.strList)
-        #dumpListByFreq(flist)
         packStrings = [chr(n) for n in range(self.reservedCodes)]
-        codesLeft = 256-self.reservedCodes
-        for x in range(256):
-            for y in range(256):
-                if self.freqTable.val(x,y) > 0:
-                    #print "found for x=%d ('%s')" % (x,chr(x))
-                    packStrings.append(chr(x))
-                    codesLeft -= 1
-                    break
+        allValues = self.freqTable.getAllValues()
+        for v in allValues:
+            if v >= self.reservedCodes:
+                assert packStrings.count(chr(v)) == 0
+                packStrings.append(chr(v))
+        codesLeft = 256-len(packStrings)
         flist = self.freqTable.getMostFrequent(codesLeft)
         for el in flist:
             packStrings.append( el[1] )
         assert 256 == len(packStrings)
-        #print packStrings
         return packStrings
 
 def calcNewCodesCount(usedCodes):
@@ -653,7 +691,8 @@ def calcNewCodesCount(usedCodes):
     formula = ((200,50),(120,40),(60,25),(30,10),(-1,18))
     for el in formula:
         if codesToMake > el[0]:
-            return el[1]
+            #print "calcNewCodesCount: codesToMake=%d, el[1]=%d" % (codesToMake, el[1])
+            return min(codesToMake,el[1])
     assert 0
 
 def printFreqList(l):
@@ -663,6 +702,19 @@ def printFreqList(l):
         freq = freq_el_freq(el)
         txt = chr(x) + chr(y)
         print "%s %d (%d,%d)" % (txt,freq,x,y)
+
+class CompInfoGenNew:
+    """Given a list of strings, generate compression info (packStrings). This
+    should be identical to the way original lisp version works"""
+    def __init__(self,strList):
+        self.freqTable = Freq(256,256)
+        self.strList = strList
+
+    def buildPackStrings(self):
+        pairs = []
+        codesUsed = 0
+        while codesUsed < 256:
+            pass            
 
 class CompInfoGenOrig:
     """Given a list of strings, generate compression info (packStrings). This
@@ -676,7 +728,7 @@ class CompInfoGenOrig:
         self.codeToChar = [[0,0] for i in range(256)]
         self.strToCode = ['' for i in range(256)]
         self.compressionTable = [[0 for i in range(256)] for t in range(256)]
-        self.reservedCodes = 0
+        self.reservedCodes = 32
         self.origStrings = strList
 
     def _codeStrings(self):
@@ -704,9 +756,12 @@ class CompInfoGenOrig:
 
     def _addPair(self,x,y):
         self.compressionTable[x][y] = self.usedCodes
+        if self.usedCodes > 255:
+            print "self.usedCodes is %d" % self.usedCodes
+        assert self.usedCodes <= 255
         self.codeToChar[self.usedCodes][0] = x
         self.codeToChar[self.usedCodes][1] = y
-        sef.usedCodes += 1
+        self.usedCodes += 1
 
     def _strFromCodeIter(self,code):
         codesToProcess = [code]
@@ -714,8 +769,9 @@ class CompInfoGenOrig:
         while len(codesToProcess) > 0:
             # code = pop(codesToProcess)
             code = codesToProcess[-1]
+            codesToProcess = codesToProcess[:-1]
             if code <= oneCharCodes:
-                yield self.codeToChar[code][0]
+                yield chr(self.codeToChar[code][0])
             else:
                 # push(codesToProcess,self.codeToChar[code][1])
                 codesToProcess.append(self.codeToChar[code][1])
@@ -729,12 +785,12 @@ class CompInfoGenOrig:
 
     def _buildPackStrings(self):
         packStrings = [self._stringFromCode(code) for code in range(256)]
-        # UNDONE: sort strings by length
+        sortStringsByLen(packStrings)
         assert 256 == len(packStrings)
-        #print packStrings
         return packStrings
 
     def _buildPackDataOnePass(self,codesToUse):
+        #print "_buildPackDataOnePass(codesToUse=%d), self.usedCodes=%d" % (codesToUse,self.usedCodes)
         sortedFreq = self.freqTable.getFreqsAsList(codesToUse)
         realNewCodes = len(sortedFreq)
         newList = []
@@ -777,6 +833,7 @@ class CompInfoGenOrig:
 
     def _buildPackData(self):
         self.oneCharCodes = self.usedCodes
+        self.freqTable.buildFreqForStrings(self.strList)
         while self.usedCodes < 256:
             self._buildPackDataOnePass(calcNewCodesCount(self.usedCodes))
         return self._buildPackStrings()
@@ -789,9 +846,13 @@ class CompInfoGenOrig:
 def buildStringCompressor(strList):
     """Given a list of strings, build compressor object optimal for compressing
     those strings"""
-    #ft = CompInfoGenWeak()
-    ft = CompInfoGen(strList)
+    ft = CompInfoGenWeak(strList)
+    #ft = CompInfoGen(strList)
+    #ft = CompInfoGenOrig(strList)
+    #ft = CompInfoNoCompression(strList)
+    #ft = CompInfoGenNew(strList)
     packStrings = ft.buildPackStrings()
+    #print packStrings
     assert 256 == len(packStrings)
     comp = StringCompressor(packStrings)
     return comp
