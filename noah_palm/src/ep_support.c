@@ -1,13 +1,10 @@
 
 /*
-  Copyright (C) 2000-2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
-#ifdef NOAH_PRO
-/* only supported for Noah Pro, will bomb if used with Noah Lite */
-#include "noah_pro.h"
-#endif
+#include "cw_defs.h"
 
 #ifndef EP_DICT
 #error "EP_DICT not defined"
@@ -30,7 +27,8 @@ static void unplishString(char *str, int strLen)
     for (i = 0; i < strLen; i++)
     {
         c = str[i];
-        for (j = 0; (j < 9) && (polishChars[j] != c); j++);
+        for (j = 0; (j < 9) && (polishChars[j] != c); j++)
+        {};
         if (j < 9)
         {
             str[i] = latinChars[j];

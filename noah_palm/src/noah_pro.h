@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 #ifndef _NOAH_PRO_H_
@@ -7,6 +7,8 @@
 
 #include <PalmOS.h>
 #include <PalmCompatibility.h>
+
+#include "common.h"
 
 #include "extensible_buffer.h"
 #include "display_info.h"

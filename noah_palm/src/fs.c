@@ -1,7 +1,9 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
+
+#include "cw_defs.h"
 
 #ifdef NOAH_PRO
 #include "noah_pro.h"
@@ -353,7 +355,7 @@ void * CurrFileLockRecord(UInt16 recNo)
    fully cacheable */
 void CurrFileUnlockRecord(UInt16 recNo)
 {
-    return fsUnlockRecord(currFile, recNo);
+    fsUnlockRecord(currFile, recNo);
 }
 
 /* lock a region of a record and return a pointer to its data*/
@@ -365,6 +367,6 @@ void *CurrFileLockRegion(UInt16 recNo, UInt16 offset, UInt16 size)
 /* unlock a region of a record */
 void CurrFileUnlockRegion(void *data)
 {
-    return fsUnlockRegion(currFile,data);
+    fsUnlockRegion(currFile,data);
 }
 

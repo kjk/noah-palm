@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 #ifndef _COMMON_H_
@@ -45,7 +45,7 @@ typedef enum
     ERR_TOO_MANY_DBS,
     ERR_DICT_INIT,
     ERR_SILENT,
-    ERR_GENERIC,
+    ERR_GENERIC
 } NoahErrors;
 
 /* What type of scrolling should tapping/up and down hw buttons do:
@@ -80,7 +80,7 @@ typedef enum
 typedef enum
 {
     dbStartupActionAsk = 0,
-    dbStartupActionLast,
+    dbStartupActionLast
 } DatabaseStartupAction;
 
 typedef struct

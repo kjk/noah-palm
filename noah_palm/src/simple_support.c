@@ -1,10 +1,12 @@
 /*
-  Copyright (C) 2000-2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
-#ifdef NOAH_PRO
-/* only supported for Noah Pro, should bomb if used with Noah Lite */
-#include "noah_pro.h"
+
+#include "cw_defs.h"
+
+#ifndef NOAH_PRO
+#error "only works in NOAH_PRO"
 #endif
 
 #ifndef SIMPLE_DICT

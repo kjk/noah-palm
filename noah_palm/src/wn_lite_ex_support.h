@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2000-2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 #ifndef _WN_LITE_EX_SUPPORT_H_

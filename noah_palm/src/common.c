@@ -1,9 +1,11 @@
 /*
-  Copyright (C) 2000, 2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 
   All the common code shared between my other apps.
 */
+
+#include "cw_defs.h"
 
 #ifdef NOAH_PRO
 #include "noah_pro.h"

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 */
 #ifndef _EXTENSIBLE_BUFFER_H_

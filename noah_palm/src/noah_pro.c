@@ -1,7 +1,10 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
+
+#include "cw_defs.h"
+
 #include "noah_pro.h"
 #include "noah_pro_rcp.h"
 #include "extensible_buffer.h"
@@ -179,10 +182,10 @@ void *GetSerializedPreferences(long *pBlobSize)
             LogG( "GetSerializedPreferences(), currFile == NULL" );
             serByte( eFS_NONE, prefsBlob, &blobSize );
         }
-        wordLen = strlen(gd.prefs.lastWord)+1;
+        wordLen = strlen( (const char*) gd.prefs.lastWord)+1;
         Assert( wordLen <= WORD_MAX_LEN );
         serInt( wordLen, prefsBlob, &blobSize );
-        serData( gd.prefs.lastWord, wordLen, prefsBlob, &blobSize );
+        serData( (char*)gd.prefs.lastWord, wordLen, prefsBlob, &blobSize );
         LogV1( "GetSerializedPreferences(), lastWord=%s", gd.prefs.lastWord );
 
         serInt( gd.historyCount, prefsBlob, &blobSize );
@@ -275,8 +278,8 @@ void SavePreferencesNoahPro()
     UInt           recsCount;
     Boolean        fRecFound = false;
     Err            err;
-    void *         recData;
-    long           recSize;
+    void *         recData=NULL;
+    long           recSize=0;
     MemHandle      recHandle;
     void *         prefsBlob;
     long           blobSize;
@@ -552,7 +555,11 @@ void DisplayAboutNoahPro(void)
     dh_display_string("Noah Pro", 2, 16);
 #endif
 
+#ifdef DEMO
+    dh_display_string("Ver 2.0", 2, 20);
+#else
     dh_display_string("Ver 2.1 alpha", 2, 20);
+#endif
     dh_display_string("(C) ArsLexis 2000-2002", 1, 24);
     /* dh_display_string("arslexis@pobox.com", 2, 20); */
 #ifdef DEMO
@@ -736,7 +743,7 @@ ChooseDatabase:
             fileToOpen = gd.dicts[0];
         else
         {
-            lastDbUsedName = gd.prefs.lastDbUsedName;
+            lastDbUsedName = (char *)gd.prefs.lastDbUsedName;
             if ( NULL != lastDbUsedName )
             {
                 LogV1( "db name from prefs: %s", lastDbUsedName );
@@ -821,7 +828,7 @@ ChooseDatabase:
         if ( (startupActionLast == gd.prefs.startupAction) &&
             gd.prefs.lastWord[0] )
         {
-            DoWord( gd.prefs.lastWord );
+            DoWord( (char *)gd.prefs.lastWord );
         }
         FixWordHistory();
         handled = true;
@@ -921,6 +928,7 @@ ChooseDatabase:
                         ++i;
                     }
                     --gd.dictsCount;
+                    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
                     LstSetListChoices(list, NULL, gd.dictsCount);
                     if ( gd.dictsCount > 1 )
                     {
@@ -961,7 +969,7 @@ ChooseDatabase:
         if ( (startupActionLast == gd.prefs.startupAction) &&
             gd.prefs.lastWord[0] )
         {
-            DoWord( gd.prefs.lastWord );
+            DoWord( (char *)gd.prefs.lastWord );
         }
 
         FixWordHistory();

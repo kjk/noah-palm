@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2000 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
@@ -40,7 +40,7 @@ DisplayInfo g_di_tmp = { 0 };
 void *wn_new(void)
 {
     WnInfo *wi = NULL;
-    WnFirstRecord *firstRecord;
+    WnFirstRecord *firstRecord = NULL;
     int rec_with_words_compr_data;
     int rec_with_defs_compr_data;
     int recWithWordCache;

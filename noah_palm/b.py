@@ -1,5 +1,5 @@
-#!/cygdrive/c/Python22/./python
 #!/cygdrive/c/Progra~1/Python22/./python
+#!/cygdrive/c/Python22/./python
 
 # Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 # Copyright (C) 2002 Krzysztof Kowalczyk (krzysztofk@pobox.com)

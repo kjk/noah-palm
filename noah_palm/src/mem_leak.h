@@ -1,11 +1,12 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 */
 #ifndef _MEM_LEAK_H_
 #define _MEM_LEAK_H_
 
 #include <PalmOS.h>
+#include "cw_defs.h"
 
 #ifdef MEM_LEAKS
 

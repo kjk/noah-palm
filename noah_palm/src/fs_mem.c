@@ -1,22 +1,13 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 
   Implements Virtual File System procedures for the standard, in-memory
   databases.
  */
-#ifdef NOAH_LITE
-#include "noah_lite.h"
-#endif
 
-#ifdef NOAH_PRO
-#include "noah_pro.h"
-#endif
-
-#ifdef THESAURUS
-#include "thes.h"
-#endif
-
+#include "common.h"
+#include "mem_leak.h"
 #include "fs.h"
 #include "fs_mem.h"
 

@@ -1,7 +1,9 @@
 /*
-  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 */
+#include "cw_defs.h"
+
 #include "common.h"
 
 #ifdef MEM_LEAKS
