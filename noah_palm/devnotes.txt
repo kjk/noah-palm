@@ -1,0 +1,14 @@
+# Notes for future reference #
+
+## iNoah ##
+
+To check problems with transmission/parsing: ReceiveResponse in inet_connection.c
+
+Main connection driver loop: AdvanceConnectionStage in inet_connection.c
+
+FinalizeConnection in inet_connection.c called when we downloaded everything 
+and calls apropriate parser, e.g. WordLookupResponseProcessor
+
+ProcessDefinitionResponse in inet_definition_format.c process the response.
+
+The problem: there's no word after DEF
