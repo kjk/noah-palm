@@ -818,10 +818,6 @@ void cbInvertSelection(AppContext *appContext)
     return;
 #endif
     
-    //nothing selected 
-    if(appContext->copyBlock.state == cbNothingSelected || appContext->copyBlock.state == cbWasPenDown)
-        return;
-
     //if nothing in currDispInfo
     if(appContext->currDispInfo==NULL)
     {
@@ -845,6 +841,10 @@ void cbInvertSelection(AppContext *appContext)
         return;
     }
 #endif
+
+    //nothing selected 
+    if(appContext->copyBlock.state == cbNothingSelected || appContext->copyBlock.state == cbWasPenDown)
+        return;
 
     //if not in display area
     if(appContext->copyBlock.left.lineNo > appContext->lastDispLine ||
