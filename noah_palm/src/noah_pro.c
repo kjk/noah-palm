@@ -148,8 +148,8 @@ static Boolean FNoahProDatabase( UInt32 creator, UInt32 type )
         return false;
 
 #ifdef DEMO
-if ( WORDNET_PRO_TYPE == type )
-    return true;
+    if ( WORDNET_PRO_TYPE == type )
+        return true;
 #else
     if ( (WORDNET_PRO_TYPE == type) ||
         (WORDNET_LITE_TYPE == type) ||
@@ -223,6 +223,7 @@ void RemoveNonexistingDatabases(AppContext* appContext)
 void ScanForDictsNoahPro(AppContext* appContext, Boolean fAlwaysScanExternal)
 {
     FsMemFindDb(NOAH_PRO_CREATOR, WORDNET_PRO_TYPE, NULL, &DictFoundCBNoahPro, appContext);
+    FsMemFindDb(NOAH_PRO_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahPro, appContext);
     FsMemFindDb(NOAH_PRO_CREATOR, SIMPLE_TYPE, NULL, &DictFoundCBNoahPro, appContext);
 
     /* TODO: show a progress dialog with a number of files processed so far */
