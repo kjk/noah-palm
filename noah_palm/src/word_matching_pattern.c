@@ -1,7 +1,14 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Owner: Lukasz Szweda (qkiss@wp.pl)
+
+  support for Find Word Matching Pattern
+*/
+
 #include "word_matching_pattern.h"
 #include "word_compress.h"
 
-Boolean TappedInRect(RectangleType * rect)
+static Boolean TappedInRect(RectangleType * rect)
 {
     EventType ev;
 
@@ -301,3 +308,152 @@ void PatternListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
         WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
     }
 }
+
+static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&appContext->diaSettings))
+    {
+        UInt16 index=0;
+        ListType* list=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+
+        index=FrmGetObjectIndex(frm, listMatching);
+        Assert(index!=frmInvalidObjectId);
+        list=(ListType*)FrmGetObjectPtr(frm, index);
+        Assert(list);
+        LstSetHeight(list, appContext->dispLinesCount);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.extent.x=appContext->screenWidth;
+        FrmSetObjectBounds(frm, index, &newBounds);
+        
+        index=FrmGetObjectIndex(frm, fieldWord);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=appContext->screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonFind);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=appContext->screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonCancel);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=appContext->screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonOneChar);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=appContext->screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonAnyChar);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=appContext->screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        FrmDrawForm(frm);
+        handled=true;
+    }
+    return handled;
+}
+
+
+// Event handler proc for the find word using pattern form
+Boolean FindPatternFormHandleEvent(EventType* event)
+{
+    Boolean     handled = false;
+    FormPtr     frm = FrmGetActiveForm();
+    FieldPtr    fld;
+    ListPtr     list;
+    char *      pattern;
+    long        prevMatchWordCount;
+    AppContext* appContext=GetAppContext();
+
+    switch (event->eType)
+    {
+        case winDisplayChangedEvent:
+            handled = FindPatternFormDisplayChanged(appContext, frm);
+            break;
+                        
+        case frmOpenEvent:
+            OpenMatchingPatternDB(appContext);
+            list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+            fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+            prevMatchWordCount = NumMatchingPatternRecords(appContext);
+            LstSetListChoicesEx(list, NULL, prevMatchWordCount);
+            LstSetDrawFunction(list, PatternListDrawFunc);
+            FrmDrawForm(frm);
+            if (prevMatchWordCount>0)
+                LstSetSelectionEx(appContext, list, appContext->wmpLastWordPos);
+            pattern = (char *) new_malloc(WORDS_CACHE_SIZE);
+            ReadPattern(appContext, pattern);
+            if (StrLen(pattern) > 0)
+                FldInsert(fld, pattern, StrLen(pattern));
+            FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
+            new_free(pattern);
+            handled = true;
+            break;
+
+        case ctlSelectEvent:
+            switch (event->data.ctlSelect.controlID)
+            {
+                case buttonCancel:
+                    CloseMatchingPatternDB(appContext);
+                    FrmReturnToForm(0);
+                    handled = true;
+                    break;
+
+                case buttonFind:
+                    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+                    list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+                    pattern = FldGetTextPtr(fld);
+                    if (pattern != NULL) {
+                        ClearMatchingPatternDB(appContext);
+                        WritePattern(appContext, pattern);
+                        FillMatchingPatternDB(appContext, pattern);
+                        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords(appContext));
+                        LstSetDrawFunction(list, PatternListDrawFunc);
+                        LstDrawList(list);
+                    }
+                    handled = true;
+                    break;
+                
+                case buttonOneChar:
+                    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+                    FldInsert(fld, "?", 1);
+                    handled = true;
+                    break;
+
+                case buttonAnyChar:
+                    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+                    FldInsert(fld, "*", 1);
+                    handled = true;
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+
+        case lstSelectEvent:
+            appContext->wmpLastWordPos = appContext->listItemOffset + (UInt32) event->data.lstSelect.selection;
+            ReadMatchingPatternRecord(appContext, appContext->wmpLastWordPos, &appContext->currentWord);
+            SendNewWordSelected();
+            FrmReturnToForm(0);
+            return true;
+
+        default:
+            break;
+    }
+    
+    return handled;
+}
+
