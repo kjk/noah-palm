@@ -111,6 +111,7 @@ char *RogetGetWord(RogetInfo *info, long wordNo)
 Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
 {
     long            wordCount = 0;
+    long            wordCountTemp = 0;
     unsigned char * posRecData;
     UInt16 *        wordNums;
     long            i, j;
@@ -200,14 +201,15 @@ Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
             {
                 ebufAddChar(&info->buffer, FORMAT_TAG);
                 ebufAddChar(&info->buffer, FORMAT_WORD);
-                wordCount--;
-                for (j = 0; j < wordCount; j++)
+                wordCountTemp = wordCount;
+                wordCountTemp--;
+                for (j = 0; j < wordCountTemp; j++)
                 {
                     thisWordNo = (UInt32) wordNums[j];
                     if(thisWordNo == wordNo)
                     {
                         j++;
-                        wordCount++;
+                        wordCountTemp++;
                         thisWordNo = (UInt32) wordNums[j];
                     }
                     word = RogetGetWord(info, thisWordNo);

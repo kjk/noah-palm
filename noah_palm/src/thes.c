@@ -1006,33 +1006,12 @@ ChooseDatabase:
                 break;
             }
 
-    /*        r.topLeft.x = event->screenX-5; */
-    /*        r.topLeft.y = event->screenY-5; */
-    /*        r.extent.x = 10; */
-    /*        r.extent.y = 10; */
-    /*       start_x = event->screenX; */
-    /*       start_y = event->screenY; */
-    /*       if (GetCharBounds(event->screenX,event->screenY,&r,&line,&charPos)) */
-    /*       { */
-    /*            WinInvertRectangle(&r,0); */
-    /*       } */
-
-            if(cbPenDownEvent(appContext,event->screenX,event->screenY))
-            {
-                handled = true;
-                break;
-            }
-
+            cbPenDownEvent(appContext,event->screenX,event->screenY);
             handled = true;
             break;
 
         case penMoveEvent:
-            if(cbPenMoveEvent(appContext,event->screenX,event->screenY))
-            {
-                handled = true;
-                break;
-            }
-
+            cbPenMoveEvent(appContext,event->screenX,event->screenY);
             handled = true;
             break;
 
@@ -1042,23 +1021,6 @@ ChooseDatabase:
                 handled = false;
                 break;
             }
-
-    /*        r.topLeft.x = event->data.penUp.start.x-5; */
-    /*        r.topLeft.y = event->data.penUp.start.y-5; */
-    /*        r.extent.x = 10; */
-    /*        r.extent.y = 10; */
-    /*        WinInvertRectangle(&r,0); */
-    /*       if (GetCharBounds(event->data.penUp.start.x, event->data.penUp.start.y, */
-    /*                 &r, &line, &charPos)) */
-    /*       { */
-    /*            WinInvertRectangle(&r,0); */
-    /*       } */
-
-    /*        r.topLeft.x = event->data.penUp.end.x-5; */
-    /*        r.topLeft.y = event->data.penUp.end.y-5; */
-    /*        r.extent.x = 10; */
-    /*        r.extent.y = 10; */
-    /*        WinInvertRectangle(&r,0); */
 
             if (0 != appContext->penUpsToConsume)
             {
@@ -1097,6 +1059,7 @@ ChooseDatabase:
                         appContext->currDispInfo = NULL;
                         appContext->currentWord = 0;
                     }
+                    cbNoSelection(appContext);
                     DisplayAbout(appContext);
                     break;
                 case menuItemSelectDB:

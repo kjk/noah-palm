@@ -421,22 +421,13 @@ static Boolean MainFormHandleEventNoahLite(EventType * event)
                 break;
             }
 
-            if(cbPenDownEvent(appContext,event->screenX,event->screenY))
-            {
-                handled = true;
-                break;
-            }
-
+            cbPenDownEvent(appContext,event->screenX,event->screenY);
             handled = true;
             break;
 
         case penMoveEvent:
 
-            if(cbPenMoveEvent(appContext,event->screenX,event->screenY))
-            {
-                handled = true;
-                break;
-            }
+            cbPenMoveEvent(appContext,event->screenX,event->screenY);
             handled = true;
             break;
 
@@ -485,6 +476,7 @@ static Boolean MainFormHandleEventNoahLite(EventType * event)
                         appContext->currDispInfo = NULL;
                         appContext->currentWord = 0;
                     }
+                    cbNoSelection(appContext);
                     DisplayAbout(appContext);
                     break;
 #ifdef DEBUG

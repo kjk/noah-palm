@@ -116,7 +116,7 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
     }
     else
     {
-        MemMove(appContext->lastWord, word, StrLen(word));
+        MemMove(appContext->lastWord, txt, StrLen(txt));
         FrmPopupForm(formDictFind);
         return true;
     }
