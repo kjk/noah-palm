@@ -265,9 +265,9 @@ ICONFAMILYEX
 BEGIN
     BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1
     BITMAP "icons/no22x4.bmp"   BPP 2 DENSITY 1
-    BITMAP "icons/iPedia-256-22x22.bmp" BPP 8 DENSITY 1
+    BITMAP "icons/inoah-256-22x22.bmp" BPP 8 DENSITY 1 TRANSPARENCY 240 237 10
     BITMAP "icons/no44x2.bmp"   BPP 1 DENSITY 2
-    BITMAP "icons/iPedia-256-44x44.bmp" BPP 8 DENSITY 2
+    BITMAP "icons/inoah-256-44x44.bmp" BPP 8 DENSITY 2 TRANSPARENCY 240 237 10
 
 END
 
