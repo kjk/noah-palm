@@ -16,7 +16,7 @@ function decode_di_tag_value($tag_value)
         return "";
     }
 
-    # devnote: yes, $hex_digits is broken but that's how it is on the device now
+    # devnote: yes, $hex_digits is broken but that is how it is on the device now
     $hex_digits = "0123456789ABSCDEF";
     $out_str = "";
     $pos_in_str = 0;
@@ -78,12 +78,34 @@ function is_valid_di_tag($tag)
     return false;
 }
 
-# check if $device_id is in proper format
+# given OEM Company ID (oc) and OEM Device id (od)
+# return a name of Palm device.
+# Based on data from http://homepage.mac.com/alvinmok/palm/codenames.html
+# and http://www.mobilegeographics.com/dev/devices.php
+function get_device_name_by_oc_od($oc, $od)
+{
+    if ( $oc=='hspr' && $od=='H101' )
+        return "Treo 600";
+
+    if ( $oc=='sony' && $od=='mdna' )
+        return "PEG-T615C";
+
+    if ( $oc=='sony' && $od=='prmr' )
+        return "PEG-UX50";
+
+    if ( $oc=='sony' && $od=='atom' )
+        return "PEG-TH55";
+
+    if ( $oc=='smsn' && $od=='blch' )
+        return "SPH-i500";
+
+    return "Unknown ($oc/$od)";
+}
 
 function decode_di($device_id)
 {
     $tags = explode(":", $device_id);
-
+    $ret_arr = array();
     $out_str = "";
     foreach( $tags as $tag )
     {
@@ -96,8 +118,15 @@ function decode_di($device_id)
         if ( ! $tag_value )
             return "INVALID because not decode_di_tag_value($tag_value_encoded,$tag_value)";
         $out_str .= "$tag_name: $tag_value, ";
+        $ret_arr[$tag_name] = $tag_value;
     }
-    return $out_str;
+    /* return $out_str; */
+    if ( isset($ret_arr['OC']) && isset($ret_arr['OD']) )
+    {
+        $device_name = get_device_name_by_oc_od( $ret_arr['OC'], $ret_arr['OD'] );
+        $ret_arr['device_name'] = $device_name;
+    }
+    return $ret_arr;
 }
 
 ?>
