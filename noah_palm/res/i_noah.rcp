@@ -258,3 +258,13 @@ BEGIN
 END
 
 
+
+FORM ID formRegistration  AT ( 2 85 156 70 )
+MODAL DEFAULTBTNID buttonOk
+BEGIN
+        TITLE "Registration"
+	LABEL "Enter your registration number:" AUTOID AT (5 20)
+	FIELD ID fieldSerialNumber   AT (5 PREVBOTTOM+5 146 AUTO) MAXCHARS 64 EDITABLE UNDERLINED 
+	BUTTON "Register" ID buttonRegister   AT (5 PREVBOTTOM+5 40 AUTO)
+	BUTTON "Cancel" ID buttonCancel  AT (PREVRIGHT+5 PREVTOP 40 AUTO)
+END

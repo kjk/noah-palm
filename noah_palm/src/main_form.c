@@ -10,6 +10,7 @@
 #include "inet_connection.h"
 #include "five_way_nav.h"
 #include "bookmarks.h"
+#include "inet_registration.h"
 
 typedef enum MainFormUpdateCode_ 
 {
@@ -303,6 +304,8 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
             }
 
         default:
+            if (appContext->lookupStatusBarVisible)
+                handled=true;
             break;
     }
     return handled;
@@ -330,6 +333,58 @@ inline static void MainFormHandleCopy(AppContext* appContext)
 {
     if (appContext->currDispInfo)
         diCopyToClipboard(appContext->currDispInfo);
+}
+
+static Boolean RegistrationFormHandleEvent(EventType* event)
+{
+    Boolean handled=false;
+    FormType* form=FrmGetFormPtr(formRegistration);
+    UInt16 index=0;
+    switch (event->eType)
+    {
+        case winEnterEvent:
+            if ((reinterpret_cast<_WinEnterEventType&>(event->data)).enterWindow==(void*)form)
+            {
+                index=FrmGetObjectIndex(form, fieldSerialNumber);
+                Assert(frmInvalidObjectId!=index);
+                FrmSetFocus(form, index);            }
+            break;
+
+        case keyDownEvent:
+            if (returnChr==event->data.keyDown.chr || linefeedChr==event->data.keyDown.chr)
+            {
+                index=FrmGetObjectIndex(form, buttonRegister);
+                Assert(frmInvalidObjectId!=index);
+                const ControlType* regButton=static_cast<const ControlType*>(FrmGetObjectPtr(form, index));
+                Assert(regButton);
+                CtlHitControl(regButton);
+                handled=true;
+            }
+    }
+    return handled;
+}
+
+static void MainFormHandleRegister(AppContext* appContext)
+{
+    FormType* form=FrmInitForm(formRegistration);
+    if (form)
+    {
+        FrmSetEventHandler(form, RegistrationFormHandleEvent);
+        UInt16 button=FrmDoDialog(form);
+        if (buttonRegister==button)
+        {
+            UInt16 index=FrmGetObjectIndex(form, fieldSerialNumber);
+            Assert(frmInvalidObjectId!=index);
+            const FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+            Assert(field);
+            const char* serialNumber=FldGetTextPtr(field);
+            if (serialNumber && StrLen(serialNumber))
+                StartRegistration(appContext, serialNumber);
+        }
+        FrmDeleteForm(form);
+    }
+    else
+        FrmAlert(alertMemError);
 }
 
 static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, EventType* event)
@@ -368,7 +423,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             break;        
 
         case menuItemRegister:
-            FrmAlert(alertNotImplemented);
+            MainFormHandleRegister(appContext);
             handled=true;
             break;
             

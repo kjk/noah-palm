@@ -10,6 +10,7 @@
 #include "inet_registration.h"
 #include "inet_definition_format.h"
 #include "inet_connection.h"
+#include "cookie_request.h"
 
 /**
  * URL that forms registration request.
@@ -19,48 +20,36 @@
 /**
  * Prepares request string to be sent to the server.
  * Fills @c buffer with properly formatted server-relative url that contains user and device id.
- * @param userId user id.
+ * @param serialNumber serial number.
  * @param buffer @c ExtensibleBuffer to be filled with request string. 
  * Will contain valid data on successful return.
  * @return standard PalmOS error code (@c errNone on success).
  */
-static Err RegistrationPrepareRequest(const Char* userId, ExtensibleBuffer& buffer)
+static Err RegistrationPrepareRequest(const char* cookie, const char* serialNumber, ExtensibleBuffer& buffer)
 {
     Err error=errNone;
-/*
-    const Char* deviceId=0;
-    UInt16 deviceIdLength=0;
-    Err error=SysGetDeviceId(reinterpret_cast<UInt8**>(const_cast<Char**>(&deviceId)), &deviceIdLength);
-    if (!error)
+    UInt16 snLength=StrLen(serialNumber);
+    char* urlEncSn=NULL;
+    error=StrUrlEncode(serialNumber, serialNumber+snLength+1, &urlEncSn, &snLength); // StrUrlEncode preserves null-terminator
+    if (!error) 
     {
-        Char* urlEncDid=NULL;
-        UInt16 urlEncDidLength=0;
-        error=StrUrlEncode(deviceId, deviceId+deviceIdLength, &urlEncDid, &urlEncDidLength);
+        UInt16 cookieLength=StrLen(cookie);
+        char* urlEncCookie=NULL;
+        error=StrUrlEncode(cookie, cookie+cookieLength+1, &urlEncCookie, &cookieLength);
         if (!error)
         {
-            UInt16 uidLength=StrLen(userId);
-            Char* urlEncUid=NULL;
-            error=StrUrlEncode(userId, userId+uidLength, &urlEncUid, &uidLength); // StrUrlEncode preserves null-terminator
-            if (!error) 
+            char* url=TxtParamString(registrationRequestUrl, PROTOCOL_VERSION, CLIENT_VERSION, urlEncCookie, urlEncSn);
+            if (url)
             {
-                ExtensibleBuffer urlEncDidBuffer; // urlEncDid still needs to be null-terminated :-(
-                ebufInitWithStrN(&urlEncDidBuffer, urlEncDid, urlEncDidLength);
-                ebufAddChar(&urlEncDidBuffer, chrNull);
-                Char* url=TxtParamString(registrationRequestUrl, urlEncUid, ebufGetDataPointer(&urlEncDidBuffer), NULL, NULL);
-                if (url)
-                {
-                    ebufAddStr(&buffer, url);
-                    MemPtrFree(url);
-                }
-                else
-                    error=memErrNotEnoughSpace;
-                ebufFreeData(&urlEncDidBuffer);
-                new_free(urlEncUid);
+                ebufAddStr(&buffer, url);
+                MemPtrFree(url);
             }
-            new_free(urlEncDid);
+            else
+                error=memErrNotEnoughSpace;
+            new_free(urlEncCookie);
         }
+        new_free(urlEncSn);
     }
-*/    
     return error;    
 }
 
@@ -71,42 +60,42 @@ static Err RegistrationPrepareRequest(const Char* userId, ExtensibleBuffer& buff
  */
 static Err RegistrationResponseProcessor(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd)
 {
-    Err error=errNone;
-/*    
-    if (StrStartsWith(responseBegin, responseEnd, registrationSuccessfulResponse) ||
-        StrStartsWith(responseBegin, responseEnd, alreadyRegisteredResponse))
+    ResponseParsingResult result;
+    Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
+    if (!error)
     {
-        ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
-        Assert(wordBuffer);
-        appContext->prefs.registrationNeeded=false;
-        const Char* word=ebufGetDataPointer(wordBuffer);
-        StartWordLookup(appContext, word);
+        if (!(responseMessage==result || responseErrorMessage==result))
+        {
+            FrmAlert(alertMalformedResponse);
+            error=appErrMalformedResponse;
+        }
+        else
+        {
+            appContext->mainFormContent=mainFormShowsMessage;
+            appContext->firstDispLine=0;
+        }
     }
-    else if (StrStartsWith(responseBegin, responseEnd, multipleNotAllowedResponse))
-        FrmAlert(alertMultipleRegistration);
-    else 
-    {
-        FrmAlert(alertMalformedResponse);
-        error=appErrMalformedResponse;
-    }
-*/    
     return error;
 }
 
 
-void StartRegistration(AppContext* appContext, const Char* serialNumber)
+void StartRegistration(AppContext* appContext, const char* serialNumber)
 {
     Assert(serialNumber);
-    ExtensibleBuffer requestBuffer;
-    ebufInit(&requestBuffer, 0);
-    Err error=RegistrationPrepareRequest(serialNumber, requestBuffer);
-    if (!error)
+    if (!HasCookie(appContext->prefs))
+        StartCookieRequestWithRegistration(appContext, serialNumber);    else 
     {
-        const Char* requestText=ebufGetDataPointer(&requestBuffer);
-        StartConnection(appContext, NULL, requestText, GeneralStatusTextRenderer,
-            RegistrationResponseProcessor, NULL);
+        ExtensibleBuffer requestBuffer;
+        ebufInit(&requestBuffer, 0);
+        Err error=RegistrationPrepareRequest(appContext->prefs.cookie, serialNumber, requestBuffer);
+        if (!error)
+        {
+            const Char* requestText=ebufGetDataPointer(&requestBuffer);
+            StartConnection(appContext, NULL, requestText, GeneralStatusTextRenderer,
+                RegistrationResponseProcessor, NULL);
+        }
+        else
+            FrmAlert(alertMemError);
+        ebufFreeData(&requestBuffer);
     }
-    if (error)
-        FrmAlert(alertMemError);
-    ebufFreeData(&requestBuffer);
 }

@@ -19,6 +19,13 @@
  * new word lookup connection is queued with specified word.
  * @param word word to find after cookie is successfully obtained.
  */
-extern void StartCookieRequestWithWordLookup(AppContext* appContext, const Char* word);
+extern void StartCookieRequestWithWordLookup(AppContext* appContext, const char* word);
+
+/**
+ * @see StartCookieRequestWithWordLookup(AppContext*, const char*)
+ * After cookie is received new registration connection is queued with specified serial number.
+ * @param serialNumber serial number to register with after cookie is successfully obtained.
+ */
+extern void StartCookieRequestWithRegistration(AppContext* appContext, const char* serialNumber);
 
 #endif

@@ -18,6 +18,6 @@
  * for processing using StartConnection() function. 
  * @param serialNumber serial number that user entered.
  */
-extern void StartRegistration(AppContext* appContext, const Char* serialNumber);
+extern void StartRegistration(AppContext* appContext, const char* serialNumber);
 
 #endif

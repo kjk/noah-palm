@@ -11,7 +11,7 @@
 #define  I_NOAH_CREATOR      'STRT'
 #define APP_CREATOR I_NOAH_CREATOR
 
-#define MAX_COOKIE_LENGTH 12
+#define MAX_COOKIE_LENGTH 64
 
 /* structure of the general preferences record */
 typedef struct

@@ -50,10 +50,10 @@ void testParseResponse(char *txt)
 
 #endif
 
-inline static Err WordLookupRenderStatusText(const Char* word, ConnectionStage stage, UInt16 bytesReceived, const Char* baseText, ExtensibleBuffer& statusText)
+inline static Err WordLookupRenderStatusText(const char* word, ConnectionStage stage, UInt16 bytesReceived, const char* baseText, ExtensibleBuffer& statusText)
 {
     Err error=errNone;
-    Char* text=TxtParamString(baseText, word, NULL, NULL, NULL);
+    char* text=TxtParamString(baseText, word, NULL, NULL, NULL);
     if (text)
     {
         ebufResetWithStr(&statusText, text);
@@ -61,7 +61,7 @@ inline static Err WordLookupRenderStatusText(const Char* word, ConnectionStage s
         if (stageReceivingResponse==stage)
         {
             static const UInt16 bytesBufferSize=28; // it will be placed in code segment, so no worry about globals
-            Char buffer[bytesBufferSize];
+            char buffer[bytesBufferSize];
             Int16 bytesLen=0;
             if (bytesReceived<1024)
                 bytesLen=StrPrintF(buffer, " %d bytes", bytesReceived);
@@ -75,10 +75,10 @@ inline static Err WordLookupRenderStatusText(const Char* word, ConnectionStage s
                     bri++;
                     brf=0;
                 }
-                Char formatString[9];
+                char formatString[9];
                 StrCopy(formatString, " %d.%d kB");
                 NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
-                Char dontCare;
+                char dontCare;
                 LocGetNumberSeparators(numFormat, &dontCare, formatString+3); // change decimal separator in place
                 bytesLen=StrPrintF(buffer, formatString, bri, brf);                
             }
@@ -95,7 +95,7 @@ inline static Err WordLookupRenderStatusText(const Char* word, ConnectionStage s
 
 static Err WordLookupStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer)
 {
-    const Char* baseText=NULL;
+    const char* baseText=NULL;
     switch (stage) 
     {
         case stageResolvingAddress:
@@ -155,7 +155,7 @@ OnError:
     return error;    
 }
 
-static Err WordLookupResponseProcessor(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd)
+static Err WordLookupResponseProcessor(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
 {
     ResponseParsingResult result;
     Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
@@ -201,11 +201,11 @@ void StartWordLookup(AppContext* appContext, const Char* word)
         Err error=WordLookupPrepareRequest(appContext->prefs.cookie, word, urlBuffer);
         if (!error) 
         {
-            const Char* requestUrl=ebufGetDataPointer(&urlBuffer);
+            const char* requestUrl=ebufGetDataPointer(&urlBuffer);
             ExtensibleBuffer* context=ebufNew();
             if (context)
             {
-                ebufInitWithStr(context, const_cast<Char*>(word));
+                ebufInitWithStr(context, const_cast<char*>(word));
                 StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
                     WordLookupResponseProcessor, WordLookupContextDestructor);
             }

@@ -6,6 +6,7 @@
 #define formPrefs           1002
 #define formBookmarks       1003
 #define formWordsList       1004
+#define formRegistration	1005
 
 #define menuMain                1100
 
@@ -71,5 +72,8 @@
 #define ctlArrowLeft        4300
 #define ctlArrowRight      4301
 #define listProposals        4302
+
+#define buttonRegister	4400
+#define fieldSerialNumber	4401
 
 #define helpPrefs   5000

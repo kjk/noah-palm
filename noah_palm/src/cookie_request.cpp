@@ -11,19 +11,14 @@
 #include "inet_connection.h"
 #include "inet_word_lookup.h"
 #include "inet_definition_format.h"
+#include "inet_registration.h"
 
 /**
  * URL that forms cookie request.
  */
 #define cookieRequestUrl "/palm.php?pv=^0&cv=^1&get_cookie&di=^2"
 
-/**
- * Callback used by internet connection framework to process valid response.
- * if context is NULL we should follow up with GET_RANDOM_WORD request,
- * otherwise with GET_WORD request
- * @see ConnectionResponseProcessor
- */
-static Err CookieRequestResponseProcessor(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
+static Err CookieRequestResponseProcessorCommon(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd, const char*& wordOut)
 {
     ResponseParsingResult   result;
     Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
@@ -37,18 +32,60 @@ static Err CookieRequestResponseProcessor(AppContext* appContext, void* context,
                 ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
                 const char* word=ebufGetDataPointer(wordBuffer);
                 Assert(word);
-                StartWordLookup(appContext, word);
+                wordOut=word;
             }
             else
-                StartRandomWordLookup(appContext);
+                wordOut=NULL;
         }
         else if (responseMessage!=result && responseErrorMessage!=result)
         {
             error=appErrMalformedResponse;
             FrmAlert(alertMalformedResponse);
         }
+        else
+        {
+            appContext->mainFormContent=mainFormShowsMessage;
+            appContext->firstDispLine=0;
+        }
     }
     return error;
+}
+
+/**
+ * Callback used by internet connection framework to process valid response.
+ * if context is NULL we should follow up with GET_RANDOM_WORD request,
+ * otherwise with GET_WORD request
+ * @see ConnectionResponseProcessor
+ */
+static Err CookieRequestResponseProcessorWithLookup(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
+{
+    const char* word=NULL;
+    Err error=CookieRequestResponseProcessorCommon(appContext, context, responseBegin, responseEnd, word);
+    if (!error)
+    {
+        if (word)
+            StartWordLookup(appContext, word);
+        else
+            StartRandomWordLookup(appContext);
+    }            
+    return error;       
+}
+
+/**
+ * Callback used by internet connection framework to process valid response.
+ * Extracts serial number from @c context and calls @c StartRegistration(AppContext*, const char*).
+ * @see ConnectionResponseProcessor
+ */
+static Err CookieRequestResponseProcessorWithRegistration(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
+{
+    const char* serialNumber=NULL;
+    Err error=CookieRequestResponseProcessorCommon(appContext, context, responseBegin, responseEnd, serialNumber);
+    if (!error)
+    {
+        Assert(serialNumber);
+        StartRegistration(appContext, serialNumber);
+    }            
+    return error;       
 }
 
 static void CookieRequestContextDestructor(void* context)
@@ -104,7 +141,7 @@ void StartCookieRequestWithWordLookup(AppContext* appContext, const char* word)
             {
                 ebufInitWithStr(wordBuffer, const_cast<char*>(word));
                 StartConnection(appContext, wordBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
-                    CookieRequestResponseProcessor,  CookieRequestContextDestructor);
+                    CookieRequestResponseProcessorWithLookup,  CookieRequestContextDestructor);
             }
             else
                 FrmAlert(alertMemError);
@@ -113,9 +150,31 @@ void StartCookieRequestWithWordLookup(AppContext* appContext, const char* word)
         {
             // this means GET_RANDOM_WORD in CookieRequestResponseProcessor
             StartConnection(appContext, NULL, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
-                CookieRequestResponseProcessor,  CookieRequestContextDestructor);
+                CookieRequestResponseProcessorWithLookup,  CookieRequestContextDestructor);
         }
             
+    }
+    else
+        FrmAlert(alertMemError);    
+    ebufFreeData(&request);
+}
+
+void StartCookieRequestWithRegistration(AppContext* appContext, const char* serialNumber)
+{
+    ExtensibleBuffer request;
+    ebufInit(&request, 0);
+    Err error=CookieRequestPrepareRequest(request);
+    if (!error)
+    {
+        ExtensibleBuffer* snBuffer=ebufNew();
+        if (snBuffer)
+        {
+            ebufInitWithStr(snBuffer, const_cast<char*>(serialNumber));
+            StartConnection(appContext, snBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
+                CookieRequestResponseProcessorWithRegistration, CookieRequestContextDestructor);
+        }
+        else
+            FrmAlert(alertMemError);
     }
     else
         FrmAlert(alertMemError);    
