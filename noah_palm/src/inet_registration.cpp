@@ -8,60 +8,13 @@
  */
 
 #include "inet_registration.h"
-#include "inet_word_lookup.h"
+#include "inet_definition_format.h"
 #include "inet_connection.h"
-
-/**
- * Response returned by server if registration succeeds.
- */
-#define registrationSuccessfulResponse "REG_SUCCESS"
-
-/**
- * Response returned by server if given user id is already assigned to this device.
- */
-#define alreadyRegisteredResponse      "REG_ALREADY"
-
-/**
- * Response returned by server if given user id is already registered on other device.
- */
-#define multipleNotAllowedResponse     "REG_MULTIPLE"
 
 /**
  * URL that forms registration request.
  */
-#define registrationRequestUrl "/dict-reg.php?uid=^0&did=^1"
-
-/**
- * Callback used by internet connection framework to render connection status text.
- * @see ConnectionStatusRenderer
- * @return standard PalmOS error code (@c errNone if success - always, as current implementation is trivial).
- */
-static Err RegistrationStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer)
-{
-    const Char* baseText=NULL;
-    switch (stage) 
-    {
-        case stageResolvingAddress:
-            baseText="Resolving host address";
-            break;
-        case stageOpeningConnection:
-            baseText="Opening connection";
-            break;
-        case stageSendingRequest:
-            baseText="Registering...";
-            break;                        
-        case stageReceivingResponse:
-            baseText="Retrieving response...";
-            break;
-        case stageFinished:
-            baseText="Finished";
-            break;
-        default:
-            Assert(false);
-    }
-    ebufAddStr(&statusBuffer, const_cast<Char*>(baseText));
-    return errNone;
-}
+#define registrationRequestUrl "/palm.php?pv=^0&cv=^1&c=^2&register=^3"
 
 /**
  * Prepares request string to be sent to the server.
@@ -73,6 +26,8 @@ static Err RegistrationStatusTextRenderer(void* context, ConnectionStage stage, 
  */
 static Err RegistrationPrepareRequest(const Char* userId, ExtensibleBuffer& buffer)
 {
+    Err error=errNone;
+/*
     const Char* deviceId=0;
     UInt16 deviceIdLength=0;
     Err error=SysGetDeviceId(reinterpret_cast<UInt8**>(const_cast<Char**>(&deviceId)), &deviceIdLength);
@@ -105,6 +60,7 @@ static Err RegistrationPrepareRequest(const Char* userId, ExtensibleBuffer& buff
             new_free(urlEncDid);
         }
     }
+*/    
     return error;    
 }
 
@@ -116,7 +72,7 @@ static Err RegistrationPrepareRequest(const Char* userId, ExtensibleBuffer& buff
 static Err RegistrationResponseProcessor(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
-    Boolean startLookup=false;
+/*    
     if (StrStartsWith(responseBegin, responseEnd, registrationSuccessfulResponse) ||
         StrStartsWith(responseBegin, responseEnd, alreadyRegisteredResponse))
     {
@@ -133,40 +89,22 @@ static Err RegistrationResponseProcessor(AppContext* appContext, void* context, 
         FrmAlert(alertMalformedResponse);
         error=appErrMalformedResponse;
     }
+*/    
     return error;
 }
 
 
-/**
- * Callback used by internet connection framework to free context data.
- * @see ConnectionContextDestructor
- */
-static void RegistrationContextDestructor(void* context)
+void StartRegistration(AppContext* appContext, const Char* serialNumber)
 {
-    ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
-    Assert(wordBuffer);
-    ebufDelete(wordBuffer);
-}
-
-void StartRegistrationWithLookup(AppContext* appContext, const Char* userId, const Char* word)
-{
-    Assert(userId);
+    Assert(serialNumber);
     ExtensibleBuffer requestBuffer;
     ebufInit(&requestBuffer, 0);
-    Err error=RegistrationPrepareRequest(userId, requestBuffer);
+    Err error=RegistrationPrepareRequest(serialNumber, requestBuffer);
     if (!error)
     {
         const Char* requestText=ebufGetDataPointer(&requestBuffer);
-        ExtensibleBuffer* wordBuffer=ebufNew();
-        if (wordBuffer)
-        {
-            ebufInitWithStr(wordBuffer, const_cast<Char*>(word));
-            ebufAddChar(wordBuffer, chrNull);
-            StartConnection(appContext, wordBuffer, requestText, RegistrationStatusTextRenderer,
-                RegistrationResponseProcessor, RegistrationContextDestructor);
-        }
-        else
-            error=memErrNotEnoughSpace;
+        StartConnection(appContext, NULL, requestText, GeneralStatusTextRenderer,
+            RegistrationResponseProcessor, NULL);
     }
     if (error)
         FrmAlert(alertMemError);

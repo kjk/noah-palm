@@ -5,16 +5,15 @@
 
 typedef enum ResponseParsingResult_
 {
-    responseError,
-    responseMalformed,
-    responseUnauthorised,
     responseWordNotFound,
-    responseOneWord,
+    responseDefinition,
     responseWordsList,
     responseMessage,
+    responseErrorMessage,
+    responseCookie,
 } ResponseParsingResult;    
 
-extern ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd, Boolean usedAuthentication);
-extern Err ProcessOneWordResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd);
+extern Err ProcessResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd, ResponseParsingResult& result);
+extern Err ProcessDefinitionResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd);
 
 #endif

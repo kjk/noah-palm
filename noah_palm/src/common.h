@@ -603,26 +603,6 @@ extern Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt
 
 extern Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID);
 
-/**
- * Queries system for device id (serial number).
- * @param data pointer to serial number data that will be filled on successful return.
- * This pointer should not be freed as it points somewhere into system globals (probably :-) as 
- * there's nothing about it in PalmOS Reference).
- * @param length pointer to variable that will receive length of returned data on successful completion.
- * @return standard PalmOS error code (@c errNone on success). Contrary to SysGetROMToken() system call
- * data are guaranteed to be valid if success is indicated.
- */
-extern Err SysGetDeviceId(UInt8** data, UInt16* length);
-
-/**
- * Queries system for device id (serial number) and converts returned value to a number.
- * @param deviceId pointer to variable that will receive device id on successful return.
- * @see SysGetDeviceId(UInt8**, UInt16*)
- */
-extern Err SysGetDeviceIdAsNumber(UInt32* deviceId);
-
-extern Err GetAuthorizationKey(AppContext* appContext, ExtensibleBuffer* out);
-
 extern void CreateNewMemo(char *memoBody, int memoBodySize);
 
 #ifdef DEBUG 

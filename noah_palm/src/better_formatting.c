@@ -670,7 +670,7 @@ static void ReformatLastResponse(AppContext* appContext)
         Assert(word);
         Assert(responseBegin);
         const Char* responseEnd=responseBegin+ebufGetDataSize(&appContext->lastResponse);
-        Err error=ProcessOneWordResponse(appContext, word, responseBegin, responseEnd);
+        Err error=ProcessDefinitionResponse(appContext, word, responseBegin, responseEnd);
         Assert(!error);
     }        
 }

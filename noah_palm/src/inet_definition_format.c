@@ -2,8 +2,11 @@
 #include "blowfish.h"
 
 #define noDefnitionResponse "NO DEFINITION"
-#define wordsListResponse    "WORD_LIST"
+#define wordsListResponse    "WORDLIST"
 #define messageResponse     "MESSAGE"
+#define errorMessageResponse "ERROR"
+#define cookieResponse "COOKIE"
+#define definitionResponse "DEF"
 
 static Err ExpandPartOfSpeechSymbol(Char symbol, const Char** partOfSpeech)
 {
@@ -39,8 +42,8 @@ static Err ConvertSynonymsBlock(AppContext* appContext, const Char* word, const 
         const Char* synBegin=begin+1;
         if (synBegin<end) 
         {  
-            const Char* synEnd=StrFind(synBegin, end, "\r\n!");
-            begin=synEnd+2;
+            const Char* synEnd=StrFind(synBegin, end, "\n!");
+            begin=synEnd+1;
             StrTrimTail(synBegin, &synEnd);
             if (synBegin<synEnd)
             {
@@ -87,7 +90,7 @@ static Err ConvertDefinitionBlock(const Char* begin, const Char* end, Extensible
             const Char* defEnd=StrFindOneOf(defBegin, end, "@#");
             while (defEnd<end)
             {
-                if (StrStartsWith(defEnd-2, defEnd, "\r\n"))
+                if (StrStartsWith(defEnd-1, defEnd, "\n"))
                     break;
                 else                    
                     defEnd=StrFindOneOf(defEnd+1, end, "@#");
@@ -135,10 +138,10 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     begin=StrFind(begin, end, "!");
     while (begin<end)
     {
-        const Char* partBlock=StrFind(begin, end, "\r\n$");
+        const Char* partBlock=StrFind(begin, end, "\n$");
         if (partBlock<end)
         {
-            const Char* partOfSpeech=(partBlock+=2)+1;
+            const Char* partOfSpeech=(partBlock+=1)+1;
             if (partOfSpeech<end)
             {
                 error=ExpandPartOfSpeechSymbol(*partOfSpeech, &partOfSpeech);
@@ -156,15 +159,16 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
                         const Char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
                         while (defBlock<end)
                         {
-                            if (StrStartsWith(defBlock-2, defBlock, "\r\n"))
+                            if (StrStartsWith(defBlock-1, defBlock, "\n"))
                                 break;
                             else                    
                                 defBlock=StrFindOneOf(defBlock+1, end, "@#");
                         }
                         if (defBlock<end)
                         {
-                            begin=StrFind(defBlock, end, "\r\n!");
-                            if (begin<end) begin+=2;
+                            begin=StrFind(defBlock, end, "\n!");
+                            if (begin<end) 
+                                begin++;
                             error=ConvertDefinitionBlock(defBlock, begin, out);
                             if (error)
                                 break;
@@ -191,32 +195,40 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     return error;
 }
 
-Err ProcessOneWordResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd)
+Err ProcessDefinitionResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
-    ExtensibleBuffer buffer;
-    ebufInit(&buffer, 0);
-    error=ConvertInetToDisplayableFormat(appContext, word, responseBegin, responseEnd, &buffer);
-    if (!error)
+//    responseBegin=StrFind(responseBegin, responseEnd, "\n")+1;
+    responseBegin+=3;
+    if (responseBegin<responseEnd)
     {
-        ebufAddChar(&buffer, chrNull);
-        ebufWrapBigLines(&buffer);
-        ebufSwap(&buffer, &appContext->currentDefinition);
-        diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
-        ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
-        ebufAddChar(&appContext->currentWordBuf, chrNull);
+        ExtensibleBuffer buffer;
+        ebufInit(&buffer, 0);
+        error=ConvertInetToDisplayableFormat(appContext, word, responseBegin, responseEnd, &buffer);
+        if (!error)
+        {
+            ebufAddChar(&buffer, chrNull);
+            ebufWrapBigLines(&buffer);
+            ebufSwap(&buffer, &appContext->currentDefinition);
+            diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
+            ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
+            ebufAddChar(&appContext->currentWordBuf, chrNull);
+        }
+        ebufFreeData(&buffer);
     }
-    ebufFreeData(&buffer);
+    else
+        error=appErrMalformedResponse;        
     return error;
 }
 
 static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEnd, Char** targetList=NULL)
 {
     UInt16 wordsCount=0;
-    const Char* wordBegin=StrFind(responseBegin, responseEnd, "\r\n")+2;
+//    const Char* wordBegin=StrFind(responseBegin, responseEnd, "\n")+1;
+    const Char* wordBegin=responseBegin+8;
     while (wordBegin<responseEnd)
     {
-        const Char* wordEnd=StrFind(wordBegin, responseEnd, "\r\n");
+        const Char* wordEnd=StrFind(wordBegin, responseEnd, "\n");
         if (wordBegin!=wordEnd)
         {
             if (targetList)
@@ -235,7 +247,7 @@ static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEn
         if (wordEnd>=responseEnd)
             wordBegin=responseEnd;
         else
-            wordBegin=wordEnd+2;
+            wordBegin=wordEnd+1;
     }
     return wordsCount;
 }
@@ -268,100 +280,103 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
 static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
-    const Char* messageBegin=StrFind(responseBegin, responseEnd, "\r\n")+2;
+//    const Char* messageBegin=StrFind(responseBegin, responseEnd, "\n")+1;
+    const Char* messageBegin=responseBegin+7;
     if (messageBegin<responseEnd)
     {
         ExtensibleBuffer buffer;
         ebufInit(&buffer, 0);
         while (messageBegin<responseEnd)
         {
-            const Char* messageEnd=StrFind(messageBegin, responseEnd, "\r\n");
+            const Char* messageEnd=StrFind(messageBegin, responseEnd, "\n");
             if (messageBegin<messageEnd)
             {
                 ebufAddStrN(&buffer, const_cast<Char*>(messageBegin), messageEnd-messageBegin);
                 ebufAddChar(&buffer, '\n');
             }
             if (messageEnd<responseEnd)
-                messageBegin=messageEnd+2;
+                messageBegin=messageEnd+1;
             else 
                 messageBegin=responseEnd;
         }                
         ebufWrapBigLines(&buffer);
         ebufSwap(&appContext->lastMessage, &buffer);
         diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->lastMessage));
+        ebufFreeData(&buffer);
     }
     else 
         error=appErrMalformedResponse;
     return error;
 }
 
-static Err DecipherResponse(AppContext* appContext, const Char* begin, const Char* end, ExtensibleBuffer& out)
+static Err ProcessCookieResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
-    UInt16 length=end-begin;
-    if (length % 8)
-        error=appErrMalformedResponse;
-    else
+    const Char* cookieBegin=responseBegin+6;
+//    const Char* cookieBegin=StrFind(responseBegin, responseEnd, "\n")+1;
+    if (cookieBegin<responseEnd)
     {
-        ExtensibleBuffer key;
-        ebufInit(&key, 0);
-        error=GetAuthorizationKey(appContext, &key);
-        if (!error)
+        const Char* cookieEnd=StrFind(cookieBegin, responseEnd, "\n");
+        UInt16 cookieLength=cookieEnd-cookieBegin;
+        if (cookieLength>0 && cookieLength<=MAX_COOKIE_LENGTH)
         {
-            BlowfishCipher* bf=new BlowfishCipher(reinterpret_cast<const UInt8*>(ebufGetDataPointer(&key)), ebufGetDataSize(&key));
-            if (bf)
-            {
-                ebufAddStrN(&out, const_cast<Char*>(begin), end-begin);
-                bf->decrypt(reinterpret_cast<UInt8*>(ebufGetDataPointer(&out)), ebufGetDataSize(&out));
-                delete bf;
-            }
-            else 
-                error=memErrNotEnoughSpace;
+            MemMove(appContext->prefs.cookie, cookieBegin, cookieLength);
+            appContext->prefs.cookie[cookieLength]=chrNull;
         }
-        ebufFreeData(&key);
+        else 
+            error=appErrMalformedResponse;
     }
+    else 
+        error=appErrMalformedResponse;
     return error;
 }
 
-ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, const Char* begin, const Char* end, Boolean usedAuthentication)
+Err ProcessResponse(AppContext* appContext, const Char* word, const Char* begin, const Char* end, ResponseParsingResult& result)
 {
     Assert(word);
     Assert(begin);
     Assert(end);
-    ResponseParsingResult result=responseError;
     Err error=errNone;
-    ExtensibleBuffer decipheredResponse;
-    ebufInit(&decipheredResponse, 0);
-    if (StrStartsWith(begin, end, noDefnitionResponse))
+    if (StrStartsWith(begin, end, cookieResponse))
+    {
+        error=ProcessCookieResponse(appContext, begin, end);
+        if (!error)
+            result=responseCookie;
+    }
+    else if (StrStartsWith(begin, end, noDefnitionResponse))
+    {
         result=responseWordNotFound;
+    }
     else if (StrStartsWith(begin, end, wordsListResponse))
     {
         error=ProcessWordsListResponse(appContext, begin, end);
-        result=responseWordsList;
+        if (!error)
+            result=responseWordsList;
     }
     else if (StrStartsWith(begin, end, messageResponse))
     {
         error=ProcessMessageResponse(appContext, begin, end);
-        result=responseMessage;
-    }
-    else
-    {
-        if (usedAuthentication)
-        {
-            error=DecipherResponse(appContext, begin, end, decipheredResponse);
-            if (!error)
-            {
-                begin=ebufGetDataPointer(&decipheredResponse);
-                end=begin+ebufGetDataSize(&decipheredResponse);
-            }
-        }
         if (!error)
-        {
-            error=ProcessOneWordResponse(appContext, word, begin, end);
-            result=responseOneWord;
-        }
+            result=responseMessage;
+    }
+    else if (StrStartsWith(begin, end, errorMessageResponse))
+    {
+        error=ProcessMessageResponse(appContext, begin, end);
+        if (!error)
+            result=responseErrorMessage;
+    }
+    else if (StrStartsWith(begin, end, definitionResponse))
+    {
+        error=ProcessDefinitionResponse(appContext, word, begin, end);
+        if (!error)
+            result=responseDefinition;
     } 
-    if (!error)
+    else
+        error=appErrMalformedResponse;
+        
+    if (appErrMalformedResponse==error)
+        FrmAlert(alertMalformedResponse);
+    else if (!error)
     {
         if (ebufGetDataPointer(&appContext->lastResponse)!=begin)
         {
@@ -369,15 +384,5 @@ ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, 
             ebufAddStrN(&appContext->lastResponse, const_cast<Char*>(begin), end-begin);
         }
     }
-    else
-    {
-        if (appErrMalformedResponse==error)
-            result=responseMalformed;
-        else if (appErrBadAuthorization==error)
-            result=responseUnauthorised;
-        else 
-            result=responseError;            
-    }
-    ebufFreeData(&decipheredResponse);
-    return result;           
+    return error;           
 }

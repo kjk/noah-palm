@@ -15,11 +15,9 @@
  * Starts a new internet registration connection with iNoah server.
  * If any connection is currently in progress it is aborted. This
  * function prepares request, context variable and submits the connection
- * for processing using StartConnection() function. When completed registration
- * it queues another connection that looks up the specified word.
- * @param userId user id which user wants to assign to this device.
- * @param word word to lookup after registration completes successfully.
+ * for processing using StartConnection() function. 
+ * @param serialNumber serial number that user entered.
  */
-extern void StartRegistrationWithLookup(AppContext* appContext, const Char* userId, const Char* word);
+extern void StartRegistration(AppContext* appContext, const Char* serialNumber);
 
 #endif

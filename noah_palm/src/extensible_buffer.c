@@ -344,4 +344,3 @@ void ebufSwap(ExtensibleBuffer* buf1, ExtensibleBuffer* buf2)
     *buf1=*buf2;
     *buf2=temp;
 }
-

@@ -11,6 +11,8 @@
 #define  I_NOAH_CREATOR      'STRT'
 #define APP_CREATOR I_NOAH_CREATOR
 
+#define MAX_COOKIE_LENGTH 12
+
 /* structure of the general preferences record */
 typedef struct
 {
@@ -23,9 +25,10 @@ typedef struct
     // how do we sort bookmarks
     BookmarkSortType        bookmarksSortType;
     
-    Char                    userId[MAX_USER_ID_LENGTH+1];
-    Boolean               registrationNeeded;
+    Char                    cookie[MAX_COOKIE_LENGTH+1];
 } iNoahPrefs;
+
+#define HasCookie(prefs) (0<StrLen((prefs).cookie))
 
 typedef iNoahPrefs AppPrefs;
 
@@ -34,6 +37,8 @@ typedef iNoahPrefs AppPrefs;
 
 #define appPreferencesVersion 0x0101
 #define appPreferencesId    0
+
+#define protocolVersion 1
 
 typedef enum AppEvent_
 {

@@ -6,14 +6,14 @@
 #include "inet_word_lookup.h"
 #include "inet_connection.h"
 #include "inet_definition_format.h"
-#include "inet_registration.h"
+#include "cookie_request.h"
 
-#define wordLookupURL           "/dict-raw.php?word=^0&ver=^1&uid=^2"
+#define wordLookupURL           "/palm.php?pv=^0&cv=^1&c=^2&get_word=^3"
 
 #ifdef DEBUG
 
 static const char* deviceWordsListResponse = 
-    "WORD_LIST\xd" "\xa" 
+    "WORDLIST\xd" "\xa" 
     "word\xd" "\xa" 
     "work\xd" "\xa" 
     "\xd" "\xa" 
@@ -24,7 +24,7 @@ static const char* deviceWordsListResponse =
     "\x0";
   
 static const char* deviceMessageResponse = 
-    "MESSAGE\xd" "\xa" 
+    "MSG\xd" "\xa" 
     "There's a new version of iNoah available.\xd" "\xa" 
     "Please visit www.arslexis.com to get it.\xd" "\xa" 
     "\xd" "\xa" 
@@ -48,12 +48,6 @@ void testParseResponse(char *txt)
 */
 
 #endif
-
-struct WordLookupContext 
-{
-    ExtensibleBuffer word;
-    Boolean usedAuthentication;
-};
 
 inline static Err WordLookupRenderStatusText(const Char* word, ConnectionStage stage, UInt16 bytesReceived, const Char* baseText, ExtensibleBuffer& statusText)
 {
@@ -135,7 +129,7 @@ static void WordLookupContextDestructor(void* context)
     ebufDelete(wordBuffer);
 }
 
-static Err WordLookupPrepareRequest(const Char* word, ExtensibleBuffer& buffer)
+static Err WordLookupPrepareRequest(const Char* cookie, const Char* word, ExtensibleBuffer& buffer)
 {
     Err error=errNone;
     Char* url=NULL;
@@ -145,16 +139,21 @@ static Err WordLookupPrepareRequest(const Char* word, ExtensibleBuffer& buffer)
     error=StrUrlEncode(word, word+wordLength, &urlEncodedWord, &wordLength);
     if (error)
         goto OnError;
-    Char versionBuffer[8];
-    StrPrintF(versionBuffer, "%hd.%hd", (short)appVersionMajor, (short)appVersionMinor);
-    url=TxtParamString(wordLookupURL, urlEncodedWord, versionBuffer, NULL, NULL);
+    
+    Char protocolVersionBuffer[8];
+    StrPrintF(protocolVersionBuffer, "%hd", (short)protocolVersion);
+    
+    Char clientVersionBuffer[8];
+    StrPrintF(clientVersionBuffer, "%hd.%hd", (short)appVersionMajor, (short)appVersionMinor);
+    
+    url=TxtParamString(wordLookupURL, protocolVersionBuffer, clientVersionBuffer, cookie, urlEncodedWord);
     new_free(urlEncodedWord);
     if (!url)
     {
         error=memErrNotEnoughSpace;
         goto OnError;
     }
-    ebufResetWithStr(&buffer, url);
+    ebufAddStr(&buffer, url);
     MemPtrFree(url);
     ebufAddChar(&buffer, chrNull);
 OnError:        
@@ -167,56 +166,52 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
     Assert(wordBuffer);
     const Char* word=ebufGetDataPointer(wordBuffer);
     Assert(word);
-    ResponseParsingResult result=ProcessResponse(appContext, word, responseBegin, responseEnd, false);
-    switch (result)
+    ResponseParsingResult result;
+    Err error=ProcessResponse(appContext, word, responseBegin, responseEnd, result);
+    if (!error) 
     {
-        case responseOneWord:
-            appContext->mainFormContent=mainFormShowsDefinition;
-            appContext->firstDispLine=0;
-            break;
-            
-        case responseMessage:
-            appContext->mainFormContent=mainFormShowsMessage;
-            appContext->firstDispLine=0;
-            break;
-            
-        case responseWordsList:
-            FrmPopupForm(formWordsList);
-            
-        case responseWordNotFound:
-            FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
-            break;
+        switch (result)
+        {
+            case responseDefinition:
+                appContext->mainFormContent=mainFormShowsDefinition;
+                appContext->firstDispLine=0;
+                break;
+                
+            case responseMessage:
+            case responseErrorMessage:
+                appContext->mainFormContent=mainFormShowsMessage;
+                appContext->firstDispLine=0;
+                break;
+                
+            case responseWordsList:
+                FrmPopupForm(formWordsList);
+                break;
+                
+            case responseWordNotFound:
+                FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
+                break;
+                
+            case responseCookie:
+                FrmAlert(alertMalformedResponse);
+                error=appErrMalformedResponse;
+                break;
 
-        case responseMalformed:
-            FrmAlert(alertMalformedResponse);
-            break;
-            
-        case responseUnauthorised:
-            //! @todo Show unauthorised use alert.
-            break;
-            
-        case responseError:
-            // it should be handled by ProcessResponse().
-            break;            
-            
-        default:
-            Assert(false);
+            default:
+                Assert(false);
+        }
     }
-    return errNone;    
+    return error;
 }
 
 void StartWordLookup(AppContext* appContext, const Char* word)
 {
-    if (appContext->prefs.registrationNeeded)
-    {
-        Assert(StrLen(appContext->prefs.userId));
-        StartRegistrationWithLookup(appContext, appContext->prefs.userId, word);
-    }
+    if (!HasCookie(appContext->prefs))
+        StartCookieRequestWithWordLookup(appContext, word);
     else
     {
         ExtensibleBuffer urlBuffer;
         ebufInit(&urlBuffer, 0);
-        Err error=WordLookupPrepareRequest(word, urlBuffer);
+        Err error=WordLookupPrepareRequest(appContext->prefs.cookie, word, urlBuffer);
         if (!error) 
         {
             const Char* requestUrl=ebufGetDataPointer(&urlBuffer);

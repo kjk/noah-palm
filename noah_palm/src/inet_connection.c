@@ -494,3 +494,30 @@ void PerformConnectionTask(AppContext* appContext)
     else
         FinalizeConnection(appContext, connData);
 }
+
+Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer)
+{
+    const Char* baseText=NULL;
+    switch (stage) 
+    {
+        case stageResolvingAddress:
+            baseText="Resolving host address";
+            break;
+        case stageOpeningConnection:
+            baseText="Opening connection";
+            break;
+        case stageSendingRequest:
+            baseText="Sending request...";
+            break;                        
+        case stageReceivingResponse:
+            baseText="Retrieving response...";
+            break;
+        case stageFinished:
+            baseText="Finished";
+            break;
+        default:
+            Assert(false);
+    }
+    ebufAddStr(&statusBuffer, const_cast<Char*>(baseText));
+    return errNone;
+}

@@ -110,7 +110,7 @@ static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCo
                 default:
                     Assert(false);
             }
-            if (!appContext->lookupStatusBarVisible) 
+            if (!(appContext->lookupStatusBarVisible && ConnectionInProgress(appContext))) 
                 break; // fall through in case we should redraw status bar
                 
         case redrawLookupStatusBar:

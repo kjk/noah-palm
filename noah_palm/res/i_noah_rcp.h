@@ -1,4 +1,3 @@
-#define MAX_USER_ID_LENGTH  12
 #define _ADD_BOOKMARKS_ 1
 #define HISTORY_ITEMS 12
 

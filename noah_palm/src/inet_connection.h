@@ -42,5 +42,12 @@ extern const Char* GetConnectionStatusText(AppContext* appContext);
 
 #define ConnectionInProgress(appContext) (NULL!=(appContext)->currentConnectionData)
 
+/**
+ * Callback used by internet connection framework to render general connection status text.
+ * @see ConnectionStatusRenderer
+ * @return standard PalmOS error code (@c errNone if success - always, as current implementation is trivial).
+ */
+Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer);
+
 
 #endif
