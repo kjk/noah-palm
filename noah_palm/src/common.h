@@ -22,6 +22,7 @@
 #include "display_info.h"
 #include "extensible_buffer.h"
 #include "better_formatting.h"
+#include "copy_block.h"
 
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)
@@ -218,6 +219,16 @@ typedef struct _AppContext
     
     int                firstDispLine;
     int                lastDispLine;
+    /* Pointer to sth. we want to store.
+    I use it in DisplayPrefsForm to store old DisplayPrefs and restore them if Cancel
+    You are free to use it, but add comment when.:
+    --- in displayPrefsForm
+    
+    */
+    void             * ptrOldDisplayPrefs;
+
+    /*Stores all info about actual selection*/
+    CopyBlock          copyBlock;
 
 #ifndef I_NOAH    
     long               listItemOffset;

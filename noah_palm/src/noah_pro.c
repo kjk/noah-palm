@@ -277,7 +277,7 @@ Err AppCommonInit(AppContext* appContext)
     appContext->prefs.displayPrefs.listStyle = 0;
 #endif
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
-
+    appContext->ptrOldDisplayPrefs = NULL;
 
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);

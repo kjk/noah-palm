@@ -18,6 +18,13 @@
 #include "noah_pro_2nd_segment.h"
 #endif
 
+/* Free ptrOldDisplayPrefs if its not NULL*/
+void bfFreePTR(AppContext *appContext)
+{
+    if(appContext->ptrOldDisplayPrefs != NULL)
+        new_free(appContext->ptrOldDisplayPrefs);
+}
+
 /* When we change global background we need to change all backgrounds to global background color */
 static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
 {

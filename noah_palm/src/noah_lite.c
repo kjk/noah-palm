@@ -54,7 +54,8 @@ static void StopNoahLite(AppContext* appContext)
     DictCurrentFree(appContext);
     FreeDicts(appContext);
     FreeInfoData(appContext);
-
+    bfFreePTR(appContext);
+    
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
 
@@ -96,7 +97,8 @@ static Err InitNoahLite(AppContext* appContext)
     appContext->prefs.displayPrefs.listStyle = 0;
 #endif
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
-
+    appContext->ptrOldDisplayPrefs = NULL;
+    
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);
 
@@ -412,6 +414,32 @@ static Boolean MainFormHandleEventNoahLite(EventType * event)
             handled = true;
             break;
 
+        case penDownEvent:
+            if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
+            {
+                handled = false;
+                break;
+            }
+
+            if(cbPenDownEvent(appContext,event->screenX,event->screenY))
+            {
+                handled = true;
+                break;
+            }
+
+            handled = true;
+            break;
+
+        case penMoveEvent:
+
+            if(cbPenMoveEvent(appContext,event->screenX,event->screenY))
+            {
+                handled = true;
+                break;
+            }
+            handled = true;
+            break;
+
         case penUpEvent:
             if (0 != appContext->penUpsToConsume > 0)
             {
@@ -420,6 +448,12 @@ static Boolean MainFormHandleEventNoahLite(EventType * event)
                 break;
             }
             if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
+            {
+                handled = true;
+                break;
+            }
+
+            if(cbPenUpEvent(appContext,event->screenX,event->screenY))
             {
                 handled = true;
                 break;

@@ -1092,7 +1092,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 if(ShakeSortExtBuf(&wi->buffer))
                 {
                     SetGlobalBackColor(appContext);
-                    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-8, appContext->screenWidth-FRM_RSV_H);
+                    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth - DRAW_DI_X - 8, appContext->screenHeight - DRAW_DI_Y - FRM_RSV_H);
                 }
 
             ebufReset(&wi->bufferTemp);
@@ -1105,7 +1105,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             if (0 == syn_found_count)
             {
                 SetGlobalBackColor(appContext);            
-                ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-8, appContext->screenWidth-FRM_RSV_H);
+                ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth - DRAW_DI_X - 8, appContext->screenHeight - DRAW_DI_Y - FRM_RSV_H);
             }
             DrawDisplayInfo(&wi->displayInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
             SetScrollbarState(&wi->displayInfo, appContext->dispLinesCount, 0);

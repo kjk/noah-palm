@@ -439,6 +439,8 @@ static Err AppCommonInit(AppContext* appContext)
     appContext->prefs.displayPrefs.listStyle = 0;
 #endif
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
+    appContext->ptrOldDisplayPrefs = NULL;
+
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);
     LoadPreferencesThes(appContext);
@@ -556,7 +558,8 @@ static void StopThesaurus(AppContext* appContext)
 {
     Err error=errNone;
     SavePreferencesThes(appContext);
-    
+    bfFreePTR(appContext);
+
     error=AppCommonFree(appContext);
     Assert(!error);
     
@@ -1014,10 +1017,21 @@ ChooseDatabase:
     /*            WinInvertRectangle(&r,0); */
     /*       } */
 
+            if(cbPenDownEvent(appContext,event->screenX,event->screenY))
+            {
+                handled = true;
+                break;
+            }
+
             handled = true;
             break;
 
         case penMoveEvent:
+            if(cbPenMoveEvent(appContext,event->screenX,event->screenY))
+            {
+                handled = true;
+                break;
+            }
 
             handled = true;
             break;
@@ -1049,6 +1063,12 @@ ChooseDatabase:
             if (0 != appContext->penUpsToConsume)
             {
                 --appContext->penUpsToConsume;
+                handled = true;
+                break;
+            }
+
+            if(cbPenUpEvent(appContext,event->screenX,event->screenY))
+            {
                 handled = true;
                 break;
             }

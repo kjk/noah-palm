@@ -46,9 +46,15 @@ typedef enum {
     actTagPosList,    
     actTagPos,
     actTagDefList,    
+// in thes we don't have definition and example so we need to move down the definition 
+#ifndef THESAURUS
     actTagDefinition,
+#endif
     actTagSynonym,
     actTagExample
+#ifdef THESAURUS
+    ,actTagDefinition
+#endif
 } ActualTag;
 
 void SetDrawParam(char type, DisplayPrefs *displayPrefs,struct _AppContext * appContext);
@@ -62,5 +68,7 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf);
 void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf);
 void ebufWrapLine(ExtensibleBuffer *buf, int lineStart, int lineLen, int spacesAtStart, struct _AppContext *appContext);
 void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y, int maxLines);
+
+void bfFreePTR(struct _AppContext *appContext);
 
 #endif

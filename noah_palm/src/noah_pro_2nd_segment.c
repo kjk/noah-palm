@@ -223,6 +223,7 @@ void StopNoahPro(AppContext* appContext)
 {
     Err error=errNone;
     SavePreferencesNoahPro(appContext);
+    bfFreePTR(appContext);
     
     error=AppCommonFree(appContext);
     Assert(!error);
@@ -676,11 +677,23 @@ ChooseDatabase:
                  WinInvertRectangle(&r,0);
             }
 #endif
+
+            if(cbPenDownEvent(appContext,event->screenX,event->screenY))
+            {
+                handled = true;
+                break;
+            }
+
             handled = true;
             break;
 
         case penMoveEvent:
 
+            if(cbPenMoveEvent(appContext,event->screenX,event->screenY))
+            {
+                handled = true;
+                break;
+            }
             handled = true;
             break;
 
@@ -712,6 +725,12 @@ ChooseDatabase:
             if (0 != appContext->penUpsToConsume)
             {
                 --appContext->penUpsToConsume;
+                handled = true;
+                break;
+            }
+
+            if(cbPenUpEvent(appContext,event->screenX,event->screenY))
+            {
                 handled = true;
                 break;
             }
