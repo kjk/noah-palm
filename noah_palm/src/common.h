@@ -5,6 +5,8 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#pragma warn_a5_access on 
+
 #include <PalmOS.h>
 
 #include "dynamic_input_area.h"
