@@ -585,7 +585,6 @@ void si_position_at_word(AbstractFile* file, SynsetsInfo * si, long synset, int 
             }
         }
     }
-
     si->currSynsetWordsNum = synset;
     si->currWord = word_idx;
 }
@@ -1037,6 +1036,9 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 ebufAddChar(&wi->buffer, '\n');
         }
     }
+    //make sure that temp buffer is not empty
+    ebufCopyBuffer(&wi->bufferTemp, &wi->buffer);
+    ebufAddChar(&wi->bufferTemp, '\0');
 
     while (!end_p)
     {
@@ -1205,7 +1207,10 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             ebufCopyBuffer(&wi->bufferTemp, &wi->buffer);
             ebufAddChar(&wi->bufferTemp, '\0');
 
+//speed = TimGetTicks();
             ebufWrapBigLines(&wi->bufferTemp,false);
+//        
+//appContext->recordSpeedTicksCount += TimGetTicks()-speed;
 
             rawTxt = ebufGetDataPointer(&wi->bufferTemp);
             diSetRawTxt(&wi->displayInfo, rawTxt);
@@ -1249,8 +1254,11 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
     si_destroy(wi->file, si);
 
-    ebufAddChar(&wi->buffer, '\0');
-    ebufWrapBigLines(&wi->buffer,false);
+//    ebufAddChar(&wi->buffer, '\0');
+//    ebufWrapBigLines(&wi->buffer,false);
+    //used to skip ebufWrapBigLines()
+    ebufCopyBuffer(&wi->buffer,&wi->bufferTemp);
+
     rawTxt = ebufGetDataPointer(&wi->buffer);
     diSetRawTxt(di, rawTxt);
     SetScrollbarState(di, appContext->dispLinesCount, 0);

@@ -346,7 +346,7 @@ char *wcGetWord(AbstractFile* file, WcInfo * wci, UInt32 wordNo)
     UInt32          firstWord;
     char            *word;
     long            recordSize;
-
+        
     Assert(wordNo < wci->wordsCount);
     if (wordNo >= wci->wordsCount)
         return NULL;
@@ -541,13 +541,13 @@ Return:
 void wcUnpackWord(WcInfo * wci, char *prevWord, char *unpacked)
 {
     unsigned char c;
-
+    
     c = pcGetChar(&wci->packContext);
     if (c < 32)
     {
         if (prevWord != unpacked)
             MemMove(unpacked, prevWord, c);
-        prevWord += c;
+        //prevWord += c;
         unpacked += c;
         c = pcGetChar(&wci->packContext);
     }
