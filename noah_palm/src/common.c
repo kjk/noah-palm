@@ -8,6 +8,7 @@
 #include "common.h"
 #include "five_way_nav.h"
 #include "menu_support_database.h"
+#include "armlet_runner.h"
 
 #ifndef NOAH_LITE
 void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx)
@@ -676,7 +677,7 @@ static Boolean GetDefsFromCache(DefsCache *cache, long wanted_entry, long *curre
 static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs, SynsetDef * synsets, WcInfo *wcInfo)
 {
     long offset = 0;
-    long curr_len;
+    long curr_len = 0;
     int curr_record = 0;
     long curr_rec_size = 0;
     long idx_in_rec = 0;
@@ -710,6 +711,31 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
     def_lens_fast_end = def_lens + curr_rec_size;
     
     synsetNoFast = synsets[0].synsetNo;
+#ifdef NOAH_PRO
+    if(GetAppContext()->armIsPresent)
+    {
+        while(!armGetDefsRecordWhile(&current_entry, &offset, &curr_len, &def_lens_fast, def_lens_fast_end, synsetNoFast))
+        {
+            fsUnlockRecord(file, curr_record);
+            ++curr_record;
+            Assert(curr_record < first_record_with_defs_len + defs_len_rec_count);
+            def_lens = (unsigned char *) fsLockRecord(file, curr_record);
+            def_lens_fast = def_lens;
+            curr_rec_size = fsGetRecordSize(file, curr_record);
+            def_lens_fast_end = def_lens + curr_rec_size;
+            ++current_entry;
+        }
+        
+        synsets[0].offset = offset;
+        synsets[0].dataSize = curr_len;
+        idx_in_rec = (long)(def_lens_fast-def_lens);
+        if(curr_len >= 255)
+            idx_in_rec-=2;
+        idx_in_rec--;    
+        AddDefsToCache(cache, current_entry, curr_record, idx_in_rec, offset);
+    }
+    else
+#endif
     do
     {
         curr_len = (UInt32) ((unsigned char)def_lens_fast[0]);
@@ -1191,7 +1217,10 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
 #ifdef _RECORD_SPEED_
             buf = ebufNew();
             Assert(buf);
-            ebufAddStr(buf, "wn_gdi non-ARM; '");
+            if(GetAppContext()->armIsPresent)
+                ebufAddStr(buf, "with-ARM; '");
+            else
+                ebufAddStr(buf, "non-ARM; '");
             word = dictGetWord(file, wordNo);
             Assert(word);
             ebufAddStr(buf, word);
@@ -1212,7 +1241,10 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
 #ifdef _RECORD_SPEED_
             buf = ebufNew();
             Assert(buf);
-            ebufAddStr(buf, "wnlex_gdi non-ARM; '");
+            if(GetAppContext()->armIsPresent)
+                ebufAddStr(buf, "with-ARM; '");
+            else
+                ebufAddStr(buf, "non-ARM; '");
             word = dictGetWord(file, wordNo);
             Assert(word);
             ebufAddStr(buf, word);

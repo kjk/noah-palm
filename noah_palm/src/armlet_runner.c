@@ -91,3 +91,62 @@ Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
 
     return(inpt.functionID == (ARM_FUN_FORMAT2ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
 }
+/**
+ *  Format1 on sorted buffer - armlet version
+ */
+Boolean armFormat1onSortedBuffer(ExtensibleBuffer *buf)
+{
+    armMainInput inpt;
+    armFunction10Input funInp;
+
+    funInp.data = buf->data;
+    funInp.allocated = buf->allocated;
+    funInp.used = buf->used;
+
+    inpt.functionID = ARM_FUN_FORMAT1ONBUFF; //format1 on sorted buffer
+    inpt.functionData = &funInp;                    
+	armPceNativeResourceCall(
+        			'ARMC',                      // ARMC is a good
+					armID, 
+					"ARMlet.dll\0NativeFunction", // default dll path is the location of PalmSim.exe
+					&inpt);
+ 
+    buf->allocated = funInp.allocated;
+    buf->used = funInp.used;
+    buf->data = funInp.data;
+
+    return(inpt.functionID == (ARM_FUN_FORMAT1ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
+}
+/**
+ *  get_defs_record - while loop in arm
+ */
+Boolean armGetDefsRecordWhile(long *current_entry, long *offset, long *curr_len,
+                unsigned char **def_lens_fast, unsigned char *def_lens_fast_end, long synsetNoFast)
+{
+    armMainInput inpt;
+    armFunctionGetDefsRecordInput funInp;
+
+    funInp.current_entry = (unsigned long) *current_entry;
+    funInp.offset = (unsigned long) *offset;    
+    funInp.curr_len = (unsigned long) *curr_len;
+    funInp.def_lens_fast = def_lens_fast[0];
+    funInp.def_lens_fast_end = def_lens_fast_end;
+    funInp.synsetNoFast = (unsigned long) synsetNoFast;    
+    funInp.returnValue = 1;
+    
+    inpt.functionID = ARM_FUN_GETDEFSRECORD; 
+    inpt.functionData = &funInp;                    
+
+	armPceNativeResourceCall(
+        			'ARMC',                      // ARMC is a good
+					armID, 
+					"ARMlet.dll\0NativeFunction", // default dll path is the location of PalmSim.exe
+					&inpt);
+ 
+    *current_entry = (long) funInp.current_entry;
+    *offset = (long) funInp.offset;    
+    *curr_len = (long) funInp.curr_len;
+    def_lens_fast[0] = funInp.def_lens_fast;
+
+    return(funInp.returnValue == (unsigned long)1)?true:false;
+}
