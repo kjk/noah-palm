@@ -73,6 +73,7 @@ function get_device_name_by_oc_od($oc, $od)
     $name =  "Unknown ($oc/$od)";
 
     # HANDSPRING devices
+
     if ( $oc=='hspr' && $od=='H101' )
         $name = "Treo 600";
 
@@ -86,6 +87,7 @@ function get_device_name_by_oc_od($oc, $od)
         $name =  "Treo 270";
 
     # SONY devices
+
     if ( $oc=='sony' && $od=='mdna' )
         $name =  "PEG-T615C";
 
@@ -117,6 +119,7 @@ function get_device_name_by_oc_od($oc, $od)
         $name =  "PEG-TJ35";
 
     # MISC devices
+
     if ( $oc=='psys' )
         $name =  "simulator";
 
@@ -145,8 +148,18 @@ function get_device_name_by_oc_od($oc, $od)
         $name =  "Tapwave Zodiac 1/2";
 
     # PALM devices 
+
+    if ( $oc=='palm' && $od=='hbbs' )
+        $name = "Palm m130";
+
     if ( $oc=='palm' && $od=='ecty' )
         $name =  "Palm m505";
+
+    if ( $oc=='palm' && $od=='lith' )
+        $name =  "Palm m515";
+
+    if ( $oc=='Palm' && $od=='Zpth' )
+        $name =  "Zire 71";
 
     if ( $oc=='palm' && $od=='MT64' )
         $name =  "Tungsten C";
@@ -154,14 +167,8 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='palm' && $od=='atc1' )
         $name =  "Tungsten W";
 
-    if ( $oc=='Palm' && $od=='Arz1' )
-        $name =  "Tungsten T3";
-
-    if ( $oc=='Palm' && $od=='Zpth' )
-        $name =  "Zire 71";
-
-    if ( $oc=='palm' && $od=='lith' )
-        $name =  "Palm m515";
+    if ( $oc=='Palm' && $od=='Cct1' )
+        $name =  "Tungsten E";
 
     if ( $oc=='Palm' && $od=='Frg1' )
         $name =  "Tungsten T";
@@ -169,8 +176,8 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='Palm' && $od=='Frg2' )
         $name =  "Tungsten T2";
 
-    if ( $oc=='Palm' && $od=='Cct1' )
-        $name =  "Tungsten E";
+    if ( $oc=='Palm' && $od=='Arz1' )
+        $name =  "Tungsten T3";
 
 
 
