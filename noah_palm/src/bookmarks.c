@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
-  Owner: Lukasz Szweda (qkiss@wp.pl)
+  Owner: Krzysztof Kowalczyk
 */
 
 #include "common.h"
@@ -13,19 +13,21 @@
 
 #ifdef I_NOAH
 #include "inet_word_lookup.h"
-
 #define BOOKMARKS_DB_BY_NAME "iNoah_bookmarks_n"
 #define BOOKMARKS_DB_BY_TIME "iNoah_bookmarks_t"
+#endif
 
-#else
-
+#ifdef NOAH_PRO
 /* name of the database that holds bookmarks sorted by name */
 #define BOOKMARKS_DB_BY_NAME "Noah_bookmarks_n"
-
 /* name of the database that holds bookmarks sorted by the time 
    they were bookmarked */
 #define BOOKMARKS_DB_BY_TIME "Noah_bookmarks_t"
+#endif
 
+#ifdef THESAURUS
+#define BOOKMARKS_DB_BY_NAME "Thes_bookmarks_n"
+#define BOOKMARKS_DB_BY_TIME "Thes_bookmarks_t"
 #endif
 
 #define BOOKMARKS_DB_TYPE 'bkmk'

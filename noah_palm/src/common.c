@@ -12,8 +12,9 @@
 #ifndef NOAH_LITE
 void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx)
 {
-    ListType *list = NULL;
-    char* listTxt;
+    ListType *  list;
+    char *      listTxt;
+
     Assert(frm);
 
     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listID));
@@ -54,15 +55,16 @@ void HistoryListSetState(AppContext* appContext, FormType *frm)
 
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
-    char *  str;
+    char *      str;
     AppContext* appContext=GetAppContext();
-    /* max width of the string in the list selection window */
-    Int16   stringWidthP = HISTORY_LIST_DX;
-    Int16   stringLenP;
-    Boolean truncatedP = false;
+    Int16       stringWidthP;
+    Int16       stringLenP;
+    Boolean     truncatedP = false;
+
     Assert(appContext);
     Assert((itemNum >= 0) && (itemNum <= appContext->historyCount));
 
+    stringWidthP = appContext->screenWidth; /* max width of the string in the list selection window */
     str = appContext->wordHistory[itemNum];
     stringLenP = StrLen(str);
 
@@ -1579,8 +1581,9 @@ void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Int16       stringLenP;
     Boolean     truncatedP = false;
     long        realItemNo;
+
     Assert(appContext);
-    stringWidthP= appContext->screenWidth; /* max width of the string in the list selection window */
+    stringWidthP = appContext->screenWidth; /* max width of the string in the list selection window */
     Assert(itemNum >= 0);
     realItemNo = appContext->listItemOffset + itemNum;
     Assert((realItemNo >= 0) && (realItemNo < appContext->wordsCount));

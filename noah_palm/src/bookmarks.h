@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
-  Owner: Lukasz Szweda (qkiss@wp.pl)
+  Owner: Krzysztof Kowalczyk
 
   Support for word bookmarks in Noah Pro and Thesaurus
 */
