@@ -21,7 +21,7 @@
 extern Err GetDeviceSerialNumber(ExtensibleBuffer* out);
 
 /**
- * Queries system for actual HotSync user name.
+ * Queries system for user's HotSync name.
  * @param out pointer to @c ExtensibleBuffer that will be filled with data on successful return.
  * @return standard PalmOS error code (@c errNone on success).
  */
@@ -33,6 +33,22 @@ extern Err GetHotSyncName(ExtensibleBuffer* out);
  * @return standard PalmOS error code (@c errNone on success).
  */
 extern Err GetPhoneNumber(ExtensibleBuffer* out);
+
+
+/**
+ * Queries system for OEM company ID (which I hope is a unique identifier of OEM).
+ * @param out pointer to @c ExtensibleBuffer that will be filled with data on successful return.
+ * @return standard PalmOS error code (@c errNone on success).
+ */
+extern Err GetOEMCompanyId(ExtensibleBuffer* out);
+
+/**
+ * Queries system for OEM device ID (which I hope uniquely identifies a device
+ * of a given OEM).
+ * @param out pointer to @c ExtensibleBuffer that will be filled with data on successful return.
+ * @return standard PalmOS error code (@c errNone on success).
+ */
+extern Err GetOEMDeviceId(ExtensibleBuffer* out);
 
 /**
  * Renders device identifier formatted according to @link http://dev.arslexis.com/cgi/cvstrac.cgi/noah_palm/wiki?p=InoahProtocol

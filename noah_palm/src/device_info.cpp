@@ -13,7 +13,7 @@
 
 Err GetDeviceSerialNumber(ExtensibleBuffer* out)
 {
-    Char* data=0;
+    char* data=0;
     UInt16 length=0;
     Err error=SysGetROMToken(0, sysROMTokenSnum, reinterpret_cast<UInt8**>(&data), &length);
     if (!error)
@@ -42,10 +42,42 @@ Err GetDeviceSerialNumber(ExtensibleBuffer* out)
     return error;
 }
 
+Err GetOEMCompanyId(ExtensibleBuffer* out)
+{
+    Err     error=errNone;
+    UInt32  id;
+    char *  idAsChar;
+
+    error = FtrGet(sysFtrCreator, sysFtrNumOEMCompanyID, &id);
+    if ( errNone == error )
+    {
+        idAsChar = (char*) &id;
+        ebufAddStrN(out, idAsChar, sizeof(UInt32));
+    }
+    return error;
+}
+
+Err GetOEMDeviceId(ExtensibleBuffer* out)
+{
+    Err     error=errNone;
+    UInt32  id;
+    char *  idAsChar;
+
+    error = FtrGet(sysFtrCreator, sysFtrNumOEMDeviceID, &id);
+    if ( errNone == error )
+    {
+        idAsChar = (char*) &id;
+        ebufAddStrN(out, idAsChar, sizeof(UInt32));
+    }
+    return error;
+}
+
+
 Err GetHotSyncName(ExtensibleBuffer* out)
 {
-    Err error=errNone;
-    Char nameBuffer[dlkUserNameBufSize];
+    Err   error=errNone;
+    char  nameBuffer[dlkUserNameBufSize];
+
     Assert(out);
     error=DlkGetSyncInfo(NULL, NULL, NULL, nameBuffer, NULL, NULL);
     if (!error)
@@ -84,7 +116,7 @@ Err GetPhoneNumber(ExtensibleBuffer* out)
             error=PhnLibAPGetNth(refNum, addressList, 1, &address);
             if (!error && address)
             {
-                Char* number=PhnLibAPGetField(refNum, address, phnAddrFldPhone);
+                char* number=PhnLibAPGetField(refNum, address, phnAddrFldPhone);
                 MemHandleFree(address);
                 if (number)
                 {
@@ -102,28 +134,30 @@ Err GetPhoneNumber(ExtensibleBuffer* out)
     return error;
 }
 
+#define HEX_DIGITS "0123456789ABSCDEF"
+
 static void HexBinEncode(ExtensibleBuffer* inOut)
 {
-    const Char* digits="0123456789ABSCDEF";
-    Char* data=ebufGetDataPointer(inOut);
-    UInt16 dataLength=StrLen(data);
+    char*            data=ebufGetDataPointer(inOut);
+    UInt16           dataLength=ebufGetDataSize(inOut);
     ExtensibleBuffer outBuffer;
+
     ebufInit(&outBuffer, 2*dataLength + 1);
-    Char* out=ebufGetDataPointer(&outBuffer);
-    while (*data)
+    while (dataLength>0)
     {
         UInt8 b=*(data++);
-        *(out++)=digits[b/16];
-        *(out++)=digits[b%16];
+        dataLength--;
+        ebufAddChar(&outBuffer, HEX_DIGITS[b/16]);
+        ebufAddChar(&outBuffer, HEX_DIGITS[b%16]);
     }
-    *out=chrNull;
+    ebufAddChar(&outBuffer, chrNull);
     ebufSwap(inOut, &outBuffer);
     ebufFreeData(&outBuffer);
 }
 
 typedef Err (TokenGetter)(ExtensibleBuffer*);
 
-static void RenderDeviceIdentifierToken(ExtensibleBuffer* out, const Char* prefix, TokenGetter* getter)
+static void RenderDeviceIdentifierToken(ExtensibleBuffer* out, const char* prefix, TokenGetter* getter)
 {
     Boolean empty=(ebufGetDataSize(out)==0);
     ExtensibleBuffer token;
@@ -133,7 +167,7 @@ static void RenderDeviceIdentifierToken(ExtensibleBuffer* out, const Char* prefi
     {
         if (!empty)
             ebufAddChar(out, ':');
-        ebufAddStr(out, const_cast<Char*>(prefix));
+        ebufAddStr(out, const_cast<char*>(prefix));
         HexBinEncode(&token);
         ebufAddStr(out, ebufGetDataPointer(&token));
     }
@@ -146,4 +180,6 @@ void RenderDeviceIdentifier(ExtensibleBuffer* out)
     RenderDeviceIdentifierToken(out, "HS", GetHotSyncName);
     RenderDeviceIdentifierToken(out, "SN", GetDeviceSerialNumber);
     RenderDeviceIdentifierToken(out, "PN", GetPhoneNumber);
+    RenderDeviceIdentifierToken(out, "OC", GetOEMCompanyId);
+    RenderDeviceIdentifierToken(out, "OD", GetOEMDeviceId);
 }
