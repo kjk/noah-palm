@@ -8,6 +8,7 @@
 #include <PalmOS.h>
 #include "mem_leak.h"
 #include "display_info.h"
+#include "fs.h"
 
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)
@@ -90,33 +91,6 @@ typedef enum
     dbStartupActionLast,
 } DatabaseStartupAction;
 
-typedef enum
-{
-    DB_PRO_DM,
-    DB_EP_DM,
-    DB_SIMPLE_DM,
-    DB_LEX_DM,
-    DB_LEX_TRG,
-    DB_LEX_MP,
-    DB_LEX_STD,
-    DB_ROGET_DM
-} VFSDBType;
-
-#define HISTORY_ITEMS 5
-#define WORD_MAX_LEN 40
-#define DB_NAME_SIZE 280
-
-/* For every database we keep per-database settings */
-typedef struct
-{
-    VFSDBType   vfsDbType;
-    char        dbName[32];                // name for all databases
-    char        dbFullPath[DB_NAME_SIZE];  // full path to db for external card dbs
-    int         historyCount;
-    UInt32      wordHistory[HISTORY_ITEMS];
-    char        lastWord[WORD_MAX_LEN];
-} DBInfo;
-
 typedef struct
 {
     long    synsetNo;
@@ -124,6 +98,19 @@ typedef struct
     long    offset;
     long    dataSize;
 } SynsetDef;
+
+
+#define MAX_DICTS 5
+/* global data that is common for thes/noah lite/noah pro */
+typedef struct
+{
+    AbstractFile *dicts[MAX_DICTS];
+    int dictsCount;
+} CommonGlobalData;
+
+extern CommonGlobalData cgd;
+
+long GetMaxListItems();
 
 Boolean get_defs_record(long entry_no, int first_record_with_defs_len,
                      int defs_len_rec_count,
@@ -189,9 +176,9 @@ void    HideScrollbar(void);
 void    SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine);
 
 int     GetOsVersion(void);
-int     GetMaxScreenDepth(int osVersion);
-Boolean IsColorSupported(int osVersion);
-int     GetCurrentScreenDepth(int osVersion);
+int     GetMaxScreenDepth();
+Boolean IsColorSupported();
+int     GetCurrentScreenDepth();
 void    SetTextColorBlack(void);
 void    SetTextColorRed(void);
 

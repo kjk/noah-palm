@@ -111,16 +111,17 @@ examination (20 for 2.0, 35 for 3.5 etc.)
 */
 int GetOsVersion(void)
 {
-    UInt32    osVersion;
-    int        ret_val;
+    UInt32      osVersionPart;
+    static int  osVersion=0;
 
-    FtrGet( sysFtrCreator, sysFtrNumROMVersion, &osVersion );
-    ret_val = sysGetROMVerMajor(osVersion)*10;
-    if ( sysGetROMVerMinor(osVersion) < 10 )
+    if ( osVersion==0 )
     {
-        ret_val += sysGetROMVerMinor(osVersion);
+        FtrGet( sysFtrCreator, sysFtrNumROMVersion, &osVersionPart );
+        osVersion = sysGetROMVerMajor(osVersionPart)*10;
+        if ( sysGetROMVerMinor(osVersionPart) < 10 )
+            osVersion += sysGetROMVerMinor(osVersionPart);
     }
-    return ret_val;
+    return osVersion;
 }
 
 /*
@@ -128,32 +129,33 @@ Find out and return the max screen depth supported by the given os.
 Number of supported colors is 2^screen_depth
 OS less than 30 only supports 1 (2 colors).
 */
-int GetMaxScreenDepth(int osVersion)
+int GetMaxScreenDepth()
 {
-    UInt32    supported_depths;
+    UInt32    supportedDepths;
     UInt32    i;
-    int        max_depth;
+    int       maxDepth;
 
-    max_depth = 1;
-    if ( osVersion >= 35 )
+    maxDepth = 1;
+    if ( GetOsVersion() >= 35 )
     {
-        WinScreenMode( winScreenModeGetSupportedDepths, NULL, NULL, &supported_depths, NULL );
-        for ( i = 1; supported_depths; i++ )
+        WinScreenMode( winScreenModeGetSupportedDepths, NULL, NULL, &supportedDepths, NULL );
+        for ( i = 1; supportedDepths; i++ )
         {
-            if ( ( supported_depths & 0x01 ) == 0x01 )
-                max_depth = i;
-            supported_depths >>= 1;
+            if ( ( supportedDepths & 0x01 ) == 0x01 )
+                maxDepth = i;
+            supportedDepths >>= 1;
         }
     }
-    return max_depth;
+    return maxDepth;
 }
 
 /*
 Find out and return current depth of the screen.
 */
-int GetCurrentScreenDepth(int osVersion)
+int GetCurrentScreenDepth()
 {
     UInt32    depth;
+    int       osVersion = GetOsVersion();
 
     if ( osVersion >= 35 )
     {
@@ -166,14 +168,14 @@ int GetCurrentScreenDepth(int osVersion)
 /*
 Check if color is supported on this device
 */
-Boolean IsColorSupported(int osVersion)
+Boolean IsColorSupported()
 {
-    Boolean        color_supported_p;
+    Boolean     fSupported;
 
-    if ( osVersion >= 35 )
+    if ( GetOsVersion() >= 35 )
     {
-        WinScreenMode( winScreenModeGet, NULL, NULL, NULL, &color_supported_p );
-        return color_supported_p;
+        WinScreenMode( winScreenModeGet, NULL, NULL, NULL, &fSupported);
+        return fSupported;
     }
     return false;
 }
@@ -182,7 +184,7 @@ static RGBColorType rgb_color;
 
 static void SetTextColor(RGBColorType *color)
 {
-    if ( gd.osVersion >= 40 )
+    if ( GetOsVersion() >= 40 )
     {
         WinSetTextColorRGB (color, NULL);
     }
@@ -782,16 +784,26 @@ void RemoveWhiteSpaces( char *src )
         *dst = '\0';
 }
 
+/* a hack necessary for different OS versions. In <35
+   the pointer to a list item was UInt, in >=35 it's
+   nly Int so list can only handle 2^15 items) */
+long GetMaxListItems()
+{
+    if (GetOsVersion()>35)
+        return 20000;
+    return 65000;
+}
+
 long CalcListOffset(long itemsCount, long itemNo)
 {
     long next_offset;
 
-    if (itemNo < gd.maxListItems)
+    if (itemNo < GetMaxListItems())
         return 0;
-    if (itemNo > (itemsCount - gd.maxListItems))
-        return itemsCount - gd.maxListItems;
+    if (itemNo > (itemsCount - GetMaxListItems()))
+        return itemsCount - GetMaxListItems();
 
-    next_offset = itemNo - (gd.maxListItems / 2);
+    next_offset = itemNo - (GetMaxListItems() / 2);
     return next_offset;
 } 
 
@@ -877,8 +889,8 @@ void LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount)
 {
     Assert(list);
 
-    if (itemsCount > gd.maxListItems)
-        itemsCount = gd.maxListItems;
+    if (itemsCount > GetMaxListItems())
+        itemsCount = GetMaxListItems();
 
     LstSetListChoices(list, itemText, itemsCount);
 }
@@ -911,11 +923,11 @@ void LstSetSelectionMakeVisibleEx(ListType * list, long itemNo)
 
     gd.prevSelectedWord = itemNo;
 
-    if (gd.osVersion < 35)
+    if (GetOsVersion() < 35)
     {
         /* special case when we don't exceed palm's list limit:
            do it the easy way */
-        if (gd.wordsCount < gd.maxListItems)
+        if (gd.wordsCount < GetMaxListItems())
         {
             gd.listItemOffset = 0;
             LstSetSelection(list, itemNo);
@@ -923,7 +935,7 @@ void LstSetSelectionMakeVisibleEx(ListType * list, long itemNo)
         }
 
         newTopItem = CalcListOffset(gd.wordsCount, itemNo);
-        if ((gd.listItemOffset == newTopItem) && (newTopItem != (gd.wordsCount - gd.maxListItems)) && (itemNo > 30))
+        if ((gd.listItemOffset == newTopItem) && (newTopItem != (gd.wordsCount - GetMaxListItems())) && (itemNo > 30))
         {
             gd.listItemOffset = newTopItem + 30;
         }

@@ -40,16 +40,6 @@ void NP_InitGlobalVars(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
     gd.err = ERR_NONE;
-    gd.osVersion = GetOsVersion();
-    gd.maxScreenDepth = GetMaxScreenDepth(gd.osVersion);
-    // a hack necessary for different OS versions. In <35
-    // the pointer to a list item was UInt, in >=35 it's
-    // only Int
-    gd.maxListItems = 65000;
-    if (gd.osVersion >= 35)
-    {
-        gd.maxListItems = 20000;
-    }
     gd.currentDb = -1;
     gd.prevSelectedWord = 0xfffff;
 #if 0

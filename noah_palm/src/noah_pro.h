@@ -84,12 +84,9 @@ typedef struct
     long                currentWord;
     long                wordsCount;
     int                 firstDispLine;
-    int                 osVersion;
-    int                 maxScreenDepth;
     long                listItemOffset;
     Boolean             listDisabledP;
     long                prevTopItem;
-    long                maxListItems;
     int                 penUpsToConsume;
     long                prevSelectedWord;
     long                selectedWord;

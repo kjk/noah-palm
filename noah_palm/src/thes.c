@@ -25,6 +25,7 @@ char helpText[] =
 #endif
 
 GlobalData gd;
+static CommonGlobalData cgd;
 
 void SavePreferences(NoahDBPrefs * data, UInt32 dataLen, int recursionDepth)
 {
@@ -124,6 +125,7 @@ void LoadPreferences(NoahDBPrefs * data, UInt32 dataLen)
     DmCloseDatabase(db);
 }
 
+#if 0
 /* Add a db on which a vfs is currently positioned to the list of
 found databases
 TODO: share this with noah_pro.c and noah_lite.c
@@ -142,7 +144,9 @@ void AddDbToFoundList( VFSDBType vfsDbType )
     gd.foundDbs[gd.dbsCount].lastWord[0] = 0;
     ++gd.dbsCount;
 }
+#endif
 
+#if 0
 /* TODO: share this with noah_pro.c and noah_lite.c */
 NoahErrors GetMemVfs(void)
 {
@@ -180,8 +184,9 @@ void DeinitMemVfs(void)
     if ( ERR_NONE == GetMemVfs() )
         vfsDeinit();
 }
+#endif
 
-
+#if 0
 void ScanMemThes(void)
 {
     if ( ERR_NONE != GetMemVfs() )
@@ -193,26 +198,23 @@ void ScanMemThes(void)
         AddDbToFoundList(DB_ROGET_DM );
     }
 }
-
-#define MAX_DICTS 5
-static AbstractFile *g_dicts[MAX_DICTS];
-static int g_dictsCount = 0;
+#endif
 
 void DictFoundCBThes( AbstractFile *file )
 {
     Assert( file );
-    if (g_dictsCount>=MAX_DICTS)
+    if (cgd.dictsCount>=MAX_DICTS)
         return;
 
-    g_dicts[g_dictsCount++] = file;
+    cgd.dicts[cgd.dictsCount++] = file;
     return;
 }
 
 void FreeDicts(void)
 {
-    while(g_dictsCount>0)
+    while(cgd.dictsCount>0)
     {
-        AbstractFileFree( g_dicts[--g_dictsCount] );
+        AbstractFileFree( cgd.dicts[--cgd.dictsCount] );
     }
 }
 
@@ -224,10 +226,8 @@ void ScanForDictsThes(void)
 Err ProgramInitThes(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
+    MemSet((void *) &cgd, sizeof(CommonGlobalData), 0);
 
-    gd.osVersion = GetOsVersion();
-
-    gd.maxListItems = 30000;
 /*     gd.current_timeout = -1; */
     gd.currentDb = -1;
     gd.dbsCount = 0;
@@ -235,7 +235,6 @@ Err ProgramInitThes(void)
     gd.selectedWord = 0;
     gd.prevSelectedWord = 0xfffff;
 
-    gd.wordsCount = -1;
     gd.firstDispLine = -1;
     gd.dictData = 0;
     gd.currentWord = 0;
@@ -1203,4 +1202,4 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
 
     return 0;
 }
- 
+

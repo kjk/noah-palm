@@ -88,13 +88,6 @@ Boolean ProgramInitNL(void)
 
 /*     gd.current_timeout = -1; */
 
-    gd.osVersion = GetOsVersion();
-    gd.maxListItems = 65000;
-    if (gd.osVersion >= 35)
-    {
-        gd.maxListItems = 20000;
-    }
-
     gd.currentDb = -1;
     gd.penUpsToConsume = 0;
     gd.selectedWord = 0;

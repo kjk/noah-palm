@@ -7,6 +7,33 @@
 
 #include "common.h"
 
+typedef enum
+{
+    DB_PRO_DM,
+    DB_EP_DM,
+    DB_SIMPLE_DM,
+    DB_LEX_DM,
+    DB_LEX_TRG,
+    DB_LEX_MP,
+    DB_LEX_STD,
+    DB_ROGET_DM
+} VFSDBType;
+
+#define HISTORY_ITEMS 5
+#define WORD_MAX_LEN 40
+#define DB_NAME_SIZE 280
+
+/* For every database we keep per-database settings */
+typedef struct
+{
+    VFSDBType   vfsDbType;
+    char        dbName[32];                // name for all databases
+    char        dbFullPath[DB_NAME_SIZE];  // full path to db for external card dbs
+    int         historyCount;
+    UInt32      wordHistory[HISTORY_ITEMS];
+    char        lastWord[WORD_MAX_LEN];
+} DBInfo;
+
 /* An "object" for virtual file system. Those are the function
    that all "file system" (PalmOS's db, TRGPro's FFS etc.)
    should implement. 
@@ -76,6 +103,7 @@ void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB);
 
 /* this is defined in fs_vfs.c but exported globally */
 void FsVfsFindDb( IS_DB_OK *cbDbOk, FIND_DB_CB *cbDbFound );
+
 
 typedef struct
 {
