@@ -100,7 +100,7 @@ function serve_get_cookie($di)
     print "COOKIE\n";
     print $cookie;
 
-    $query = "INSERT INTO cookies (cookie,dev_info,reg_code,disabled_p) VALUES ('$cookie', '$di', NULL, 'f');";
+    $query = "INSERT INTO cookies (cookie,dev_info,reg_code,when_created, disabled_p) VALUES ('$cookie', '$di', NULL, CURRENT_TIMESTAMP(),'f');";
     $dict_db->query($query);
     exit;
 }
@@ -333,8 +333,6 @@ if ( !is_null( $recent_lookups ) )
         report_error(ERR_RECENT_LOOKUPS_NOT_EMPTY);
     serve_recent_lookups($cookie);
 }
-
-
 
 $get_word = $HTTP_GET_VARS['get_word'];
 if ( !is_null($get_word) )

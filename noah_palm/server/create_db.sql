@@ -17,17 +17,18 @@ CREATE TABLE request_log
 (
   cookie     VARCHAR(64)  NOT NULL, -- 64 just to be sure
   word       VARCHAR(255) BINARY NOT NULL,
-  query_time TIMESTAMP,
+  query_time TIMESTAMP NOT NULL,
 
   INDEX idx1 (cookie)
 );
 
 CREATE TABLE cookies
 (
-  cookie      VARCHAR(64)   NOT NULL, -- unique cookie that we generate
-  dev_info    TEXT NOT NULL,          -- we get it from the client
-  reg_code    VARCHAR(64) NULL,       -- registration code, NULL if not registered
-  disabled_p  CHAR(1) NOT NULL DEFAULT 'f', -- boolean value, is this cookie disabled.
+  cookie        VARCHAR(64)   NOT NULL, -- unique cookie that we generate
+  dev_info      TEXT NOT NULL,          -- we get it from the client
+  reg_code      VARCHAR(64) NULL,       -- registration code, NULL if not registered
+  when_created  TIMESTAMP NOT NULL,     -- when this cookie has been created
+  disabled_p    CHAR(1) NOT NULL DEFAULT 'f', -- boolean value, is this cookie disabled.
                                             -- redundant with reg_codes.disabled_p for speed
                                             -- 'f' means disabled, 'true' means not disabled
   PRIMARY KEY(cookie)
@@ -52,7 +53,7 @@ INSERT INTO reg_codes VALUES ( 'beh', 'test user', 'test@user.com', 'test order 
 -- another registration code, this time disabled
 INSERT INTO reg_codes VALUES ( 'disabled', 'disabled test user', 'disabled_test@user.com', 'disabled test order id', CURRENT_TIMESTAMP(), 't');
 
-INSERT INTO cookies VALUES ( 'berake', 'HNaabbcc', 'beh', 'f' );
+INSERT INTO cookies VALUES ( 'berake', 'HNaabbcc', 'beh', CURRENT_TIMESTAMP(), 'f' );
 
 -- INSERT INTO request_log ($cookie, $word, CURRENT_TIMESTAMP());
 
