@@ -740,6 +740,58 @@ void Function10(void *funData,const void *emulStateP,Call68KFuncType *call68KFun
     temp = buf.used;
     Write68KUnaligned32(&input->used,temp);
 }
+
+/*while from get_defs_record*/
+unsigned long CalculateOffsetGDR(unsigned long *current_entry,unsigned long *offset, unsigned long *curr_len,
+                unsigned char **def_lens_fast, unsigned char *def_lens_fast_end,unsigned long synsetNoFast)
+{
+    do
+    {
+        (*curr_len) = (unsigned long) ((unsigned char)(def_lens_fast[0])[0]);
+        (def_lens_fast[0])++;
+        if ((unsigned long)255 == (*curr_len))
+        {
+            (*curr_len) = (unsigned long)((unsigned char)((def_lens_fast[0])[0])) * 256;
+            (def_lens_fast[0])++;
+            (*curr_len) += (unsigned long)(unsigned char)((def_lens_fast[0])[0]);
+            (def_lens_fast[0])++;
+        }
+
+        if ((*current_entry) == synsetNoFast)
+            return ((unsigned long) 1);
+
+        (*offset) += (*curr_len);
+        
+        if(def_lens_fast_end == (def_lens_fast[0]))
+            return ((unsigned long) 2);
+        (*current_entry)++;
+    }
+    while (1==1);//true
+}
+
+/*runner for CalculateOffsetGDR*/
+void FunctionGetDefsRecord(void *funData)
+{
+    armFunctionGetDefsRecordInput *input = (armFunctionGetDefsRecordInput *) funData;
+    unsigned long current_entry = Read68KUnaligned32(&input->current_entry);
+    unsigned long offset = Read68KUnaligned32(&input->offset);
+    unsigned long curr_len = Read68KUnaligned32(&input->curr_len);
+    unsigned char *def_lens_fast;
+    unsigned char *def_lens_fast_end;
+    unsigned long synsetNoFast = Read68KUnaligned32(&input->synsetNoFast);
+    unsigned long returnValue = 0;
+
+    def_lens_fast = (unsigned char *) Read68KUnaligned32(&input->def_lens_fast);
+    def_lens_fast_end = (unsigned char *) Read68KUnaligned32(&input->def_lens_fast_end);    
+
+    returnValue = CalculateOffsetGDR(&current_entry, &offset, &curr_len, &def_lens_fast, def_lens_fast_end, synsetNoFast);
+
+    Write68KUnaligned32(&input->current_entry, current_entry);
+    Write68KUnaligned32(&input->offset, offset);
+    Write68KUnaligned32(&input->curr_len, curr_len);
+    Write68KUnaligned32(&input->def_lens_fast, def_lens_fast);
+    Write68KUnaligned32(&input->returnValue, returnValue);
+}
 /*THIS SHOULD BE LAST FUNCTION IN FILE*/
 unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP, Call68KFuncType *call68KFuncP)
 {
@@ -758,6 +810,12 @@ unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP,
                 Function10((void*)Read68KUnaligned32(&inptr->functionData),emulStateP,call68KFuncP);
                 Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
             break;
+
+            
+        case ARM_FUN_GETDEFSRECORD: //get defs record (while loop)
+                FunctionGetDefsRecord((void*)Read68KUnaligned32(&inptr->functionData));
+                Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
+            break;    
         default: break;
     }                  
 	return (unsigned long)userData68KP;
