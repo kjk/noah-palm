@@ -29,6 +29,25 @@ struct _WnLiteInfo;
 struct _SimpleInfo;
 struct _EngPolInfo;
 
+// format of the PRC/PDB file
+typedef struct _PdbHeader
+{
+    char    name[dmDBNameLength];
+    Int16   flags;
+    Int16   version;
+    UInt32  createTime;
+    UInt32  modifyTime;
+    UInt32  backupTime;
+    UInt32  modificationNumber;
+    UInt32  appInfoID;
+    UInt32  sortInfoID;
+    UInt32  type;
+    UInt32  creator;
+    UInt32  idSeed;
+    UInt32  nextRecordList;
+    Int16   recordsCount;
+} PdbHeader;
+
 /* this struct describes the abstract file access api. All file operations come
 through this struct */
 typedef struct

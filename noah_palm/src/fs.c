@@ -176,6 +176,7 @@ AbstractFile *AbstractFileDeserialize( char *blob )
 
 Boolean FsFileOpen(AbstractFile *file)
 {
+    Assert( NULL == GetCurrentFile() );
     LogV1( "FsFileOpen(%s)", file->fileName );
     switch(file->fsType)
     {
@@ -236,7 +237,6 @@ void FsFileClose(AbstractFile *file)
         default:
             Assert(0);
     }
-    SetCurrentFile(NULL);
 }
 
 UInt16 fsGetRecordsCount(AbstractFile *file)
@@ -364,7 +364,7 @@ void CurrFileUnlockRegion(char *data)
 }
 
 
-inline Boolean FValidFsType(eFsType type)
+Boolean FValidFsType(eFsType type)
 {
     if ((eFS_NONE==type) || (eFS_MEM==type) || (eFS_VFS==type))
         return true;

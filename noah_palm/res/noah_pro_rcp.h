@@ -43,6 +43,7 @@
 #define   buttonHeadword      3005
 #define   buttonDefinition    3006
 #define   buttonExample       3007
+#define   buttonRescanDicts   3008
 
 #define   scrollDef           4008
 

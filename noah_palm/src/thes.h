@@ -56,6 +56,7 @@ typedef struct
     DatabaseStartupAction   dbStartupAction;
     char                    lastDbName[dmDBNameLength];
     char                    lastWord[dmDBNameLength];
+    char *                  lastDbUsedName;
 } ThesPrefs;
 
 #define HISTORY_ITEMS 5

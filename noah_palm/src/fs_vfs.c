@@ -16,31 +16,19 @@ static UInt16  g_VfsVolumeRef[MAX_VFS_VOLUMES];
 
 typedef struct
 {
-    char    name[dmDBNameLength];
-    Int16   flags;
-    Int16   version;
-    UInt32  createTime;
-    UInt32  modifyTime;
-    UInt32  backupTime;
-    UInt32  modificationNumber;
-    UInt32  appInfoID;
-    UInt32  sortInfoID;
-    UInt32  type;
-    UInt32  creator;
-    UInt32  idSeed;
-    UInt32  nextRecordList;
-    Int16   recordsCount;
-} PdbHeader;
-
-typedef struct
-{
     UInt32  recOffset;
     char    attrib;
     char    uniqueId[3];
 } PdbRecordHeader;
 
-/* Initialize vfs, return false if couldn't be initialized.
-Should only be called once */
+// Return true if VFS is present. Should call VfsInit before calling it.
+Boolean FVfsPresent(void)
+{
+    return g_fVfsPresent;
+}
+
+// Initialize vfs, return false if couldn't be initialized.
+// Should only be called once
 Boolean FsVfsInit(void)
 {
     Boolean   fPresent = true;
@@ -104,12 +92,6 @@ void FsVfsDeinit(void)
     }
 #endif
     g_fVfsPresent = false;
-}
-
-/* Return true if VFS is present. Should call VfsInit before calling it. */
-Boolean FFsVfsPresent(void)
-{
-    return g_fVfsPresent;
 }
 
 /* return true if given file attributes represent a file
@@ -220,7 +202,7 @@ void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
     AbstractFile *  file;
     int             currVolume;
 
-    if (!FFsVfsPresent())
+    if (!FVfsPresent())
     {
         LogG( "FsVfsFindDb(): VFS not present" );
         return;

@@ -28,11 +28,14 @@
 #define   menuItemPrefs       2050
 #define   menuItemStress      2060
 #define   menuItemSelectDB    2070
+#define   menuItemCopy        2080
+#define   menuItemTranslate   2090
 
 #define   buttonCancel        3001
 #define   buttonFind          3002
 #define   buttonSelect        3003
 #define   buttonOk            3004
+#define   buttonRescanDicts   3005
 
 #define   scrollDef           4008
 

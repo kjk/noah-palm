@@ -22,7 +22,11 @@ void DictCurrentFree(void)
 {
     // TODO: SavePreferences();
     dictDelete();
-    if ( NULL != GetCurrentFile() ) FsFileClose( GetCurrentFile() );
+    if ( NULL != GetCurrentFile() )
+    {
+        FsFileClose( GetCurrentFile() );
+        SetCurrentFile(NULL);
+    }
 }
 
 Boolean DictInit(AbstractFile *file)
@@ -82,7 +86,7 @@ Err InitNoahLite(void)
     return errNone;
 }
 
-void DisplayAboutNoahLite(void)
+void DisplayAbout(void)
 {
 /*    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144); */
     ClearDisplayRectangle();
@@ -274,7 +278,7 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
                 goto ExitProgram;
             }
 
-            DisplayAboutNoahLite();
+            DisplayAbout);
 #if 0
             /* start the timer, so we'll switch to info
                text after a few seconds */
@@ -312,7 +316,7 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             break;
 
         case evtNewDatabaseSelected:
-            DisplayAboutNoahLite();
+            DisplayAbout();
             /* start the timer, so we'll switch to info
                text after a few seconds */
     /*      gd.start_seconds_count = TimGetSeconds();
@@ -388,7 +392,7 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
                         gd.currDispInfo = NULL;
                         gd.currentWord = 0;
                     }
-                    DisplayAboutNoahLite();
+                    DisplayAbout();
                     break;
 #ifdef DEBUG
                 case menuItemStress:

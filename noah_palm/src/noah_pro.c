@@ -117,6 +117,8 @@ void *SerializePreferencesNoahPro(long *pBlobSize)
         serByte( currFilePos, prefsBlob, &blobSize );
 
         /* 4. list of databases */
+        // note: we don't really need to store databases from eFS_MEM because
+        // we rescan them anyway, but this is easier to code
         for(i=0; i<gd.dictsCount; i++)
         {
             currFile = gd.dicts[i];
@@ -163,9 +165,8 @@ void *SerializePreferencesNoahPro(long *pBlobSize)
     return prefsBlob;
 }
 
-/* Given a blob containing serialized prefrences deserilize the blob
-and set the preferences accordingly.
-*/
+// Given a blob containing serialized prefrences deserilize the blob
+// and set the preferences accordingly.
 void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
 {
     NoahPrefs *     prefs;
@@ -173,7 +174,6 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
     char *          fileName;
     UInt32          creator;
     UInt32          type;
-    UInt16          volRef;
     int             i;
     unsigned char   dbCount;
     unsigned char   currDb;
@@ -215,24 +215,20 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
         type = (UInt32)deserLong( &prefsBlob, &blobSize );
         fileName = deserString( &prefsBlob, &blobSize );
         if ( eFS_VFS == fsType )
-            volRef = (UInt16)deserInt( &prefsBlob, &blobSize );
-        
-        file = AbstractFileNewFull( fsType, creator, type, fileName );
-
-        if ( NULL == file ) return;
-
-        if ( eFS_VFS == fsType )
-            file->volRef = volRef;
-
-        DictFoundCBNoahPro( file );
+        {
+            file = AbstractFileNewFull( fsType, creator, type, fileName );
+            if (NULL==file)
+                return;
+            file->volRef = (UInt16)deserInt( &prefsBlob, &blobSize );
+            // we only remember files on external memory because those in ram
+            // are fast to find
+            DictFoundCBNoahPro( file );
+        }
 
         if (i==currDb)
-        {
             prefs->lastDbUsedName = fileName;
-        }
         else
             new_free(fileName);
-
     }
 
     /* 5. last word */
@@ -343,6 +339,7 @@ void LoadPreferencesNoahPro()
     UInt         recsCount;
     Boolean      fRecFound = false;
 
+    gd.fFirstRun = true;
     db = DmOpenDatabaseByTypeCreator(NOAH_PREF_TYPE, NOAH_PRO_CREATOR, dmModeReadWrite);
     if (!db) return;
     recsCount = DmNumRecords(db);
@@ -354,15 +351,27 @@ void LoadPreferencesNoahPro()
         {
             LogG( "LoadPreferencesNoahPro(), found prefs record" );
             fRecFound = true;
+            gd.fFirstRun = false;
             DeserilizePreferencesNoahPro((unsigned char*)recData, MemHandleSize(recHandle) );
         }
         MemPtrUnlock(recData);
     }
     DmCloseDatabase(db);
-    if (fRecFound)
-        gd.fFirstRun = false;
-    else
-        gd.fFirstRun = true;
+}
+
+Boolean FNoahProDatabase( UInt32 creator, UInt32 type )
+{
+    if ( NOAH_PRO_CREATOR != creator )
+        return false;
+
+    if ( (WORDNET_PRO_TYPE != type) &&
+        (WORDNET_LITE_TYPE != type) &&
+        (SIMPLE_TYPE != type) &&
+        (ENGPOL_TYPE != type))
+    {
+        return false;
+    }
+    return true;
 }
 
 /* called for every file on the external card */
@@ -370,21 +379,16 @@ void VfsFindCbNoahPro( AbstractFile *file )
 {
     AbstractFile *fileCopy;
 
-    /* TODO: update progress dialog with a number of files processed */
-    if ( NOAH_PRO_CREATOR != file->creator )
-        return;
+    /* UNDONE: update progress dialog with a number of files processed */
 
-    if ( (WORDNET_PRO_TYPE != file->type) &&
-        (WORDNET_LITE_TYPE != file->type) &&
-        (SIMPLE_TYPE != file->type) &&
-        (ENGPOL_TYPE != file->type))
-    {
+    if ( !FNoahProDatabase( file->creator, file->type ) )
         return;
-    }
 
     // "PPrs" is (supposedly) name of a db created by Palm Reader Pro 2.2.2
     // that has matching creator/type of Noah's database. We need to filter
     // those out
+    // note: this would not be right if the file was on external card but I don't
+    // think this is the case
     if ( 0==StrCompare(file->fileName,"PPrs") )
         return;
 
@@ -394,23 +398,54 @@ void VfsFindCbNoahPro( AbstractFile *file )
     DictFoundCBNoahPro( fileCopy );
 }
 
-void ScanForDictsNoahPro(void)
+Boolean FDatabaseExists(AbstractFile *file)
 {
-    FsMemFindDb( NOAH_PRO_CREATOR, WORDNET_PRO_TYPE, NULL, &DictFoundCBNoahPro );
-    FsMemFindDb(NOAH_PRO_CREATOR, SIMPLE_TYPE, NULL, &DictFoundCBNoahPro );
+    PdbHeader   hdr;
 
-    /* TODO: show a progress dialog with a number of files processed so far */
-    FsVfsFindDb( &VfsFindCbNoahPro );
-    LogV1( "ScanForDictsNoahPro(), found %d dicts", gd.dictsCount );
+    Assert( eFS_VFS == file->fsType );
+
+    if ( !FVfsPresent() )
+        return false;
+
+    if ( !ReadPdbHeader(file->volRef, file->fileName, &hdr ) )
+        return false;
+    
+    if ( FNoahProDatabase( hdr.creator, hdr.type ) )
+        return true;
+    else
+        return false;
 }
 
-void SendNewDatabaseSelected(int db)
+void RemoveNonexistingDatabases(void)
 {
-    EventType   newEvent;
-    MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
-    EvtSetInt( &newEvent, db );
-    EvtAddEventToQueue(&newEvent);
+    int i;
+    // if we got a list of databases on eFS_VFS from preferences we need
+    // to verify that those databases still exist
+    for(i=0; i<gd.dictsCount; i++)
+    {
+        if ( !FDatabaseExists(gd.dicts[i]) )
+        {
+            AbstractFileFree( gd.dicts[i] );
+            MemMove( &(gd.dicts[i]), &(gd.dicts[i+1]), (gd.dictsCount-i-1)*sizeof(gd.dicts[0]) );
+            --gd.dictsCount;
+        }
+    }
+}
+    
+void ScanForDictsNoahPro(Boolean fAlwaysScanExternal)
+{
+    FsMemFindDb(NOAH_PRO_CREATOR, WORDNET_PRO_TYPE, NULL, &DictFoundCBNoahPro);
+    FsMemFindDb(NOAH_PRO_CREATOR, SIMPLE_TYPE, NULL, &DictFoundCBNoahPro);
+
+    /* TODO: show a progress dialog with a number of files processed so far */
+    
+    // only scan external memory card (slow) if this is the first
+    // time we run (don't have the list of databases cached in
+    // preferences) or we didn't find any databases at all
+    // (unless it was over-written by fAlwaysScanExternal flag
+    if (fAlwaysScanExternal || gd.fFirstRun || (0==gd.dictsCount))
+        FsVfsFindDb( &VfsFindCbNoahPro );
+    LogV1( "ScanForDictsNoahPro(), found %d dicts", gd.dictsCount );
 }
 
 Err InitNoahPro(void)
@@ -431,15 +466,14 @@ Err InitNoahPro(void)
     gd.currentStressWord = 0;
 #endif
 
-    /* fill out the default values for Noah preferences
-       and try to load them from pref database */
+    // fill out the default values for Noah preferences
+    // and try to load them from pref database
     gd.prefs.fDelVfsCacheOnExit = true;
     gd.prefs.startupAction = startupActionNone;
     gd.prefs.tapScrollType = scrollLine;
     gd.prefs.hwButtonScrollType = scrollPage;
     gd.prefs.dbStartupAction = dbStartupActionAsk;
     gd.prefs.lastDbUsedName = NULL;
-    // TODO: gd.prefs.
 
     FsInit();
 
@@ -454,8 +488,12 @@ Err InitNoahPro(void)
 
 void DictCurrentFree(void)
 {
-    dictDelete();
-    if ( NULL != GetCurrentFile() ) FsFileClose( GetCurrentFile() );
+    if ( NULL != GetCurrentFile() )
+    {
+        dictDelete();
+        FsFileClose( GetCurrentFile() );
+        SetCurrentFile(NULL);
+    }
 }
 
 Boolean DictInit(AbstractFile *file)
@@ -498,7 +536,7 @@ void StopNoahPro(void)
     FsDeinit();
 }
 
-void DisplayAboutNoahPro(void)
+void DisplayAbout(void)
 {
     ClearDisplayRectangle();
     HideScrollbar();
@@ -531,14 +569,14 @@ void DisplayAboutNoahPro(void)
     dh_restore_font();
 }
 
-/* return false if didn't find anything in clipboard, true if 
-   got word from clipboard */
+// return false if didn't find anything in clipboard, true if 
+// got word from clipboard
 Boolean FTryClipboard(void)
 {
     MemHandle   clipItemHandle;
     char        txt[30];
-    char        *clipTxt;
-    char        *word;
+    char *      clipTxt;
+    char *      word;
     UInt32      wordNo;
     int         idx;
     UInt16      itemLen;
@@ -629,7 +667,6 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
     Short           newValue;
     ListType *      list;
     long            wordNo;
-    EventType       newEvent;
     char *          defTxt = NULL;
     int             defTxtLen = 0;
     int             i;
@@ -652,14 +689,13 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
             LogG( "mainFrm - frmOpenEvent" );
             FrmDrawForm(frm);
 
-            ScanForDictsNoahPro();
+            RemoveNonexistingDatabases();
+            ScanForDictsNoahPro(false);
 
             if (0 == gd.dictsCount)
             {
                 FrmAlert(alertNoDB);
-                MemSet(&newEvent, sizeof(EventType), 0);
-                newEvent.eType = appStopEvent;
-                EvtAddEventToQueue(&newEvent);
+                SendStopEvent();
                 return true;
             }
 
@@ -694,21 +730,14 @@ ChooseDatabase:
                 }
             }
 
-            if (fileToOpen)
-            {
-                LogV1( "found db2=%s", fileToOpen->fileName );
-            }
-
             if (NULL == fileToOpen)
             {
-                LogG( "no file, please choose" );
-                /* ask user which database to use */
+                // ask the user which database to use
                 FrmPopupForm(formSelectDict);
                 return true;
             }
             else
             {
-                LogG( "there is file, try to init" );
                 if ( !DictInit(fileToOpen) )
                 {
                     // failed to initialize dictionary. If we have more - retry,
@@ -734,9 +763,7 @@ ChooseDatabase:
                     else
                     {
                         FrmAlert( alertDbFailed);
-                        MemSet(&newEvent, sizeof(EventType), 0);
-                        newEvent.eType = appStopEvent;
-                        EvtAddEventToQueue(&newEvent);
+                        SendStopEvent();
                         return true;                    
                     }
                 }
@@ -746,10 +773,10 @@ ChooseDatabase:
             if ( startupActionClipboard == gd.prefs.startupAction )
             {
                 if (!FTryClipboard())
-                    DisplayAboutNoahPro();
+                    DisplayAbout();
             }
             else
-                DisplayAboutNoahPro();
+                DisplayAbout();
 
             if ( (startupActionLast == gd.prefs.startupAction) &&
                 gd.prefs.lastWord[0] )
@@ -798,7 +825,7 @@ ChooseDatabase:
                     FrmPopupForm(formDictFind);
                     break;
                 case popupHistory:
-                    // TODO: why false???
+                    // UNDONE: why false???
                     return false;
                     break;
                 default:
@@ -872,9 +899,7 @@ ChooseDatabase:
                     else
                     {
                         FrmAlert( alertDbFailed);
-                        MemSet(&newEvent, sizeof(EventType), 0);
-                        newEvent.eType = appStopEvent;
-                        EvtAddEventToQueue(&newEvent);
+                        SendStopEvent();
                         return true;                    
                     }
                 }
@@ -885,10 +910,10 @@ ChooseDatabase:
             if ( startupActionClipboard == gd.prefs.startupAction )
             {
                 if (!FTryClipboard())
-                    DisplayAboutNoahPro();
+                    DisplayAbout();
             }
             else
-                DisplayAboutNoahPro();
+                DisplayAbout();
 
             if ( (startupActionLast == gd.prefs.startupAction) &&
                 gd.prefs.lastWord[0] )
@@ -1019,7 +1044,7 @@ ChooseDatabase:
                     FrmPopupForm(formDictFind);
                     break;
                 case menuItemAbout:
-                    DisplayAboutNoahPro();
+                    DisplayAbout();
                     break;
                 case menuItemHelp:
                     DisplayHelp();
@@ -1119,13 +1144,11 @@ ChooseDatabase:
     return handled;
 }
 
-/*
-Event handler proc for the find word dialog
-*/
+// Event handler proc for the find word dialog
 Boolean FindFormHandleEventNoahPro(EventType * event)
 {
     Boolean     handled = false;
-    char        *word;
+    char *      word;
     FormPtr     frm;
     FieldPtr    fld;
     ListPtr     list;
@@ -1245,16 +1268,16 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
     return handled;
 }
 
-
 Boolean SelectDictFormHandleEventNoahPro(EventType * event)
 {
     FormPtr frm;
     ListPtr list;
-    static long selectedDb = 0;
+    long    selectedDb;
 
     switch (event->eType)
     {
         case frmOpenEvent:
+            selectedDb = FindCurrentDbIndex();
             frm = FrmGetActiveForm();
             list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
             LstSetDrawFunction(list, ListDbDrawFunc);
@@ -1267,26 +1290,55 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
                 FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
             FrmDrawForm(frm);
             return true;
-            break;
 
         case lstSelectEvent:
-            selectedDb = event->data.lstSelect.selection;
             return true;
-            break;
 
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonSelect:
-                    SendNewDatabaseSelected( selectedDb );
-                    selectedDb = 0;
+                    frm = FrmGetActiveForm();
+                    list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
+                    selectedDb = LstGetSelection(list);
+                    if (selectedDb != noListSelection)
+                        SendNewDatabaseSelected( selectedDb );
                     FrmReturnToForm(0);
-                    return true;
+                    break;
                 case buttonCancel:
                     Assert( NULL != GetCurrentFile() );
                     FrmReturnToForm(0);
-                    return true;
+                    break;
+                case buttonRescanDicts:
+                    DictCurrentFree();
+                    FreeDicts();
+                    // force scanning external memory for databases
+                    ScanForDictsNoahPro(true);
+                    frm = FrmGetActiveForm();
+                    list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
+                    LstSetListChoices(list, NULL, gd.dictsCount);
+                    if (0==gd.dictsCount)
+                    {
+                        FrmHideObject(frm, FrmGetObjectIndex(frm, buttonSelect));
+                        FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
+                    }
+                    else
+                    {
+                        FrmShowObject(frm, FrmGetObjectIndex(frm, buttonSelect));
+                        if (NULL == GetCurrentFile())
+                            FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
+                        else
+                            FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
+                        LstSetSelection(list, 0);
+                        LstMakeItemVisible(list, 0);
+                    }
+                    FrmUpdateForm(FrmGetFormId(frm), frmRedrawUpdateCode);
+                    break;
+                default:
+                    Assert(0);
+                    break;
             }
+            return true;
             break;
         default:
             break;

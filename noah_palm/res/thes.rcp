@@ -68,6 +68,7 @@ BEGIN
    LIST "" listOfDicts AT (10 24 140 80) USABLE
    BUTTON "Select" buttonSelect AT (40 120 AUTO AUTO) FONT 0
    BUTTON "Cancel" buttonCancel AT (80 120 AUTO AUTO) NONUSABLE FONT 0
+   BUTTON "Find databases" buttonRescanDicts AT (50 160-18 AUTO AUTO) FONT 0
 END
 
 FORM formDictFind AT (0 0 160 160)

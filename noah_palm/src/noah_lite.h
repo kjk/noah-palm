@@ -25,6 +25,11 @@
 
 typedef struct
 {
+    char                    lastWord[WORD_MAX_LEN];
+} NoahLitePrefs;
+
+typedef struct
+{
     AbstractFile  *     dicts[MAX_DICTS];
     int                 dictsCount;
     NoahErrors          err;
@@ -40,6 +45,7 @@ typedef struct
     long                selectedWord;
     char                lastWord[WORD_MAX_LEN];
     long                ticksEventTimeout;
+    NoahLitePrefs       prefs;
 #ifdef DEBUG
     long                currentStressWord;
 #endif

@@ -37,8 +37,6 @@
 
 #define SEARCH_TXT   "Searching..."
 
-char *strdup( char *str );
-
 typedef enum
 {
     ERR_NONE = 0,
@@ -235,6 +233,9 @@ void            deserStringToBuf(char *buf, int bufSize, unsigned char **data, l
 void            RememberLastWord(FormType * frm);
 void            DoFieldChanged(void);
 void            SendFieldChanged(void);
-char *          StrDup(char *s);
+void            SendNewDatabaseSelected(int db);
+void            SendStopEvent(void);
+char *          strdup(char *s);
+long            FindCurrentDbIndex(void);
 
 #endif

@@ -53,21 +53,6 @@ LogInfo g_Log;
 char    g_logBuf[512];
 #endif
 
-/* return a copy of the string. Caller needs to free the memory */
-char *strdup( char *str )
-{
-    int     strLen;
-    char    *newStr;
-
-    Assert(str);
-    strLen = strlen( str );
-    newStr = (char*)new_malloc_zero( strLen+1 );
-    if (newStr)
-        MemMove( newStr, str, strLen );
-    return newStr;
-}
-
-
 /* those functions are not available for Noah Lite */
 #ifndef NOAH_LITE
 
@@ -88,19 +73,6 @@ void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
 }
 
-char *StrDup(char *s)
-{
-    int     len;
-    char *  newStr;
-
-    if (!s) return NULL;
-    len = StrLen(s);
-    newStr = (char*)new_malloc_zero(len+1);
-    if (newStr)
-        StrCopy(newStr,s);
-    return newStr;
-}
-
 void strtolower(char *txt)
 {
     while (*txt)
@@ -117,7 +89,7 @@ void AddToHistory(UInt32 wordNo)
 {
     char *  word;
 
-    word = StrDup(dictGetWord(wordNo));
+    word = strdup(dictGetWord(wordNo));
     if (!word)
         return;
 
@@ -156,6 +128,8 @@ void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, 
 
 void FreeDicts(void)
 {
+    // make sure to call DictCurrentFree() before calling here
+    Assert( NULL == GetCurrentFile() );
     while(gd.dictsCount>0)
     {
         AbstractFileFree( gd.dicts[--gd.dictsCount] );
@@ -321,26 +295,35 @@ void DisplayHelp(void)
     SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
 }
 
+extern void DisplayAbout(void);
+
 void RedrawWordDefinition()
 {
-#ifndef NOAH_LITE
     Int16 wordLen = 0;
-#endif
     char *word = NULL;
 
-    /* we might be called if there is no word chosen yet, in which case we
-       have to gracefully do nothing */
+    // might happen if there is no word chosen yet, in which case we
+    // display about screen
     if (NULL == gd.currDispInfo)
+    {
+        DisplayAbout();
         return;
+    }
+
+    // it can happen that the dictionary has been deleted in the meantime
+    // (during rescanning of databases in selecting of new databases)
+    // in that case do nothing
+    // UNDONE: find a better solution?
+    if ( NULL == GetCurrentFile() )
+        return;
+
 
     /* write the word at the bottom */
     word = dictGetWord(gd.currentWord);
 
-#ifndef NOAH_LITE
     wordLen = StrLen(word);
     MemSet(gd.prefs.lastWord, 32, 0);
     MemMove(gd.prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
-#endif
 
     DrawWord(word, 149);
     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
@@ -958,10 +941,12 @@ void FreeInfoData(void)
     if (gd.helpDipsBuf)
     {
         ebufDelete(gd.helpDipsBuf);
+        gd.helpDipsBuf = NULL;
     }
     if (gd.currDispInfo)
     {
         diFree(gd.currDispInfo);
+        gd.currDispInfo = NULL;
     }
 }
 
@@ -1607,3 +1592,43 @@ void SendFieldChanged(void)
     EvtAddEventToQueue(&newEvent);
 }
 
+void SendNewDatabaseSelected(int db)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
+    EvtSetInt( &newEvent, db );
+    EvtAddEventToQueue(&newEvent);
+}
+
+void SendStopEvent(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = appStopEvent;
+    EvtAddEventToQueue(&newEvent);
+}
+
+char *strdup(char *s)
+{
+    int     len;
+    char *  newStr;
+
+    Assert(s);
+    len = StrLen(s);
+    newStr = (char*)new_malloc_zero(len+1);
+    if (newStr)
+        StrCopy(newStr,s);
+    return newStr;
+}
+
+long FindCurrentDbIndex(void)
+{
+    long i;
+    for(i=0; i<gd.dictsCount; i++)
+    {
+        if (gd.dicts[i] == GetCurrentFile() )
+            return i;
+    }
+    return 0;
+}

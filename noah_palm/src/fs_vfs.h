@@ -15,9 +15,10 @@
 #include "fs.h"
 #include "fs_ex.h"
 
+Boolean FVfsPresent(void);
+
 Boolean FsVfsInit(void);
 void    FsVfsDeinit(void);
-Boolean FFsVfsPresent(void);
 
 Boolean vfsInitCacheData(AbstractFile *file, struct DbCacheData *cacheData);
 Err     vfsCopyExternalToMem(AbstractFile *file, UInt32 offset, UInt32 size, void *dstBuf);
