@@ -590,11 +590,12 @@ Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleB
 {
     unsigned char compresed[PRON_COMPRESED_MAX_LEN];
     unsigned char decompresed[PRON_DECOMPRESED_MAX_LEN];
+    char *pron;
+   	char wordToPrarting[WORD_MAX_LEN + 2];
    	char wordPart[WORD_MAX_LEN + 2];
    	char *wordTest;
-    char *pron;
     int  bufferPosition;
-   	int  i,j;
+   	int  i,j;   //i used with wordPart, j used with word;
    	long wordNoPart;
    	Boolean findSth = false;
     
@@ -604,43 +605,43 @@ Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleB
     
     if(!pronGetCompresedWord(appContext,file,compresed,wordNo))
     {
-        //TODO: complex pronunciation! ignore ' ', '-' and "(p)"
+        //complex pronunciation! ignore ' ', '-' and "(p)"
         bufferPosition = buf->used;
-        
         ebufAddChar(buf,'[');
-        
-        //WinDrawChars(word,StrLen(word),20,140);
-        
+        MemMove(wordToPrarting,word,StrLen(word)+1);
+
     	j = 0;
-    	while(word[j] != 0)
+    	while(wordToPrarting[j] != 0)
     	{
     		i = 0;
-    		while(word[j]!=0 && word[j]!=' ' && word[j]!='-' && word[j]!='(')
+    		while(wordToPrarting[j]!=0 && wordToPrarting[j]!=' ' && wordToPrarting[j]!='-' && wordToPrarting[j]!='(')
     		{
-    			wordPart[i] = word[j];
+    			wordPart[i] = wordToPrarting[j];
     			i++;
     			j++;
     		}
     		wordPart[i] = 0;
+
+            if(findSth)
+                ebufAddStr(buf,"     ");
     
-    		if(word[j] == '(')
-    			while(word[j++] != ')')
+    		if(wordToPrarting[j] == '(')
+    		{
+	            findSth = true;
+    			while(wordToPrarting[j++] != ')')
                     ;; //asm nop;
-                        
-            if(word[j]==0 && !findSth)
-                goto PronExitComplexFalse;
+            }            
             
+            if(wordToPrarting[j]==0 && !findSth)
+                goto PronExitComplexFalse;
+            //this will be very slow!!!            
             wordNoPart = dictGetFirstMatching(GetCurrentFile(appContext), wordPart);
             wordTest = dictGetWord(GetCurrentFile(appContext), wordNoPart);
 
             if (0 != StrNCaselessCompare(wordTest, wordPart,  (StrLen(wordPart) >= StrLen(wordTest)) ? StrLen(wordPart) : StrLen(wordTest)))
                 goto PronExitComplexFalse;
-            
             if(!pronGetCompresedWord(appContext,file,compresed,wordNoPart))
                 goto PronExitComplexFalse;
-            
-            if(findSth)
-                ebufAddStr(buf,"     ");
             findSth = true;
             
             pronDecomprese(decompresed,compresed);
@@ -653,7 +654,7 @@ Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleB
             else
                 goto PronExitComplexFalse;
 
-    		while(word[j]!=0 && (word[j]==' ' || word[j]=='-'))
+    		while(wordToPrarting[j]!=0 && (wordToPrarting[j]==' ' || wordToPrarting[j]=='-'))
     			j++;
     	}
 
