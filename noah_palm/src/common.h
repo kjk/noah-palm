@@ -549,17 +549,18 @@ extern AppContext* GetAppContext();
 extern void FldSelectAllText(FieldType* field);
 
 #ifndef I_NOAH
-extern UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize);
-extern AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name);
+extern UInt16 FldGetSelectedText(FieldType* field, char* buffer, UInt16 bufferSize);
+extern AbstractFile* FindOpenDatabase(AppContext* appContext, const char* name);
 #endif // I_NOAH
 
+Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, LocalID *dbId);
 DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type);
 
 /**
  * Calculates the @c current to @c total ratio and 
  * renders result as percents, optionally filling @c buffer
  * with textual representation.
- * @param buffer @c Char array with space for at least 5 elements, or NULL if not needed.
+ * @param buffer @c char array with space for at least 5 elements, or NULL if not needed.
  * @return ratio in percents.
  */ 
 extern UInt16 PercentProgress(char* buffer, UInt32 current, UInt32 total);
@@ -575,7 +576,7 @@ extern void SafeStrNCopy(char *dst, int dstLen, char *srcStr, int srcStrLen);
  * @param subStr subseqeunce to find (null-terminated).
  * @return pointer to first occurence of @c subStr, or @c end if it's not found.
  */
-extern const Char* StrFind(const Char* begin, const Char* end, const Char* subStr);
+extern const char* StrFind(const char* begin, const char* end, const char* subStr);
 
 /**
  * Tests if sequence starts with subsequence.
@@ -584,7 +585,7 @@ extern const Char* StrFind(const Char* begin, const Char* end, const Char* subSt
  * @param subStr string to look for (null-terminated).
  * @return @c true, if sequence [<code>begin</code>, <code>end</code>) starts with @c subStr.
  */
-extern Boolean StrStartsWith(const Char* begin, const Char* end, const Char* subStr);
+extern Boolean StrStartsWith(const char* begin, const char* end, const char* subStr);
 
 /**
  * Converts character sequence to it's numeric representation.
@@ -594,7 +595,7 @@ extern Boolean StrStartsWith(const Char* begin, const Char* end, const Char* sub
  * @param base base of numeric system used to perform converion, effective range [2, 36).
  * @return error code, @c errNone if conversion is successful.
  */
-extern Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base);
+extern Err StrAToIEx(const char* begin, const char* end, Int32* result, UInt16 base);
 
 /**
  * Scans sequence for occurence of any of given characters.
@@ -603,14 +604,14 @@ extern Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 b
  * @param chars characters to scan for (null-terminated).
  * @return pointer to first occurence of given characters, or @c end if not found.
  */
-extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars);
+extern const char* StrFindOneOf(const char* begin, const char* end, const char* chars);
 
 /**
  * Repositions sequence bounduary so that it doesn't contain any trailing whitespace (space, tab, line-feed, carriage-return).
  * @param begin pointer to first character of sequence to trim.
  * @param end on entry contains pointer to one-past-last character of sequence, on return will contain pointer one-past-last not-whitespace character.
  */
- extern void StrTrimTail(const Char* begin, const Char** end);
+ extern void StrTrimTail(const char* begin, const char** end);
 
 /**
  * Performs URL-encoding according to RFC2396 (URI: Generic Syntax).
@@ -623,7 +624,7 @@ extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* 
  * @return error code, @c errNone on success.
  * @see RFC2396 Chapter 2
  */
-extern Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt16* encodedLength);
+extern Err StrUrlEncode(const char* begin, const char* end, char** encoded, UInt16* encodedLength);
 
 extern Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID);
 
@@ -631,7 +632,7 @@ extern void CreateNewMemo(char *memoBody, int memoBodySize);
 
 #ifdef DEBUG 
 
-extern void LogErrorToMemo_(const Char* message, Err error);
+extern void LogErrorToMemo_(const char* message, Err error);
 #define LogErrorToMemo(message, error) LogErrorToMemo_(message, error)
 
 #else

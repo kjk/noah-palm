@@ -140,9 +140,9 @@ static void SavePreferencesInoah2(AppContext* appContext)
     AppPrefs *          prefs = &(appContext->prefs);
     PrefsStoreWriter    prefsStore(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
 
-    err = prefsStore.ErrSetInt(p_startupAction, (int)prefs->startupAction );
+    err = prefsStore.ErrSetUInt16(p_startupAction, (UInt16)prefs->startupAction );
     Assert( errNone != err );
-    err = prefsStore.ErrSetInt(p_hwButtonScrolType, (int)prefs->hwButtonScrollType);
+    err = prefsStore.ErrSetUInt16(p_hwButtonScrolType, (UInt16)prefs->hwButtonScrollType);
     Assert( errNone != err );
     err = prefsStore.ErrSavePreferences();
     Assert( errNone == err ); // can't do much more

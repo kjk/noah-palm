@@ -8,13 +8,22 @@
 #include "ErrBase.h"
 #include "PalmOS.h"
 
-#define psErrDuplicateId psErrorClass+1
-#define psErrNoMem       psErrorClass+2
+// tried to set the item with an id of existing item
+#define psErrDuplicateId        psErrorClass+1
+// didn't find an item with a given id
+#define psErrItemNotFound       psErrorClass+2
+// preferences database doesn't exist
+#define psErrNoPrefDatabase     psErrorClass+3
+// the type of an item with a given id is different than requested type
+#define psErrItemTypeMismatch   psErrorClass+4
+// preferences record is corrupted
+#define psErrDatabaseCorrupted  psErrorClass+5
 
 enum PrefItemType {
-    pitInt = 0,
+    pitBool = 0,
+    pitUInt16,
+    pitUInt32,
     pitStr,
-    pitBool
 };
 
 typedef struct _prefItem
@@ -22,28 +31,35 @@ typedef struct _prefItem
     int                 uniqueId;
     enum PrefItemType   type;
     union {
-        int         intVal;
-        char *      strVal;
         Boolean     boolVal;
+        UInt16      uint16Val;
+        UInt32      uint32Val;
+        char *      strVal;
     } value;
 } PrefItem;
 
 class PrefsStoreReader
 {
 private:
-    char *  _dbName;
-    UInt32  _dbCreator;
-    UInt32  _dbType;
+    char *      _dbName;
+    UInt32      _dbCreator;
+    UInt32      _dbType;
+    DmOpenRef   _db;
+    MemHandle   _recHandle;
+    unsigned char *  _recData;
 
+    Err ErrOpenPrefsDatabase();
+    Err ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem);
 public:
     PrefsStoreReader(char *dbName, UInt32 dbCreator, UInt32 dbType);
-    Err ErrGetInt(int uniqueId, int *value);
-    Err ErrGetStr(int uniqueId, char **vlaue);
     Err ErrGetBool(int uniqueId, Boolean *value);
+    Err ErrGetUInt16(int uniqueId, UInt16 *value);
+    Err ErrGetUInt32(int uniqueId, UInt32 *value);
+    Err ErrGetStr(int uniqueId, char **vlaue);
     ~PrefsStoreReader();
 };
 
-#define MAX_PREFS_ITEMS   40
+#define MAX_PREFS_ITEMS   60
 
 class PrefsStoreWriter
 {
@@ -58,9 +74,10 @@ private:
 
 public:
     PrefsStoreWriter(char *dbName, UInt32 dbCreator, UInt32 dbType);
-    Err ErrSetInt(int uniqueId, int value);
-    Err ErrSetStr(int uniqueId, char *value);
     Err ErrSetBool(int uniqueId, Boolean value);
+    Err ErrSetUInt16(int uniqueId, UInt16 value);
+    Err ErrSetUInt32(int uniqueId, UInt32 value);
+    Err ErrSetStr(int uniqueId, char *value);
     Err ErrSavePreferences();
     ~PrefsStoreWriter();
 };

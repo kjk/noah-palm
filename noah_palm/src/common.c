@@ -1906,7 +1906,7 @@ void serString(char *str, char *prefsBlob, long *pCurrBlobSize)
 char *deserString(unsigned char **data, long *pCurrBlobSize)
 {
     char *  str;
-    int   home  strLen;
+    int     strLen;
 
     strLen = deserInt( data, pCurrBlobSize );
     Assert( 0 == (*data)[strLen-1] );
@@ -2437,29 +2437,44 @@ AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
 
 #endif // I_NOAH
 
-/* Open a database given its name, creator and type. Return NULL if
-   database not found. */
-DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type)
+// Return database id of a database with a given dbName, type and creator
+// in dbId. This can be used e.g. in DmOpenDatabase()
+// Return errNone if found, dmErrCantFind if db can't be found
+Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, LocalID *dbId)
 {
     Err                 err;
     DmSearchStateType   stateInfo;
     UInt16              cardNo = 0;
-    LocalID             dbId;
     char                dbNameBuf[dmDBNameLength];
 
-    Assert(StrLen(dbName) < dmDBNameLength);
+    Assert(dbName);
+    Assert(StrLen(dbName)<dmDBNameLength);
+    Assert(dbId);
 
-    err = DmGetNextDatabaseByTypeCreator(true, &stateInfo, type, creator, 0, &cardNo, &dbId);
-    while ( errNone == err )
+    err = DmGetNextDatabaseByTypeCreator(true, &stateInfo, type, creator, 0, &cardNo, dbId);
+    while (errNone == err)
     {
         MemSet(dbNameBuf, sizeof(dbName), 0);
-        DmDatabaseInfo(cardNo, dbId, dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
+        DmDatabaseInfo(cardNo, *dbId, (char*)dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
 
-        if ( 0==StrCompare(dbName,dbNameBuf) )
-            return DmOpenDatabase(cardNo, dbId, dmModeReadWrite);
-        err = DmGetNextDatabaseByTypeCreator(false, &stateInfo, type, creator, 0, &cardNo, &dbId);
+        if (0==StrCompare(dbName,dbNameBuf))
+            return errNone;
+        err = DmGetNextDatabaseByTypeCreator(false, &stateInfo, type, creator, 0, &cardNo, dbId);
     }
-    return NULL;
+    return dmErrCantFind;
+}
+
+// Open a database given its name, creator and type. Return NULL if database not found.
+DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type)
+{
+    Err                 err;
+    LocalID             dbId;
+
+    err = ErrFindDatabaseByNameTypeCreator(dbName, creator, type, &dbId);
+    if (err)
+        return NULL;
+
+    return DmOpenDatabase(0, dbId, dmModeReadWrite);
 }
 
 UInt16 PercentProgress(char* buffer, UInt32 current, UInt32 total)
