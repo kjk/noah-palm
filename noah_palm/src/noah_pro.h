@@ -46,6 +46,7 @@ typedef struct
     DisplayPrefs            displayPrefs;
     // how do we sort bookmarks
     BookmarkSortType        bookmarksSortType;
+    Boolean                 fResidentModeEnabled;
 } NoahPrefs;
 
 typedef NoahPrefs AppPrefs;

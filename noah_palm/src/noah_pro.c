@@ -276,6 +276,7 @@ Err AppCommonInit(AppContext* appContext)
     appContext->prefs.dbStartupAction    = dbStartupActionLast;
     appContext->prefs.lastDbUsedName     = NULL;
     appContext->prefs.bookmarksSortType  = bkmSortByTime;
+    appContext->prefs.fResidentModeEnabled = true;
 
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 2;

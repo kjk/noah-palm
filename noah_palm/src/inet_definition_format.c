@@ -2,20 +2,20 @@
 #include "blowfish.h"
 
 #define wordsListResponse       "WORDLIST\n"
-#define wordsListResponseLen    9
+#define wordsListResponseLen    sizeof(wordsListResponse)-1
 #define messageResponse         "MESSAGE\n"
-#define messageResponseLen      8
+#define messageResponseLen      sizeof(messageResponse)-1
 #define errorMessageResponse    "ERROR\n"
-#define errorMessageResponseLen 6
+#define errorMessageResponseLen sizeof(errorMessageResponse)-1
 #define cookieResponse          "COOKIE\n"
-#define cookieResponseLen       7
+#define cookieResponseLen       sizeof(cookieResponse)-1
 #define definitionResponse      "DEF\n"
-#define definitionResponseLen   4
+#define definitionResponseLen   sizeof(definitionResponse)-1
 
-#define pronunciationTag "PRON"
-#define pronunciationTagLength 4
+#define pronunciationTag        "PRON"
+#define pronunciationTagLength  sizeof(pronunciationTag)-1
 
-static Err ExpandPartOfSpeechSymbol(Char symbol, const Char** partOfSpeech)
+static Err ExpandPartOfSpeechSymbol(char symbol, const char** partOfSpeech)
 {
     Err error=errNone;
     switch (symbol)
@@ -39,17 +39,17 @@ static Err ExpandPartOfSpeechSymbol(Char symbol, const Char** partOfSpeech)
     return error;            
 }
 
-static Err ConvertSynonymsBlock(AppContext* appContext, const Char* word, const Char* begin, const Char* end, ExtensibleBuffer* out)
+static Err ConvertSynonymsBlock(AppContext* appContext, const char* word, const char* begin, const char* end, ExtensibleBuffer* out)
 {
     Err error=errNone;
     const UInt16 wordLen=StrLen(word);
     UInt16 synsCount=0;
     while (begin<end) 
     {
-        const Char* synBegin=begin+1;
+        const char* synBegin=begin+1;
         if (synBegin<end) 
         {  
-            const Char* synEnd=StrFind(synBegin, end, "\n!");
+            const char* synEnd=StrFind(synBegin, end, "\n!");
             begin=synEnd+1;
             StrTrimTail(synBegin, &synEnd);
             if (synBegin<synEnd)
@@ -65,7 +65,7 @@ static Err ConvertSynonymsBlock(AppContext* appContext, const Char* word, const 
                         ebufAddChar(out, FORMAT_WORD);
                     }
                     ebufAddChar(out, ' ');
-                    ebufAddStrN(out, (Char*)synBegin, synLen);
+                    ebufAddStrN(out, (char*)synBegin, synLen);
                 }
             }
             else
@@ -85,16 +85,16 @@ static Err ConvertSynonymsBlock(AppContext* appContext, const Char* word, const 
     return error;
 }
 
-static Err ConvertDefinitionBlock(const Char* begin, const Char* end, ExtensibleBuffer* out)
+static Err ConvertDefinitionBlock(const char* begin, const char* end, ExtensibleBuffer* out)
 {
     Err error=errNone;
     while (begin<end)
     {
         UInt8 tag=(*begin=='@'?FORMAT_DEFINITION:FORMAT_EXAMPLE);
-        const Char* defBegin=begin+1;
+        const char* defBegin=begin+1;
         if (defBegin<end)
         {
-            const Char* defEnd=StrFindOneOf(defBegin, end, "@#");
+            const char* defEnd=StrFindOneOf(defBegin, end, "@#");
             while (defEnd<end)
             {
                 if (StrStartsWith(defEnd-1, defEnd, "\n"))
@@ -107,11 +107,11 @@ static Err ConvertDefinitionBlock(const Char* begin, const Char* end, Extensible
             if (defBegin<defEnd)
             {
                 ebufAddChar(out, FORMAT_TAG);
-                ebufAddChar(out, (Char)tag);
+                ebufAddChar(out, (char)tag);
                 ebufAddChar(out, ' ');
                 if (FORMAT_EXAMPLE==tag)
                     ebufAddChar(out, '\"');
-                ebufAddStrN(out, (Char*)defBegin, defEnd-defBegin);
+                ebufAddStrN(out, (char*)defBegin, defEnd-defBegin);
                 if (FORMAT_EXAMPLE==tag)
                     ebufAddChar(out, '\"');
                 ebufAddChar(out, '\n');                    
@@ -132,14 +132,14 @@ static Err ConvertDefinitionBlock(const Char* begin, const Char* end, Extensible
 }
 
 
-static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* word, const Char* begin, const Char* end, ExtensibleBuffer* out)
+static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* word, const char* begin, const char* end, ExtensibleBuffer* out)
 {
     Err error=errNone;
     if (FormatWantsWord(appContext))
     {
         ebufAddChar(out, FORMAT_TAG);
         ebufAddChar(out, FORMAT_SYNONYM);
-        ebufAddStr(out, (Char*)word);
+        ebufAddStr(out, (char*)word);
     }
     if (StrStartsWith(begin, end, pronunciationTag))
     {
@@ -169,10 +169,10 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
         begin=StrFind(begin, end, "!");
         while (begin<end)
         {
-            const Char* partBlock=StrFind(begin, end, "\n$");
+            const char* partBlock=StrFind(begin, end, "\n$");
             if (partBlock<end)
             {
-                const Char* partOfSpeech=(partBlock+=1)+1;
+                const char* partOfSpeech=(partBlock+=1)+1;
                 if (partOfSpeech<end)
                 {
                     error=ExpandPartOfSpeechSymbol(*partOfSpeech, &partOfSpeech);
@@ -182,12 +182,12 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
                         ebufAddChar(out, FORMAT_POS);
                         ebufAddChar(out, 149);
                         ebufAddStr(out, " (");
-                        ebufAddStr(out, (Char*)partOfSpeech);
+                        ebufAddStr(out, (char*)partOfSpeech);
                         ebufAddStr(out, ") ");
                         error=ConvertSynonymsBlock(appContext, word, begin, partBlock, out);
                         if (!error)
                         {
-                            const Char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
+                            const char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
                             while (defBlock<end)
                             {
                                 if (StrStartsWith(defBlock-1, defBlock, "\n"))
@@ -250,7 +250,7 @@ Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin,
                 ebufWrapBigLines(&buffer,true);
                 ebufSwap(&buffer, &appContext->currentDefinition);
                 diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
-                ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
+                ebufResetWithStr(&appContext->currentWordBuf, (char*)word);
                 ebufAddChar(&appContext->currentWordBuf, chrNull);
             }
             ebufFreeData(&buffer);
@@ -264,20 +264,20 @@ Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin,
     return error;
 }
 
-static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEnd, Char** targetList=NULL)
+static UInt16 IterateWordsList(const char* responseBegin, const char* responseEnd, char** targetList=NULL)
 {
-    UInt16 wordsCount=0;
-    const Char* wordBegin=responseBegin+wordsListResponseLen;
+    UInt16      wordsCount=0;
+    const char* wordBegin=responseBegin+wordsListResponseLen;
     while (wordBegin<responseEnd)
     {
-        const Char* wordEnd=StrFind(wordBegin, responseEnd, "\n");
+        const char* wordEnd=StrFind(wordBegin, responseEnd, "\n");
         if (wordBegin!=wordEnd)
         {
             if (targetList)
             {
                 UInt16 wordLength=wordEnd-wordBegin;
-                Char*& targetWord=targetList[wordsCount];
-                targetWord=static_cast<Char*>(new_malloc_zero(sizeof(Char)*(wordLength+1)));
+                char*& targetWord=targetList[wordsCount];
+                targetWord=static_cast<char*>(new_malloc_zero(sizeof(char)*(wordLength+1)));
                 if (targetWord) 
                 {
                     StrNCopy(targetWord, wordBegin, wordLength);
@@ -301,14 +301,14 @@ static Int16 StrSortComparator(void* str1, void* str2, Int32)
     return StrCompare(s1, s2);
 }
 
-static Err ProcessWordsListResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
+static Err ProcessWordsListResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
 {
     Err error=errNone;
     Assert(!appContext->wordsList);
     UInt16 wordsCount=IterateWordsList(responseBegin, responseEnd);
     if (wordsCount)
     {
-        Char** wordsStorage=static_cast<Char**>(new_malloc_zero(sizeof(Char*)*wordsCount));
+        char** wordsStorage=static_cast<char**>(new_malloc_zero(sizeof(char*)*wordsCount));
         if (wordsStorage)
         {
             IterateWordsList(responseBegin, responseEnd, wordsStorage);
@@ -327,20 +327,20 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
     return error;
 }
 
-static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd, Boolean isErrorMessage=false)
+static Err ProcessMessageResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd, Boolean isErrorMessage=false)
 {
     Err error=errNone;
-    const Char* messageBegin=responseBegin+(isErrorMessage?errorMessageResponseLen:messageResponseLen);
+    const char* messageBegin=responseBegin+(isErrorMessage?errorMessageResponseLen:messageResponseLen);
     if (messageBegin<responseEnd)
     {
         ExtensibleBuffer buffer;
         ebufInit(&buffer, 0);
         while (messageBegin<responseEnd)
         {
-            const Char* messageEnd=StrFind(messageBegin, responseEnd, "\n");
+            const char* messageEnd=StrFind(messageBegin, responseEnd, "\n");
             if (messageBegin<messageEnd)
             {
-                ebufAddStrN(&buffer, const_cast<Char*>(messageBegin), messageEnd-messageBegin);
+                ebufAddStrN(&buffer, const_cast<char*>(messageBegin), messageEnd-messageBegin);
                 ebufAddChar(&buffer, '\n');
             }
             if (messageEnd<responseEnd)
@@ -428,7 +428,7 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
         if (ebufGetDataPointer(&appContext->lastResponse)!=begin)
         {
             ebufReset(&appContext->lastResponse);
-            ebufAddStrN(&appContext->lastResponse, const_cast<Char*>(begin), end-begin);
+            ebufAddStrN(&appContext->lastResponse, const_cast<char*>(begin), end-begin);
         }
     }
     return error;           

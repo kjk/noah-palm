@@ -2176,9 +2176,11 @@ OnError:
 
 Err AppHandleSysNotify(SysNotifyParamType* param) 
 {
-    Err error=errNone;
+    Err         error=errNone;
     AppContext* appContext=GetAppContext();
+
     Assert(param);
+
     switch (param->notifyType) 
     {
         case sysNotifyDisplayChangeEvent:
@@ -2190,13 +2192,14 @@ Err AppHandleSysNotify(SysNotifyParamType* param)
             
 #if !(defined(NOAH_LITE) || defined(I_NOAH))
         case sysNotifyMenuCmdBarOpenEvent:
-            error=AppHandleMenuCmdBarOpen();
+            if ( appContext->prefs.fResidentModeEnabled)
+                error=AppHandleMenuCmdBarOpen();
             break;
 
         case appNotifyResidentLookupEvent:
             error=AppHandleResidentLookup();
             param->handled=true;
-            break;			
+            break;
 #endif
 
          default:
