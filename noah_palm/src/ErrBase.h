@@ -11,10 +11,4 @@
 
 #define sockConnErrorClass appErrorClass+0x0200 // SocketConnection etc.
 
-typedef enum SocketConnectionError_
-{
-    sockConnErrResponseTooLong=sockConnErrorClass,
-    sockConnErrResponseMalformed
-} SocketConnectionError;
-
 #endif
