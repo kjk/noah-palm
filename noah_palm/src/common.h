@@ -89,7 +89,6 @@ typedef char WordStorageType[WORD_MAX_LEN];
 
 typedef enum 
 {
-    appHasNotifyMgr,
     appHasFiveWayNav,
     appHasHsNav
 } AppFlags;   
@@ -386,7 +385,6 @@ typedef struct _AppContext
 #define AppTestFlag(appContext, flag) (((appContext)->flags & (1<<(flag)))!=0)
 #define AppSetFlag(appContext, flag) ((appContext)->flags |= (1<<(flag)))
 #define AppResetFlag(appContext, flag) ((appContext)->flags &= ~(1<<(flag)))
-#define AppHasNotifyMgr(appContext) AppTestFlag(appContext, appHasNotifyMgr)
 
 extern AppContext* GetAppContext();
 
@@ -449,7 +447,7 @@ void DisplayAbout(AppContext* appContext);
 void HideScrollbar(void);
 void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine);
 
-int GetOsVersion(AppContext* appContext);
+int GetOsVersion();
 int GetMaxScreenDepth(AppContext* appContext);
 Boolean IsColorSupported(AppContext* appContext);
 int GetCurrentScreenDepth(AppContext* appContext);
@@ -549,12 +547,14 @@ extern void SetListHeight(FormType *frm, UInt16 objId, int linesCount);
  */
 extern void SyncScreenSize(AppContext* appContext);
 
+Boolean FResidentModeEnabled();
+
 Err DefaultFormInit(AppContext* appContext, FormType* frm);
 
 extern Err AppHandleSysNotify(SysNotifyParamType* param);
 extern Err AppNotifyInit(AppContext* appContext);
 #ifndef I_NOAH
-extern Err AppNotifyFree(AppContext* appContext, Boolean beResident);
+extern Err AppNotifyFree(Boolean beResident);
 #endif // I_NOAH
 
 extern AppContext* GetAppContext();

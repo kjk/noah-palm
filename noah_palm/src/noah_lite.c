@@ -113,7 +113,7 @@ OnError:
 void DisplayAbout(AppContext* appContext)
 {
     UInt16 currentY=0;
-    if (GetOsVersion(appContext)>=35)
+    if (GetOsVersion()>=35)
         WinPushDrawState();
     ClearDisplayRectangle(appContext);
     HideScrollbar();
@@ -139,7 +139,7 @@ void DisplayAbout(AppContext* appContext)
     currentY+=20;
     DrawCenteredString(appContext, "http://www.arslexis.com", currentY);
 
-    if (GetOsVersion(appContext)>=35)
+    if (GetOsVersion()>=35)
         WinPopDrawState();    
 }
 

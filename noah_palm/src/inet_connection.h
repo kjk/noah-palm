@@ -25,7 +25,7 @@ typedef struct ConnectionProgressEventData_
     ConnectionProgressEventFlag flag;
 } ConnectionProgressEventData;        
 
-typedef Err (ConnectionStatusRenderer)(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer);
+typedef Err (ConnectionStatusRenderer)(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer* statusBuffer);
 typedef Err (ConnectionResponseProcessor)(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd);
 typedef void (ConnectionContextDestructor)(void* context);
 
@@ -47,7 +47,7 @@ extern const Char* GetConnectionStatusText(AppContext* appContext);
  * @see ConnectionStatusRenderer
  * @return standard PalmOS error code (@c errNone if success - always, as current implementation is trivial).
  */
-Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer);
+Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer* statusBuffer);
 
 
 #endif

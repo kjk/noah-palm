@@ -539,7 +539,7 @@ void PerformConnectionTask(AppContext* appContext)
         FinalizeConnection(appContext, connData);
 }
 
-Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer)
+static Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer* statusBuffer)
 {
     const char* baseText=NULL;
     baseText = "Downloading definition...";

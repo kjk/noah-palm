@@ -566,15 +566,14 @@ static void StopThesaurus(AppContext* appContext)
     FrmSaveAllForms();
     FrmCloseAllForms();
 
-
-    error=AppNotifyFree(appContext, true);    
+    error=AppNotifyFree(true);    
     Assert(!error);
 }
 
 void DisplayAbout(AppContext* appContext)
 {
     UInt16 currentY=0;
-    if (GetOsVersion(appContext)>=35)
+    if (GetOsVersion()>=35)
         WinPushDrawState();
     ClearDisplayRectangle(appContext);
     HideScrollbar();
@@ -612,7 +611,7 @@ void DisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "Buy at: www.palmgear.com?7423", currentY);
 #endif
 
-    if (GetOsVersion(appContext)>=35)
+    if (GetOsVersion()>=35)
         WinPopDrawState();    
 }
 

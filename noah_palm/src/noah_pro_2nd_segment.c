@@ -227,24 +227,23 @@ OnErrorCommonFree:
 
 void StopNoahPro(AppContext* appContext)
 {
-    Err error=errNone;
     SavePreferencesNoahPro(appContext);
     bfFreePTR(appContext);
     
-    error=AppCommonFree(appContext);
+    Err error = AppCommonFree(appContext);
     Assert(!error);
     
     FrmSaveAllForms();
     FrmCloseAllForms();
 
-    error=AppNotifyFree(appContext, true);    
+    error = AppNotifyFree(true);    
     Assert(!error);
 }
 
 void DisplayAbout(AppContext* appContext)
 {
     UInt16 currentY=0;
-    if (GetOsVersion(appContext)>=35)
+    if (GetOsVersion()>=35)
         WinPushDrawState();
     ClearDisplayRectangle(appContext);
     HideScrollbar();
@@ -290,14 +289,14 @@ void DisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "Buy at: www.palmgear.com?6923", currentY);
 #endif
 
-    if (GetOsVersion(appContext)>=35)
+    if (GetOsVersion()>=35)
         WinPopDrawState();    
 }
 
 static void MainFormReflow(AppContext* appContext, FormType* frm)
 {
     // a hack. proper version: don't even get here if it's not os <3.5
-    if (GetOsVersion(appContext)<=35)
+    if (GetOsVersion()<=35)
         return;
 
     UpdateFrmBounds(frm);
@@ -680,7 +679,7 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
             switch (event->data.popSelect.listID)
             {
                 case listHistory:
-                    word = appContext->wordHistory[event->data.popSelect.selection];
+                    word = (char*)appContext->wordHistory[event->data.popSelect.selection];
                     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
                     if (wordNo != appContext->currentWord)
                     {

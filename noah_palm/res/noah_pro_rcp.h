@@ -80,7 +80,7 @@
 #define   bmpFind             5001
 #define   bmpLogo             5011
 #define   bmpClose            5021
-#define   bmpMenuBarIcon      5031
+#define   bmpMenuBarIcon      6378
 
 #define   popupHistory            6001
 #define   popupStartupAction      6002

@@ -434,6 +434,19 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
         case sysAppLaunchCmdNotify:
             AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
             break;
+
+        // we need to register for cmdMenuBarOpen() after reset and after we're
+        // installed (hotsynced) so that resident mode is available even if user
+        // didn't run Noah Pro
+        case sysAppLaunchCmdSystemReset:
+        case sysAppLaunchCmdSyncNotify:
+            if (FResidentModeEnabled())
+            {
+                // not intuitive but AppNotifyFree() actually registers for
+                // cmdMenuBarOpen notification
+                AppNotifyFree(true);
+            }
+            break;
     }
 
     return err;

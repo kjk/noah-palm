@@ -63,7 +63,6 @@ void HistoryListSetState(AppContext* appContext, FormType *frm)
 
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
-    char *      str;
     AppContext* appContext=GetAppContext();
     /* max width of the string in the list selection window */
     Int16   stringWidthP = HISTORY_LIST_DX;
@@ -72,7 +71,7 @@ void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Assert(appContext);
     Assert((itemNum >= 0) && (itemNum <= appContext->historyCount));
 
-    str = appContext->wordHistory[itemNum];
+    const char* str = appContext->wordHistory[itemNum];
     stringLenP = StrLen(str);
 
     FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
@@ -314,17 +313,14 @@ void FreeDicts(AppContext* appContext)
 Detect an Palm OS version and return it in a way easy for later
 examination (20 for 2.0, 35 for 3.5 etc.)
 */
-int GetOsVersion(AppContext* appContext)
+int GetOsVersion()
 {
     UInt32      osVersionPart;
-    if ( appContext->osVersion==0 )
-    {
-        FtrGet( sysFtrCreator, sysFtrNumROMVersion, &osVersionPart );
-        appContext->osVersion = sysGetROMVerMajor(osVersionPart)*10;
-        if ( sysGetROMVerMinor(osVersionPart) < 10 )
-            appContext->osVersion += sysGetROMVerMinor(osVersionPart);
-    }
-    return appContext->osVersion;
+    FtrGet( sysFtrCreator, sysFtrNumROMVersion, &osVersionPart );
+    int osVersion = sysGetROMVerMajor(osVersionPart)*10;
+    if ( sysGetROMVerMinor(osVersionPart) < 10 )
+        osVersion += sysGetROMVerMinor(osVersionPart);
+    return osVersion;
 }
 
 /*
@@ -339,7 +335,7 @@ int GetMaxScreenDepth(AppContext* appContext)
 
     if (!appContext->maxScreenDepth) {
         appContext->maxScreenDepth = 1;
-        if ( GetOsVersion(appContext) >= 35 )
+        if ( GetOsVersion() >= 35 )
         {
             WinScreenMode( winScreenModeGetSupportedDepths, NULL, NULL, &supportedDepths, NULL );
             for ( i = 1; supportedDepths; i++ )
@@ -359,7 +355,7 @@ Find out and return current depth of the screen.
 int GetCurrentScreenDepth(AppContext* appContext)
 {
     UInt32    depth;
-    int       osVersion = GetOsVersion(appContext);
+    int       osVersion = GetOsVersion();
 
     if ( osVersion >= 35 )
     {
@@ -376,7 +372,7 @@ Boolean IsColorSupported(AppContext* appContext)
 {
     Boolean     fSupported;
 
-    if ( GetOsVersion(appContext) >= 35 )
+    if ( GetOsVersion() >= 35 )
     {
         WinScreenMode( winScreenModeGet, NULL, NULL, NULL, &fSupported);
         return fSupported;
@@ -386,7 +382,7 @@ Boolean IsColorSupported(AppContext* appContext)
 
 void SetTextColor(AppContext* appContext, RGBColorType *color)
 {
-    if ( GetOsVersion(appContext) >= 40 )
+    if ( GetOsVersion() >= 40 )
     {
         WinSetTextColorRGB (color, NULL);
         WinSetForeColorRGB (color, NULL);
@@ -395,7 +391,7 @@ void SetTextColor(AppContext* appContext, RGBColorType *color)
 
 void SetBackColor(AppContext* appContext,RGBColorType *color)
 {
-    if ( GetOsVersion(appContext) >= 40 )
+    if ( GetOsVersion() >= 40 )
     {
         WinSetBackColorRGB (color, NULL);
     }
@@ -1720,7 +1716,7 @@ void LstSetSelectionMakeVisibleEx(AppContext* appContext, ListType * list, long 
 
     appContext->prevSelectedWord = itemNo;
 
-    if (GetOsVersion(appContext) < 35)
+    if (GetOsVersion() < 35)
     {
         /* special case when we don't exceed palm's list limit:
            do it the easy way */
@@ -2197,7 +2193,7 @@ void SyncScreenSize(AppContext* appContext)
 {
     Coord   dx,dy;
 
-    if ( GetOsVersion(appContext) >= 40 )
+    if ( GetOsVersion() >= 40 )
     {
         WinGetDisplayExtent(&dx,&dy);
         appContext->screenWidth=dx;
@@ -2329,7 +2325,7 @@ NoWordSelected:
 
 extern Err AppCommonInit(AppContext* appContext);
 
-static Boolean FResidentModeEnabled()
+Boolean FResidentModeEnabled()
 {
     Err             err;
     Boolean         fEnabled=false;
@@ -2459,62 +2455,75 @@ UInt16 FldGetSelectedText(FieldType* field, char* buffer, UInt16 bufferSize)
 
 #pragma segment Segment2
 
+static Boolean FHasNotifyMgr()
+{
+    UInt32 value=0;
+    if (0 != FtrGet(sysFtrCreator, sysFtrNumNotifyMgrVersion, &value) )
+        return false;
+
+    if (0 == value)
+        return false;
+
+    return true;
+}
+
 Err AppNotifyInit(AppContext* appContext)
 {
     Err error=errNone;
-    UInt32 value=0;
     UInt16 cardNo=0;
     LocalID localId=0;
+
     Assert(appContext);
-    if (!FtrGet(sysFtrCreator, sysFtrNumNotifyMgrVersion, &value) && value) 
-    {
-        AppSetFlag(appContext, appHasNotifyMgr);
+    if (!FHasNotifyMgr())
+        return errNone;
+
 #ifndef NOAH_LITE            
-        error=SysCurAppDatabase(&cardNo, &localId);
-        if (error) 
-            goto OnError;
-        error=SysNotifyUnregister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, sysNotifyNormalPriority);
-        if (sysNotifyErrEntryNotFound==error) 
-            error=errNone;
-        if (error) 
-            goto OnError;
-        error=SysNotifyUnregister(cardNo, localId, appNotifyResidentLookupEvent, sysNotifyNormalPriority);
-        if (sysNotifyErrEntryNotFound==error) 
-            error=errNone;
-        if (error) 
-            goto OnError;
+    error=SysCurAppDatabase(&cardNo, &localId);
+    if (error) 
+        goto OnError;
+    error=SysNotifyUnregister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, sysNotifyNormalPriority);
+    if (sysNotifyErrEntryNotFound==error) 
+        error=errNone;
+    if (error) 
+        goto OnError;
+    error=SysNotifyUnregister(cardNo, localId, appNotifyResidentLookupEvent, sysNotifyNormalPriority);
+    if (sysNotifyErrEntryNotFound==error) 
+        error=errNone;
+    if (error) 
+        goto OnError;
 #endif            
-    }       
 OnError:
     return error;    
 }
 
-Err AppNotifyFree(AppContext* appContext, Boolean beResident)
+static Err RegisterForCmdBarOpen()
+{
+    UInt16 cardNo=0;
+    LocalID localId=0;
+    Err error = SysCurAppDatabase(&cardNo, &localId);
+    if (errNone != error)
+        return error;
+    // HACK! - disable resident mode in OS <40 since under emulator with
+    // 3.5 OS we hang right after displaying word definition and:
+    // - we don't know how to fix it
+    // - we don't know if it happens on real devices so we disable it just to be sure
+    if (GetOsVersion()>=40)
+    {
+        error=SysNotifyRegister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, NULL, sysNotifyNormalPriority, NULL);    
+        if (sysNotifyErrDuplicateEntry==error) 
+            error=errNone;
+    }
+    return error;
+}    
+
+Err AppNotifyFree(Boolean beResident)
 {
     Err error=errNone;
 #ifndef NOAH_LITE    
-    UInt16 cardNo=0;
-    LocalID localId=0;
     Err tmpErr=errNone;
-    if (AppHasNotifyMgr(appContext)) 
-    {
-        error=SysCurAppDatabase(&cardNo, &localId);
-        if (error) 
-            goto OnError;
-        // HACK! - disable resident mode in OS <40 since under emulator with
-        // 3.5 OS we hang right after displaying word definition and:
-        // - we don't know how to fix it
-        // - we don't know if it happens on real devices so we disable it just to be sure
-        if (40<=GetOsVersion(appContext))
-        {
-            error=SysNotifyRegister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, NULL, sysNotifyNormalPriority, NULL);	
-            if (sysNotifyErrDuplicateEntry==error) 
-                error=errNone;
-            if (error) 
-                goto OnError;
-        }                
-    }
-OnError:
+    if (FHasNotifyMgr()) 
+        error = RegisterForCmdBarOpen();
+
     if (!beResident)
     {
         tmpErr=DisposeSupportDatabase(SUPPORT_DATABASE_NAME);
