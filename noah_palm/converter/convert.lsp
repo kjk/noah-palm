@@ -1,4 +1,28 @@
+;(load "c:\\kjk\\src\\mine\\noah_palm\\converter\\convert.lsp")
+;(compile-file "c:\\kjk\\src\\mine\\noah_palm\\converter\\convert.lsp")
+;(setf h (make-engpol-words-hash))
+;(time (progn (make-engpol-words-hash) nil))
+
 (in-package :common-lisp-user)
+
+(defconstant *file-sets* 'win)
+;(defconstant *file-sets* 'unix)
+
+(if (eq *file-sets* 'unix)
+  (progn
+    (defconstant *wordnet-dir* "/home/kjk/src/dict_data/wordnet/dict/")
+    (defconstant *eng-pol-file-name* "/home/kjk/src/dict_data/engpol/eng_pol.txt")
+    (defconstant *eng-pol-words-cache-file-name* "/home/kjk/src/dict_data/engpol/eng_pol_words.txt")
+    ))
+
+(if (eq *file-sets* 'win)
+  (progn
+    (defconstant *wordnet-dir*       "c:\\kjk\\src\\mine\\noah_dicts\\wordnet16\\")
+    (defconstant *eng-pol-file-name* "c:\\kjk\\src\\mine\\noah_dicts\\eng_pol.txt")
+    (defconstant *eng-pol-words-cache-file-name* "c:\\kjk\\src\\mine\\noah_dicts\\eng_pol_words.txt")
+    ))
+
+(defun file-exists-p (path) (probe-file path))
 
 (defun percent (original packed)
   (float (* 100 (/ (- original packed) original))))
@@ -854,26 +878,21 @@ in a record"
 	      (t (error "unknown action in make-word-compressor"))))))
 
 
-(defconstant *wordnet-dir* "/home/kjk/src/dict_data/wordnet/dict/")
-
-;; ridiculous function just because I don't know how to consturct
-;; a function that contains all the possible whitespace characters
 (defun char-list->string (char-list)
-    (let ((str (make-string (length char-list)))
-          (i 0))
-        (dolist (c char-list)
-            (setf (elt str i) c)
-            (setf i (1+ i)))
-            str))
+  (map 'string
+      #'(lambda (x) x)
+      char-list))
+
+;(char-list->string '(#\a #\b))
 
 (defun whitespacep (c)
     (case c
-        ((#\Space #\Newline #\Linefeed #\Tab #\Return #\Page) t)
+        ;;((#\Space #\Newline #\Linefeed #\Tab #\Return #\Page) t)
+        ((#\Space #\Newline #\Tab #\Return #\Page) t)
         (t nil)))
 
 (defconstant *ws-list* '(#\Space #\Newline #\Linefeed #\Tab #\Return #\Page))
-(setq *ws-str* (char-list->string *ws-list*))
-(setq new-line-s (char-list->string '(#\newline)))
+(defconstant new-line-s (char-list->string '(#\newline)))
 
 ;; empty if number of non-whitespaces is zero (i.e. all of them are whitespaces)
 (defun is-empty-line-p (str)
@@ -884,38 +903,58 @@ in a record"
 ;;(is-empty-line-p "   ")
 ;;(is-empty-line-p "  ")
 
-(defun match-word (str)
+(defun word-char-p (c) (position c "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.'-"))
+
+(defun word-p (str)
     "return str if it matches a word or NIL otherwise"
-    (let ((allowed-chars "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.'-")
-          (strcopy (string-trim-ws 
+    (cond
+        ((= 0 (length str)) nil)
+        ((string= str (remove-if #'(lambda (c) (not (word-char-p c))) str)) str)
+        (t nil)))
+
+(defun write-hash-keys-to-file (hash file)
+    (with-open-file
+        (out-stream file :direction :output)
+        (maphash
+           #'(lambda (key val)
+                (declare (ignore val))
+                (format out-stream "~A~%" key)) hash)))
+
+(defun make-words-hash-from-file (file)
+  (let ((hash (make-hash-table :test 'equal :size 50000))
+	(word ""))
+    (with-open-file
+     (in-stream file :direction :input)
+     (do ((l (read-line in-stream) (read-line in-stream nil 'eof)))
+        ((eq l 'eof) hash)
+        (if (word-p l)
+            (setf (gethash l hash) l))))))
+
+(defun make-words-hash-from-file-with-cache (file cache-file)
+    (if (file-exists-p cache-file)
+        (make-words-hash-from-file cache-file)
+        (let ((h (make-words-hash-from-file file)))
+            (write-hash-keys-to-file h cache-file)
+            h)))
 
 ;; construct a hash table that has words from english-polish dict
 (defun make-engpol-words-hash ()
-  (let ((hash (make-hash-table :test 'equal :size 50000))
-	(file-name "/home/kjk/src/dict_data/engpol/eng_pol.txt")
-	(word ""))
-    (with-open-file
-     (in-stream file-name :direction :input)
-     (do ((l (read-line in-stream) (read-line in-stream nil 'eof)))
-	 ((eq l 'eof) hash)
-	 (if (match-word l))
-	     (setf (gethash word hash) word))))
-    hash))
+    (make-words-hash-from-file-with-cache *eng-pol-file-name* *eng-pol-words-cache-file-name*))
 
-(defun make-special-words-hash ()
-  (let ((hash (make-hash-table :test 'equal :size 50000))
-	(file-name "/home/kjk/src/noah_pro/converter/noah_deletes.txt")
-	(word-regexp (excl:compile-regexp "^\\([ 0-9a-zA-Z\.'-]+\\)$"))
-	(word ""))
-    (with-open-file
-     (in-stream file-name :direction :input)
-     (do ((l (read-line in-stream) (read-line in-stream nil 'eof)))
-	 ((eq l 'eof) hash)
-	 (if (match-word l))
-	     (setf (gethash word hash) word))))
-	 (if (multiple-value-setq (match whole word) (excl:match-regexp word-regexp l))
-	     (setf (gethash word hash) word))))
-    hash))
+;;(defun make-special-words-hash ()
+;;  (let ((hash (make-hash-table :test 'equal :size 50000))
+;;	(file-name "/home/kjk/src/noah_pro/converter/noah_deletes.txt")
+;;	(word-regexp (excl:compile-regexp "^\\([ 0-9a-zA-Z\.'-]+\\)$"))
+;;	(word ""))
+;;    (with-open-file
+;;     (in-stream file-name :direction :input)
+;;     (do ((l (read-line in-stream) (read-line in-stream nil 'eof)))
+;;	 ((eq l 'eof) hash)
+;;	 (if (match-word l))
+;;	     (setf (gethash word hash) word))))
+;;	 (if (multiple-value-setq (match whole word) (excl:match-regexp word-regexp l))
+;;	     (setf (gethash word hash) word))))
+;;    hash))
 
 (defstruct wn-lemma
   lemma (id 0) (list-of-synsets '()))
@@ -944,8 +983,9 @@ in a record"
 	    (push def str-list))
     (string-list->string str-list)))
 
-(defun copyright-line-p (line)
-  (= 0 (search "   " line)))
+(defun space-p (c) (eq c #\Space))
+(defun copyright-line-p (s)
+    (and (> (length s) 2) (space-p (elt s 0)) (space-p (elt s 1))))
 
 (defstruct simple-lemma
   lemma
@@ -1051,6 +1091,7 @@ in a record"
 (defun make-wn-accept-hook-demo (freq)
   (let ((counter 0))
     (lambda (synset)
+      (declare (ignore synset))
       (incf *hd-called*)
       (setq counter (+ 1 counter))
       (if (= counter freq)
@@ -1124,7 +1165,7 @@ in a record"
    ((= state SS_NONE) "SS_NONE")
    ((= state SS_HAS_LEMMA) "SS_HAS_LEMMA")
    ((= state SS_READING_DEF) "SS_READING_DEF")
-   (error "invalid state ~D in state-name" state)))
+   (t (error "invalid state ~D in state-name" state))))
 
 (defun is-pos-p (s)
   (member s '("n." "adj." "v.t." "v.i." "adv." "pp.")
@@ -1228,7 +1269,7 @@ in a record"
 	(read-wordnet-file data-source "adj"))
     (if (slot-value data-source 'adv-p)
 	(read-wordnet-file data-source "adv"))
-    (maphash #'(lambda (key val) (push val all-lemmas))
+    (maphash #'(lambda (key val) (declare (ignore key)) (push val all-lemmas))
 	     (wn-datasource-lemmas-hash data-source))
     (setf (wn-datasource-sorted-lemmas data-source)
 	  (sort all-lemmas
@@ -1242,7 +1283,7 @@ in a record"
   (let ((all-lemmas '())
 	(lemma-id -1))
     (read-simple-file data-source)
-    (maphash #'(lambda (key val) (push val all-lemmas))
+    (maphash #'(lambda (key val) (declare (ignore key)) (push val all-lemmas))
 	     (simple-datasource-lemmas-hash data-source))
     (setf (simple-datasource-sorted-lemmas data-source)
 	  (sort all-lemmas
@@ -1859,6 +1900,10 @@ in a record"
   (let ((ds (make-simple-datasource :file-name "arslexis_db.txt")))
     (do-simple ds "Geo" "harvey.pdb" "simp")))
 
+(defun do-mini ()
+    (let* ((hash (make-engpol-words-hash))
+           (accept-mini (make-wn-accept-hook-mini hash)))
+        (do-wordnet-limit accept-mini "WN mini" "wn_mini.pdb")))
 
 (defun do-all ()
   (let* ((hash (make-engpol-words-hash))
@@ -1879,11 +1924,11 @@ in a record"
     (do-wordnet-full "WN full lite" "wn_full_lite.pdb" nil))
     (do-wordnet-demo "WN demo" "wn_demo.pdb"))
 
-(defun do-special ()
-  (let* ((hash (make-special-words-hash))
-	 (accept-special (make-wn-accept-hook-advanced hash)))
-    (format t "~&hash-table-size: ~D~%" (hash-table-count hash))
-    (do-wordnet-limit accept-special "WN Cathy" "wn_cathy.pdb" 't 't)))
+;;(defun do-special ()
+;;  (let* ((hash (make-special-words-hash))
+;;	 (accept-special (make-wn-accept-hook-advanced hash)))
+;;   (format t "~&hash-table-size: ~D~%" (hash-table-count hash))
+;;    (do-wordnet-limit accept-special "WN Cathy" "wn_cathy.pdb" 't 't)))
 
 (defun do-all-fast ()
   (let* ((hash (make-engpol-words-hash))
