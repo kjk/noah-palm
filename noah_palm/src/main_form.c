@@ -45,12 +45,12 @@ static void MainFormDisplayAbout(AppContext* appContext)
     currentY+=16;
 
 #ifdef INTERNAL_BUILD
-DrawCenteredString(appContext, "Ver 1.0 (internal)", currentY);
+DrawCenteredString(appContext, "Ver 1.1 (internal)", currentY);
 #else
  #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 1.0 (debug)", currentY);
+    DrawCenteredString(appContext, "Ver 1.1 (debug)", currentY);
  #else
-    DrawCenteredString(appContext, "Ver 1.0", currentY);
+    DrawCenteredString(appContext, "Ver 1.1", currentY);
  #endif // DEBUG
 #endif // INTERNAL_BUILD
     currentY+=20;
