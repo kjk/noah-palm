@@ -29,6 +29,8 @@ static void DictFoundCBThes(void* context, AbstractFile *file)
     appContext->dicts[appContext->dictsCount++] = file;
 }
 
+#pragma segment Segment2
+
 // Create a blob containing serialized preferences.
 // Caller needs to free returned memory
 static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
@@ -130,6 +132,8 @@ static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
     return prefsBlob;
 }
 
+#pragma segment Segment1
+
 // Given a blob containing serialized prefrences deserilize the blob
 // and set the preferences accordingly.
 static void DeserializePreferencesThes(AppContext* appContext, unsigned char *prefsBlob, long blobSize)
@@ -209,6 +213,8 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
     /* 8. better formatting data*/
     deserData( (unsigned char*)&appContext->prefs.displayPrefs, (long)sizeof(appContext->prefs.displayPrefs), &prefsBlob, &blobSize );
 }
+
+#pragma segment Segment2
 
 static void SavePreferencesThes(AppContext* appContext)
 {
@@ -294,6 +300,8 @@ CloseDbExit:
     DmCloseDatabase(db);
     new_free( prefsBlob );
 }
+
+#pragma segment Segment1
 
 static void LoadPreferencesThes(AppContext* appContext)
 {
@@ -446,6 +454,8 @@ OnError:
 
 static Err AppCommonFree(AppContext* appContext);
 
+#pragma segment Segment2
+
 static Err InitThesaurus(AppContext* appContext)
 {
     Err error=errNone;
@@ -468,6 +478,8 @@ OnErrorCommonFree:
     AppCommonFree(appContext);
     goto OnError;    
 }
+
+#pragma segment Segment1
 
 static Boolean DictInit(AppContext* appContext, AbstractFile *file)
 {
@@ -547,7 +559,6 @@ static void StopThesaurus(AppContext* appContext)
 
     error=AppNotifyFree(appContext, true);    
     Assert(!error);
-
 }
 
 void DisplayAbout(AppContext* appContext)
@@ -1853,6 +1864,8 @@ OnError:
     return error;
 }
 
+#pragma segment Segment2
+
 static Err AppLaunch() 
 {
     Err error=errNone;
@@ -1873,6 +1886,8 @@ OnError:
         MemPtrFree(appContext);
     return error;
 }
+
+#pragma segment Segment1
 
 DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
 {

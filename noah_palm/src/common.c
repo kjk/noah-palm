@@ -355,6 +355,8 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     SetBackColorWhite(appContext); 
 }
 
+#pragma segment Segment2
+
 void DisplayHelp(AppContext* appContext)
 {
     char *rawTxt;
@@ -376,6 +378,8 @@ void DisplayHelp(AppContext* appContext)
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
 }
+
+#pragma segment Segment1
 
 extern void DisplayAbout(AppContext* appContext);
 
@@ -415,6 +419,8 @@ static void RedrawWordDefinition(AppContext* appContext)
 
 }
 
+#pragma segment Segment2
+
 void SendNewWordSelected(void)
 {
     EventType   newEvent;
@@ -422,6 +428,8 @@ void SendNewWordSelected(void)
     newEvent.eType = (eventsEnum) evtNewWordSelected;
     EvtAddEventToQueue(&newEvent);
 }
+
+#pragma segment Segment1
 
 void RedrawMainScreen(AppContext* appContext)
 {
@@ -605,6 +613,7 @@ void DrawWord(char *word, int pos_y)
   Given entry number find out entry's definition (record,
   offset within the record and the definitions' length)
  */
+ 
 Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out)
 {
     SynsetDef synset_def;
@@ -1659,6 +1668,8 @@ void RememberLastWord(AppContext* appContext, FormType * frm)
     FldDelete(fld, 0, wordLen - 1);
 }
 
+#pragma segment Segment2
+
 void DoFieldChanged(AppContext* appContext)
 {
     char        *word;
@@ -1709,6 +1720,8 @@ void SendStopEvent(void)
     newEvent.eType = appStopEvent;
     EvtAddEventToQueue(&newEvent);
 }
+
+#pragma segment Segment1
 
 char *strdup(char *s)
 {
@@ -1815,7 +1828,7 @@ static Err AppHandleMenuCmdBarOpen()
     UInt16 cardNo;
     LocalID localId;
     error=PrepareSupportDatabase(SUPPORT_DATABASE_NAME, bmpMenuBarIcon);
-    if (error) 
+    if (error)
         goto OnError;
     error=MenuCmdBarAddButton(menuCmdBarOnLeft, bmpMenuBarIcon, menuCmdBarResultNotify, appNotifyResidentLookupEvent, APP_NAME);
     if (error) 
@@ -1892,6 +1905,7 @@ UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize)
     return len;      
 }
 
+#pragma segment Segment2
 
 Err AppNotifyInit(AppContext* appContext)
 {
@@ -1950,6 +1964,8 @@ OnError:
     return error;
 }
 
+#pragma segment Segment1
+
 AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
 {
     int i;
@@ -1968,35 +1984,3 @@ AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
     return foundFile;
 }
 
-Err PrepareWordDefinitionByWordNumber(AppContext* appContext, long wordNo)
-{
-    Err error=errNone;
-    Assert(wordNo);
-    if (NULL == appContext->currDispInfo)
-    {
-        appContext->currDispInfo = diNew();
-        if (NULL == appContext->currDispInfo)
-        {
-            error=memErrNotEnoughSpace;
-            goto OnError;
-        }               
-    }
-    Assert(appContext->currDispInfo);
-    error = dictGetDisplayInfo(GetCurrentFile(appContext), wordNo, 120, appContext->currDispInfo);
-    if (error)
-        goto OnError;
-    appContext->currentWord = wordNo;
-    appContext->firstDispLine = 0;
-OnError:
-    return error;   
-}
-
-Err PrepareWordDefinition(AppContext* appContext, Char* term)
-{
-    Err error=appErrWordNotFound;
-    long wordNo = dictGetFirstMatching(GetCurrentFile(appContext), term);
-    if (wordNo)
-        error=PrepareWordDefinitionByWordNumber(appContext, wordNo);
-OnError:
-    return error;
-}
