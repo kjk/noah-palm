@@ -163,7 +163,7 @@ function f_reg_code_valid($reg_code)
 function check_reg_code($reg_code)
 {
     if ( ! f_reg_code_valid($reg_code) )
-        report_wrong_registration();
+        report_wrong_registration_number();
 }
 
 # check if reg_code is valid. Return apropriate response to the client

@@ -4,15 +4,19 @@
 # Emulates client (Palm) application by issuing requests to the server.
 # For testing the server.
 #
-# TODO:
+# Usage:
+#  -get word
+#  -getrandom
+#  -newcookie
+#  -regcode reg_code
 #   add cmd line options -get term, -get-random for driving the script from cmd line
 
 import sys, re, socket, random, pickle, httplib, urllib
 
 # server string must be of form "name:port"
-g_serverList = ["dict-pc.arslexis.com:3000", "dict.arslexis.com:80"]
+g_serverList = ["dict-pc.arslexis.com:3000", "dict.arslexis.com:80", "dict-pc.local.org:80"]
 
-g_defaultServerNo = 0 # index within g_serverList
+g_defaultServerNo = 2 # index within g_serverList
 
 g_cookie = None
 g_exampleDeviceInfo = "HS50616C6D204F5320456D756C61746F72:OC70616C6D:OD00000000"
@@ -45,16 +49,36 @@ def getGlobalCookie():
     global g_cookie
     return g_cookie
 
+g_fShownServer = False
 def getCurrentServer():
-    global g_serverList,g_defaultServerNo
-    print "using server: %s" % g_serverList[g_defaultServerNo]
+    global g_serverList,g_defaultServerNo,g_fShownServer
+    if not g_fShownServer:
+        print "using server: %s" % g_serverList[g_defaultServerNo]
+        g_fShownServer = True
     return g_serverList[g_defaultServerNo]
 
-def getServerNamePort():
-    srv = g_serverList[g_defaultServerNo]
-    (name,port) = srv.split(":")
-    port = int(port)
-    return (name,port)
+def fDetectRemoveCmdFlag(flag):
+    fFlagPresent = False
+    try:
+        pos = sys.argv.index(flag)
+        fFlagPresent = True
+        sys.argv[pos:pos+1] = []
+    except:
+        pass
+    return fFlagPresent
+
+# given argument name in argName, tries to return argument value
+# in command line args and removes those entries from sys.argv
+# return None if not found
+def getRemoveCmdArg(argName):
+    argVal = None
+    try:
+        pos = sys.argv.index(argName)
+        argVal = sys.argv[pos+1]
+        sys.argv[pos:pos+2] = []
+    except:
+        pass
+    return argVal
 
 def buildGetCookieConn():
     global g_commonParams, g_exampleDeviceInfo
@@ -93,17 +117,22 @@ def getCookie():
     g_cookie = cookie
     pickleState()
 
-def buildGetDefConn(term):
-    global g_commonParams
+def buildGetDefConn(term,regCode):
     server = getCurrentServer()
     conn = httplib.HTTPConnection(server)
     params = g_commonParams;
-    params = urllib.urlencode(params)
-    conn.request("GET", "/palm.php?pv=1&cv=0.5&c=%s&get_word=%s" % (getGlobalCookie(),term))
+    params['c'] = getGlobalCookie()
+    params['get_word'] = term
+    if regCode:
+        params['rc'] = regCode
+    encoded = urllib.urlencode(params)
+    url = "/palm.php?" + encoded
+    print "url: %s" % url
+    conn.request("GET", url)
     return conn
 
-def getDef(term):
-    conn = buildGetDefConn(term)
+def getDef(term,regCode):
+    conn = buildGetDefConn(term,regCode)
     res = conn.getresponse()
     #print res.status, res.reason
     data = res.read()
@@ -118,20 +147,37 @@ def getRandomDef():
     conn.close()
     return data
 
-def doGetDef(term):
-    data = getDef(term)
+def doGetDef(term,regCode):
+    if not getGlobalCookie():
+        getCookie()
+    data = getDef(term,regCode)
     print data
 
 def doGetRandomDef():
-    cookie = getGlobalCookie()
+    if not getGlobalCookie():
+        getCookie()
     data = getRandomDef()
     print data
 
+def usageAndExit():
+    print "Usage: client.py [-newcookie] [-get word] [-getrandom] [-regcode reg_code]"
+    sys.exit(0)
+
 def main():
-    if not getGlobalCookie():
-        getCookie()
-    #doGetRandomDef()
-    doGetDef("gesture")
+    if len(sys.argv)<2:
+        usageAndExit()
+    if fDetectRemoveCmdFlag("-newcookie"):
+        getCookie()      
+
+    regCode = getRemoveCmdArg("-regcode")
+    if fDetectRemoveCmdFlag("-getrandom"):
+        doGetRandomDef()
+
+    word = getRemoveCmdArg("-get")
+    if word:
+        doGetDef(word,regCode)
+    if len(sys.argv)>1:
+        usageAndExit()
 
 if __name__=="__main__":
     try:
