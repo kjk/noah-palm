@@ -99,6 +99,12 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='smsn' && $od=='blch' )
         return "SPH-i500";
 
+    if ( $oc=='smsn' && $od=='Phx2' )
+        return "SPH-I330";
+
+    if ( $oc=='palm' && $od=='MT64' )
+        return "Tungsten C";
+
     return "Unknown ($oc/$od)";
 }
 

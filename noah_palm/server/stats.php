@@ -122,7 +122,98 @@ function weekly_daily_stats($header, $regs_q, $lookups_q, $limit)
     return $rows_count;
 }
 
+function recent_registrations($limit)
+{
+    global $dict_db;
 ?>
+<table id="stats" cellspacing="0">
+<tr class="header">
+  <td>Date</td>
+  <td>Name</td>
+  <td>Device</td>
+</tr>
+
+<?php
+    $recent_regs_q = "SELECT cookie, dev_info, reg_code, DATE_FORMAT(when_created,'%Y-%m-%d') as when_created, disabled_p FROM cookies ORDER BY when_created DESC LIMIT $limit;";
+    $recent_regs_rows = $dict_db->get_results($recent_regs_q);
+
+    $selected = false;
+    foreach ( $recent_regs_rows as $row )
+    {
+        $when_created = $row->when_created;
+        $dev_info = $row->dev_info;
+        $dev_info_decoded = decode_di($dev_info);
+        if ($selected)
+            echo "<tr class=\"selected\">\n";
+        else
+            echo "<tr>\n";
+        echo "  <td>$when_created</td>\n";
+        $device_name = 'Unavailable';
+        if (isset($dev_info_decoded['device_name']) )
+            $device_name = $dev_info_decoded['device_name'];
+        $hotsync_name = 'Unavailable';
+        if (isset($dev_info_decoded['HS']))
+            $hotsync_name = $dev_info_decoded['HS'];
+        echo "  <td>$hotsync_name</td>\n";
+        echo "  <td>$device_name</td>\n";
+        echo "</tr>\n";
+        if ($selected)
+            $selected = false;
+        else
+            $selected = true;
+    }
+    echo "</table>\n";
+}
+
+function recent_lookups($limit)
+{
+    global $dict_db;
+?>
+<table id="stats" cellspacing="0">
+<tr class="header">
+  <td>Word 1</td>
+  <td>Word 2</td>
+  <td>Word 3</td>
+</tr>
+
+<?php
+    $limit = $limit * 3;
+    $recent_lookups_q = "SELECT word, query_time FROM request_log ORDER BY query_time DESC LIMIT $limit;";
+    $recent_lookups_rows = $dict_db->get_results($recent_lookups_q);
+
+    $selected = false;
+    $which_word = 1;
+    foreach ( $recent_lookups_rows as $row )
+    {
+        if ( $which_word == 1 )
+            $word1 = $row->word;
+        if ( $which_word == 2 )
+            $word2 = $row->word;
+        if ( $which_word == 3 )
+            $word3 = $row->word;
+        $which_word += 1;
+
+        if ($which_word == 4)
+        {
+            $which_word = 1;
+            if ($selected)
+                echo "<tr class=\"selected\">\n";
+            else
+                echo "<tr>\n";
+            echo "  <td>$word1</td>\n";
+            echo "  <td>$word2</td>\n";
+            echo "  <td>$word3</td>\n";
+            echo "</tr>\n";
+            if ($selected)
+                $selected = false;
+            else
+                $selected = true;
+        }
+    }
+    echo "</table>\n";
+}
+?>
+
 
 iNoah has been published for <?php echo $num_days . " " . day_or_days($num_days) ?>. <br>
 Unique cookies created: <?php total_and_day_avg($unique_cookies) ?>. <br>
@@ -153,50 +244,26 @@ Total requests: <?php total_and_day_avg($total_requests) ?> which is
 </tr>
 </table>
 <p>
-Recent registrations:
-<p>
-<table id="stats" cellspacing="0">
-<tr class="header">
-  <td>Date</td>
-  <td>Name</td>
-  <td>Device</td>
+
+<table>
+<tr>
+  <td>Recent registrations</td>
+  <td>Recent lookups</td>
 </tr>
-
+<tr>
 <?php
-    $recent_regs_max = 15;
-    $recent_regs_q = "SELECT cookie, dev_info, reg_code, DATE_FORMAT(when_created,'%Y-%m-%d') as when_created, disabled_p FROM cookies ORDER BY when_created DESC LIMIT $recent_regs_max;";
-    $recent_regs_rows = $dict_db->get_results($recent_regs_q);
+    $limit = 20;
+    echo "<td>\n";
+    recent_registrations($limit);
+    echo "</td>\n";
 
-    $selected = false;
-    foreach ( $recent_regs_rows as $row )
-    {
-        $when_created = $row->when_created;
-        $dev_info = $row->dev_info;
-        $dev_info_decoded = decode_di($dev_info);
-        if ($selected)
-            echo "<tr class=\"selected\">\n";
-        else
-            echo "<tr>\n";
-        echo "  <td>$when_created</td>\n";
-        $device_name = 'Unavailable';
-        if (isset($dev_info_decoded['device_name']) )
-            $device_name = $dev_info_decoded['device_name'];
-        $hotsync_name = 'Unavailable';
-        if (isset($dev_info_decoded['HS']))
-            $hotsync_name = $dev_info_decoded['HS'];
-        /*echo "  <td>$dev_info</td>\n";
-        echo "  <td>$dev_info_decoded</td>\n";*/
-        echo "  <td>$hotsync_name</td>\n";
-        echo "  <td>$device_name</td>\n";
-        echo "</tr>\n";
-        if ($selected)
-            $selected = false;
-        else
-            $selected = true;
-    }
+    echo "<td>\n";
+    recent_lookups($limit);
+    echo "</td>\n";
+
 ?>
+</tr>
 </table>
-
 </body>
 </html>
 
