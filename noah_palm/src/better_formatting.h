@@ -72,4 +72,7 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y, int maxL
 void bfFreePTR(struct _AppContext *appContext);
 void bfStripBufferFromTags(ExtensibleBuffer *buf);
 
+Boolean IsTag(char a, char b);
+void SetOnlyFont(char type,DisplayPrefs *displayPrefs);
+
 #endif

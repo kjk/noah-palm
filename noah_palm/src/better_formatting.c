@@ -168,7 +168,7 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
 }
 
 /* sets fonts (used in ebufWrapLine */
-static void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
+void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
 {
      // I use "case (char) FORMAT_POS:" instead of "case FORMAT_POS:" because
      // FORMAT_POS is greater than 127 and we use signed char!!!
@@ -862,7 +862,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 #endif I_NOAH
 
 // return true if a,b represents a tag
-static Boolean IsTag(char a, char b)
+Boolean IsTag(char a, char b)
 {
     if(a != (char)FORMAT_TAG)
         return false;
@@ -875,9 +875,9 @@ static Boolean IsTag(char a, char b)
         case (char)FORMAT_BIG_LIST:
         case (char)FORMAT_SYNONYM:
         case (char)FORMAT_EXAMPLE: 
-            return true
+            return true;
         default: 
-            return false
+            return false;
     }
 }
 
@@ -896,6 +896,11 @@ void bfStripBufferFromTags(ExtensibleBuffer *buf)
         else
             i++;    
     }
+    
+    if(buf->data[buf->used] != '\0')
+    {
+        ebufAddChar(buf,'\0');
+    }    
 }
 
 /*return:   r<0 if pos1 < pos2
@@ -918,7 +923,7 @@ static int  CmpPos(char *pos1, char *pos2)
     i = 0;    
     while(pos1[i] == pos2[i] && i < len1 && i < len2)
         i++;
-    //what happened
+    //end of pos1 or end of pos2?
     if(i < len1 && i < len2)
     {
         if(pos1[i] < pos2[i])
@@ -1563,13 +1568,18 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
                     if( IsTag(line[j],line[j+1]) )
                     { 
                         SetDrawParam(line[j+1], &appContext->prefs.displayPrefs,appContext);
+                        appContext->copyBlock.firstTag = line[j+1];
                         j = -1;
                         i = -1;
                     }
                 i--;
             }
+            if(i != -2)
+                appContext->copyBlock.firstTag = FORMAT_TAG;
         }
     }    
+
+    appContext->copyBlock.nextDy[0] = curY; 
 
     for (i = 0; i < totalLines; i++)
     {
@@ -1609,13 +1619,22 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
                 if(fontDY < FntCharHeight())
                     fontDY = FntCharHeight();
             }
+            else
+            {
+                curX += FntCharsWidth (&line[tagOffset], j - tagOffset);
+            }
         }
 
+        appContext->copyBlock.maxDx[i] = curX;
         curY += fontDY;
+        appContext->copyBlock.nextDy[i+1] = curY;
         if(curY >= (appContext->screenHeight - DRAW_DI_Y - 16))
             i = totalLines; 	
     }
     FntSetFont(prev_font);
     SetBackColorWhite(appContext);
     SetTextColorBlack(appContext);
+
+    cbInvertSelection(appContext);
 }
+
