@@ -1017,9 +1017,12 @@ in a record"
 	 (list-of-defs '())
 	 (list-of-examples '()))
     (dolist (el strings)
-	    (if (string= (subseq el 0 2) " \"")
-		(push (string-trim '(#\space #\") el) list-of-examples)
-	      (push (string-trim '(#\space) el) list-of-defs)))
+      (cond ((= 0 (length (string-trim " " el))) nil)
+	    ((string= (subseq el 0 2) " \"") (push (string-trim '(#\space #\") el) list-of-examples))
+	    (t (push (string-trim " " el) list-of-defs))))
+;;       (if (string= (subseq el 0 2) " \"")
+;; 	  (push (string-trim '(#\space #\") el) list-of-examples)
+;; 	  (push (string-trim '(#\space) el) list-of-defs)))
     (make-wn-gloss :list-of-defs list-of-defs
 		   :list-of-examples list-of-examples)))
 
