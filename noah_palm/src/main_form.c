@@ -47,7 +47,7 @@ static void MainFormDisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "Ver 1.0 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 1.0 (beta)", currentY);
+    DrawCenteredString(appContext, "Ver 1.0", currentY);
   #else
     DrawCenteredString(appContext, "Ver 1.0", currentY);
   #endif

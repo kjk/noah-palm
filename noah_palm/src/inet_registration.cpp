@@ -15,7 +15,7 @@
 /**
  * URL that forms registration request.
  */
-#define registrationRequestUrl "/palm.php?pv=^0&cv=^1&c=^2&register=^3"
+#define registrationRequestUrl "/dict-2.php?pv=^0&cv=^1&c=^2&register=^3"
 
 /**
  * Prepares request string to be sent to the server.

@@ -4,12 +4,11 @@ Need only happen once. reg_codes table wasn't used in 0.5 and its format changed
 
 Previous format:
 
-
 New format:
 CREATE TABLE reg_codes
 (
   reg_code      VARCHAR(64) NOT NULL,
-  purpose		VARCHAR(255) NOT NULL,
+  purpose       VARCHAR(255) NOT NULL,
   when_entered  TIMESTAMP NOT NULL,
   disabled_p    CHAR(1) NOT NULL DEFAULT 'f',  -- is this reg code disabled (e.g. because we decided people shared it)
 
@@ -23,7 +22,7 @@ drop table reg_codes;
 CREATE TABLE reg_codes
 (
   reg_code      VARCHAR(64) NOT NULL,
-  purpose		VARCHAR(255) NOT NULL,
+  purpose       VARCHAR(255) NOT NULL,
   when_entered  TIMESTAMP NOT NULL,
   disabled_p    CHAR(1) NOT NULL DEFAULT 'f',  -- is this reg code disabled (e.g. because we decided people shared it)
 

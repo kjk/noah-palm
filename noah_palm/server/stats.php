@@ -9,11 +9,52 @@
 
 <?php
 
-require( "dbsettings.inc" );
+# auth settings for the database, must be set before importing ez_mysql.php
+define( 'DBHOST', 'localhost' );
+define( 'DBUSER', 'root' );
+# define( 'DBPWD', 'password' );
+define( 'DBNAME', 'inoahdb' );
 
 require_once("ez_mysql.php");
 
 require_once("common.php");
+
+function cmp_stats($a, $b)
+{
+    if ($a[1]== $b[1]) return 0;
+    return ($b[1] > $a[1]) ? 1 : -1;
+}
+
+function get_device_stats()
+{
+    global $dict_db;
+
+    $query = "SELECT DISTINCT dev_info from cookies;";
+    $rows = $dict_db->get_results($query);
+
+    $stats_assoc = array();
+    foreach ($rows as $row)
+    {
+        $dev_info = $row->dev_info;
+        $dev_info_decoded = decode_di($dev_info);
+        $device_name = $dev_info_decoded['device_name'];
+        if ( isset($stats_assoc[$device_name]) )
+            $stats_assoc[$device_name] += 1;
+        else
+            $stats_assoc[$device_name] = 1;
+    }
+
+    $stats = array();
+
+    $device_names = array_keys($stats_assoc);
+    foreach ( $device_names as $device_name )
+    {
+        $count = $stats_assoc[$device_name];
+        array_push($stats, array($device_name, $count) );
+    }
+    usort($stats, 'cmp_stats');
+    return $stats;
+}
 
 function total_and_day_avg($total, $num_days)
 {

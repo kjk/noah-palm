@@ -203,9 +203,9 @@ typedef enum _AppFeature
  */
 typedef enum _AppErr
 {
-    appErrWordNotFound=appErrorClass,
-    appErrMalformedResponse,
-    appErrBadAuthorization
+    appErrWordNotFound=appErrorClass, // 0x8000
+    appErrMalformedResponse, // 0x8001
+    appErrBadAuthorization  // 0x8002
 } AppErr;    
 
 #define appNotifyResidentLookupEvent APP_CREATOR

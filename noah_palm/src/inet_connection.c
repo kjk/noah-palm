@@ -2,16 +2,16 @@
 #include "http_response.h"
 
 // this is a test server running on my pc, accessible from internet
-//#define serverAddress                "dict-pc.arslexis.com"
-//#define serverPort                   4080
+#define serverAddress                "dict-pc.arslexis.com"
+#define serverPort                   4080
 
 // this is an official server running on arslexis.com
-#define serverAddress                "dict.arslexis.com"
-#define serverPort                   80
+//#define serverAddress                "dict.arslexis.com"
+//#define serverPort                   80
 
-#define maxResponseLength         8192               // reasonable limit so malicious response won't use all available memory
-#define responseBufferSize         256               // size of single chunk used to retrieve server response
-#define addressResolveTimeout    20000               // timeouts in milliseconds
+#define maxResponseLength         8192           // reasonable limit so malicious response won't use all available memory
+#define responseBufferSize         256           // size of single chunk used to retrieve server response
+#define addressResolveTimeout    20000           // timeouts in milliseconds
 #define socketOpenTimeout         1000
 #define socketConnectTimeout     20000
 #define transmitTimeout           5000
@@ -20,18 +20,18 @@
 
 typedef struct ConnectionData_ 
 {
-    UInt16 netLibRefNum;
-    ConnectionStage connectionStage;
-    ExtensibleBuffer statusText;
-    NetIPAddr* serverIpAddress;
-    void* context;
-    ConnectionStatusRenderer* statusRenderer;
-    ConnectionResponseProcessor* responseProcessor;
-    ConnectionContextDestructor* contextDestructor;
-    ExtensibleBuffer request;
-    Int16 bytesSent;
-    ExtensibleBuffer response;
-    NetSocketRef socket;
+    UInt16              netLibRefNum;
+    ConnectionStage     connectionStage;
+    ExtensibleBuffer    statusText;
+    NetIPAddr*          serverIpAddress;
+    void*               context;
+    ConnectionStatusRenderer*       statusRenderer;
+    ConnectionResponseProcessor*    responseProcessor;
+    ConnectionContextDestructor*    contextDestructor;
+    ExtensibleBuffer    request;
+    Int16               bytesSent;
+    ExtensibleBuffer    response;
+    NetSocketRef        socket;
 } ConnectionData;
 
 static void SendConnectionProgressEvent(ConnectionProgressEventFlag flag)
@@ -336,8 +336,10 @@ static void DumpConnectionResponseToMemo(ConnectionData * connData)
     ebufResp = &connData->response;
     data     = ebufGetDataPointer( ebufResp );
     dataSize = ebufGetDataSize( ebufResp );
-    Assert( dataSize > 0 );
-    CreateNewMemo( data, dataSize );
+    if (dataSize>0)
+    {
+        CreateNewMemo( data, dataSize );
+    }
 }
 
 static Err ReceiveResponse(ConnectionData* connData)
@@ -359,8 +361,9 @@ static Err ReceiveResponse(ConnectionData* connData)
             ebufFreeData(&connData->response);
         }            
     }
-    else if (!bytesReceived)
+    else if (0==bytesReceived)
     {
+        // 0 means the connection has been closed by the server
         Assert(!error);
         AdvanceConnectionStage(connData);
         Int16 result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
