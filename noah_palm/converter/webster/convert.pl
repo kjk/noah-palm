@@ -67,26 +67,137 @@ sub StripFromAmpersands     #2004-02-12 17:06
 
         ####################
         # Defined ampersands
+
+        # 'e 'a   ' = /
         $str =~ s/&eacute;/e/g;
         $str =~ s/&Eacute;/E/g;
-
+        $str =~ s/&aacute;/a/g;
+        $str =~ s/&oacute;/o/g;
+        # `a `u   ` = \
+        $str =~ s/&egrave;/e/g;
+        $str =~ s/&agrave;/a/g;
+        $str =~ s/&ugrave;/u/g;
+        # AE OE
         $str =~ s/&aelig;/ae/g;
         $str =~ s/&oelig;/oe/g;
         $str =~ s/&OElig;/OE/g;
         $str =~ s/&AElig;/AE/g;
+        # c, C,
         $str =~ s/&ccedil;/c/g;
-        $str =~ s/&ecirc;/e/g;
+        $str =~ s/&Ccedil;/C/g;
+        # ^a  ^u
         $str =~ s/&acirc;/a/g;
+        $str =~ s/&ecirc;/e/g;
+        $str =~ s/&icirc;/i/g;
+        $str =~ s/&ocirc;/o/g;
+        $str =~ s/&ucirc;/u/g;
+        # :a :u  ( "a  "u )
+        $str =~ s/&Auml;/A/g;
+        $str =~ s/&auml;/a/g;
+        $str =~ s/&euml;/e/g;
+        $str =~ s/&iuml;/i/g;
+        $str =~ s/&ouml;/o/g;
+        $str =~ s/&uuml;/u/g;
+        $str =~ s/&umlaut;/\"/g;
+        # ~n ~l
+        $str =~ s/&ntilde;/n/g;
+        $str =~ s/&ltilde;/l/g;
+        $str =~ s/&atilde;/a/g;
+        #fractures defined in html
+        $str =~ s/&frac12;/ 1\/2/g;
+        $str =~ s/&frac14;/ 1\/4/g;
+        $str =~ s/&frac34;/ 3\/4/g;
+        #fractures undefined in html
+        $str =~ s/&frac13;/ 1\/3/g;
+        $str =~ s/&frac15;/ 1\/5/g;
+        $str =~ s/&frac17;/ 1\/7/g;
+        $str =~ s/&frac19;/ 1\/9/g;
+        $str =~ s/&frac58;/ 5\/8/g;
+        $str =~ s/&frac38;/ 3\/8/g;
+        $str =~ s/&frac36;/ 1\/2/g;
+        $str =~ s/&frac56;/ 5\/6/g;
+        $str =~ s/&frac23;/ 2\/3/g;
+        $str =~ s/&frac1x10;/ 1x10/g;
+        $str =~ s/&frac1x6000;/ 1x6000/g;
+        $str =~ s/&frac1x50000;/ 1x50000/g;
+        $str =~ s/&frac1x29966;/ 1x29966/g;
+        $str =~ s/&frac1x24;/ 1x24/g;
+        $str =~ s/&frac1x20;/ 1x20/g;
+        $str =~ s/&frac1x8000;/ 1x8000/g;
+        $str =~ s/&frac1000x1434;/ 1000x1434/g;
+        #grek alphabet:
+        $str =~ s/&alpha;/[alpha]/g;
+        $str =~ s/&beta;/[beta]/g;
+        $str =~ s/&GAMMA;/[GAMMA]/g;
+        $str =~ s/&gamma;/[gamma]/g;
+        $str =~ s/&DELTA;/[DELTA]/g;
+        $str =~ s/&delta;/[delta]/g;
+        $str =~ s/&ETH;/[ETH]/g;
+        $str =~ s/&eth;/[eth]/g;
+        $str =~ s/&eta;/eta/g;
+        $str =~ s/&theta;/[theta]/g;
+        $str =~ s/&iota;/[iota]/g;
+        $str =~ s/&kappa;/[kappa]/g;
+        $str =~ s/&LAMBDA;/[LAMBDA]/g;
+        $str =~ s/&lambda;/[lambda]/g;
+        $str =~ s/&chi;/[chi]/g;
+        $str =~ s/&omicron;/[omicron]/g;
+        $str =~ s/&pi;/pi/g;
+        $str =~ s/&PI;/pi/g;
+        $str =~ s/&rho;/[rho]/g;
+        $str =~ s/&SIGMA;/[SIGMA]/g;
+        $str =~ s/&sigma;/[sigma]/g;
+        $str =~ s/&TAU;/[TAU]/g;
+        $str =~ s/&tau;/[tau]/g;
+        $str =~ s/&epsilon;/[epsilon]/g;
+        $str =~ s/&OMEGA;/[OMEGA]/g;
+        $str =~ s/&UPSILON;/[UPSILON]/g;
+        $str =~ s/&upsilon;/[upsilon]/g;
+        $str =~ s/&zeta;/[zeta]/g;
+        $str =~ s/&phi;/[phi]/g;
+        $str =~ s/&mu;/[mu]/g;
+        $str =~ s/&nu;/[nu]/g;
+        $str =~ s/&thorn;/[thorn]/g;
+        #sth like ' but looks like 6 but very small
+        $str =~ s/&lsquo;/\'/g;
+        #-
+        $str =~ s/&mdash;/-/g;
+        #" '
+        $str =~ s/&Prime;/\" /g;
+        $str =~ s/&prime;/\' /g;
+        #logical and - ^
+        $str =~ s/&and;/^/g;
+        #£ - pound
+        $str =~ s/&pound;/pound/g;
+        #symbol for div
+        $str =~ s/&divide;/\:/g;
+        #symbol of sqrt
+        $str =~ s/&radic;/sqrt/g;
+        $str =~ s/&times;/x/g;
+        #looks like a sword
+        $str =~ s/&dagger;/+/g;
+        $str =~ s/&Dagger;/+/g;
+        #paragraph symbol
+        $str =~ s/&para;/\n\n/g;
+        #tags < >
+        $str =~ s/&gt;/>/g;
+        $str =~ s/&lt;/</g;
+        #middle dot * . ???
+        $str =~ s/&middot;/*/g;
+        #degrees ? how to show that?
+        $str =~ s/&deg;/deg/g;
+        #section?
+        $str =~ s/&sect;/[sect]/g;
 
-        $str =~ s/&ouml;/[\"o]/g;
-        $str =~ s/&euml;/[\"e]/g;
-        $str =~ s/&auml;/[\"a]/g;
-        $str =~ s/&Auml;/[\"A]/g;
-        $str =~ s/&iuml;/[\"i]/g;
-        $str =~ s/&uuml;/[\"u]/g;
 
-        $str =~ s/&egrave;/e/g;
-        $str =~ s/&agrave;/[\'a]/g;
+
+        ######################
+        # Undefined ampersands
+        $str =~ s/&abreve;/[abreve]/g;
+        $str =~ s/&ebreve;/[ebreve]/g;
+        $str =~ s/&ibreve;/[ibreve]/g;
+        $str =~ s/&ubreve;/[ubreve]/g;
+        $str =~ s/&breve;/[breve]/g;
 
         $str =~ s/&amacr;/[=a]/g;
         $str =~ s/&emacr;/[=e]/g;
@@ -95,155 +206,53 @@ sub StripFromAmpersands     #2004-02-12 17:06
         $str =~ s/&umacr;/[=u]/g;
         $str =~ s/&omacr;/[=o]/g;
 
-        $str =~ s/&ntilde;/~n/g;
-        $str =~ s/&ltilde;/~l/g;
+        $str =~ s/&ffllig;/[ffllig]/g;
+        $str =~ s/&fllig;/[fllig]/g;
+        $str =~ s/&thlig;/[thlig]/g;
+        $str =~ s/&filig;/[filig]/g;
 
-        $str =~ s/&alpha;/[alpha]/g;
-        $str =~ s/&deg;/deg/g;
-
-        $str =~ s/&frac12/ 1\/2/g;
-        $str =~ s/&frac14/ 1\/4/g;
-        $str =~ s/&frac34/ 3\/4/g;
-        $str =~ s/&frac13/ 1\/3/g;
-        $str =~ s/&frac15/ 1\/5/g;
-        $str =~ s/&frac17/ 1\/7/g;
-        $str =~ s/&frac19/ 1\/9/g;
-
-        $str =~ s/&frac58/ 5\/8/g;
-        $str =~ s/&frac38/ 3\/8/g;
-        $str =~ s/&frac36/ 1\/2/g;
-        $str =~ s/&frac56/ 5\/6/g;
-
-        $str =~ s/&frac1x10/ 1x10/g;
-
-        ######################
-        # Undefined ampersands
-        $str =~ s/&Prime;/Prime/g;
-        $str =~ s/&prime;/prime/g;
-
-        $str =~ s/&flat;/[flat]/g;
-        $str =~ s/&sharp;/[sharp]/g;
-
-        $str =~ s/&SIGMA;/[SIGMA]/g;
-        $str =~ s/&DELTA;/[DELTA]/g;
-        $str =~ s/&UPSILON;/[UPSILON]/g;
-
-        $str =~ s/&and;/and/g;
-        $str =~ s/&add;/add/g;
-        $str =~ s/&pi;/pi/g;
-        $str =~ s/&PI;/pi/g;
-        $str =~ s/&eta;/eta/g;
-
-        $str =~ s/&sect;/[sect]/g;
-        $str =~ s/&lsquo;/[lsquo]/g;
-        $str =~ s/&pound;/[pound]/g;
-        $str =~ s/&scorpio;/[scorpio]/g;
-        $str =~ s/&male;/[male]/g;
-        $str =~ s/&divide;/\:/g;
+        $str =~ s/&sigmat;/[sigmat]/g;
 
         $str =~ s/&upslur;/[upslur]/g;
         $str =~ s/&Crev;/[Crev]/g;
+        $str =~ s/&oomac;/[oomac]/g;
+        $str =~ s/&oocr;/[oocr]/g;
 
-
-        $str =~ s/&GAMMA;/[GAMMA]/g;
-        $str =~ s/&gamma;/[gamma]/g;
-        $str =~ s/&LAMBDA;/[LAMBDA]/g;
-        $str =~ s/&OMEGA;/[OMEGA]/g;
-        $str =~ s/&delta;/[delta]/g;
-        $str =~ s/&TAU;/[TAU]/g;
-        $str =~ s/&tau;/[tau]/g;
-        $str =~ s/&beta;/[beta]/g;
-        $str =~ s/&epsilon;/[epsilon]/g;
-        $str =~ s/&icirc;/[icirc]/g;
-        $str =~ s/&ocirc;/[ocirc]/g;
+        $str =~ s/&flat;/[flat]/g;
+        $str =~ s/&sharp;/[sharp]/g;
+        $str =~ s/&add;/add/g;
         $str =~ s/&pause;/[pause]/g;
 
-        $str =~ s/&Jupiter;/[Jupiter]/g;
-        $str =~ s/&aacute;/[aacute]/g;
-        $str =~ s/&zeta;/[zeta]/g;
-        $str =~ s/&aacute;/[aacute]/g;
-        $str =~ s/&adot;/[adot]/g;
-        $str =~ s/&2dot;/[2dot]/g;
-        $str =~ s/&oomac;/[oomac]/g;
-        $str =~ s/&tsdot;/[tsdot]/g;
-        $str =~ s/&Leo;/[Leo]/g;
-
-        $str =~ s/&dagger;/[dagger]/g;
-        $str =~ s/&Dagger;/[Dagger]/g;
+        $str =~ s/&8star;/[8star]/g;
         $str =~ s/&dale;/[dale]/g;
-        $str =~ s/&filig;/[filig]/g;
-        $str =~ s/&theta;/[theta]/g;
-        $str =~ s/&kappa;/[kappa]/g;
-        $str =~ s/&para;/[para]/g;
+        $str =~ s/&dele;/[dele]/g;
         $str =~ s/&natural;/[natural]/g;
-
-
-        $str =~ s/&abreve;/[abreve]/g;
-        $str =~ s/&ebreve;/[ebreve]/g;
-        $str =~ s/&ibreve;/[ibreve]/g;
-        $str =~ s/&breve;/[breve]/g;
-        $str =~ s/&ugreve;/[ugreve]/g;
-        $str =~ s/&rho;/[rho]/g;
-
-
-        $str =~ s/&mdash;/[^m]/g;
-        $str =~ s/&ssmile;/[ssmile]/g;
         $str =~ s/&min;/[min]/g;
-        $str =~ s/&radic;/[radic]/g;
         $str =~ s/&fist;/[fist]/g;
         $str =~ s/&asper;/[asper]/g;
         $str =~ s/&\?;/\?/g; #??        what is that?
-
-        $str =~ s/&frac1x6000;/[frac1x6000]/g;
-        $str =~ s/&iota;/[iota]/g;
-        $str =~ s/&dale;/[dale]/g;
-        $str =~ s/&umlaut;/[umlaut]/g;
-        $str =~ s/&frac1x50000;/[frac1x50000]/g;
-        $str =~ s/&eth;/[eth]/g;
-        $str =~ s/&frac1x29966;/[frac1x29966]/g;
-        $str =~ s/&middot;/[middot]/g;
-        $str =~ s/&thlig;/[thlig]/g;
-        $str =~ s/&frac1x24;/[frac1x24]/g;
-        $str =~ s/&thorn;/[thorn]/g;
-        $str =~ s/&gt;/[gt]/g;
-        $str =~ s/&iota;/[iota]/g;
-        $str =~ s/&lambda;/[lambda]/g;
-        $str =~ s/&libra;/[libra]/g;
-        $str =~ s/&ffllig;/[ffllig]/g;
-        $str =~ s/&mercury;/[mercury]/g;
-        $str =~ s/&omicron;/[omicron]/g;
-        $str =~ s/&oocr;/[oocr]/g;
-        $str =~ s/&oacute;/[oacute]/g;
-        $str =~ s/&Sun;/[Sun]/g;
-        $str =~ s/&pisces;/[pisces]/g;
-        $str =~ s/&ugrave;/[ugrave]/g;
-        $str =~ s/&3dot;/[3dot]/g;
-        $str =~ s/&sagittarius;/[sagittarius]/g;
-        $str =~ s/&sigma;/[sigma]/g;
+        $str =~ s/&male;/[male]/g;
+        $str =~ s/&ssmile;/[ssmile]/g;
         $str =~ s/&downslur;/[downslur]/g;
-        $str =~ s/&frac1x20;/[frac1x20]/g;
-        $str =~ s/&times;/[times]/g;
-        $str =~ s/&taurus;/[taurus]/g;
-        $str =~ s/&chi;/[chi]/g;
-        $str =~ s/&isl;/[isl]/g;
-        $str =~ s/&ubreve;/[ubreve]/g;
-        $str =~ s/&frac23;/[frac23]/g;
-        $str =~ s/&upsilon;/[upsilon]/g;
+        $str =~ s/&pisces;/[pisces]/g;
 
-        $str =~ s/&mu;/[mu]/g;
-        $str =~ s/&nu;/[nu]/g;
-        $str =~ s/&frac1x8000;/[frac1x8000]/g;
-        $str =~ s/&dele;/[dele]/g;
-        $str =~ s/&ETH;/[ETH]/g;
-        $str =~ s/&lt;/[lt]/g;
-        $str =~ s/&fllig;/[fllig]/g;
-        $str =~ s/&sigmat;/[sigmat]/g;
-        $str =~ s/&phi;/[phi]/g;
+        $str =~ s/&scorpio;/[scorpio]/g;
+        $str =~ s/&Jupiter;/[Jupiter]/g;
+        $str =~ s/&Leo;/[Leo]/g;
+        $str =~ s/&libra;/[libra]/g;
+        $str =~ s/&mercury;/[mercury]/g;
+        $str =~ s/&Sun;/[Sun]/g;
+        $str =~ s/&sagittarius;/[sagittarius]/g;
+        $str =~ s/&taurus;/[taurus]/g;
         $str =~ s/&Virgo;/[Virgo]/g;
 
-        $str =~ s/&Ccedil;/[Ccedil]/g;
-        $str =~ s/&ucirc;/[ucirc]/g;
-        $str =~ s/&atilde;/[atilde]/g;
+
+        $str =~ s/&adot;/[adot]/g;
+        $str =~ s/&2dot;/[2dot]/g;
+        $str =~ s/&3dot;/[3dot]/g;
+        $str =~ s/&tsdot;/[tsdot]/g;
+
+        $str =~ s/&isl;/[isl]/g;
 
         return $str;
 }   ##StripFromAmpersands
@@ -255,9 +264,11 @@ sub StripFromHtmlTags       #2004-02-12 17:08
 {
         $str = shift;
 
+        #italic - ignored
         $str =~ s/\<i\>//g;
         $str =~ s/\<\/i\>//g;
 
+        #bold - ignored
         $str =~ s/\<b\>//g;
         $str =~ s/\<\/b\>//g;
 
@@ -321,26 +332,33 @@ sub StripFromHtmlTags       #2004-02-12 17:08
         $str =~ s/\<sub\>//g;
         $str =~ s/\<\/sub\>//g;
 
-        $str =~ s/\<\sd\>//g;
+        $str =~ s/\<sd\>//g;
         $str =~ s/\<\/sd\>//g;
 
-        $str =~ s/\<\org\>//g;
+        $str =~ s/\<org\>//g;
         $str =~ s/\<\/org\>//g;
 
-        $str =~ s/\<\hw\>//g;
+        #word - used in definition
+        $str =~ s/\<hw\>//g;
         $str =~ s/\<\/hw\>//g;
 
-        $str =~ s/\<\sn\>//g;
+        #synonyms
+        $str =~ s/\<sn\>//g;
         $str =~ s/\<\/sn\>//g;
 
-        $str =~ s/\<\blockquote\>//g;
-        $str =~ s/\<\/blockquote\>//g;
+        #quote - (")
+        $str =~ s/\<blockquote\>/\"/g;
+        $str =~ s/\<\/blockquote\>/\"/g;
 
-        $str =~ s/\<\grk\>//g;
+        #
+        $str =~ s/\<grk\>//g;
         $str =~ s/\<\/grk\>//g;
 
+        #
         $str =~ s/\<u\>//g;
         $str =~ s/\<\/u\>//g;
+
+        #enter
         $str =~ s/<BR>/\n/g;
 
         return $str;
@@ -362,7 +380,7 @@ sub FindUndefinedAmpsAndTags        #2004-02-12 17:26
             ++$undefinedTagsCount;
         }
         # single tags
-        if ($str =~ m:<(.*?)\/>:)
+        if ($str =~ m:<(.*?)>:)
 		{
             $undefinedTags[$undefinedTagsCount] = "<$1>";
             ++$undefinedTagsCount;
@@ -379,8 +397,8 @@ sub FindUndefinedAmpsAndTags        #2004-02-12 17:26
         ################################
         # Mark them to find them in html
         # ##############################
-        $str =~ s/&/<FONT color=red size=+3>&/g;
-        $str =~ s/;/;<\/FONT>/g;
+        #$str =~ s/&/<FONT color=red size=+3>&/g;
+        #$str =~ s/;/;<\/FONT>/g;
 
         return $str;
 }   ##FindUndefinedAmpsAndTags
@@ -465,27 +483,26 @@ sub StripPos        #2004-02-12 14:02
         # n., adj., adv., v.i., v.t.
         if($pos =~m:n.(.*?):)
         {
-            return "n.";
+            return "noun";
         }
-
-        if($pos =~m:a.:)
-        {
-            return "adj.";
-        }
-
-        if($pos =~m:adVerb:)
+        if($pos =~m:adv.:)
         {
             return "adv.";
         }
 
         if($pos =~m:v. t.:)
         {
-            return "v.t.";
+            return "verb";
         }
 
         if($pos =~m:v. i.:)
         {
-            return "v.i.";
+            return "verb";
+        }
+
+        if($pos =~m:a.:)
+        {
+            return "adj.";
         }
 
         ###################################
@@ -509,7 +526,7 @@ sub StripPos        #2004-02-12 14:02
         }
         if($pos =~m:v.:)
         {
-            return "v.";
+            return "verb";
         }
         if($pos =~m:A prefix.:)
         {
@@ -525,11 +542,11 @@ sub StripPos        #2004-02-12 14:02
         }
         if($pos =~m:n:)
         {
-            return "n";
+            return "noun";
         }
         if($pos =~m:N.:)
         {
-            return "N.";
+            return "noun";
         }
         if($pos =~m:a:)
         {
@@ -574,24 +591,214 @@ sub StripPos        #2004-02-12 14:02
 }   ##StripPos
 ############################################################################
 ############################################################################
+$ActGloss = "";
+############################################################################
+# In verb file
+sub SaveActualGlossVerb     #2004-02-22 15:20
+############################################################################
+{
+    $odl = tell OUT_V;
+    printf OUT_V "%08d",$odl;
+    print OUT_V " ";
+    #file code?
+    print OUT_V "00";
+    print OUT_V " v 01 ";
+    #word - underline instead space
+    $wordTmpV = $word;
+    $wordTmpV =~ s/ /_/g;
+
+    if( $prevWordTmpV eq $wordTmpV)
+    {
+        $prevWordTmpV = $wordTmpV;
+        $numWordV = 0;
+    }
+    else
+    {
+        ++$numWordV;
+    }
+
+    print OUT_V "$wordTmpV ";
+    print OUT_V "$numWordV ";
+
+    print OUT_V "000 ";
+
+    #only verbs
+    print OUT_V "00 ";
+
+    #gloss
+    print OUT_V "| ";
+    print OUT_V "$ActGloss  \n";
+
+    $ActGloss = "";
+}   ##SaveActualGlossVerb
+############################################################################
+# In noun file
+sub SaveActualGlossNoun     #2004-02-22 15:21
+############################################################################
+{
+    $odl = tell OUT_N;
+    printf OUT_N "%08d",$odl;
+    print OUT_N " ";
+    #file code?
+    print OUT_N "00";
+    print OUT_N " n 01 ";
+    #word - underline instead space
+    $wordTmpN = $word;
+    $wordTmpN =~ s/ /_/g;
+
+    if( ! ($prevWordTmpN eq $wordTmpN))
+    {
+        $prevWordTmpN = $wordTmpN;
+        $numWordN = 0;
+    }
+    else
+    {
+        ++$numWordN;
+    }
+
+    print OUT_N "$wordTmpN ";
+    print OUT_N "$numWordN ";
+
+    print OUT_N "000 ";
+
+    #gloss
+    print OUT_N "| ";
+    print OUT_N "$ActGloss  \n";
+
+    $ActGloss = "";
+}   ##SaveActualGlossNoun
+############################################################################
+# In adv file
+sub SaveActualGlossAdverb       #2004-02-22 15:22
+############################################################################
+{
+    $odl = tell OUT_ADV;
+    printf OUT_ADV "%08d",$odl;
+    print OUT_ADV " ";
+    #file code?
+    print OUT_ADV "00";
+    print OUT_ADV " r 01 ";
+    #word - underline instead space
+    $wordTmpADV = $word;
+    $wordTmpADV =~ s/ /_/g;
+
+    if( $prevWordTmpADV eq $wordTmpADV)
+    {
+        $prevWordTmpADV = $wordTmpADV;
+        $numWordADV = 0;
+    }
+    else
+    {
+        ++$numWordADV;
+    }
+
+    print OUT_ADV "$wordTmpADV ";
+    print OUT_ADV "$numWordADV ";
+
+    print OUT_ADV "000 ";
+
+    #gloss
+    print OUT_ADV "| ";
+    print OUT_ADV "$ActGloss  \n";
+
+    $ActGloss = "";
+}   ##SaveActualGlossAdverb
+############################################################################
+sub SaveActualGlossAdjective        #2004-02-22 15:22
+############################################################################
+{
+    $odl = tell OUT_ADJ;
+    printf OUT_ADJ "%08d",$odl;
+    print OUT_ADJ " ";
+    #file code?
+    print OUT_ADJ "00";
+    print OUT_ADJ " a 01 ";
+    #word - underline instead space
+    $wordTmpADJ = $word;
+    $wordTmpADJ =~ s/ /_/g;
+
+    if( $prevWordTmpADJ eq $wordTmpADJ)
+    {
+        $prevWordTmpADJ = $wordTmpADJ;
+        $numWordADJ = 0;
+    }
+    else
+    {
+        ++$numWordADJ;
+    }
+
+    print OUT_ADJ "$wordTmpADJ ";
+    print OUT_ADJ "$numWordADJ ";
+
+    print OUT_ADJ "000 ";
+
+    #gloss
+    print OUT_ADJ "| ";
+    print OUT_ADJ "$ActGloss  \n";
+
+    $ActGloss = "";
+}   ##SaveActualGlossAdjective
+############################################################################
+# Save actual gloss
+# in wn20 format!
+sub SaveActualGloss     #2004-02-22 15:02
+############################################################################
+{
+    #first word in file
+    if ( ! $ActGloss )
+    {
+        return;
+    }
+    #identify pos - identify output file
+    if ( $pos =~m:verb:)
+    {
+        SaveActualGlossVerb;
+    }
+    if ( $pos =~m:noun:)
+    {
+        SaveActualGlossNoun;
+    }
+    if ( $pos =~m:adv.:)
+    {
+        SaveActualGlossAdverb;
+    }
+    if ( $pos =~m:adj.:)
+    {
+        SaveActualGlossAdjective;
+    }
+
+    if ( ! $ActGloss )
+    {
+        return;
+    }
+    #undefined pos!!!!
+#    print "$ActGloss\n";
+#    print "undefined pos: $pos \n\n\n";
+    $ActGloss = "";
+}   ##SaveActualGloss
+############################################################################
+############################################################################
 # Files should be opened and ready!
 sub MainLoop        #2004-02-13 21:51
 ############################################################################
 {
+$ActGloss = "";
 while ( $words_count<=$max_words && $whole_file =~ m:<p>(.*?)</p>:sig ) {
 
     $paragraph = $1;
 
     if ( $paragraph =~ m:^<hw>(.*?)</hw>:si )
 	{
+        SaveActualGloss;
+
 		if ($paragraph =~ m:<!.+!>:)
 		{
-			print "!Another page \n";
+            print "!Another page \n";
 			next;
 		}
         $word = $1;
-        next if $word eq $prev_word;
-		$prev_word = $word;
+#        next if $word eq $prev_word;
+#        $prev_word = $word;
 
         $word = StripWord($word);
 
@@ -631,6 +838,9 @@ while ( $words_count<=$max_words && $whole_file =~ m:<p>(.*?)</p>:sig ) {
             $definition = $1;
             $definition = StripDefinition($definition);
 #            print "$definition\n";
+            $tmpGloss = $ActGloss;
+            $ActGloss = "$tmpGloss$definition";
+
             print OUT2 "$definition<BR>";
         }
     }
@@ -649,6 +859,8 @@ while ( $words_count<=$max_words && $whole_file =~ m:<p>(.*?)</p>:sig ) {
             $definition = $1;
             $definition = StripDefinition($definition);
 #            print "$definition\n";
+            $tmpGloss = $ActGloss;
+            $ActGloss = "$tmpGloss; $definition";
             print OUT2 "$definition<BR>";
         }
     }
@@ -663,17 +875,25 @@ while ( $words_count<=$max_words && $whole_file =~ m:<p>(.*?)</p>:sig ) {
         $example = $1;
         $example = StripExample($example);
 #        print "\"$example\"\n";
+        $tmpGloss = $ActGloss;
+        $ActGloss = "$tmpGloss; \"$example\"";
         print OUT2 "<i><FONT color=\"red\">\"$example\"</FONT></i><BR>";
     }
 
     ++$paragraph_count;
 }
+    SaveActualGloss;
 }   ##MainLoop
 ############################################################################
 # FILES
 ############################################################################
 $OUT_FILE_NAME  = "out.txt";
-$OUT_FILE_NAME2  = "out.html";
+$OUT_FILE_NAME2 = "out.html";
+
+$OUT_FILE_VERB = "data.verb";
+$OUT_FILE_NOUN = "data.noun";
+$OUT_FILE_ADJ  = "data.adj";
+$OUT_FILE_ADV  = "data.adv";
 
 $IN_FILE_NAME[0]  = "pgw050ab.txt";
 $IN_FILE_NAME[1]  = "pgw050c.txt";
@@ -697,10 +917,14 @@ open( OUT, ">$OUT_FILE_NAME" ) || die "Cannot open $OUT_FILE_NAME as an output";
 open( OUT2, ">$OUT_FILE_NAME2" ) || die "Cannot open $OUT_FILE_NAME2 as an output";
 print OUT2 "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\"><HTML><HEAD><TITLE>TEST</TITLE></HEAD><BODY bgColor=#ffffff>";
 
+open( OUT_V, ">$OUT_FILE_VERB" ) || die "Cannot open $OUT_FILE_VERB as an output";
+open( OUT_N, ">$OUT_FILE_NOUN" ) || die "Cannot open $OUT_FILE_NOUN as an output";
+open( OUT_ADJ, ">$OUT_FILE_ADJ" ) || die "Cannot open $OUT_FILE_ADJ as an output";
+open( OUT_ADV, ">$OUT_FILE_ADV" ) || die "Cannot open $OUT_FILE_ADV as an output";
 
 $prev_word = "";
 $words_count = 0;
-$max_words = 102000;
+$max_words = 900000;
 $unhandled_count = 0;
 $words_len = 0;
 
@@ -751,7 +975,6 @@ print @undefinedTags;
 print "\n";
 
 
-
 print "words: $words_count \n";
 print "total words len: $words_len \n";
 $total_len = $words_count + $words_len;
@@ -761,3 +984,7 @@ print "average per word: $average \n";
 print "End of program.\n";
 close OUT;
 close OUT2;
+close OUT_V;
+close OUT_N;
+close OUT_ADJ;
+close OUT_ADV;
