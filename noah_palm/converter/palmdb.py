@@ -81,7 +81,7 @@ class PDBRecord(object):
         raise ValueError("Shouldn't be called")
     def _delData(self):
         self._setData(None)
-    data = property(_setData,_getData,_delData)
+    data = property(_getData,_setData,_delData)
 
     def _getAttrs(self):
         return self._attrs
@@ -114,9 +114,10 @@ class PDBRecordFromDisk(PDBRecord):
         if self._data == None:
             fo = open(self._fileName, "rb")
             fo.seek( self._offset )
-            self._data = fo.read( _size )
+            self._data = fo.read( self._size )
             fo.close()
         return self._data
+    data = property(_getData,PDBRecord._setData)
 
 class PDB(object):
     def __init__(self,fileName=None):
@@ -157,6 +158,21 @@ class PDB(object):
         # 72,  4, next-record-list, set to 0, only used when in memory
         # 76,  2, records-count, number of records in the database file
 
+        #         hdrDef = ["name", "32s",
+        #                   "attr", "H",
+        #                   "version", "H",
+        #                   "creationDate", "L",
+        #                   "modificationDate", "L",
+        #                   "lastBackupDate", "L",
+        #                   "modificationNum", "L",
+        #                   "appInfoArea", "L",
+        #                   "sortInfoArea", "L",
+        #                   "dbType", "4s",
+        #                   "creatorId", "4s",
+        #                   "seedId", "L",
+        #                   "nextRecordList", "L",
+        #                   "recordsCount", "H"]
+
         fo = open(self._fileName,"rb")
         fileSize = _getFileSizeFromFileObject(fo)
 
@@ -164,14 +180,17 @@ class PDB(object):
 
         headerData = fo.read(78)
 
-        # extract info from the header
         (self._name, self._attr, self._version, self._creationdate,
          self._modificationDate, self._lastBackupDate, self._modificationNum,self._appInfoArea,
          self._sortInfoArea, self._dbType, self._creatorId, self._seedId,
          self._nextRecordList,recordsCount) = struct.unpack(">32sHHLLLLLL4s4sLLH", headerData)
         self._name = self._name.strip("\x00")
 
+        #self._header = structhelper.ExtractData(hdrDef,headerData,isBigEndian=True)
+        #self._header["name"] = self._header["name"].strip("\x00")
+
         # sanity checkig of the pdb file
+        #recordsCount = self._header["recordsCount"]
         if fileSize < 78+8*recordsCount:
             self._raiseInvalidFile()
         if self._seedId != 0:

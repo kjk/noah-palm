@@ -1,13 +1,12 @@
 # dump the Noah's dictionary pdb format
 
 # Author: Krzysztof Kowalczyk
-# History:
-#   2003-06-06 Started
 
 # Todo:
 #  - everything
 
-import palmdb
+import palmdb,struct
+import structhelper
 
 NoahProCreator = "NoAH"
 WnProType = "wn20"
@@ -15,8 +14,58 @@ WnProDemoType = "wnde"
 WnLiteType = "wnet"
 SimpleType = "simp"
 
+
+wnProFirstRecDef = ["wordsCount", "L",
+               "synsetsCount", "L",
+               "wordsRecsCount", "H",
+               "synsetsInfoRecsCount", "H",
+               "wordsNumRecsCount", "H",
+               "defsLenRecsCount", "H",
+               "defsRecsCount", "H",
+               "maxWordLen", "H",
+               "maxDefLen", "H",
+               "maxComprDefLen", "H",
+               "bytesPerWordNum", "H",
+               "maxWordsPerSynset", "H"]
+
+def _extractWnProFirstRecordData(data):
+    # extract data from the first record. It's defined by the following
+    # C struct. Return a dict with name=>value mappings
+    #typedef struct
+    #{
+    #    long    wordsCount;
+    #    long    synsetsCount;
+    #    int     wordsRecsCount;
+    #    int     synsetsInfoRecsCount;
+    #    int     wordsNumRecsCount;
+    #    int     defsLenRecsCount;
+    #    int     defsRecsCount;
+    #    int     maxWordLen;
+    #    int     maxDefLen;
+    #    int     maxComprDefLen;
+    #    int     bytesPerWordNum;
+    #    int     maxWordsPerSynset;
+    # } WnFirstRecord;
+    fmt = structhelper.GetFmtFromMetadata(wnProFirstRecDef,True)
+    assert 28 == struct.calcsize(fmt)
+    assert len(data) >= struct.calcsize(fmt)
+    if len(data) > 28:
+        firstRecHdr = data[0:28]
+    else:
+        firstRecHdr = data
+    firstRec = structhelper.ExtractDataUsingFmt(wnProFirstRecDef,firstRecHdr,fmt)
+    return firstRec
+
 def _dumpWnProData(db):
-    pass
+    firstRecData = db.records[0].data
+    firstRec = _extractWnProFirstRecordData(firstRecData)
+    isFormat = False
+    for name in wnProFirstRecDef:
+        if isFormat:
+            isFormat = False
+        else:
+            print "%s: %d" % (name, firstRec[name])
+            isFormat = True
 
 def _dumpWnLiteData(db):
     pass
