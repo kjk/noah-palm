@@ -265,11 +265,11 @@ Err AppCommonInit(AppContext* appContext)
 
     // fill out the default values for Noah preferences
     // and try to load them from pref database
-    appContext->prefs.startupAction = startupActionNone;
+    appContext->prefs.startupAction      = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
-    appContext->prefs.dbStartupAction = dbStartupActionAsk;
-    appContext->prefs.lastDbUsedName = NULL;
-    appContext->prefs.bookmarksSortType = bkmSortByTime;
+    appContext->prefs.dbStartupAction    = dbStartupActionLast;
+    appContext->prefs.lastDbUsedName     = NULL;
+    appContext->prefs.bookmarksSortType  = bkmSortByTime;
 
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 2;

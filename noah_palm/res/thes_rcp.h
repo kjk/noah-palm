@@ -7,7 +7,7 @@
 #define   formSelectDict      1004
 #define   formPrefs           1005
 #define   formResidentLookup  1006
-#define	formResidentBrowse	1007
+#define   formResidentBrowse  1007
 #define   formBookmarks       1009
 
 #define   fieldWord           1200

@@ -426,15 +426,14 @@ static Err AppCommonInit(AppContext* appContext)
 
     // fill out the default values for Thesaurus preferences
     // and try to load them from pref database
-    appContext->prefs.startupAction = startupActionNone;
+    appContext->prefs.startupAction      = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
-    appContext->prefs.dbStartupAction = dbStartupActionAsk;
-    appContext->prefs.lastDbUsedName = NULL;
-    appContext->prefs.bookmarksSortType = bkmSortByTime;
+    appContext->prefs.dbStartupAction    = dbStartupActionLast;
+    appContext->prefs.lastDbUsedName     = NULL;
+    appContext->prefs.bookmarksSortType  = bkmSortByTime;
 
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 2;
-    appContext->prefs.displayPrefs.listStyle = 0;
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     appContext->ptrOldDisplayPrefs = NULL;
 
