@@ -566,7 +566,7 @@ void *dcLockRegion(struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt1
 
     return (void*)recData;
 Error:
-    DrawDebug("dcLockRegion failed");
+    LogG("dcLockRegion failed");
     return NULL;
 }
 
@@ -582,30 +582,10 @@ void dcUnlockRegion(struct DbCacheData *cache, char *regionPtr)
 
     if (regionPtr != cache->lastLockedRegion)
     {
-        DrawDebug("dcUnlockRegion() failure!");
+        LogG("dcUnlockRegion() failure!");
     }
 
     recHandle = DmQueryRecord(cache->cacheDbRef, cache->lockRegionCacheRec);
     MemHandleUnlock(recHandle);
 }
 
-#if 0
-/* try to cache recsCount records, record numbers to cache
-are in recs.
-Return true if ok, false if there was a problem (most likely not
-enough memory to create cache database */
-Boolean dcCacheRecords(struct DbCacheData *cache, int recsCount, UInt16 * recs)
-{
-    int i;
-    for (i = 0; i < recsCount; i++)
-    {
-        DrawCacheRec(i);
-        if (NULL == CurrFileLockRecord(recs[i]))
-        {
-            return false;
-        }
-        CurrFileUnlockRecord(recs[i]);
-    }
-    return true;
-}
-#endif

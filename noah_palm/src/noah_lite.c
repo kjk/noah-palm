@@ -89,17 +89,6 @@ Err InitNoahLite(void)
     return errNone;
 }
 
-#if 0
-void DrawPleaseWait(void)
-{
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X, 160 - DRAW_DI_Y);
-    dh_save_font();
-    dh_set_current_y(80);
-    dh_display_string(wait_str, 1, 0);
-    dh_restore_font();
-}
-#endif
-
 void DisplayAboutNoahLite(void)
 {
     ClearDisplayRectangle();
@@ -176,15 +165,12 @@ void DictFoundCBNoahLite( AbstractFile *file )
     gd.dicts[gd.dictsCount++] = file;
 }
 
-/* just cheating, it's defined in noah_pro.h */
-#define  NOAH_PRO_CREATOR    'NoAH'
-
 /* called for every file on the external card */
 void VfsFindCbNoahLite( AbstractFile *file )
 {
     AbstractFile *fileCopy;
 
-    if ( !((NOAH_LITE_CREATOR == file->creator) || (NOAH_PRO_CREATOR == file->creator)) )
+    if ( !(NOAH_LITE_CREATOR == file->creator) )
         return;
 
     if ( WORDNET_LITE_TYPE != file->type )
@@ -210,7 +196,6 @@ void VfsFindCbNoahLite( AbstractFile *file )
 void ScanForDictsNoahLite(void)
 {
     FsMemFindDb( NOAH_LITE_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahLite );
-    FsMemFindDb( NOAH_PRO_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahLite );
     /* TODO: optimize by just looking in a few specific places like "/", "/Palm",
     "/Palm/Launcher", "xx/msfiles/xx" ? */
     FsVfsFindDb( &VfsFindCbNoahLite );
@@ -397,7 +382,7 @@ ExitProgram:
             }
             DisplayAboutNoahLite();
             break;
-#ifdef STRESS
+#ifdef DEBUG
         case menuItemStress:
             stress(20);
             break;
@@ -405,9 +390,11 @@ ExitProgram:
         case menuItemHelp:
             DisplayHelp();
             break;
+#if 0
         case menuItemSelectDB:
             FrmPopupForm(formSelectDict);
             break;
+#endif
         default:
             Assert(0);
             break;
@@ -570,6 +557,7 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
     return handled;
 }
 
+#if 0
 Boolean SelectDictFormHandleEventNoahLite(EventType * event)
 {
     FormPtr frm;
@@ -586,7 +574,6 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
         LstSetListChoices(list, NULL, gd.dictsCount);
         LstSetSelection(list, selectedDb);
         LstMakeItemVisible(list, selectedDb);
-#if 0
         if (-1 == gd.currentDb)
         {
             FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
@@ -595,7 +582,6 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
         {
             FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
         }
-#endif
         FrmDrawForm(frm);
         return true;
         break;
@@ -609,24 +595,20 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
         switch (event->data.ctlSelect.controlID)
         {
         case buttonSelect:
-#if 0
             if (gd.currentDb != selectedDb)
             {
                 if (-1 != gd.currentDb)
                     DictCurrentFree();
                 DictInit(selectedDb);
             }
-#endif
             MemSet(&newEvent, sizeof(EventType), 0);
             newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
             EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
         case buttonCancel:
-#if 0
             if (-1 == gd.currentDb)
                 Assert(0);
-#endif
             FrmReturnToForm(0);
             return true;
         }
@@ -636,6 +618,7 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
     }
     return false;
 }
+#endif
 
 Boolean HandleEventNoahLite(EventType * event)
 {
@@ -657,9 +640,11 @@ Boolean HandleEventNoahLite(EventType * event)
         case formDictFind:
             FrmSetEventHandler(frm, FindFormHandleEventNoahLite);
             break;
+#if 0
         case formSelectDict:
             FrmSetEventHandler(frm, SelectDictFormHandleEventNoahLite);
             break;
+#endif
         default:
             Assert(0);
             break;

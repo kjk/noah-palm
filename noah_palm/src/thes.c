@@ -384,12 +384,12 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
 Boolean MainFormHandleEventThes(EventType * event)
 {
     Boolean         handled = false;
-    FormType        *frm;
+    FormType *      frm;
     Short           newValue;
-    ListType        *list;
+    ListType *      list=NULL;
     long            wordNo;
     EventType       newEvent;
-    AbstractFile    *fileToOpen;
+    AbstractFile *  fileToOpen;
     int             i;
     int             selectedDb;
 /*      RectangleType r; */
@@ -746,7 +746,7 @@ ChooseDatabase:
             }
             DisplayAboutThes();
             break;
-#ifdef STRESS
+#ifdef DEBUG
         case menuItemStress:
             stress(1);
             break;

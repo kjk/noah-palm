@@ -7,8 +7,6 @@
 
 #include <PalmOS.h>
 
-//#include "common.h"
-
 #define dmDBNameLength    32
 
 // TODO: remove if not needed

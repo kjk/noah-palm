@@ -25,7 +25,7 @@ STRING ID 8004
 "\'Tap:\' What to do when you tap at the definition. The same"\
 "Options as for up/down buttons"
 
-#ifdef STRESS
+#ifdef DEBUG
 MENU ID menuMain
 BEGIN
   PULLDOWN "Main"

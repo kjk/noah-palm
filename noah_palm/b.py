@@ -12,10 +12,10 @@
 #  2002/11/07 - added thesaurus
 #  2002/11/16 - added debug/release build distinction
 #  2002/12/02 - added Noah Lite
+#  2002/12/03 - shortened
 
 # Todo:
 # - rewrite script.gdb to load obj/foo.out instead of foo.out
-# - finish
 
 import string, sys, os
 
@@ -31,7 +31,7 @@ def CreateDirIfNotExists(dirName):
     except OSError:
         pass
 
-npd_objs = [ "noah_pro", "word_compress", "mem_leak", "display_info", "common", "extensible_buffer",
+npd_objs = [ "common", "noah_pro", "word_compress", "mem_leak", "display_info", "extensible_buffer",
              "fs", "fs_ex", "fs_mem", "fs_vfs",
              "wn_lite_ex_support", "wn_pro_support", "simple_support", "ep_support" ]
 
@@ -42,7 +42,6 @@ nld_objs = [ "noah_lite", "word_compress", "mem_leak", "display_info", "common",
 thd_objs = [ "thes", "word_compress", "mem_leak", "display_info", "common", "extensible_buffer",
              "fs", "fs_mem", "fs_ex", "fs_vfs",
              "roget_support"]
-
 
 def GenObjs( objList ):
     txt = "OBJS="
@@ -60,31 +59,20 @@ def GenObjDepend( objList ):
     return txt
 
 def GenNoahProMakefile():
-    global npd_objs, fDoDebug
+    global npd_objs, fDoDebug, LNFLAG, CCFLAG1, CCFLAG, PILRCFLAG
     objList = npd_objs
-    if fDoDebug:
-        txt = """
+
+    txt = """
 CC = m68k-palmos-gcc
-LNFLAGS = -g
-CFLAGS = -g  -Wall -I res -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMPLE_DICT -DFS_VFS -DERROR_CHECK_LEVEL=2 -DMEM_LEAKS -DDEBUG -DSTRESS
-"""
-    else:
-        txt = """
-CC = m68k-palmos-gcc
-LNFLAGS =
-CFLAGS = -O2 -Wall -I res -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMPLE_DICT -DFS_VFS -DERROR_CHECK_LEVEL=0
-"""
+LNFLAGS = %s
+CFLAGS = %s -Wall -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMPLE_DICT -DFS_VFS %s -I res
+""" % (LNFLAG, CCFLAG1, CCFLAG)
     txt += GenObjs(objList)
     txt += "\n\n"
     txt += GenObjDepend(objList)
-    if fDoDebug:
-        txt += """
-noah_pro.prc: $(OBJS) obj/noah_pro.res
-	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH -segmentsize 29k obj/*.o"""
-    else:
-        txt += """
-noah_pro.prc: $(OBJS) obj/noah_pro.res
-	m68k-palmos-multilink -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH -segmentsize 29k obj/*.o"""
+    txt += """
+noah_pro.prc: obj/noah_pro.res $(OBJS)
+	m68k-palmos-multilink -gdb-script script.gdb %s -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH -segmentsize 29k obj/*.o""" % LNFLAG
     txt += """
 	mv *.grc obj
 	mv *.out obj
@@ -92,40 +80,29 @@ noah_pro.prc: $(OBJS) obj/noah_pro.res
 	ls -la *.prc
 
 obj/noah_pro.res: res/noah_pro.rcp res/noah_pro_rcp.h
-	pilrc -D STRESS -q -I res res/noah_pro.rcp obj
+	pilrc -q %s -I res res/noah_pro.rcp obj
 	touch $@
 
 clean:
 	rm -rf obj/* obj/*.out obj/*.grc
-"""
+"""  % PILRCFLAG
     return txt
 
 def GenNoahLiteMakefile():
-    global nld_objs
+    global nld_objs, fDoDebug, LNFLAG, CCFLAG1, CCFLAG, PILRCFLAG
     objList = nld_objs
-    if fDoDebug:
-        txt = """
+    txt = """
 CC = m68k-palmos-gcc
-LNFLAGS = -g
-CFLAGS = -g  -Wall -DNOAH_LITE -DWNLEX_DICT -DFS_VFS -DERROR_CHECK_LEVEL=2 -I res -DMEM_LEAKS -DDEBUG -DSTRESS
-"""
-    else:
-        txt = """
-CC = m68k-palmos-gcc
-LNFLAGS =
-CFLAGS = -O2 -Wall -DNOAH_LITE -DWNLEX_DICT -DFS_VFS -DERROR_CHECK_LEVEL=0 -I res
-"""
+LNFLAGS = %s
+CFLAGS = %s -Wall -DNOAH_LITE -DWNLEX_DICT -DFS_VFS %s -I res
+""" % (LNFLAG, CCFLAG1, CCFLAG)
     txt += GenObjs(objList)
     txt += "\n\n"
     txt += GenObjDepend(objList)
-    if fDoDebug:
-        txt += """
-noah_lite.prc: $(OBJS) obj/noah_lite.res
-	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid KJK0 -segmentsize 29k obj/*.o"""
-    else:
-        txt += """
-noah_lite.prc: $(OBJS) obj/noah_lite.res
-	m68k-palmos-multilink -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid KJK0 -segmentsize 29k obj/*.o"""
+
+    txt += """
+noah_lite.prc: obj/noah_lite.res $(OBJS)
+	m68k-palmos-multilink -gdb-script script.gdb %s -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid KJK0 -segmentsize 29k obj/*.o""" % LNFLAG
     txt += """
 	mv *.grc obj
 	mv *.out obj
@@ -133,27 +110,17 @@ noah_lite.prc: $(OBJS) obj/noah_lite.res
 	ls -la *.prc
 
 obj/noah_lite.res: res/noah_lite.rcp res/noah_lite_rcp.h
-	pilrc -D STRESS -q -I res res/noah_lite.rcp obj
+	pilrc -q %s -I res res/noah_lite.rcp obj
 	touch $@
 
 clean:
 	rm -rf obj/* obj/*.out obj/*.grc
-"""
+""" % PILRCFLAG
     return txt
 
 def GenThesMakefile():
-    global thd_objs
+    global thd_objs, LNFLAG, CCFLAG1, CCFLAG, PILRCFLAG
     objList = thd_objs
-    if fDoDebug:
-        LNFLAG = "-g"
-        CCFLAG1 = "-g"
-        PILRCFLAG = "-D STRESS"
-        CCFLAG = "-DMEM_LEAKS -DERROR_CHECK_LEVEL=2 -DDEBUG -DSTRESS"
-    else:
-        LNFLAG = ""
-        CCFLAG1 = "-O2"
-        PILRCFLAG = ""
-        CCFLAG = "-DERROR_CHECK_LEVEL=0"
     txt = """
 CC = m68k-palmos-gcc
 LNFLAGS = %s
@@ -219,6 +186,17 @@ for a in args:
        if fDoNoahPro or fDoNoahLite: PrintUsageAndQuit()
 
 if not (fDoNoahLite or fDoNoahPro or fDoThes): PrintUsageAndQuit()
+
+if fDoDebug:
+    LNFLAG = "-g"
+    CCFLAG1 = "-g"
+    PILRCFLAG = "-D DEBUG"
+    CCFLAG = "-DMEM_LEAKS -DERROR_CHECK_LEVEL=2 -DDEBUG"
+else:
+    LNFLAG = ""
+    CCFLAG1 = "-O2"
+    PILRCFLAG = ""
+    CCFLAG = "-DERROR_CHECK_LEVEL=0"
 
 if fDoNoahPro:
    mf = GenNoahProMakefile()

@@ -208,7 +208,7 @@ void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
 {
     Err             err;
     FileRef         dirRef;
-    char            *currDir;
+    char            *currDir = NULL;
     char            *newDir;
     char            *fileName;
     UInt16          currVolRef;

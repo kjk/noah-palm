@@ -3,7 +3,7 @@
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
 
   All the common code shared between my other apps.
- */
+*/
 
 #ifdef NOAH_PRO
 #include "noah_pro.h"
@@ -20,10 +20,7 @@
 #include "thes_rcp.h"
 #endif
 
-extern GlobalData gd;
-
 #include <PalmCompatibility.h>
-#include "common.h"
 #include "extensible_buffer.h"
 #include "fs.h"
 
@@ -46,6 +43,8 @@ extern GlobalData gd;
 #ifdef EP_DICT
 #include "ep_support.h"
 #endif
+
+extern GlobalData gd;
 
 #ifdef DEBUG
 LogInfo g_Log;
@@ -347,76 +346,6 @@ void DrawDescription(UInt32 wordNo)
     DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
 }
 
-#ifdef DEBUG
-void MyPause(long mult)
-{
-    long i;
-    long j;
-    long res;
-
-    for (i = 0; i < 5 * mult; i++)
-    {
-        for (j = 0; j < 500000; j++)
-        {
-            res = 3 * i + j;
-        }
-    }
-}
-
-void DrawDebugScrollArea(void)
-{
-    RectangleType srcRect;
-
-    srcRect.topLeft.x = 0;
-    srcRect.topLeft.y = 0;
-    srcRect.extent.x = 159;
-    srcRect.extent.y = 159 - 9;
-    WinCopyRectangle(NULL, NULL, &srcRect, 0, 9, winPaint);
-    ClearRectangle(0, 0, 160, 9);
-}
-
-void DrawDebugAt(char *txt, Int16 dx)
-{
-    Int16 len;
-    len = StrLen(txt);
-    WinDrawChars(txt, len, dx, 0);
-}
-
-void DrawDebugNum(UInt32 num)
-{
-    char buf[40];
-    StrIToA(buf, num);
-    DrawDebug(buf);
-}
-
-void DrawDebug2Num(char *txt, UInt32 num)
-{
-    char buf[40];
-    StrIToA(buf, num);
-    DrawDebug2(txt, buf);
-}
-
-void DrawDebug(char *txt)
-{
-    DrawDebugScrollArea();
-    DrawDebugAt(txt, 0);
-}
-
-void DrawDebug2(char *txt1, char *txt2)
-{
-    Int16 len;
-    Int16 strDx;
-
-    DrawDebugScrollArea();
-
-    DrawDebugAt(txt1, 0);
-    len = StrLen(txt1);
-    strDx = FntCharsWidth(txt1, len);
-    DrawDebugAt(txt2, strDx + 8);
-}
-
-#endif
-
 void ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey)
 {
     RectangleType r;
@@ -431,7 +360,7 @@ void DrawCentered(char *txt)
 {
     FontID prev_font;
 
-    ClearRectangle(0, 0, 152, 144);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
     prev_font = FntGetFont();
     FntSetFont((FontID) 1);
     WinDrawChars(txt, StrLen(txt), 46, (160 - 20) / 2);
@@ -711,7 +640,7 @@ char * GetWnPosTxt(int pos)
     return GetNthTxt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
 }
 
-#ifdef STRESS
+#ifdef DEBUG
 void stress(long step)
 {
     long wordNo;
@@ -1336,6 +1265,7 @@ char *ssPop( StringStack *ss )
     return toReturn;
 }
 
+#ifdef DEBUG
 void LogInitFile(LogInfo *logInfo)
 {
     HostFILE        *hf = NULL;
@@ -1369,6 +1299,7 @@ void Log(LogInfo *logInfo, char *txt)
         HostFClose(hf);
     }
 }
+#endif
 
 void EvtSetInt( EventType *event, int i)
 {

@@ -29,6 +29,7 @@
 #define  WORDNET_PRO_TYPE      'wnde'
 #endif
 
+
 #define  DRAW_DI_X 0
 
 #define SEARCH_TXT   "Searching..."
@@ -116,23 +117,10 @@ void    DrawWord(char *word, int pos_y);
 char    *GetNthTxt(int n, char *txt);
 char    *GetWnPosTxt(int partOfSpeech);
 
-#ifdef DEBUG
-void    MyPause(long mult);
-void    DrawDebug(char *txt);
-void    DrawDebug2(char *txt1, char *txt2);
-void    DrawDebug2Num(char *txt1, UInt32 num);
-void    DrawDebugNum(UInt32 num);
-#else
-#define MyPause(x)    ;
-#define DrawDebugNum(x) ;
-#define DrawDebug2Num(x,y) ;
-#define DrawDebug(x) ;
-#define DrawDebug2(x,y) ;
-#endif
 void    DrawCentered(char *txt);
 void    DrawCacheRec(int recNum);
 
-#ifdef STRESS
+#ifdef DEBUG
 void stress(long step);
 #endif
 
@@ -217,7 +205,9 @@ void Log(LogInfo *logInfo, char *txt);
         Log( &g_Log, g_logBuf );
 #else
 #define LogG(f)
-#define LogInit(f)
+#define LogInit(i,f)
+#define LogV1(f,d)
+#define LogV2(f,d1,d2)
 #endif
 
 void EvtSetInt( EventType *event, int i);

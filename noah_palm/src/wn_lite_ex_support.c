@@ -59,13 +59,11 @@ void wnlex_delete(void *data)
 void *wnlex_new(void)
 {
     WnLiteInfo          *wi = NULL;
-    WnLiteFirstRecord   *firstRecord;
+    WnLiteFirstRecord   *firstRecord = NULL;
     int                 recWithComprData;
     int                 recWithWordCache;
     int                 firstRecWithWords;
     int                 i;
-    int                 recsToCacheCount;
-    UInt16              *recsToCache;
 
     wi = (WnLiteInfo *) new_malloc(sizeof(WnLiteInfo));
     if (NULL == wi)
@@ -127,30 +125,6 @@ void *wnlex_new(void)
     recWithComprData = 2;
     recWithWordCache = 1;
     firstRecWithWords = 4 + wi->synsetDefLenRecordsCount + wi->wordsInfoRecordsCount;
-
-    recsToCacheCount = firstRecWithWords + wi->wordsRecordsCount;
-    recsToCache = (UInt16 *) new_malloc(recsToCacheCount * sizeof(UInt16));
-    if (NULL == recsToCache)
-    {
-        LogG("wnlex_new(), new_mallloc() failed, recsToCache is NULL");
-        goto Error;
-    }
-
-    for (i = 0; i < recsToCacheCount; i++)
-    {
-        recsToCache[i] = i;
-    }
-
-#if 0
-    Disable pre-caching of records to improve startup performance.
-    if (!vfsCacheRecords(recsToCacheCount, recsToCache))
-    {
-        // this is most likely due to out-of-mem conditions
-        // the caller (DictInit() will handle that and display "no mem" dialog
-        return NULL;
-    }
-#endif    
-    new_free((void *) recsToCache);
 
     wi->wci = (WcInfo *) wcInit(wi->wordsCount, recWithComprData,
                                  recWithWordCache, firstRecWithWords,

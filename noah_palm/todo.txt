@@ -1,18 +1,18 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
 * bug np: returning from preferences screen clutters def display
+* bug nl: no screen refresh when going back from word search
+* add high-res icon for word search
 * test caching in low memory scenario
-* bug: noah lite doesn't work
 * preferences in Noah Pro
  - remember last used db
 * add a color icon for Noah Pro
-* change icon for Thesaurus/add a color icon
+* add a hi-res icon for Noah Pro (4bpp and 8bpp)
+* add a color icon for Thesaurus
 * restore word history in Noah Pro
 * restore/add word history to Thesaurus
 * preferences in Thes
  - remember last used db
-* marketing improvements in Noah Lite
- - detect dbs in vfs, message that not supported (go to Noah Pro for support)
- - only give one database (say more in Noah Pro)
+* nl marketing improvements: only give one database (say more in Noah Pro)
 * "Timo Laitinen" <timolai@utu.fi> can beta-test MemPlug version (e-mail 4 Nov
 2002)
 
@@ -32,4 +32,8 @@ words is empty. Possible solution: write "a" in gd.lastWord on startup?
 * [DONE 2002/11/29] np: add option "delete cache on exit", on by default
 * [DONE 2002/11/29] bug: second opening of a db that uses a cache is an error
 * [DONE 2002/12/02] make Noah Lite compile
+* [DONE 2002/12/03] bug: noah lite doesn't work
+* [DONE 2002/12/03] change icon for Thesaurus
+* [DONE 2002/12/03] nl marketing improvements: detect dbs in vfs, message that not supported
+  (go to Noah Pro for support)
 

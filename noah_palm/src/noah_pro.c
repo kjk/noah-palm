@@ -864,7 +864,7 @@ ChooseDatabase:
         case menuItemTranslate:
             TryClipboard();
             break;
-#ifdef STRESS
+#ifdef DEBUG
         case menuItemStress:
             stress(2);
             break;

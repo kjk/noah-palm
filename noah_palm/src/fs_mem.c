@@ -189,7 +189,7 @@ void *memLockRegion(struct MemData *memData, UInt16 recNo, UInt16 offset, UInt16
     char        *recordPtr;
 
     recordPtr = (char *) memLockRecord(memData, recNo);
-    return (void *) (recordPtr + size);
+    return (void *) (recordPtr + offset);
 }
 
 void memUnlockRegion(struct MemData *memData, char *regionPtr)

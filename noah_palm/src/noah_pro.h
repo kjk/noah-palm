@@ -10,7 +10,6 @@
 
 #include "extensible_buffer.h"
 #include "display_info.h"
-#include "common.h"
 
 #include "fs.h"
 

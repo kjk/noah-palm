@@ -18,7 +18,7 @@ STRING ID helpPrefs
 "Options as for up/down buttons\n\n"\
 "For more info see the documentation"
 
-#ifdef STRESS
+#ifdef DEBUG
 MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
@@ -139,5 +139,13 @@ BEGIN
 	BUTTONS "OK"
 END
 
-ICON              "thes.pbitm"
+ICONFAMILY
+    "thes.bmp"
+    "thes-4bpp.bmp"
+    TRANSPARENCY 0 255 0
+
+SMALLICONFAMILY
+    "thessm.bmp"
+    TRANSPARENCY 255 255 255
+
 BITMAP ID bmpFind "find.pbitm"
