@@ -1,24 +1,20 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
-* make vfs_ex compile
-* add vfs support for Thes
 * bring Noah Pro to using only vfs/mem
-* save preferences in Thes
+* preferences in Thes
+ - remember last used db
+* preferences in Noah Pro
+ - remember last used db
+* make Noah Lite compile
+* marketing improvements in Noah Lite
+ - detect dbs in vfs, message that not supported (go to Noah Pro for support)
+ - only give one database (say more in Noah Pro)
 * figure out the "wordHistory" business in thes.c
 * "Timo Laitinen" <timolai@utu.fi> can beta-test MemPlug version (e-mail 4 Nov
 2002)
-* make Noah Lite compile
-* change the way we iterate over dbs
-* save which db is used in preferences
 * add word history to Thes
 
-We have:
-- abstracted acess to files (either vfs or internal memory db api), it mimics the internal db api. vfs implementation adds caching of records in internal memory
-- abstracted dictionary access api i.e. have the same api regardless of what kind of dictionary we access (thesarus, noah lite, noah pro etc.). It uses the abstracted access to files
-
 * [DONE 2002/10/07] make thesaurus compile
+* [DONE 2002/11/24] make vfs_ex compile
+* [DONE 2002/11/24] change the way we iterate over dbs
+* [DONE 2002/11/24] add vfs support for Thes
 
-
-file api:
-  vfs implementation
-  internal memory db implementation
-  

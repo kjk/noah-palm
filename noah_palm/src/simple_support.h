@@ -40,5 +40,10 @@ typedef struct
     PackContext     defPackContext;
 } SimpleInfo;
 
-void setSimpleAsCurrentDict(void);
+void simple_delete(void *data);
+void *simple_new(void);
+long simple_get_words_count(void *data);
+long simple_get_first_matching(void *data, char *word);
+char *simple_get_word(void *data, long wordNo);
+Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di);
 #endif

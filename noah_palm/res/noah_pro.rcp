@@ -182,6 +182,21 @@ BEGIN
   BUTTONS "OK"
 END
 
+ALERT alertDbFailed
+INFORMATION
+BEGIN
+	TITLE "Error"
+	MESSAGE "Failed to open database."
+	BUTTONS "OK"
+END
+
+ALERT alertDbFailedGetAnother
+INFORMATION
+BEGIN
+	TITLE "Error"
+	MESSAGE "Failed to open database. Please choose another one."
+	BUTTONS "OK"
+END
 ICON   "noah_pro.pbitm"
 BITMAP ID bmpFind "find.pbitm"
 

@@ -62,7 +62,6 @@ typedef struct
     /* number of dbs found on the external mem card during the scan */
     int                      externalDbsCount;
     /* type and name of the database used most recently */
-    VFSDBType                lastDbType;
     unsigned char            lastDbName[DB_NAME_SIZE];
     unsigned char            lastWord[WORD_MAX_LEN];
 } NoahPrefs;
@@ -72,11 +71,9 @@ typedef struct
   */
 typedef struct
 {
+    AbstractFile        *dicts[MAX_DICTS];
+    int                 dictsCount;
     NoahErrors          err;
-    void                *dictData;
-    int                 currentDb;
-    int                 newDb;
-    int                 dbsCount;
     DisplayInfo         *currDispInfo;
     ExtensibleBuffer    *helpDipsBuf;
     long                currentWord;

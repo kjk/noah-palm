@@ -28,6 +28,7 @@ struct RogetInfo;
 struct WnInfo;
 struct WnLiteInfo;
 struct SimpleInfo;
+struct EngPolInfo;
 
 /* this struct describes the abstract file access api. All file operations come
 through this struct */
@@ -56,6 +57,7 @@ typedef struct
         struct WnInfo     *wn;
         struct WnLiteInfo *wnLite;
         struct SimpleInfo *simple;
+        struct EngPolInfo *engpol;
     } dictData;
 
 } AbstractFile;

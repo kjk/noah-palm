@@ -91,7 +91,7 @@ typedef struct
 } SynsetDef;
 
 
-#define MAX_DICTS 5
+#define MAX_DICTS 10
 long GetMaxListItems();
 
 Boolean get_defs_record(long entry_no, int first_record_with_defs_len,
@@ -218,5 +218,8 @@ void Log(LogInfo *logInfo, char *txt);
 #define LogG(f)
 #define LogInit(f)
 #endif
+
+void EvtSetInt( EventType *event, int i);
+int EvtGetInt( EventType *event );
 
 #endif

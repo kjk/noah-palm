@@ -29,14 +29,6 @@ static int si_word_in_synset_backward_p(SynsetsInfo * si, long *synset,
                                         long wordNo);
 static long si_get_word_no(SynsetsInfo * si, long synset, int word_idx);
 
-static void *wn_new(void);
-static void wn_delete(void *data);
-static long wn_get_words_count(void *data);
-static long wn_get_first_matching(void *data, char *word);
-static char *wn_get_word(void *data, long wordNo);
-static Err wn_get_display_info(void *data, long wordNo, Int16 dx,
-                               DisplayInfo * di);
-
 /* this buffer holds a copy of previous buffer + leading zero, for the
 purpose of giving this data to DisplayInfo */
 static ExtensibleBuffer g_buf_tmp = { 0 };
@@ -47,18 +39,6 @@ static ExtensibleBuffer g_buf = { 0 };
 
 /* for displaying progressive definitions */
 DisplayInfo g_di_tmp = { 0 };
-
-extern GlobalData gd;
-
-void setWnproAsCurrentDict(void)
-{
-    gd.currentDict.objectNew = &wn_new;
-    gd.currentDict.objectDelete = &wn_delete;
-    gd.currentDict.getWordsCount = &wn_get_words_count;
-    gd.currentDict.getFirstMatching = &wn_get_first_matching;
-    gd.currentDict.getWord = &wn_get_word;
-    gd.currentDict.getDisplayInfo = &wn_get_display_info;
-}
 
 void *wn_new(void)
 {

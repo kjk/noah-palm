@@ -505,12 +505,3 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     return 0;
 }
 
-void setWnlexAsCurrentDict(void)
-{
-    gd.currentDict.objectNew = &wnlex_new;
-    gd.currentDict.objectDelete = &wnlex_delete;
-    gd.currentDict.getWordsCount = &wnlex_get_words_count;
-    gd.currentDict.getFirstMatching = &wnlex_get_first_matching;
-    gd.currentDict.getWord = &wnlex_get_word;
-    gd.currentDict.getDisplayInfo = &wnlex_get_display_info;
-}

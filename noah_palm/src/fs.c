@@ -193,7 +193,15 @@ Boolean FsFileOpen(AbstractFile *file)
             }
             break;
         case eFS_VFS:
+#ifdef THESAURUS
             file->data.cacheData = dcNew(file, THES_CREATOR);
+#endif
+#ifdef NOAH_PRO
+            file->data.cacheData = dcNew(file, NOAH_PRO_CREATOR);
+#endif
+#ifdef NOAH_LITE_CREATOR
+            file->data.cacheData = dcNew(file, NOAH_LITE_CREATOR);
+#endif
             if ( !file->data.cacheData )
                 return false;
             break;

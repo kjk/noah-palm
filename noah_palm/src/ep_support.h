@@ -52,6 +52,11 @@ enum EP_RENDER_TYPE
     eprt_multiline 
 };
 
-void setEpAsCurrentDict(void);
+void *epNew(void);
+void epDelete(void *data);
+long epGetWordsCount(void *data);
+long epGetFirstMatching(void *data, char *word);
+char *epGetWord(void *data, long wordNo);
+Err ep_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di);
 
 #endif

@@ -16,9 +16,8 @@
 #include "fs.h"
  
 static ExtensibleBuffer g_buf = { 0 };
-extern GlobalData gd;
 
-static void simple_delete(void *data)
+void simple_delete(void *data)
 {
     SimpleInfo *si;
 
@@ -40,7 +39,7 @@ static void simple_delete(void *data)
     new_free(data);
 }
 
-static void *simple_new(void)
+void *simple_new(void)
 {
     SimpleInfo *si = NULL;
     SimpleFirstRecord *firstRecord;
@@ -96,17 +95,17 @@ static void *simple_new(void)
     goto Exit;
 }
 
-static long simple_get_words_count(void *data)
+long simple_get_words_count(void *data)
 {
     return ((SimpleInfo *) data)->wordsCount;
 }
 
-static long simple_get_first_matching(void *data, char *word)
+long simple_get_first_matching(void *data, char *word)
 {
     return wcGetFirstMatching(((SimpleInfo *) data)->wci, word);
 }
 
-static char *simple_get_word(void *data, long wordNo)
+char *simple_get_word(void *data, long wordNo)
 {
     SimpleInfo *si;
     si = (SimpleInfo *) data;
@@ -121,7 +120,7 @@ static char *simple_get_word(void *data, long wordNo)
 }
 
 #ifndef DEMO
-static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
+Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 {
     SimpleInfo *si = NULL;
     char *word;
@@ -255,7 +254,7 @@ static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInf
 #endif
 
 #ifdef DEMO
-static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
+Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 {
     SimpleInfo *si = NULL;
     char *word;
@@ -291,14 +290,4 @@ static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInf
     return 0;
 }
 #endif /* DEMO */
-
-void setSimpleAsCurrentDict(void)
-{
-    gd.currentDict.objectNew = &simple_new;
-    gd.currentDict.objectDelete = &simple_delete;
-    gd.currentDict.getWordsCount = &simple_get_words_count;
-    gd.currentDict.getFirstMatching = &simple_get_first_matching;
-    gd.currentDict.getWord = &simple_get_word;
-    gd.currentDict.getDisplayInfo = &simple_get_display_info;
-}
 

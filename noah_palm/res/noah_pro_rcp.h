@@ -22,6 +22,8 @@
 #define   alertDBName         1112
 #define   alertBadRecSize     1113
 #define   alertGenericError   1114
+#define   alertDbFailed       1115
+#define   alertDbFailedGetAnother 1116
 
 #define   menuMain            2000
 #define   menuItemSelectDB    2002

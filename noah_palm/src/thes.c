@@ -146,7 +146,7 @@ void FreeDicts(void)
 }
 
 /* called for every file on the external card */
-void ThesVfsFindCb( AbstractFile *file )
+void VfsFindCbThes( AbstractFile *file )
 {
     AbstractFile *fileCopy;
 
@@ -168,7 +168,7 @@ void ScanForDictsThes(void)
     FsMemFindDb( THES_CREATOR, ROGET_TYPE, NULL, &DictFoundCBThes );
 
     /* TODO: show a progress dialog with a number of files processed so far */
-    FsVfsFindDb( &ThesVfsFindCb );
+    FsVfsFindDb( &VfsFindCbThes );
 }
 
 Err InitThesaurus(void)
@@ -290,13 +290,13 @@ void DisplayAboutThes(void)
    got word from clipboard */
 int TryClipboard(void)
 {
-    MemHandle clipItemHandle = 0;
-    UInt16 itemLen;
-    char txt[30];
-    char *clipTxt;
-    char *word;
-    long wordNo;
-    int idx;
+    MemHandle   clipItemHandle = 0;
+    UInt16      itemLen;
+    char        txt[30];
+    char        *clipTxt;
+    char        *word;
+    long        wordNo;
+    int         idx;
 
     if (startupActionNone == gd.prefs.startupAction)
         return 0;
@@ -389,18 +389,6 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     return true;
 }
 
-void EvtSetInt( EventType *event, int i)
-{
-    int *pInt = (int*) (&event->data.generic);
-    *pInt = i;
-}
-
-int EvtGetInt( EventType *event )
-{
-    int *pInt = (int*) (&event->data.generic);
-    return *pInt;
-}
-
 Boolean MainFormHandleEventThes(EventType * event)
 {
     Boolean         handled = false;
@@ -418,10 +406,10 @@ Boolean MainFormHandleEventThes(EventType * event)
 /*      int        line; */
 /*      int        charPos; */
 
+    frm = FrmGetActiveForm();
     switch (event->eType)
     {
     case frmOpenEvent:
-        frm = FrmGetActiveForm();
         FrmDrawForm(frm);
 
         DisplayAboutThes();
@@ -562,7 +550,6 @@ ChooseDatabase:
         break;
 
     case evtNewWordSelected:
-        frm = FrmGetActiveForm();
         AddToHistory(gd.currentWord);
         if (1 == gd.dbPrefs.historyCount)
         {
@@ -844,7 +831,7 @@ void RememberLastWord(FormType * frm)
     FldDelete(fld, 0, wordLen - 1);
 }
 
-Boolean FindFormHandleEvent(EventType * event)
+Boolean FindFormHandleEventThes(EventType * event)
 {
     Boolean handled = false;
     char *word;
@@ -993,7 +980,7 @@ Boolean FindFormHandleEvent(EventType * event)
     return handled;
 }
 
-Boolean SelectDictFormHandleEvent(EventType * event)
+Boolean SelectDictFormHandleEventThes(EventType * event)
 {
     FormPtr     frm;
     ListPtr     list;
@@ -1067,7 +1054,7 @@ void PrefsToGUI(FormType * frm)
     SetPopupLabel(frm, listTapAction, popupTapAction, gd.prefs.tapScrollType, (char *) tap_txt);
 }
 
-Boolean PrefFormHandleEvent(EventType * event)
+Boolean PrefFormHandleEventThes(EventType * event)
 {
     Boolean handled = false;
     FormType *frm = NULL;
@@ -1148,7 +1135,7 @@ Boolean PrefFormHandleEvent(EventType * event)
     return handled;
 }
 
-Boolean ApplicationHandleEvent(EventType * event)
+Boolean HandleEventThes(EventType * event)
 {
     FormPtr frm;
     UInt16 formId;
@@ -1167,15 +1154,15 @@ Boolean ApplicationHandleEvent(EventType * event)
             handled = true;
             break;
         case formDictFind:
-            FrmSetEventHandler(frm, FindFormHandleEvent);
+            FrmSetEventHandler(frm, FindFormHandleEventThes);
             handled = true;
             break;
         case formSelectDict:
-            FrmSetEventHandler(frm, SelectDictFormHandleEvent);
+            FrmSetEventHandler(frm, SelectDictFormHandleEventThes);
             handled = true;
             break;
         case formPrefs:
-            FrmSetEventHandler(frm, PrefFormHandleEvent);
+            FrmSetEventHandler(frm, PrefFormHandleEventThes);
             handled = true;
             break;
         default:
@@ -1201,7 +1188,7 @@ void EventLoopThes(void)
             continue;
         if (MenuHandleEvent(0, &event, &error))
             continue;
-        if (ApplicationHandleEvent(&event))
+        if (HandleEventThes(&event))
             continue;
         FrmDispatchEvent(&event);
     }

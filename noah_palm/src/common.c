@@ -27,7 +27,25 @@ extern GlobalData gd;
 #include "extensible_buffer.h"
 #include "fs.h"
 
+#ifdef THESAURUS
 #include "roget_support.h"
+#endif
+
+#ifdef WNLEX_DICT
+#include "wn_lite_ex_support.h"
+#endif
+
+#ifdef WN_PRO_DICT
+#include "wn_pro_support.h"
+#endif
+
+#ifdef SIMPLE_DICT
+#include "simple_support.h"
+#endif
+
+#ifdef EP_DICT
+#include "ep_support.h"
+#endif
 
 #ifdef DEBUG
 LogInfo g_Log;
@@ -713,6 +731,7 @@ Boolean dictNew(void)
 
     switch (CurrFileDictType())
     {
+#ifdef THESAURUS
         case ROGET_TYPE:
             file->dictData.roget = RogetNew();
             if (NULL == file->dictData.roget)
@@ -721,9 +740,45 @@ Boolean dictNew(void)
                 return false;
             }
             break;
-#if 0
+#endif
+#ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            file->dictData.wn = wn_new();
+            file->dictData.wn = (struct WnInfo*) wn_new();
+            if (NULL == file->dictData.wn)
+            {
+                LogG( "dictNew(): wn_new() failed" );
+                return false;
+            }
+            break;
+#endif
+#ifdef WNLEX_DICT
+        case WORDNET_LITE_TYPE:
+            file->dictData.wnLite = (struct WnLiteInfo*) wnlex_new();
+            if (NULL == file->dictData.wnLite)
+            {
+                LogG( "dictNew(): wnlex_new() failed" );
+                return false;
+            }
+            break;
+#endif
+#ifdef SIMPLE_DICT
+        case SIMPLE_TYPE:
+            file->dictData.simple = simple_new();
+            if ( NULL == file->dictData.simple )
+            {
+                LogG( "dictNew(): simple_new() failed" );
+                return false;
+            }
+            break;
+#endif
+#ifdef EP_DICT
+        case ENGPOL_TYPE:
+            file->dictData.engpol = epNew();
+            if ( NULL == file->dictData.engpol )
+            {
+                LogG( "dictNew(): epNew() failed" );
+                return false;
+            }
             break;
 #endif
         default:
@@ -742,16 +797,36 @@ void dictDelete(void)
     if ( NULL == file ) return;
     switch (CurrFileDictType())
     {
+#ifdef THESAURUS
         case ROGET_TYPE:
             RogetDelete( file->dictData.roget );
             file->dictData.roget = NULL;
             break;
+#endif
+#ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-#if 0
             wn_delete( file->dictData.wn );
             file->dictData.wn = NULL;
-#endif
             break;
+#endif
+#ifdef WNLEX_DICT
+        case WORDNET_LITE_TYPE:
+            wnlex_delete( file->dictData.wnLite );
+            file->dictData.wnLite = NULL;
+            break;
+#endif
+#ifdef SIMPLE_DICT
+        case SIMPLE_TYPE:
+            simple_delete( file->dictData.simple );
+            file->dictData.simple = NULL;
+            break;
+#endif
+#ifdef EP_DICT
+        case ENGPOL_TYPE:
+            epDelete( file->dictData.engpol );
+            file->dictData.engpol = NULL;
+            break;
+#endif
         default:
             Assert(0);
             break;
@@ -763,15 +838,32 @@ long dictGetWordsCount(void)
     AbstractFile *file = GetCurrentFile();
     switch (CurrFileDictType())
     {
+#ifdef THESAURUS
         case ROGET_TYPE:
             return RogetGetWordsCount( file->dictData.roget );
+#endif
+#ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            Assert(0);
-            return 0;
+            return wn_get_words_count( file->dictData.wn );
+#endif
+#ifdef WNLEX_DICT
+        case WORDNET_LITE_TYPE:
+            return wnlex_get_words_count( file->dictData.wnLite );
+#endif
+#ifdef SIMPLE_DICT
+        case SIMPLE_TYPE:
+            return simple_get_words_count( file->dictData.simple );
+        break;
+#endif
+#ifdef EP_DICT
+        case ENGPOL_TYPE:
+            return epGetWordsCount( file->dictData.engpol );
+#endif
         default:
             Assert(0);
             return 0;
     }
+    return 0;
 }
 
 long dictGetFirstMatching(char *word)
@@ -779,15 +871,31 @@ long dictGetFirstMatching(char *word)
     AbstractFile *file = GetCurrentFile();
     switch (CurrFileDictType())
     {
+#ifdef THESAURUS
         case ROGET_TYPE:
             return RogetGetFirstMatching( file->dictData.roget, word );
+#endif
+#ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            Assert(0);
-            return 0;
+            return wn_get_first_matching( file->dictData.wn, word );
+#endif
+#ifdef WNLEX_DICT
+        case WORDNET_LITE_TYPE:
+            return wnlex_get_first_matching( file->dictData.wnLite, word );
+#endif
+#ifdef SIMPLE_DICT
+        case SIMPLE_TYPE:
+            return simple_get_first_matching( file->dictData.simple, word );
+#endif
+#ifdef EP_DICT
+        case ENGPOL_TYPE:
+            return epGetFirstMatching( file->dictData.engpol, word );
+#endif
         default:
             Assert(0);
             return 0;
     }
+    return 0;
 }
 
 char *dictGetWord(long wordNo)
@@ -795,15 +903,31 @@ char *dictGetWord(long wordNo)
     AbstractFile *file = GetCurrentFile();
     switch (CurrFileDictType())
     {
+#ifdef THESAURUS
         case ROGET_TYPE:
             return RogetGetWord( file->dictData.roget, wordNo );
+#endif
+#ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            Assert(0);
-            return 0;
+            return wn_get_word( file->dictData.wn, wordNo );
+#endif
+#ifdef WNLEX_DICT
+        case WORDNET_LITE_TYPE:
+            return wnlex_get_word( file->dictData.wnLite, wordNo );
+#endif
+#ifdef SIMPLE_DICT
+        case SIMPLE_TYPE:
+            return simple_get_word( file->dictData.simple, wordNo );
+#endif
+#ifdef EP_DICT
+        case ENGPOL_TYPE:
+            return epGetWord( file->dictData.engpol, wordNo );
+#endif
         default:
             Assert(0);
             return NULL;
     }
+    return NULL;
 }
 
 Err dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di)
@@ -811,15 +935,31 @@ Err dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di)
     AbstractFile *file = GetCurrentFile();
     switch (CurrFileDictType())
     {
+#ifdef THESAURUS
         case ROGET_TYPE:
             return RogetGetDisplayInfo( file->dictData.roget, wordNo, dx, di );
+#endif
+#ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            Assert(0);
-            return 0;
+            return wn_get_display_info( file->dictData.wn, wordNo, dx, di );
+#endif
+#ifdef WNLEX_DICT
+        case WORDNET_LITE_TYPE:
+            return wnlex_get_display_info( file->dictData.wnLite, wordNo, dx, di );
+#endif
+#ifdef SIMPLE_DICT
+        case SIMPLE_TYPE:
+            return simple_get_display_info( file->dictData.simple, wordNo, dx, di );
+#endif
+#ifdef EP_DICT
+        case ENGPOL_TYPE:
+            return ep_get_display_info( file->dictData.engpol, wordNo, dx, di );
+#endif
         default:
             Assert(0);
             return 0;
     }
+    return 0;
 }
 
 extern char helpText[];
@@ -1219,5 +1359,17 @@ void Log(LogInfo *logInfo, char *txt)
         HostFPrintF(hf, "%s\n", txt );
         HostFClose(hf);
     }
+}
+
+void EvtSetInt( EventType *event, int i)
+{
+    int *pInt = (int*) (&event->data.generic);
+    *pInt = i;
+}
+
+int EvtGetInt( EventType *event )
+{
+    int *pInt = (int*) (&event->data.generic);
+    return *pInt;
 }
 

@@ -17,18 +17,9 @@
 #include "common.h"
 #include "fs.h"
 
-static void  *epNew(void);
-static void  epDelete(void *data);
-static long  epGetWordsCount(void *data);
-static long  epGetFirstMatching(void *data, char *word);
-static char  *epGetWord(void *data, long wordNo);
-static void  epGetDef(void *data, long wordNo);
-
 static char polishChars[] = "±êæ³ñó¶¼¿";
 static char latinChars[] = "aeclnószz";
 static ExtensibleBuffer g_buf = { 0 };
-
-extern GlobalData gd;
 
 /* change all polish characters into latin ones */
 static void unplishString(char *str, int strLen)
@@ -83,7 +74,7 @@ static char *getCatName(int cat, int type)
     return (char *) data;
 }
 
-static void *epNew(void)
+void *epNew(void)
 {
     EngPolInfo *epi = NULL;
     FirstRecord *first_rec;
@@ -128,7 +119,7 @@ static void *epNew(void)
     goto Exit;
 }
 
-static void epDelete(void *data)
+void epDelete(void *data)
 {
     EngPolInfo *epi;
 
@@ -149,17 +140,17 @@ static void epDelete(void *data)
     new_free(data);
 }
 
-static long epGetWordsCount(void *data)
+long epGetWordsCount(void *data)
 {
     return ((EngPolInfo *) data)->wordsCount;
 }
 
-static long epGetFirstMatching(void *data, char *word)
+long epGetFirstMatching(void *data, char *word)
 {
     return wcGetFirstMatching(((EngPolInfo *) data)->wci, word);
 }
 
-static char *epGetWord(void *data, long wordNo)
+char *epGetWord(void *data, long wordNo)
 {
     EngPolInfo *epi;
     epi = (EngPolInfo *) data;
@@ -595,7 +586,7 @@ static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **ra
     dx        - width of the display we'll be displaying this description on
     di        - DisplayInfo struct to be filled in
  */
-static Err ep_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
+Err ep_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 {
     char *rawTxt;
     EngPolInfo *epi;
@@ -622,12 +613,3 @@ static Err ep_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * 
     return 0;
 }
 
-void setEpAsCurrentDict(void)
-{
-    gd.currentDict.objectNew = &epNew;
-    gd.currentDict.objectDelete = &epDelete;
-    gd.currentDict.getWordsCount = &epGetWordsCount;
-    gd.currentDict.getFirstMatching = &epGetFirstMatching;
-    gd.currentDict.getWord = &epGetWord;
-    gd.currentDict.getDisplayInfo = &ep_get_display_info;
-}
