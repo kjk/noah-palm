@@ -1429,12 +1429,12 @@ Boolean FindPatternFormHandleEventThes(EventType * event)
             LstSetDrawFunction(list, PatternListDrawFunc);
             FrmDrawForm(frm);
             LstSetSelectionEx(list, lastWordPos);
-            pattern = (char *) MemPtrNew(WORDS_CACHE_SIZE);
+            pattern = (char *) new_malloc(WORDS_CACHE_SIZE);
             ReadPattern(pattern);
             if (StrLen(pattern) > 0)
                 FldInsert(fld, pattern, StrLen(pattern));
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
-            MemPtrFree(pattern);
+            new_free(pattern);
             handled = true;
             break;
 

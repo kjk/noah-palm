@@ -229,7 +229,7 @@ void FillMatchingPatternDB(char * pattern)
         long pos;
 
         len = StrLen(pattern);
-        tmpPattern = (char *) MemPtrNew(len + 1);
+        tmpPattern = (char *) new_malloc(len + 1);
         for (i = 0; i < len; i++)
         {
             if (pattern[i] != '*' && pattern[i] != '?')
@@ -252,7 +252,7 @@ void FillMatchingPatternDB(char * pattern)
             if (TappedInRect(&rcStop)) break;
             str = dictGetWord(++pos);
         }
-        MemPtrFree(tmpPattern);
+        new_free(tmpPattern);
     }
     else
     {
