@@ -76,7 +76,7 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
     WinPopDrawState();
 }
 
-static void MainFormDisplayDefinition(AppContext* appContext)
+static void MainFormDrawCurrentDisplayInfo(AppContext* appContext)
 {
     UInt16 top=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
     UInt16 linesCount=(appContext->screenHeight-FRM_RSV_H-top)/FONT_DY;
@@ -102,14 +102,11 @@ static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCo
                     MainFormDisplayAbout(appContext);
                     break;
                 
+                case mainFormShowsMessage:
                 case mainFormShowsDefinition:
-                    MainFormDisplayDefinition(appContext);
+                    MainFormDrawCurrentDisplayInfo(appContext);
                     break;
                     
-                case mainFormShowsMessage:
-                    Assert(false); //! @todo Implement MainFormDisplayMessage()
-                    break;
-                                        
                 default:
                     Assert(false);
             }
@@ -123,6 +120,15 @@ static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCo
         default:            
             Assert(false);
     }            
+}
+
+static void MainFormSelectWholeInputText(const FormType* form)
+{
+    UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
+    Assert(frmInvalidObjectId!=index);
+    FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+    Assert(field);
+    FldSelectAllText(field);
 }
 
 static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form, EventType* event)
@@ -155,16 +161,13 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
                 case responseOneWord:
                     appContext->mainFormContent=mainFormShowsDefinition;
                     appContext->firstDispLine=0;
-                    index=FrmGetObjectIndex(form, fieldWordInput);
-                    Assert(frmInvalidObjectId!=index);
-                    FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
-                    Assert(field);
-                    FldSelectAllText(field);
+                    MainFormSelectWholeInputText(form);
                     break;
                     
                 case responseMessage:
                     appContext->mainFormContent=mainFormShowsMessage;
-                    Assert(false); //! @todo Show received message.
+                    appContext->firstDispLine=0;
+                    MainFormSelectWholeInputText(form);
                     break;
                     
                 case responseWordsList:
@@ -172,6 +175,7 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
                     
                 case responseError:
                 case responseWordNotFound:
+                    MainFormSelectWholeInputText(form);
                     break;
                     
                 default:
@@ -214,7 +218,6 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
             appContext->mainFormContent=mainFormShowsDefinition;
             const Char* currentDefinition=ebufGetDataPointer(&appContext->currentDefinition);
             Assert(currentDefinition!=NULL);
-            Assert(appContext->currDispInfo);
             diSetRawTxt(appContext->currDispInfo, const_cast<Char*>(currentDefinition));
             FrmUpdateForm(formDictMain, redrawAll);
         } 

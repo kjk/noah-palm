@@ -11,7 +11,7 @@
  * @author Szymon Knitter (szknitter@wp.pl) 
  */
 
-#include <stdlib.h> // for abs()
+#define ABS(x) ((x)<0?-(x):(x))
 
 #include "common.h"
 
@@ -686,9 +686,9 @@ Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
     // penDown with the same/close coordinates. We just ignore penMove events
     // if they fall within very close range of penDown that started this
     // processing. without this double-click on word is totally broken
-    if (abs(appContext->copyBlock.penDownX - screenX) <= PEN_MOVE_IGNORE_THRESH_X)
+    if (ABS(appContext->copyBlock.penDownX - screenX) <= PEN_MOVE_IGNORE_THRESH_X)
         return true;
-    if (abs(appContext->copyBlock.penDownY - screenY) <= PEN_MOVE_IGNORE_THRESH_Y)
+    if (ABS(appContext->copyBlock.penDownY - screenY) <= PEN_MOVE_IGNORE_THRESH_Y)
         return true;
 
     if(screenY > appContext->copyBlock.nextDy[appContext->lastDispLine - appContext->firstDispLine + 1]

@@ -663,20 +663,16 @@ static void CopyParamsFromTo(DisplayPrefs *src, DisplayPrefs *dst)
 #ifdef I_NOAH
 static void ReformatLastResponse(AppContext* appContext)
 {
-    const Char* word=ebufGetDataPointer(&appContext->currentWordBuf);
-    const Char* responseBegin=ebufGetDataPointer(&appContext->lastResponse);
-    if (word && responseBegin)
+    if (mainFormShowsDefinition==appContext->mainFormContent)
     {
+        const Char* word=ebufGetDataPointer(&appContext->currentWordBuf);
+        const Char* responseBegin=ebufGetDataPointer(&appContext->lastResponse);
+        Assert(word);
+        Assert(responseBegin);
         const Char* responseEnd=responseBegin+ebufGetDataSize(&appContext->lastResponse);
         Err error=ProcessOneWordResponse(appContext, word, responseBegin, responseEnd);
         Assert(!error);
-    }
-    else 
-    {
-        Assert(appContext->currDispInfo);
-        diFree(appContext->currDispInfo);
-        appContext->currDispInfo=NULL;
-    }
+    }        
 }
 #endif
 

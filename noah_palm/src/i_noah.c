@@ -96,6 +96,13 @@ static Err AppInit(AppContext* appContext)
     appContext->prefs.displayPrefs.listStyle = 2;
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
 
+    appContext->currDispInfo=diNew();
+    if (!appContext->currDispInfo)
+    {
+        error=memErrNotEnoughSpace;
+        goto OnError;
+    }
+
     LoadPreferences(appContext);
 
     SyncScreenSize(appContext);

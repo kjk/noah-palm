@@ -198,22 +198,12 @@ Err ProcessOneWordResponse(AppContext* appContext, const Char* word, const Char*
     error=ConvertInetToDisplayableFormat(appContext, word, responseBegin, responseEnd, &buffer);
     if (!error)
     {
-        if (!appContext->currDispInfo)
-            appContext->currDispInfo=diNew();
-        if (appContext->currDispInfo)
-        {
-            ebufAddChar(&buffer, chrNull);
-            ebufWrapBigLines(&buffer);
-            ebufSwap(&buffer, &appContext->currentDefinition);
-            diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
-            ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
-            ebufAddChar(&appContext->currentWordBuf, chrNull);
-        }
-        else
-        {
-            FrmAlert(alertMemError);
-            error=memErrNotEnoughSpace;            
-        }            
+        ebufAddChar(&buffer, chrNull);
+        ebufWrapBigLines(&buffer);
+        ebufSwap(&buffer, &appContext->currentDefinition);
+        diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
+        ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
+        ebufAddChar(&appContext->currentWordBuf, chrNull);
     }
     else
         FrmAlert(alertMalformedResponse);
@@ -273,13 +263,43 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
     return error;
 }
 
+static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
+{
+    Err error=errNone;
+    const Char* messageBegin=StrFind(responseBegin, responseEnd, "\r\n")+2;
+    if (messageBegin<responseEnd)
+    {
+        ExtensibleBuffer buffer;
+        ebufInit(&buffer, 0);
+        while (messageBegin<responseEnd)
+        {
+            const Char* messageEnd=StrFind(messageBegin, responseEnd, "\r\n");
+            if (messageBegin<messageEnd)
+            {
+                ebufAddStrN(&buffer, const_cast<Char*>(messageBegin), messageEnd-messageBegin);
+                ebufAddChar(&buffer, '\n');
+            }
+            if (messageEnd<responseEnd)
+                messageBegin=messageEnd+2;
+            else 
+                messageBegin=responseEnd;
+        }                
+        ebufWrapBigLines(&buffer);
+        ebufSwap(&appContext->lastMessage, &buffer);
+        diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->lastMessage));
+    }
+    else 
+        error=appErrMalformedResponse;
+    return error;
+}
+
 ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, const Char* begin, const Char* end)
 {
     Assert(word);
     Assert(begin);
     Assert(end);
     ResponseParsingResult result=responseError;
-
+    Err error=errNone;
     if (StrStartsWith(begin, end, noDefnitionResponse))
     {
         FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
@@ -287,24 +307,28 @@ ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, 
     }
     else if (StrStartsWith(begin, end, wordsListResponse))
     {
-        Err error=ProcessWordsListResponse(appContext, begin, end);
-        result=error?responseMalformed:responseWordsList;
+        error=ProcessWordsListResponse(appContext, begin, end);
+        result=responseWordsList;
     }
     else if (StrStartsWith(begin, end, messageResponse))
     {
-        Assert(false);
+        error=ProcessMessageResponse(appContext, begin, end);
+        result=responseMessage;
     }
     else
     {
-        Err error=ProcessOneWordResponse(appContext, word, begin, end);
-        if (!error)
+        error=ProcessOneWordResponse(appContext, word, begin, end);
+        result=responseOneWord;
+    } 
+    if (!error)
+    {
+        if (ebufGetDataPointer(&appContext->lastResponse)!=begin)
         {
             ebufReset(&appContext->lastResponse);
             ebufAddStrN(&appContext->lastResponse, const_cast<Char*>(begin), end-begin);
-            result=responseOneWord;
         }
-        else
-            result=responseMalformed;
-    } 
+    }
+    else
+        result=responseMalformed;
     return result;           
 }

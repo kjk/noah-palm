@@ -9,16 +9,6 @@
 #include "inet_definition_format.h"
 #include <NetMgr.h>
 
-#define serverAddress                "www.arslexis.com"
-#define serverPort                      80
-#define serverRelativeURL           "/dict-raw.php?word=^0&ver=^1&uid=^2"
-#define maxResponseLength        8192               // reasonable limit so malicious response won't use all available memory
-#define responseBufferSize          256                 // size of single chunk used to retrieve server response
-#define addressResolveTimeout   20000              // timeouts in milliseconds
-#define socketOpenTimeout         1000
-#define socketConnectTimeout     10000
-#define transmitTimeout              5000
-
 typedef enum LookupProgressEventFlag_ 
 {
     lookupStarted,

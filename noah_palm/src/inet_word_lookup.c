@@ -19,8 +19,29 @@ static const char* deviceWordsListResponse =
     "\xd" "\xa" 
     "\xd" "\xa" 
     "\x0";
+  
+static const char* deviceMessageResponse = 
+    "MESSAGE\xd" "\xa" 
+    "There's a new version of iNoah available.\xd" "\xa" 
+    "Please visit www.arslexis.com to get it.\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\x0";
     
 #endif
+
+#define serverAddress                "www.arslexis.com"
+#define serverPort                      80
+#define serverRelativeURL           "/dict-raw.php?word=^0&ver=^1&uid=^2"
+#define maxResponseLength        8192               // reasonable limit so malicious response won't use all available memory
+#define responseBufferSize          256                 // size of single chunk used to retrieve server response
+#define addressResolveTimeout   20000              // timeouts in milliseconds
+#define socketOpenTimeout         1000
+#define socketConnectTimeout     10000
+#define transmitTimeout              5000
 
 #define netLibName "Net.lib"
 
@@ -103,6 +124,12 @@ static void RenderStatusText(ConnectionData* connData, const Char* baseText)
             {
                 UInt16 bri=bytesReceived/1024;
                 UInt16 brf=((bytesReceived%1024)+51)/102; // round to 1/10
+                Assert(brf<=10);
+                if (brf==10)
+                {
+                    bri++;
+                    brf=0;
+                }
                 Char formatString[9];
                 StrCopy(formatString, " %d.%d kB");
                 NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
@@ -300,7 +327,9 @@ static Err PrepareRequest(ConnectionData* connData)
     if (error)
         goto OnError;
     ebufResetWithStr(buffer, "GET ");
-    url=TxtParamString(serverRelativeURL, word, NULL, NULL, NULL);
+    Char versionBuffer[8];
+    StrPrintF(versionBuffer, "%hd.%hd", (short)appVersionMajor, (short)appVersionMinor);
+    url=TxtParamString(serverRelativeURL, word, versionBuffer, NULL, NULL);
     new_free(word);
     if (!url)
     {
@@ -547,7 +576,7 @@ void PerformLookupTask(AppContext* appContext)
     else
     {
 /*
-        const Char* begin=deviceWordsListResponse;
+        const Char* begin=deviceMessageResponse;
         const Char* end=begin+StrLen(begin);
 */        
         const Char* begin=ebufGetDataPointer(&connData->response);

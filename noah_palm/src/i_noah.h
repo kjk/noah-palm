@@ -8,9 +8,6 @@
 
 #include "i_noah_rcp.h"
 
-/**
- * @todo Tweak iNoah settings.
- */
 #define  I_NOAH_CREATOR      'STRT'
 #define APP_CREATOR I_NOAH_CREATOR
 
@@ -29,10 +26,8 @@ typedef struct
 
 typedef iNoahPrefs AppPrefs;
 
-#define appVersion 0x0050
-
-#define appVersionMajor (appVersion>>8)
-#define appVersionMinor (appVersion & 0xff)
+#define appVersionMajor 0
+#define appVersionMinor 5
 
 #define appPreferencesVersion 0x0100
 #define appPreferencesId    0
