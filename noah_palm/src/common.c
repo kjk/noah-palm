@@ -2396,3 +2396,14 @@ Err SysGetDeviceIdAsNumber(UInt32* retVal)
     return error;
 }
 
+
+Err GetAuthorizationKey(AppContext* appContext, ExtensibleBuffer* out)
+{
+    Char* key=NULL;
+    UInt16 length=0;
+    //! @todo Use best possible API to get authorization key.
+    Err error=SysGetDeviceId(reinterpret_cast<UInt8**>(&key), &length);
+    if (!error)
+        ebufAddStrN(out, key, length);
+    return error;
+}

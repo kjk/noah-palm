@@ -197,7 +197,8 @@ typedef enum _AppFeature
 typedef enum _AppErr
 {
     appErrWordNotFound=appErrorClass,
-    appErrMalformedResponse
+    appErrMalformedResponse,
+    appErrBadAuthorization,
 } AppErr;    
 
 #define appNotifyResidentLookupEvent APP_CREATOR
@@ -619,6 +620,8 @@ extern Err SysGetDeviceId(UInt8** data, UInt16* length);
  * @see SysGetDeviceId(UInt8**, UInt16*)
  */
 extern Err SysGetDeviceIdAsNumber(UInt32* deviceId);
+
+extern Err GetAuthorizationKey(AppContext* appContext, ExtensibleBuffer* out);
 
 extern void CreateNewMemo(char *memoBody, int memoBodySize);
 

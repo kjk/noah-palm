@@ -167,7 +167,7 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
     Assert(wordBuffer);
     const Char* word=ebufGetDataPointer(wordBuffer);
     Assert(word);
-    ResponseParsingResult result=ProcessResponse(appContext, word, responseBegin, responseEnd);
+    ResponseParsingResult result=ProcessResponse(appContext, word, responseBegin, responseEnd, false);
     switch (result)
     {
         case responseOneWord:
@@ -187,9 +187,17 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
             FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
             break;
 
-        case responseError:
+        case responseMalformed:
             FrmAlert(alertMalformedResponse);
             break;
+            
+        case responseUnauthorised:
+            //! @todo Show unauthorised use alert.
+            break;
+            
+        case responseError:
+            // it should be handled by ProcessResponse().
+            break;            
             
         default:
             Assert(false);

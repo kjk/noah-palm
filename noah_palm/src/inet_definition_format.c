@@ -1,4 +1,5 @@
 #include "inet_definition_format.h"
+#include "blowfish.h"
 
 #define noDefnitionResponse "NO DEFINITION"
 #define wordsListResponse    "WORD_LIST"
@@ -254,7 +255,10 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
             appContext->wordsInListCount=wordsCount;
         }
         else
+        {
+            FrmAlert(alertMemError);
             error=memErrNotEnoughSpace;
+        }
     }
     else
         error=appErrMalformedResponse;    
@@ -291,13 +295,43 @@ static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBe
     return error;
 }
 
-ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, const Char* begin, const Char* end)
+static Err DecipherResponse(AppContext* appContext, const Char* begin, const Char* end, ExtensibleBuffer& out)
+{
+    Err error=errNone;
+    UInt16 length=end-begin;
+    if (length % 8)
+        error=appErrMalformedResponse;
+    else
+    {
+        ExtensibleBuffer key;
+        ebufInit(&key, 0);
+        error=GetAuthorizationKey(appContext, &key);
+        if (!error)
+        {
+            BlowfishCipher* bf=new BlowfishCipher(reinterpret_cast<const UInt8*>(ebufGetDataPointer(&key)), ebufGetDataSize(&key));
+            if (bf)
+            {
+                ebufAddStrN(&out, const_cast<Char*>(begin), end-begin);
+                bf->decrypt(reinterpret_cast<UInt8*>(ebufGetDataPointer(&out)), ebufGetDataSize(&out));
+                delete bf;
+            }
+            else 
+                error=memErrNotEnoughSpace;
+        }
+        ebufFreeData(&key);
+    }
+    return error;
+}
+
+ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, const Char* begin, const Char* end, Boolean usedAuthentication)
 {
     Assert(word);
     Assert(begin);
     Assert(end);
     ResponseParsingResult result=responseError;
     Err error=errNone;
+    ExtensibleBuffer decipheredResponse;
+    ebufInit(&decipheredResponse, 0);
     if (StrStartsWith(begin, end, noDefnitionResponse))
         result=responseWordNotFound;
     else if (StrStartsWith(begin, end, wordsListResponse))
@@ -312,8 +346,20 @@ ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, 
     }
     else
     {
-        error=ProcessOneWordResponse(appContext, word, begin, end);
-        result=responseOneWord;
+        if (usedAuthentication)
+        {
+            error=DecipherResponse(appContext, begin, end, decipheredResponse);
+            if (!error)
+            {
+                begin=ebufGetDataPointer(&decipheredResponse);
+                end=begin+ebufGetDataSize(&decipheredResponse);
+            }
+        }
+        if (!error)
+        {
+            error=ProcessOneWordResponse(appContext, word, begin, end);
+            result=responseOneWord;
+        }
     } 
     if (!error)
     {
@@ -324,6 +370,14 @@ ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, 
         }
     }
     else
-        result=responseMalformed;
+    {
+        if (appErrMalformedResponse==error)
+            result=responseMalformed;
+        else if (appErrBadAuthorization==error)
+            result=responseUnauthorised;
+        else 
+            result=responseError;            
+    }
+    ebufFreeData(&decipheredResponse);
     return result;           
 }
