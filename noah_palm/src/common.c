@@ -1823,13 +1823,13 @@ void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16
 
 void SyncScreenSize(AppContext* appContext) 
 {
-    RectangleType screenBounds;
+    Coord   dx,dy;
 
     if ( GetOsVersion(appContext) >= 40 )
     {
-        WinGetBounds(WinGetDisplayWindow(), &screenBounds);
-        appContext->screenWidth=screenBounds.extent.x;
-        appContext->screenHeight=screenBounds.extent.y;
+        WinGetDisplayExtent(&dx,&dy);
+        appContext->screenWidth=dx;
+        appContext->screenHeight=dy;
     }
     else
     {

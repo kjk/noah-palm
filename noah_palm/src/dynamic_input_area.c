@@ -91,14 +91,22 @@ Err DIA_Init(DIA_Settings* diaSettings)
     if (error) goto OnError;
 #endif
 
-    if (!DIA_HasSonySilkLib(diaSettings)) {
-        if (!FtrGet(pinCreator, pinFtrAPIVersion, &value) && value) DIA_SetFlag(diaSettings, diaHasPenInputMgr);
+    if (!DIA_HasSonySilkLib(diaSettings))
+    {
+        if ( 0==FtrGet(pinCreator, pinFtrAPIVersion, &value) )
+        {
+            if ( 0!=value )
+                DIA_SetFlag(diaSettings, diaHasPenInputMgr);
+        }
     }
-    if (!FtrGet(sysFtrCreator, sysFtrNumNotifyMgrVersion, &value) && value) {
+    if (!FtrGet(sysFtrCreator, sysFtrNumNotifyMgrVersion, &value) && value)
+    {
         error=SysCurAppDatabase(&cardNo, &localId);
-        if (error) goto OnError;
+        if (error)
+            goto OnError;
 
-        if (DIA_HasPenInputMgr(diaSettings)) {
+        if (DIA_HasPenInputMgr(diaSettings)) 
+        {
             error=SysNotifyRegister(cardNo, localId, sysNotifyDisplayResizedEvent, NULL, sysNotifyNormalPriority, NULL);
             if (!error) DIA_SetFlag(diaSettings, diaRegisteredDisplayResizeNotify);
             else goto OnError;
@@ -170,7 +178,9 @@ Err DIA_FrmEnableDIA(const DIA_Settings* diaSettings, FormType* form, Coord minH
     if (DIA_HasSonySilkLib(diaSettings)) {
         DIA_HandleResizeEvent();
     }
-    if (DIA_HasPenInputMgr(diaSettings)) {
+
+    if (DIA_HasPenInputMgr(diaSettings))
+    {
         error=FrmSetDIAPolicyAttr(form, frmDIAPolicyCustom);
         if (error) goto OnError;
         error=PINSetInputTriggerState(pinInputTriggerEnabled);
