@@ -12,7 +12,7 @@ def dumpPDBInfo(fileName):
     print "Name: %s" % db.name
     db.name = "test"
     print "New name: %s" % db.name
-    print "Number of records: %d" % db.getRecordsCount()
+    print "Number of records: %d" % len(db.records)
     recNo = 0
     for rec in db.records:
         print "Rec %2d, size: %4d" % (recNo,rec.size)

@@ -19,7 +19,7 @@ class PDBTest(unittest.TestCase):
     def test_Header(self):
         self.db = palmdb.PDB( _fileMediumNew )
         self.assertEqual( "WN  medium", self.db.name)
-        self.assertEqual(33, self.db.getRecordsCount() )
+        self.assertEqual(33, len(self.db.records) )
         newName = "Test"
         self.db.name = newName
         self.assertEqual( newName, self.db.name )

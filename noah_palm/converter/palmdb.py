@@ -7,16 +7,13 @@
 # History:
 #   2003-06-04 Started
 #   2003-06-05 programming continues
-#   2003-06-06 programming continues
+#   2003-06-06 improving classes
 
 import string,sys,os,struct,stat
 
 def _getFileSizeFromFileObject(fo):
-    """Return the size of a file object"""
-    fd = fo.fileno()
-    statObj = os.fstat(fd)
-    size = statObj[stat.ST_SIZE]
-    return size
+    """Return size of a file object."""
+    return os.fstat(fo.fileno())[stat.ST_SIZE]
 
 (REC_FLAG_DELETE, REC_FLAG_DIRTY, REC_FLAG_BUSY, REC_FLAG_SECRET) = 0x10, 0x20, 0x40, 0x80
 
@@ -168,11 +165,11 @@ class PDB:
         (self._name, self._attr, self._version, self._creationdate,
          self._modificationDate, self._lastBackupDate, self._modificationNum,self._appInfoArea,
          self._sortInfoArea, self._dbType, self._creatorId, self._seedId,
-         self._nextRecordList,self._recordsCount) = struct.unpack(">32sHHLLLLLL4s4sLLH", headerData)
+         self._nextRecordList,recordsCount) = struct.unpack(">32sHHLLLLLL4s4sLLH", headerData)
         self._name = self._name.strip("\x00")
 
         # sanity checkig of the pdb file
-        if fileSize < 78+8*self._recordsCount:
+        if fileSize < 78+8*recordsCount:
             self._raiseInvalidFile()
         if self._seedId != 0:
             # TODO: not sure about that, maybe it's valid
@@ -185,7 +182,7 @@ class PDB:
         # read info about records, need to accumulate to calc sizes from offsets
         recHeaderList = []
         (_OFFSET,_ATTR) = 0,1
-        for n in range(self._recordsCount):
+        for n in range(recordsCount):
             # record header format:
             # offset, len, what
             # 0, 4, offset of the record in the file (counting from 0)
@@ -198,11 +195,12 @@ class PDB:
             # 5, 3, uniqueId, set to 0 (we don't care about it and don't expose it to users)
             recHeaderList.append( struct.unpack(">LB3s", fo.read(8) ) )
 
-        for n in range(self._recordsCount):
-            if n < self._recordsCount-1:
+        for n in range(recordsCount):
+            if n < recordsCount-1:
                 recSize = recHeaderList[n+1][_OFFSET] - recHeaderList[n][_OFFSET];
             else:
                 recSize = fileSize - recHeaderList[n][_OFFSET]
+            # sanity check
             if recSize <= 0:
                 self._raiseInvalidFile()
             self._records.append( PDBRecordFromDisk(self._fileName,
@@ -222,19 +220,7 @@ class PDB:
 
     def _getRecords(self):
         return self._records
-    def _setRecords(self,rec):
-        raise NotImplementedError
-    records = property(_getRecords,_setRecords)
-
-    def appendRecord(self,rec):
-        # assert rec instance of PDBRecord
-        raise NotImplementedError
-    def insertRecordAt(self,rec):
-        # assert rec instance of PDBRecord
-        raise NotImplemementedError
-
-    def getRecordsCount(self):
-        return self._recordsCount
+    records = property(_getRecords)
 
     def saveAs(self,fileName,overwrite=False):
         assert fileName != None
@@ -247,4 +233,3 @@ class PDB:
                 # TODO: only if this is instance of PDBRecordFromDisk
                 d = rec.data  # force reading data into memory
         raise NotImplementedError
-
