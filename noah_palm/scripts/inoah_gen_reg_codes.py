@@ -233,7 +233,10 @@ def createEsellerateFile(codes):
         fo.write( "%s\r\n" % code )
     fo.close()
 
-# Handango: comma separated list of registration codes
+# Handango: comma separated list of registration codes. They don't support
+# uploading files, you have to copy&paste reg codes into a text field.
+# FireFox 0.9.1 doesn't show such a long text in text field (although it's there).
+# IE 6 works better.
 def createHandangoFile(codes):
     fileName = getHandangoFileName()
     assert not fFileExists(fileName)
