@@ -420,7 +420,8 @@ static void RedrawExampleDefinition(AppContext* appContext)
         ebufAddStr(Buf, synonym); 
         ebufAddStr(Buf, "word\n"); 
 #ifdef NOAH_PRO
-        //if(appContext->prefs.displayPrefs.enablePronunciation)
+        if(appContext->prefs.displayPrefs.enablePronunciation)
+        if(appContext->pronData.isPronInUsedDictionary)
         {
             ebufAddChar(Buf, FORMAT_TAG); 
             ebufAddChar(Buf, FORMAT_PRONUNCIATION); 

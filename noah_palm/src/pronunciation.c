@@ -68,7 +68,7 @@ static char pronRetPronNo(char a, char b)
     return 0;
 }
 
-#define PRON_DATA "AAAEAHAOAWAYB CHD DHEHEREYF G HHIHIYJHK L M N NG OWOYP R S SHT THUHUWV W Y Z ZH"
+#define PRON_DATA "AAAEAHAOAWAYB CHD DHEHEREYF G HHIHIYJHK L M N NGOWOYP R S SHT THUHUWV W Y Z ZH"
 
 /**
  *  Version with AA, AO, ...
@@ -564,7 +564,7 @@ Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleB
     unsigned char compresed[PRON_COMPRESED_MAX_LEN];
     unsigned char decompresed[PRON_DECOMPRESED_MAX_LEN];
     char *      pron;
-    char        wordToPrarting[WORD_MAX_LEN + 2];
+    char        wordToPrarting[80];
     char        wordPart[WORD_MAX_LEN + 2];
     char *      wordTest;
     int         bufferPosition;
