@@ -32,11 +32,9 @@ static bool isWs(char c)
     return false;
 }
 
-#ifndef I_NOAH
-
 /* those functions are not available for Noah Lite */
 #ifndef NOAH_LITE
-
+#ifndef I_NOAH
 void HistoryListInit(AppContext* appContext, FormType *frm)
 {
     if (appContext->fInResidentMode)
@@ -81,6 +79,18 @@ void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
 }
 
+void AddToHistory(AppContext* appContext, UInt32 wordNo)
+{
+    const char *  word;
+
+    word = dictGetWord(GetCurrentFile(appContext), wordNo);
+
+    AddWordToHistory(appContext, word);
+}
+
+#endif // !NOAH_LITE
+#endif // !I_NOAH
+
 void strtolower(char *txt)
 {
     while (*txt)
@@ -93,12 +103,10 @@ void strtolower(char *txt)
     }
 }
 
-void AddToHistory(AppContext* appContext, UInt32 wordNo)
+// note: we make a copy of the word, so client doesn't have to keep it alive
+void AddWordToHistory(AppContext* appContext, const char *word)
 {
-    char *  word;
     int     i;
-
-    word = dictGetWord(GetCurrentFile(appContext), wordNo);
 
     // don't add duplicates
     for (i=0; i<appContext->historyCount; i++)
@@ -110,14 +118,62 @@ void AddToHistory(AppContext* appContext, UInt32 wordNo)
     word = strdup(word);
     if (!word)
         return;
-
-    if (appContext->historyCount==HISTORY_ITEMS) 
-        new_free(appContext->wordHistory[HISTORY_ITEMS-1]);
+    if (HISTORY_ITEMS==appContext->historyCount)
+    {
+        new_free((void*)appContext->wordHistory[HISTORY_ITEMS-1]);
+    }
     MemMove(&(appContext->wordHistory[1]), &(appContext->wordHistory[0]), ((HISTORY_ITEMS - 1) * sizeof(appContext->wordHistory[0])));
     appContext->wordHistory[0] = word;
+    if (appContext->posInHistory>0)
+    {
+        if (appContext->posInHistory+1<appContext->historyCount)
+        {
+            ++appContext->posInHistory;
+        }
+    }
 
     if (appContext->historyCount < HISTORY_ITEMS)
+    {
         ++appContext->historyCount;
+    }
+}
+
+Boolean FHistoryCanGoForward(AppContext* appContext)
+{
+    if ( (appContext->historyCount>0) && (appContext->posInHistory>0) )
+        return true;
+    return false;
+}
+
+const char *HistoryGoForward(AppContext *appContext)
+{
+    const char *word;
+
+    if (!FHistoryCanGoForward(appContext))
+        return NULL;
+
+    appContext->posInHistory -= 1;
+    word = appContext->wordHistory[appContext->posInHistory];
+    return word;    
+}
+
+Boolean FHistoryCanGoBack(AppContext* appContext)
+{
+    if ( (appContext->historyCount>0) && (appContext->posInHistory+1<appContext->historyCount) )
+        return true;
+    return false;
+}
+
+const char *HistoryGoBack(AppContext *appContext)
+{
+    const char *word;
+
+    if (!FHistoryCanGoBack(appContext))
+        return NULL;
+
+    appContext->posInHistory += 1;
+    word = appContext->wordHistory[appContext->posInHistory];
+    return word;    
 }
 
 void FreeHistory(AppContext* appContext)
@@ -125,7 +181,7 @@ void FreeHistory(AppContext* appContext)
     int i;
     for (i=0;i<appContext->historyCount;i++)
     {
-        new_free(appContext->wordHistory[i]);
+        new_free((void*)appContext->wordHistory[i]);
     }
     appContext->historyCount = 0;
 }
@@ -186,6 +242,8 @@ static void eReaderCleanup(char *buf)
     *tmp = '\0';    
 }
 
+#ifndef I_NOAH
+
 // If fRequireExact is true, will lookup the word and return true only if
 // exactly such word exists in the dictionary. Otherwise won't lookup
 // and will return false.
@@ -239,9 +297,6 @@ Boolean FTryClipboard(AppContext* appContext, Boolean fRequireExact)
     }
     return true;
 }
-
-
-#endif
 
 void FreeDicts(AppContext* appContext)
 {
@@ -1987,6 +2042,19 @@ int EvtGetInt( EventType *event )
     return *pInt;
 }
 
+char *strdup(const char *s)
+{
+    int     len;
+    char *  newStr;
+
+    Assert(s);
+    len = StrLen(s);
+    newStr = (char*)new_malloc_zero(len+1);
+    if (newStr)
+        StrCopy(newStr,s);
+    return newStr;
+}
+
 #ifndef I_NOAH
 
 void RememberLastWord(AppContext* appContext, FormType * frm, int objId)
@@ -2051,19 +2119,6 @@ void SendNewDatabaseSelected(int db)
 
 #pragma segment Segment1
 
-char *strdup(char *s)
-{
-    int     len;
-    char *  newStr;
-
-    Assert(s);
-    len = StrLen(s);
-    newStr = (char*)new_malloc_zero(len+1);
-    if (newStr)
-        StrCopy(newStr,s);
-    return newStr;
-}
-
 long FindCurrentDbIndex(AppContext* appContext)
 {
     long i;
@@ -2075,7 +2130,7 @@ long FindCurrentDbIndex(AppContext* appContext)
     return 0;
 }
 
-#endif // I_NOAH
+#endif // !I_NOAH
 
 void SendStopEvent(void)
 {

@@ -282,7 +282,8 @@ typedef struct _AppContext
     long               ticksEventTimeout;
 #ifndef NOAH_LITE  
     int                historyCount;
-    char*              wordHistory[HISTORY_ITEMS];
+    const char *       wordHistory[HISTORY_ITEMS];
+    int                posInHistory;
 
 #ifndef I_NOAH
 
@@ -414,9 +415,14 @@ void stress(long step);
 void HistoryListInit(AppContext* appContext, FormType *frm);
 void HistoryListSetState(AppContext* appContext, FormType *frm);
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
-void    strtolower(char *txt);
+void strtolower(char *txt);
+void AddWordToHistory(AppContext* appContext, const char *word);
 void AddToHistory(AppContext* appContext, UInt32 wordNo);
 void FreeHistory(AppContext* appContext);
+Boolean FHistoryCanGoForward(AppContext* appContext);
+Boolean FHistoryCanGoBack(AppContext* appContext);
+const char *HistoryGoBack(AppContext *appContext);
+const char *HistoryGoForward(AppContext *appContext);
 Boolean FTryClipboard(AppContext* appContext, Boolean fRequireExact);
 #endif
 void    SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx);
@@ -516,7 +522,7 @@ void            DoFieldChanged(AppContext* appContext);
 void            SendFieldChanged(void);
 void            SendNewDatabaseSelected(int db);
 void            SendStopEvent(void);
-char *          strdup(char *s);
+char *          strdup(const char *s);
 long            FindCurrentDbIndex(AppContext* appContext);
 
 /**

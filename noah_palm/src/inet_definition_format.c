@@ -252,6 +252,44 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
     return error;
 }
 
+static void UpdateHistoryButtons(AppContext *appContext)
+{
+
+    UInt16  index;
+    void*   object;
+
+    FormType *form = FrmGetActiveForm();
+    index = FrmGetObjectIndex(form, backButton);
+    Assert(frmInvalidObjectId!=index);
+    object = FrmGetObjectPtr(form, index);
+
+    if (FHistoryCanGoBack(appContext))
+    {
+        CtlSetEnabled((ControlType*)object, true);
+        CtlSetGraphics((ControlType*)object, backBitmap, NULL);
+    }
+    else
+    {
+        CtlSetEnabled((ControlType*)object, false);
+        CtlSetGraphics((ControlType*)object, backDisabledBitmap, NULL);
+    }
+
+    index = FrmGetObjectIndex(form, forwardButton);
+    Assert(frmInvalidObjectId!=index);
+    object = FrmGetObjectPtr(form, index);
+
+    if (FHistoryCanGoForward(appContext))
+    {
+        CtlSetEnabled((ControlType*)object, true);
+        CtlSetGraphics((ControlType*)object, forwardBitmap, NULL);
+    }
+    else
+    {
+        CtlSetEnabled((ControlType*)object, false);
+        CtlSetGraphics((ControlType*)object, forwardDisabledBitmap, NULL);
+    }
+}
+
 Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
 {
     Err error=errNone;
@@ -289,8 +327,18 @@ Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin,
     else
         error=appErrMalformedResponse;
 
-    if (!error && word)
-        FldClearInsert(FrmGetFormPtr(formDictMain), fieldWordInput, word);
+    if (errNone!=error)
+        return error;
+
+    if (NULL==word)
+        return errNone;
+    Assert( errNone == error );
+
+    FldClearInsert(FrmGetFormPtr(formDictMain), fieldWordInput, word);
+
+    // TODO: need to filter out random word requests (use a flag on appContext?)
+    AddWordToHistory(appContext, word);
+    UpdateHistoryButtons(appContext);
     return error;
 }
 

@@ -13,7 +13,7 @@ BEGIN
 #endif
   END
 
-  PULLDOWN "Bookmarks"
+  PULLDOWN "Bkms"
   BEGIN
     MENUITEM "Add bookmark"            ID menuItemBookmarkWord   "A"
     MENUITEM "Delete bookmark"         ID menuItemBookmarkDelete "D"
@@ -68,8 +68,8 @@ FORM formDictMain AT (0 0 160 160)
 USABLE
 NOFRAME MENUID menuMain
 BEGIN
-   BUTTON ""       ID backButton    AT (0 146 10 11) FONT 4 NOFRAME DISABLED BITMAPID backDisabledBitmap SELECTEDBITMAPID backBitmap GRAPHICAL
-   BUTTON ""       ID forwardButton AT (8 146 10 11) FONT 4 NOFRAME DISABLED BITMAPID forwardDisabledBitmap SELECTEDBITMAPID forwardBitmap GRAPHICAL
+   BUTTON ""       ID backButton    AT (0 146 10 11) FONT 4 NOFRAME DISABLED BITMAPID backDisabledBitmap GRAPHICAL
+   BUTTON ""       ID forwardButton AT (8 146 10 11) FONT 4 NOFRAME DISABLED BITMAPID forwardDisabledBitmap GRAPHICAL
 
    LABEL "Word:" ID labelWord       AT (PrevRight+2 147) FONT 0
    FIELD         ID fieldWordInput  AT (PrevRight+4 PrevTop 74 12) MAXCHARS 255 UNDERLINED EDITABLE

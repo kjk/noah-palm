@@ -221,20 +221,45 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
     } 
 }
 
+static void DoForward(AppContext *appContext)
+{
+    const char *word = HistoryGoForward(appContext);
+    if (NULL!=word)
+        StartWordLookup(appContext, word);
+}
+
+static void DoBack(AppContext *appContext)
+{
+    const char* word = HistoryGoBack(appContext);
+    if (NULL!=word)
+        StartWordLookup(appContext, word);
+}
+
 static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, EventType* event)
 {
-    Boolean handled=false;
+    Boolean handled = false;
+
     switch (event->data.ctlSelect.controlID)
     {
         case buttonFind:
             MainFormFindButtonPressed(appContext, form);
-            handled=true;
+            handled = true;
             break;
             
         case buttonAbortLookup:
             if (ConnectionInProgress(appContext))
                 AbortCurrentConnection(appContext, true);
-            handled=true;
+            handled = true;
+            break;
+
+        case backButton:
+            DoBack(appContext);
+            handled = true;
+            break;
+
+        case forwardButton:
+            DoForward(appContext);
+            handled = true;
             break;
 
         default:
@@ -586,7 +611,14 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
                 FrmAlert(alertNoWebBrowser);
             handled=true;
             break;
-
+        case forwardMenuItem:
+            DoForward(appContext);
+            handled=true;
+            break;
+        case backMenuItem:
+            DoBack(appContext);
+            handled=true;
+            break;
 #ifdef DEBUG
         case menuItemStress:
             appContext->fInStress = true;
