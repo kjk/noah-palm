@@ -123,6 +123,51 @@ void FreeHistory(AppContext* appContext)
     appContext->historyCount = 0;
 }
 
+static bool isWs(char c)
+{
+    if ( (' '==c) || ('\n'==c) || ('\t'==c) )
+        return true;
+    return false;
+}
+
+// in eReader 2.5 they've added a "Copy quotation" function which copies
+// selected text to a clipboard in a strange format e.g. if "foo" text is selected
+// in book "Bar", the clipboard content will be:
+// "foo"
+// [Bar]
+// We try to support this by extracting the word between '"' and '"\n"
+// We do modification in-place, buf must be null terminated
+static void eReaderCleanup(char *buf)
+{
+    char *wordStart, *wordEnd, *tmp;
+    if ( '"' != *buf )
+        return;
+
+    tmp = buf;
+
+    wordStart = ++buf;
+    wordEnd = NULL;
+
+    while (*buf)
+    {
+        if ( ('"' == *buf) && isWs(buf[1]))
+        {
+            wordEnd = buf;
+            break;
+        }
+        buf++;
+    }
+    if (NULL==wordEnd)
+        return;
+
+    while (wordStart<wordEnd)
+    {
+        *tmp++ = *wordStart++;
+    }
+
+    *tmp = '\0';    
+}
+
 // return false if didn't find anything in clipboard, true if 
 // got word from clipboard
 Boolean FTryClipboard(AppContext* appContext)
@@ -150,6 +195,7 @@ Boolean FTryClipboard(AppContext* appContext)
     
     SafeStrNCopy(txt, sizeof(txt), clipTxt, clipTxtLen);
     MemHandleUnlock(clipItemHandle);
+    eReaderCleanup(txt);
 
     StringStrip(txt);
     strtolower(txt);
@@ -1349,13 +1395,6 @@ long CalcListOffset(long itemsCount, long itemNo)
 #endif //I_NOAH
 
 
-static bool isWs(char c)
-{
-    if ( (' '==c) || ('\n'==c) || ('\t'==c) )
-        return true;
-    return false;
-}
-
 /* given a string, remove white spaces from the beginning and end of the 
 string (in place) */
 void StringStrip( char *src )
@@ -2199,6 +2238,7 @@ static Err AppHandleResidentLookup()
 
     wordLen=FldGetSelectedText(field, word, wordLen+1);
     Assert(wordLen==StrLen(word));
+    eReaderCleanup(word);
     StringStrip(word);
 /*    error=AppPerformResidentLookup(buffer);*/
     LaunchMyselfWithWord(buffer);

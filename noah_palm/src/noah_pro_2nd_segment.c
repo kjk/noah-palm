@@ -440,7 +440,15 @@ ChooseDatabase:
 
     if ( appContext->residentWordLookup )
     {
-        DoWord(appContext, appContext->residentWordLookup);
+        if (0==StrLen(appContext->residentWordLookup))
+        {
+            // we were launched in resident mode but couldn't be able to retrieve
+            // the word from the field, so we try to lookup the clipboard
+            if (!FTryClipboard(appContext))
+                DoWord(appContext, appContext->residentWordLookup);
+        }
+        else
+            DoWord(appContext, appContext->residentWordLookup);
         return true;
     }
 
