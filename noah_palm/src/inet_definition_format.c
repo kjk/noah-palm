@@ -560,17 +560,22 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
     else
         error=appErrMalformedResponse;
 
-    if (appErrMalformedResponse==error)
+    if (error)
     {
-        // we used to do just FrmAlert() here but this is not healthy and leaves
-        // the form in a broken state (objects not re-drawn, text field disabled
-        // instead post a message telling form event handling code to show the alert
-        SendEvtWithType(evtShowMalformedAlert);
+        if (appErrMalformedResponse==error)
+        {
+            // we used to do just FrmAlert() here but this is not healthy and leaves
+            // the form in a broken state (objects not re-drawn, text field disabled
+            // instead post a message telling form event handling code to show the alert
+            SendEvtWithType(evtShowMalformedAlert);
 #ifdef DEBUG
-        DumpStrToMemo(begin,end);
+            DumpStrToMemo(begin,end);
 #endif
+        }
+        return error;
     }
-    else if (!error)
+
+    if ( (responseMessage==result) || (responseErrorMessage==result) || (responseDefinition==result) )
     {
         if (ebufGetDataPointer(&appContext->lastResponse)!=begin)
         {
@@ -578,5 +583,5 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
             ebufAddStrN(&appContext->lastResponse, const_cast<char*>(begin), end-begin);
         }
     }
-    return error;           
+    return errNone;           
 }
