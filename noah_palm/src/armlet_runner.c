@@ -7,6 +7,7 @@
 #include <PceNativeCall.h>
 #include "armlet_structures.h"
 #include "armlet_runner.h"
+#include "noah_pro_rcp.h"
 
 /**
  *  Function from example...
@@ -61,14 +62,14 @@ static UInt32 armPceNativeResourceCall(DmResType resType, DmResID resID, char* D
 Boolean armTestArmLet()
 {
     armMainInput inpt;
-    inpt.functionID = 1;                         
+    inpt.functionID = ARM_FUN_TESTIFPRESENT;                         
     inpt.functionData = NULL;                    //first function just tests if arm is working!
 	armPceNativeResourceCall(
         			'ARMC',                      // ARMC is a good
-					1000, 
+					armID, 
 					"ARMlet.dll\0NativeFunction", // default dll path is the location of PalmSim.exe
 					&inpt);
-    return (inpt.functionID == 101)?true:false;
+    return (inpt.functionID == (ARM_FUN_TESTIFPRESENT+ARM_FUN_RETURN_OFFSET))?true:false;
 }
 /**
  *  Format2 on sorted buffer
@@ -82,22 +83,22 @@ Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
     funInp.allocated = buf->allocated;
     funInp.used = buf->used;
 
-    inpt.functionID = 10; //format2 on sorted buffer
+    inpt.functionID = ARM_FUN_FORMAT2ONBUFF; //format2 on sorted buffer
     inpt.functionData = &funInp;                    
 	armPceNativeResourceCall(
         			'ARMC',                      // ARMC is a good
-					1000, 
+					armID, 
 					"ARMlet.dll\0NativeFunction", // default dll path is the location of PalmSim.exe
 					&inpt);
  
     buf->allocated = funInp.allocated;
     buf->used = funInp.used;
     buf->data = funInp.data;
-
-    if(inpt.functionID != 110)
+/*
+    if(inpt.functionID != (ARM_FUN_FORMAT2ONBUFF+ARM_FUN_RETURN_OFFSET))
     {
        	WinDrawChars("FAIL ARM",8,10,30);
     }
-
-    return(inpt.functionID == 110)?true:false;
+*/
+    return(inpt.functionID == (ARM_FUN_FORMAT2ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
 }

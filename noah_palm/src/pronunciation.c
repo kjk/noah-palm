@@ -885,8 +885,10 @@ static void DrawPronunciationOnForm(AppContext* appContext)
    
     diSetRawTxt(appContext->currDispInfo, buf->data);
     appContext->firstDispLine = 0;
-//    ClearDisplayRectangle(appContext);
     cbNoSelection(appContext);
+
+    SetGlobalBackColor(appContext);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y_P, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
 
     DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
@@ -909,7 +911,7 @@ Boolean PronunciationFormHandleEvent(EventType * event)
         case winDisplayChangedEvent:
             PronunciationFormDisplayChanged(appContext, frm);
             SetGlobalBackColor(appContext);
-            ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+            ClearRectangle(DRAW_DI_X, DRAW_DI_Y_P, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
             DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
             SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
             return true;
@@ -922,7 +924,7 @@ Boolean PronunciationFormHandleEvent(EventType * event)
             if (event->data.sclRepeat.newValue != appContext->firstDispLine)
             {
                 SetGlobalBackColor(appContext);
-                ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                ClearRectangle(DRAW_DI_X, DRAW_DI_Y_P, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
                 appContext->firstDispLine = event->data.sclRepeat.newValue;
                 DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
                 SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
@@ -937,7 +939,7 @@ Boolean PronunciationFormHandleEvent(EventType * event)
                     {
                         appContext->firstDispLine--;               
                         SetGlobalBackColor(appContext);
-                        ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                        ClearRectangle(DRAW_DI_X, DRAW_DI_Y_P, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
                         DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
                         SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
                     }
@@ -948,7 +950,7 @@ Boolean PronunciationFormHandleEvent(EventType * event)
                     {
                         appContext->firstDispLine++;               
                         SetGlobalBackColor(appContext);
-                        ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                        ClearRectangle(DRAW_DI_X, DRAW_DI_Y_P, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
                         DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
                         SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
                     }
@@ -961,7 +963,7 @@ Boolean PronunciationFormHandleEvent(EventType * event)
                 {
                     appContext->firstDispLine--;               
                     SetGlobalBackColor(appContext);
-                    ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                    ClearRectangle(DRAW_DI_X, DRAW_DI_Y_P, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
                     DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
                     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
                 }
@@ -972,7 +974,7 @@ Boolean PronunciationFormHandleEvent(EventType * event)
                 {
                     appContext->firstDispLine++;               
                     SetGlobalBackColor(appContext);
-                    ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                    ClearRectangle(DRAW_DI_X, DRAW_DI_Y_P, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
                     DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
                     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
                 }

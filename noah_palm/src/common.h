@@ -253,6 +253,11 @@ typedef struct _AppContext
     PronunciationData  pronData;
 #endif
 
+#ifdef NOAH_PRO
+    /*True if arm is enable on device*/
+    Boolean            armIsPresent;
+#endif
+
 #ifndef I_NOAH    
     long               listItemOffset;
     long               prevTopItem;

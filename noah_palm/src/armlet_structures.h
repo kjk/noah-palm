@@ -11,6 +11,12 @@
  *  is set to functionID + 100. It is used to find if function realy runs or not.
  */
 
+//functions ids - as unsigned long
+#define ARM_FUN_TESTIFPRESENT   1
+#define ARM_FUN_FORMAT2ONBUFF   10
+//when function executes id is increased by this value
+#define ARM_FUN_RETURN_OFFSET   100
+
 typedef struct _armMainInput
 {
     unsigned long functionID;

@@ -11,6 +11,7 @@
 #include "word_matching_pattern.h"
 #include "bookmarks.h"
 #include "PrefsStore.hpp"
+#include "armlet_runner.h"
 
 static void DictFoundCBNoahPro(void* context, AbstractFile *file)
 {
@@ -281,6 +282,9 @@ Err AppCommonInit(AppContext* appContext)
     appContext->prefs.displayPrefs.listStyle = 2;
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     appContext->ptrOldDisplayPrefs = NULL;
+    // set ARM state
+    appContext->armIsPresent = false;
+    //appContext->armIsPresent = armTestArmLet();
 
     appContext->bookmarksDb = NULL;
     appContext->currBookmarkDbType = bkmInvalid;

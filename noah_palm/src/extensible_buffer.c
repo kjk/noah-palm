@@ -263,7 +263,9 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
         Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
 #else
         if(appContext->prefs.displayPrefs.listStyle==2)
-            if(!armFormat2onSortedBuffer(buf))
+            if(appContext->armIsPresent)
+                armFormat2onSortedBuffer(buf);
+            else
                 Format2OnSortedBuf(2, buf);
 #endif   
     }
