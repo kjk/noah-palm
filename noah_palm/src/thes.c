@@ -418,6 +418,8 @@ Err InitThesaurus(void)
     MemSet((void *) &gd, sizeof(GlobalData), 0);
     LogInit( &g_Log, "c:\\thes_log.txt" );
 
+    InitFiveWay();
+
     SetCurrentFile( NULL );
 
     // disable getting nilEvent
@@ -1037,10 +1039,10 @@ Boolean FindFormHandleEventThes(EventType * event)
     if (event->eType == nilEvent)
         return true;
 
+    frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case frmOpenEvent:
-            frm = FrmGetActiveForm();
             fld =(FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
             list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
             gd.prevSelectedWord = 0xffffffff;
@@ -1098,30 +1100,42 @@ Boolean FindFormHandleEventThes(EventType * event)
                     FrmReturnToForm(0);
                     return true;
                     break;
+
                 case pageUpChr:
-                    frm = FrmGetActiveForm();
-                    fld =(FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,fieldWord));
-                    list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,listMatching));
-                    if (gd.selectedWord > WORDS_IN_LIST)
-                    {
-                        gd.selectedWord -= WORDS_IN_LIST;
-                        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
-                        return true;
-                    }
-                    break;
+                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                    return true;
+                
                 case pageDownChr:
-                    frm = FrmGetActiveForm();
-                    fld =(FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,fieldWord));
-                    list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-                    if (gd.selectedWord + WORDS_IN_LIST < gd.wordsCount)
-                    {
-                        gd.selectedWord += WORDS_IN_LIST;
-                        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
-                        return true;
-                    }
-                    break;
+                    ScrollWordListByDx( frm, WORDS_IN_LIST );
+                    return true;
+
                 default:
+                    if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
+                    {
+                        if (FiveWayCenterPressed(event))
+                        {
+                            RememberLastWord(frm);
+                            gd.currentWord = gd.selectedWord;
+                            Assert(gd.currentWord < gd.wordsCount);
+                            SendNewWordSelected();
+                            FrmReturnToForm(0);
+                            return true;
+                        }
+                    
+                        if (FiveWayDirectionPressed( event, Left ))
+                        {
+                            ScrollWordListByDx( frm, -1 );
+                            return true;
+                        }
+                        if (FiveWayDirectionPressed( event, Right ))
+                        {
+                            ScrollWordListByDx( frm, 1 );
+                            return true;
+                        }
+                    }
+                    return false;
                     break;
+
             }
             SendFieldChanged();
             handled = false;

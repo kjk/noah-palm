@@ -6,6 +6,10 @@
 #define _COMMON_H_
 
 #include <PalmOS.h>
+#include <PalmNavigator.h>  // for 5-way
+#include <68K/Hs.h>
+#include <Chars.h>
+
 #include "mem_leak.h"
 #include "display_info.h"
 #include "extensible_buffer.h"
@@ -170,6 +174,7 @@ long    CalcListOffset(long itemsCount, long itemNo);
 void    RemoveWhiteSpaces( char *src );
 void    DefScrollUp(ScrollType scroll_type);
 void    DefScrollDown(ScrollType scroll_type);
+void    ScrollWordListByDx(FormType *frm, int dx);
 char *  GetDatabaseName(int dictNo);
 void    LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount);
 void    LstSetSelectionEx(ListType * list, long itemNo);
@@ -245,5 +250,81 @@ void            SendNewDatabaseSelected(int db);
 void            SendStopEvent(void);
 char *          strdup(char *s);
 long            FindCurrentDbIndex(void);
+
+/* 5-Way support */
+void            InitFiveWay(void);
+Boolean         HaveFiveWay( void );
+Boolean         HaveHsNav( void );
+
+// no fucking idea why I can't just include <Chars.h> (i.e. Palm OS Support\Incs\Core\System\Chars.h)
+#define vchrRockerUp                           0x0132
+#define vchrRockerDown				0x0133		// 5-way rocker down
+#define vchrRockerLeft				0x0134		// 5-way rocker left
+#define vchrRockerRight				0x0135		// 5-way rocker right
+#define vchrRockerCenter				0x0136		// 5-way rocker center/press
+
+#define HsNavCenterPressed(eventP) \
+( \
+  IsHsFiveWayNavEvent(eventP) && \
+  ((eventP)->data.keyDown.chr == vchrRockerCenter) && \
+  (((eventP)->data.keyDown.modifiers & commandKeyMask) != 0) \
+)
+
+#define HsNavDirectionPressed(eventP, nav) \
+( \
+  IsHsFiveWayNavEvent(eventP) && \
+  ( vchrRocker ## nav == vchrRockerUp) ? \
+   (((eventP)->data.keyDown.chr == vchrPageUp) || \
+    ((eventP)->data.keyDown.chr == vchrRocker ## nav)) : \
+   (vchrRocker ## nav == vchrRockerDown) ? \
+   (((eventP)->data.keyDown.chr == vchrPageDown) || \
+    ((eventP)->data.keyDown.chr == vchrRocker ## nav)) : \
+    ((eventP)->data.keyDown.chr == vchrRocker ## nav) \
+)
+
+#define HsNavKeyPressed(eventP, nav) \
+( \
+  ( vchrRocker ## nav == vchrRockerCenter ) ? \
+  HsNavCenterPressed(eventP) : \
+  HsNavDirectionPressed(eventP, nav) \
+)
+
+#define IsHsFiveWayNavEvent(eventP) \
+( \
+    HaveHsNav() && ((eventP)->eType == keyDownEvent) && \
+    ( \
+        ((((eventP)->data.keyDown.chr == vchrPageUp) || \
+          ((eventP)->data.keyDown.chr == vchrPageDown)) && \
+         (((eventP)->data.keyDown.modifiers & commandKeyMask) != 0)) \
+        || \
+        (TxtCharIsRockerKey((eventP)->data.keyDown.modifiers, \
+                            (eventP)->data.keyDown.chr)) \
+    ) \
+)
+
+#define FiveWayCenterPressed(eventP) \
+( \
+  NavSelectPressed(eventP) || \
+  HsNavCenterPressed(eventP) \
+)
+
+#define FiveWayDirectionPressed(eventP, nav) \
+( \
+  NavDirectionPressed(eventP, nav) || \
+  HsNavDirectionPressed(eventP, nav) \
+)
+
+/* only to be used with Left, Right, Up, and Down; use
+   FiveWayCenterPressed for Select/Center */
+#define FiveWayKeyPressed(eventP, nav) \
+( \
+  NavKeyPressed(eventP, nav) || \
+  HsNavKeyPressed(eventP, nav) \
+)
+
+#define IsFiveWayEvent(eventP) \
+( \
+  HaveHsNav() ? IsHsFiveWayNavEvent(eventP) : IsFiveWayNavEvent(eventP) \
+)
 
 #endif

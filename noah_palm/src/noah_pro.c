@@ -8,6 +8,7 @@
 #include "noah_pro.h"
 #include "noah_pro_rcp.h"
 #include "extensible_buffer.h"
+#include "common.h"
 
 #ifdef WN_PRO_DICT
 #include "wn_pro_support.h"
@@ -451,6 +452,8 @@ Err InitNoahPro(void)
     MemSet((void *) &gd, sizeof(GlobalData), 0);
     LogInit( &g_Log, "c:\\noah_pro_log.txt" );
 
+    InitFiveWay();
+
     SetCurrentFile( NULL );
 
     gd.err = ERR_NONE;
@@ -552,8 +555,6 @@ void DisplayAbout(void)
     dh_display_string("Ver 2.1", 2, 20);
   #endif
 #endif
-    dh_display_string("(C) ArsLexis 2000-2003", 1, 24);
-
     dh_display_string("(C) 2000-2003 ArsLexis", 1, 24);
     dh_display_string("http://www.arslexis.com", 2, 40); 
 #ifdef DEMO_HANDANGO
@@ -1125,6 +1126,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
             return true;
 
         case keyDownEvent:
+
             /* kind of ugly trick: there is no event that says, that
                text field has changed, so I generate this event myself
                every time I get keyDownEvent (since I assume, that it
@@ -1143,28 +1145,38 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                     return true;
 
                 case pageUpChr:
-                    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
-                    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-                    if (gd.selectedWord > WORDS_IN_LIST)
-                    {
-                        gd.selectedWord -= WORDS_IN_LIST;
-                        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
-                        return true;
-                    }
-                    break;
+                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                    return true;
 
                 case pageDownChr:
-                    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
-                    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-                    if (gd.selectedWord + WORDS_IN_LIST < gd.wordsCount)
-                    {
-                        gd.selectedWord += WORDS_IN_LIST;
-                        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
-                        return true;
-                    }
-                    break;
+                    ScrollWordListByDx( frm, WORDS_IN_LIST );
+                    return true;
 
                 default:
+                    if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
+                    {
+                        if (FiveWayCenterPressed(event))
+                        {
+                            RememberLastWord(frm);
+                            gd.currentWord = gd.selectedWord;
+                            Assert(gd.currentWord < gd.wordsCount);
+                            SendNewWordSelected();
+                            FrmReturnToForm(0);
+                            return true;
+                        }
+                    
+                        if (FiveWayDirectionPressed( event, Left ))
+                        {
+                            ScrollWordListByDx( frm, -1 );
+                            return true;
+                        }
+                        if (FiveWayDirectionPressed( event, Right ))
+                        {
+                            ScrollWordListByDx( frm, 1 );
+                            return true;
+                        }
+                    }
+                    return false;
                     break;
             }
             SendFieldChanged();

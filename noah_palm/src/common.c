@@ -46,6 +46,8 @@
 #include "ep_support.h"
 #endif
 
+#include "common.h"
+
 extern GlobalData gd;
 
 #ifdef DEBUG
@@ -1169,6 +1171,22 @@ void DefScrollDown(ScrollType scroll_type)
     SetScrollbarState(di, DRAW_DI_LINES, gd.firstDispLine);
 }
 
+
+// gd.selectedWord is currently highlighted word, highlight word+dx (dx can
+// be negative in which case we highlight previous words). Used for scrolling
+// by page up/down and 5-way scroll
+void ScrollWordListByDx(FormType *frm, int dx)
+{
+    ListType *  lst;
+
+    if ( (gd.selectedWord + dx < gd.wordsCount) && (gd.selectedWord + dx >= 0) )
+    {
+        gd.selectedWord += dx;
+        lst = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
+        LstSetSelectionMakeVisibleEx(lst, gd.selectedWord);
+    }
+}
+
 char *GetDatabaseName(int dictNo)
 {
     Assert((dictNo >= 0) && (dictNo < gd.dictsCount));
@@ -1726,3 +1744,38 @@ long FindCurrentDbIndex(void)
     }
     return 0;
 }
+
+static Boolean haveFiveWay = false;
+static Boolean haveHsNav = false;
+
+void InitFiveWay(void)
+{
+    UInt32      value;
+    Err         err;
+
+    err = FtrGet( navFtrCreator, navFtrVersion, &value );
+    if ( err == errNone )
+        haveFiveWay = true;
+
+    err = FtrGet( sysFileCSystem, sysFtrNumUIHardwareHas5Way, &value );
+    if ( err == errNone )
+    {
+        haveFiveWay = true;
+        err = FtrGet( hsFtrCreator, hsFtrIDNavigationSupported, &value );
+        if ( err == errNone )
+            haveHsNav = true;
+    }
+}
+
+/* Do we have a FiveWay controller? */
+Boolean HaveFiveWay( void )
+{
+    return haveFiveWay;
+}
+
+/* Do we have a Handspring's FiveWay controller? */
+Boolean HaveHsNav( void )
+{
+    return haveHsNav;
+}
+
