@@ -2631,7 +2631,7 @@ Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
     return LstGetSelection(list);
 }
 
-void FldClearInsert(FormType *frm, int fldId, char *txt)
+void FldClearInsert(FormType *frm, int fldId, const char *txt)
 {
     FieldType *  fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fldId));
     int          len = FldGetTextLength(fld);

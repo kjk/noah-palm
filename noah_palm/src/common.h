@@ -634,7 +634,7 @@ void StartTiming(AppContext* appContext, char * description);
 void StopTiming(AppContext* appContext);
 #endif
 
-void FldClearInsert(FormType *frm, int fldId, char *txt);
+void FldClearInsert(FormType *frm, int fldId, const char *txt);
 void RememberFieldWordMain(AppContext *appContext, FormType *frm);
 void GoToFindWordForm(AppContext *appContext, FormType *frm);
 void RedisplayWord(AppContext *appContext);

@@ -31,7 +31,7 @@ static void WordsListFormCleanup(AppContext* appContext)
     Assert(appContext->wordsInListCount);
     while (appContext->wordsInListCount)
     {
-        Char* word=appContext->wordsList[--appContext->wordsInListCount];
+        char* word=appContext->wordsList[--appContext->wordsInListCount];
         if (word)
             new_free(word);
     }
@@ -41,22 +41,22 @@ static void WordsListFormCleanup(AppContext* appContext)
 
 static Int16 ProposalSearchFunction(const void* searchData, const void* arrayData, Int32 other)
 {
-    const Char* word=static_cast<const Char*>(searchData);
-    const Char* const* item=static_cast<const Char* const*>(arrayData);
+    const char* word=static_cast<const char*>(searchData);
+    const char* const* item=static_cast<const char* const*>(arrayData);
     return StrCompare(word, *item);
 }
 
-static UInt16 WordsListFormFindClosestProposal(AppContext* appContext, const ListType* list, const Char* word)
+static UInt16 WordsListFormFindClosestProposal(AppContext* appContext, const ListType* list, const char* word)
 {
     UInt16 itemCount=appContext->wordsInListCount;
-    const Char* const * items=appContext->wordsList;
+    const char* const * items=appContext->wordsList;
     Assert(items);
     Assert(itemCount);
     UInt16 proposal=0;
     if (itemCount)
     {
         Int32 position=0;
-        Boolean found=SysBinarySearch(items, itemCount, sizeof(const Char*), ProposalSearchFunction, word, 0, &position, true);
+        Boolean found=SysBinarySearch(items, itemCount, sizeof(const char*), ProposalSearchFunction, word, 0, &position, true);
         Assert(position>=0);
         Assert(position<=itemCount);
         if (position==itemCount)
@@ -64,7 +64,7 @@ static UInt16 WordsListFormFindClosestProposal(AppContext* appContext, const Lis
 /*
         if (position>0)
         {
-            const Char* match=LstGetSelectionText(list, position);
+            const char* match=LstGetSelectionText(list, position);
             if (StrCompare(match, word)>0)
                 position--;
         }
@@ -84,7 +84,7 @@ static Boolean WordsListFormFieldChanged(AppContext* appContext, FormType* form,
     Assert(index!=frmInvalidObjectId);
     ListType* list=static_cast<ListType*>(FrmGetObjectPtr(form, index));
     Assert(list);
-    const Char* word=FldGetTextPtr(field);
+    const char* word=FldGetTextPtr(field);
     if (word && *word)
     {
         UInt16 proposal=WordsListFormFindClosestProposal(appContext, list, word);
@@ -153,7 +153,7 @@ static Boolean WordsListFormControlSelected(AppContext* appContext, FormType* fo
 inline static void WordsListFormSelectProposal(AppContext* appContext, UInt16 proposal)
 {
     Assert(proposal>=0 && proposal<appContext->wordsInListCount);
-    const Char* selectedWord=appContext->wordsList[proposal];
+    const char* selectedWord=appContext->wordsList[proposal];
     FrmReturnToForm(0);
     StartWordLookup(appContext, selectedWord);
     WordsListFormCleanup(appContext);

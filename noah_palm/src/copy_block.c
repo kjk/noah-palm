@@ -146,13 +146,9 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
 #else
     //translate word in I_NOAH
     FormType* form=FrmGetFormPtr(formDictMain);
-    UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
-    Assert(frmInvalidObjectId!=index);
-    FieldType* field=(FieldType*)FrmGetObjectPtr(form, index);
-    Assert(field);
     //set new word in edit window
-    FldDelete (field, 0,FldGetTextLength(field)); 
-    FldInsert (field,txt, StrLen(txt)); 
+    FldClearInsert(form, fieldWordInput, txt);
+
     //click go button
     MainFormPressFindButton(form);
     return true;

@@ -144,85 +144,77 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
     if (StrStartsWith(begin, end, pronunciationTag))
     {
         const char* pronBegin=begin+pronunciationTagLength+1;
-        if (pronBegin<end)
+        if ( !(pronBegin<end) )
+            return appErrMalformedResponse;
+
+        const char* pronEnd=StrFind(pronBegin, end, "\n");
+        if (appContext->prefs.fEnablePronunciation)
         {
-            const char* pronEnd=StrFind(pronBegin, end, "\n");
-            if (appContext->prefs.fEnablePronunciation)
+            if (appContext->prefs.fShowPronunciation)
             {
-                if (appContext->prefs.fShowPronunciation)
-                {
-                    ebufAddChar(out, FORMAT_TAG);
-                    ebufAddChar(out, FORMAT_PRONUNCIATION);
-                    ebufAddStr(out, " (");
-                    ebufAddStrN(out, const_cast<char*>(pronBegin), pronEnd-pronBegin);
-                    ebufAddChar(out, ')');
-                }
+                ebufAddChar(out, FORMAT_TAG);
+                ebufAddChar(out, FORMAT_PRONUNCIATION);
+                ebufAddStr(out, " (");
+                ebufAddStrN(out, const_cast<char*>(pronBegin), pronEnd-pronBegin);
+                ebufAddChar(out, ')');
             }
-            begin=pronEnd+1;
         }
-        else 
-            error=appErrMalformedResponse;
+        begin=pronEnd+1;
     }
-    if (!error)
+
+    if (ebufGetDataSize(out))
+        ebufAddChar(out, '\n');
+    begin=StrFind(begin, end, "!");
+    while (begin<end)
     {
-        if (ebufGetDataSize(out))
-            ebufAddChar(out, '\n');
-        begin=StrFind(begin, end, "!");
-        while (begin<end)
+        const char* partBlock=StrFind(begin, end, "\n$");
+        if (partBlock<end)
         {
-            const char* partBlock=StrFind(begin, end, "\n$");
-            if (partBlock<end)
+            const char* partOfSpeech=(partBlock+=1)+1;
+            if (partOfSpeech<end)
             {
-                const char* partOfSpeech=(partBlock+=1)+1;
-                if (partOfSpeech<end)
+                error=ExpandPartOfSpeechSymbol(*partOfSpeech, &partOfSpeech);
+                if (error)
+                    return error;
+
+                ebufAddChar(out, FORMAT_TAG);
+                ebufAddChar(out, FORMAT_POS);
+                ebufAddChar(out, 149);
+                ebufAddStr(out, " (");
+                ebufAddStr(out, (char*)partOfSpeech);
+                ebufAddStr(out, ") ");
+                error=ConvertSynonymsBlock(appContext, word, begin, partBlock, out);
+                if (error)
+                    return error;
+
+                const char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
+                while (defBlock<end)
                 {
-                    error=ExpandPartOfSpeechSymbol(*partOfSpeech, &partOfSpeech);
-                    if (!error)
-                    {
-                        ebufAddChar(out, FORMAT_TAG);
-                        ebufAddChar(out, FORMAT_POS);
-                        ebufAddChar(out, 149);
-                        ebufAddStr(out, " (");
-                        ebufAddStr(out, (char*)partOfSpeech);
-                        ebufAddStr(out, ") ");
-                        error=ConvertSynonymsBlock(appContext, word, begin, partBlock, out);
-                        if (!error)
-                        {
-                            const char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
-                            while (defBlock<end)
-                            {
-                                if (StrStartsWith(defBlock-1, defBlock, "\n"))
-                                    break;
-                                else                    
-                                    defBlock=StrFindOneOf(defBlock+1, end, "@#");
-                            }
-                            if (defBlock<end)
-                            {
-                                begin=StrFind(defBlock, end, "\n!");
-                                if (begin<end) 
-                                    begin++;
-                                error=ConvertDefinitionBlock(defBlock, begin, out);
-                                if (error)
-                                    break;
-                            }
-                            else
-                            {
-                                error=appErrMalformedResponse;
-                                break;
-                            }                        
-                        }
-                        else 
-                            break;
-                    }                    
-                    else 
+                    if (StrStartsWith(defBlock-1, defBlock, "\n"))
+                        break;
+                    else                    
+                        defBlock=StrFindOneOf(defBlock+1, end, "@#");
+                }
+                if (defBlock<end)
+                {
+                    begin=StrFind(defBlock, end, "\n!");
+                    if (begin<end) 
+                        begin++;
+                    error=ConvertDefinitionBlock(defBlock, begin, out);
+                    if (error)
                         break;
                 }
                 else
                 {
                     error=appErrMalformedResponse;
                     break;
-                }       
+                }                        
             }
+            else
+            {
+                error=appErrMalformedResponse;
+                break;
+            }       
         }
     }
     return error;
@@ -231,6 +223,8 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
 Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
 {
     Err error=errNone;
+    const char * word = NULL;
+
     responseBegin+=definitionResponseLen;
     const char* wordEnd=StrFind(responseBegin, responseEnd, "\n");
     if (wordEnd>responseBegin)
@@ -238,7 +232,7 @@ Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin,
         ExtensibleBuffer wordBuffer;
         ebufInitWithStrN(&wordBuffer, const_cast<char*>(responseBegin), wordEnd-responseBegin);
         ebufAddChar(&wordBuffer, chrNull);
-        const char* word=ebufGetDataPointer(&wordBuffer);
+        word=ebufGetDataPointer(&wordBuffer);
         responseBegin=wordEnd+1;
         if (responseBegin<responseEnd)
         {
@@ -262,6 +256,9 @@ Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin,
     }
     else
         error=appErrMalformedResponse;
+
+    if (!error && word)
+        FldClearInsert(FrmGetFormPtr(formDictMain), fieldWordInput, word);
     return error;
 }
 
