@@ -22,7 +22,10 @@ $first_cookie_creation_time = $dict_db->get_var($first_cookie_creation_q);
 $last_cookie_creation_time = $dict_db->get_var($last_cookie_creation_q);
 $num_days_q = "SELECT TO_DAYS($last_cookie_creation_time)-TO_DAYS($first_cookie_creation_time);";
 $num_days = $dict_db->get_var($num_days_q);
-$num_days += 2;
+$num_days += 1;
+
+$total_requests_q = "SELECT COUNT(*) FROM request_log;";
+$total_requests = $dict_db->get_var($total_requests_q);
 
 function total_and_day_avg($total)
 {
@@ -37,11 +40,19 @@ function day_or_days($num)
     return "days";
 }
 
+function aveg($total,$num)
+{
+    $avg = $total / $num;
+    echo $avg;
+}
+
 ?>
 
 iNoah has been published for <?php echo $num_days . " " . day_or_days($num_days) ?>. <br>
 Unique cookies created so far: <?php total_and_day_avg($unique_cookies) ?>. <br>
 Unique devices registered so far: <?php total_and_day_avg($unique_devices) ?>. <br>
+Total requests so far: <?php total_and_day_avg($total_requests) ?> which is 
+<?php aveg($total_requests,$unique_devices) ?> per unique device (unique user?). <br>
 
 </body>
 </html>

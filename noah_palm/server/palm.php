@@ -10,7 +10,7 @@ define( 'ERR_INVALID_PV',        4);
 define( 'ERR_NO_COOKIE',         5);
 define( 'ERR_UKNOWN_REQUEST',    6);
 define( 'ERR_NO_DI',             7);
-define( 'ERR_INVAlID_DI',        8); # di (device id) that client sent doesn't correspond to a known format
+define( 'ERR_INVAlID_DI',        8); # di (device id) that client sent doesnt correspond to a known format
 define( 'ERR_RANDOM_NOT_EMPTY',  9);
 define( 'ERR_DB_CONNECT_FAIL',  10);
 define( 'ERR_DB_SELECTDB_FAIL', 11);
@@ -144,12 +144,14 @@ function serve_get_random_word()
     global $dict_db;
 
     $word_no = rand( 1, get_words_count()-1);
-    $query = "SELECT def,word FROM words WHERE word_no='$word_no';";
-    $res = $dict_db->get_row( $query );
-    $def = $res->def;
-    $word = $res->word;
+    $query = "SELECT def,word,pron FROM words WHERE word_no='$word_no';";
+    $word_row = $dict_db->get_row( $query );
 
-    write_DEF($word, $word, $def);
+    $def  = $word_row->def;
+    $word = $word_row->word;
+    $pron = $word_row->pron;
+
+    write_DEF($word, $pron, $def);
     exit;
 }
 
@@ -183,6 +185,9 @@ function serve_get_word($cookie,$word)
         exit;
     }
 */
+
+    $orig_word = $word;
+
     log_get_word_request($cookie, $word);
 
     $word_row = get_word_row($word);
@@ -237,7 +242,7 @@ function serve_get_word($cookie,$word)
     }
 
     # didnt find the word
-    write_MSG("Definition of word $word not found");
+    write_MSG("Definition of word $orig_word not found");
     exit;
 }
 
