@@ -1,7 +1,7 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
 * bug np: returning from preferences screen clutters def display
 * test caching in low memory scenario
-* make Noah Lite compile
+* bug: noah lite doesn't work
 * preferences in Noah Pro
  - remember last used db
 * add a color icon for Noah Pro
@@ -31,4 +31,5 @@ words is empty. Possible solution: write "a" in gd.lastWord on startup?
 * [DONE 2002/11/29] np: make the box with list of databases bigger (the whole screen)
 * [DONE 2002/11/29] np: add option "delete cache on exit", on by default
 * [DONE 2002/11/29] bug: second opening of a db that uses a cache is an error
+* [DONE 2002/12/02] make Noah Lite compile
 
