@@ -13,6 +13,7 @@
 #  2002/11/16 - added debug/release build distinction
 #  2002/12/02 - added Noah Lite
 #  2002/12/03 - shortened
+#  2002/12/15 - added Noah Pro Demo
 
 # Todo:
 # - rewrite script.gdb to load obj/foo.out instead of foo.out
@@ -24,6 +25,9 @@ fDoClean = 0
 # should we do a debug build? It's debug by default unless "rel"
 # is given on command line
 fDoDebug = 1
+
+TARGET = ""
+NAME = ""
 
 def CreateDirIfNotExists(dirName):
     try:
@@ -59,9 +63,8 @@ def GenObjDepend( objList ):
     return txt
 
 def GenNoahProMakefile():
-    global npd_objs, fDoDebug, LNFLAG, CCFLAG1, CCFLAG, PILRCFLAG
+    global npd_objs, fDoDebug, LNFLAG, CCFLAG1, CCFLAG, PILRCFLAG, TARGET, NAME
     objList = npd_objs
-
     txt = """
 CC = m68k-palmos-gcc
 LNFLAGS = %s
@@ -71,12 +74,12 @@ CFLAGS = %s -Wall -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMPLE_DICT 
     txt += "\n\n"
     txt += GenObjDepend(objList)
     txt += """
-noah_pro.prc: obj/noah_pro.res $(OBJS)
-	m68k-palmos-multilink -gdb-script script.gdb %s -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH -segmentsize 29k obj/*.o""" % LNFLAG
+%s: obj/noah_pro.res $(OBJS)
+	m68k-palmos-multilink -gdb-script script.gdb %s -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH -segmentsize 29k obj/*.o""" % (TARGET,LNFLAG)
     txt += """
 	mv *.grc obj
 	mv *.out obj
-	build-prc --copy-prevention $@ "Noah Pro" "NoAH" obj/*.bin obj/*.grc
+	build-prc --copy-prevention $@ "%s" "NoAH" obj/*.bin obj/*.grc
 	ls -la *.prc
 
 obj/noah_pro.res: res/noah_pro.rcp res/noah_pro_rcp.h
@@ -85,7 +88,7 @@ obj/noah_pro.res: res/noah_pro.rcp res/noah_pro_rcp.h
 
 clean:
 	rm -rf obj/* obj/*.out obj/*.grc
-"""  % PILRCFLAG
+"""  % (NAME,PILRCFLAG)
     return txt
 
 def GenNoahLiteMakefile():
@@ -163,7 +166,7 @@ def FindGenProcByName(name):
     return None
 
 def PrintUsageAndQuit():
-    print "Usage: b.py [clean] noah_pro|thes|noah_lite|np|th|nl"
+    print "Usage: b.py [clean] noah_pro|np|thes|th|noah_lite|nl|noah_demo|nd"
     sys.exit(0)
 
 args = sys.argv
@@ -171,21 +174,25 @@ fDoClean = 0
 fDoNoahPro = 0
 fDoNoahLite = 0
 fDoThes = 0
+fDoNoahProDemo = 0
 for a in args:
     if a == "clean": fDoClean = 1
     if a == "release": fDoDebug = 0
     if a == "rel": fDoDebug = 0
     if a == "noah_pro" or a == "np":
        fDoNoahPro = 1
-       if fDoNoahLite or fDoThes: PrintUsageAndQuit()
+       if fDoNoahLite or fDoThes or fDoNoahProDemo: PrintUsageAndQuit()
+    if a == "noah_demo" or a == "nd":
+       fDoNoahProDemo = 1
+       if fDoNoahLite or fDoThes or fDoNoahPro: PrintUsageAndQuit()
     if a == "noah_lite" or a == "nl":
        fDoNoahLite = 1
-       if fDoNoahPro or fDoThes: PrintUsageAndQuit()
+       if fDoNoahPro or fDoThes or fDoNoahProDemo: PrintUsageAndQuit()
     if a == "thes" or a == "th":
        fDoThes = 1
-       if fDoNoahPro or fDoNoahLite: PrintUsageAndQuit()
+       if fDoNoahPro or fDoNoahLite or fDoNoahProDemo: PrintUsageAndQuit()
 
-if not (fDoNoahLite or fDoNoahPro or fDoThes): PrintUsageAndQuit()
+if not (fDoNoahLite or fDoNoahPro or fDoThes or fDoNoahProDemo): PrintUsageAndQuit()
 
 if fDoDebug:
     LNFLAG = "-g"
@@ -198,20 +205,30 @@ else:
     PILRCFLAG = ""
     CCFLAG = "-DERROR_CHECK_LEVEL=0"
 
+if fDoNoahProDemo:
+    CCFLAG = "-DDEMO"
+
 if fDoNoahPro:
-   mf = GenNoahProMakefile()
+   TARGET = "noah_pro.prc"
+   NAME = "Noah Pro"
    makefileFileName = "noahpro.mk"
-   target = "noah_pro.prc"
+   mf = GenNoahProMakefile()
+
+if fDoNoahProDemo:
+   TARGET = "noah_demo.prc"
+   NAME = "Noah Demo"
+   makefileFileName = "noahprodemo.mk"
+   mf = GenNoahProMakefile()
 
 if fDoNoahLite:
-   mf = GenNoahLiteMakefile()
+   TARGET = "noah_lite.prc"
    makefileFileName = "noahlite.mk"
-   target = "noah_lite.prc"
+   mf = GenNoahLiteMakefile()
 
 if fDoThes:
-   mf = GenThesMakefile()
+   TARGET = "thes.prc"
    makefileFileName = "thes.mk"
-   target = "thes.prc"
+   mf = GenThesMakefile()
 
 fp = open( makefileFileName, "w" )
 fp.write( mf )
@@ -220,5 +237,5 @@ fp.close()
 CreateDirIfNotExists( "obj" )
 if fDoClean:
     os.system("make -f %s clean" % makefileFileName)
-os.system("make -f %s %s" % (makefileFileName,target))
+os.system("make -f %s %s" % (makefileFileName,TARGET))
 

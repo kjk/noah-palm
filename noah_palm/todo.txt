@@ -1,4 +1,5 @@
-* make a new trial version for Handango (30 days to do it, till dec 22)
+* register with PDA Green http://www.pdagreen.com/dev_apply.asp
+* test Handango trial version
 * bug np: returning from preferences screen clutters def display
 * bug nl: no screen refresh when going back from word search
 * add high-res icon for word search
@@ -36,4 +37,5 @@ words is empty. Possible solution: write "a" in gd.lastWord on startup?
 * [DONE 2002/12/03] change icon for Thesaurus
 * [DONE 2002/12/03] nl marketing improvements: detect dbs in vfs, message that not supported
   (go to Noah Pro for support)
+* [DONE 2002/12/15] make a new trial version for Handango (30 days to do it, till dec 22)
 

@@ -287,8 +287,15 @@ void DisplayAboutNoahPro(void)
 
     dh_display_string("Ver 2.1 alpha", 2, 20);
     dh_display_string("(C) ArsLexis 2000-2002", 1, 24);
-    dh_display_string("arslexis@pobox.com", 2, 20);
+    /* dh_display_string("arslexis@pobox.com", 2, 20); */
+#ifdef DEMO
+    dh_display_string("http://www.arslexis.com", 2, 20);
+    dh_display_string("To buy full version go to", 0, 12);
+    dh_display_string("www.handango.com/purchase", 0, 12 );
+    dh_display_string("and enter 10421", 0, 0);
+#else
     dh_display_string("http://www.arslexis.com", 2, 0);
+#endif
     dh_restore_font();
 }
 
