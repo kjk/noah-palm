@@ -770,12 +770,13 @@ static Boolean FindPatternFormDisplayChanged(FormType* frm)
 
 Boolean FindPatternFormHandleEventNoahLite(EventType * event)
 {
-    Boolean handled = false;
-    FormPtr frm = FrmGetActiveForm();
-    FieldPtr fld;
-    ListPtr list;
+    Boolean     handled = false;
+    FormPtr     frm = FrmGetActiveForm();
+    FieldPtr    fld;
+    ListPtr     list;
     static long lastWordPos;
-    char * pattern;
+    char *      pattern;
+    long        prevMatchWordCount=0;
 
     switch (event->eType)
     {
@@ -787,10 +788,12 @@ Boolean FindPatternFormHandleEventNoahLite(EventType * event)
             OpenMatchingPatternDB();
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
-            LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords());
+            prevMatchWordCount = NumMatchingPatternRecords();
+            LstSetListChoicesEx(list, NULL, prevMatchWordCount );
             LstSetDrawFunction(list, PatternListDrawFunc);
             FrmDrawForm(frm);
-            LstSetSelectionEx(list, lastWordPos);
+            if (prevMatchWordCount>0)
+                LstSetSelectionEx(list, lastWordPos);
             pattern = (char *) new_malloc(WORDS_CACHE_SIZE);
             ReadPattern(pattern);
             if (StrLen(pattern) > 0)
