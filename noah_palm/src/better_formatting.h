@@ -15,6 +15,7 @@
 #define FORMAT_SYNONYM    157  
 #define FORMAT_LIST       158  
 #define FORMAT_BIG_LIST   159  
+#define FORMAT_PRONUNCIATION 160 
 
 typedef struct {
     FontID font;
@@ -32,6 +33,9 @@ typedef struct {
     DisplayElementPrefs synonym;
     DisplayElementPrefs defList;
     DisplayElementPrefs posList;
+    DisplayElementPrefs pronunciation;
+    Boolean enablePronunciation;
+    Boolean enablePronunciationSpecialFonts;
 } DisplayPrefs;
 
 typedef enum {  //when displayed - reverse ordered !!!!
@@ -50,10 +54,12 @@ typedef enum {
     actTagDefinition,
 #endif
     actTagSynonym,
-    actTagExample
+    actTagExample,
 #ifdef THESAURUS
-    ,actTagDefinition
+    actTagDefinition,
 #endif
+/*TODO: move: actTagPronunciation (when it will be finished) up (after word)*/
+    actTagPronunciation
 } ActualTag;
 
 void SetDrawParam(char type, DisplayPrefs *displayPrefs,struct _AppContext * appContext);
