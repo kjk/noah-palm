@@ -29,7 +29,7 @@ typedef Char WordStorageType[WORD_MAX_LEN];
 #include "copy_block.h"
 #include "bookmarks.h"
 
-#define _RECORD_SPEED_ 1
+//#define _RECORD_SPEED_ 1
 
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)
@@ -366,7 +366,7 @@ long GetMaxListItems();
 
 #ifndef I_NOAH
 
-extern Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out);
+extern Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out, struct _WcInfo *wcInfo);
 extern Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs, SynsetDef * synsets);
 
 #endif // I_NOAH

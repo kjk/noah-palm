@@ -34,7 +34,20 @@ typedef struct
 }
 WordCache;
 
+#define DEFS_CACHE_SIZE 20
+
 typedef struct
+{
+    long    current_entry[DEFS_CACHE_SIZE];
+    int     curr_record[DEFS_CACHE_SIZE];
+    long    idx_in_rec[DEFS_CACHE_SIZE];
+    long    offset[DEFS_CACHE_SIZE];
+    int     numberOfEntries;
+}
+DefsCache;
+
+
+typedef struct _WcInfo
 {
     UInt32      wordsCount;
     int         recWithWordCache;
@@ -47,6 +60,7 @@ typedef struct
     UInt32      lastWord;   /* most recently accessed word */
     PackContext packContext;
     WordCache   wordCache;
+    DefsCache   defsCache;
 } WcInfo;
 
 Boolean pcInit(AbstractFile* file, PackContext * pc, int recWithComprData);

@@ -586,28 +586,119 @@ void DrawWord(char *word, int pos_y)
 
 #ifndef I_NOAH
 /**
+ *  Add params to defs cache
+ *  We keep it in order!
+ */
+static void AddDefsToCache(DefsCache *cache, long current_entry, int curr_record, long idx_in_rec, long offset)
+{
+    int     i,j;
+    int     insert_position;
+    long    diffs[DEFS_CACHE_SIZE+1];
+    long    minDiff = 900000;
+   
+    if(cache->numberOfEntries == DEFS_CACHE_SIZE)
+    {
+        //find one to delete
+        //find diffs between entries
+        diffs[0] = cache->current_entry[0];
+        for(i = 1; i < DEFS_CACHE_SIZE;i++)
+            diffs[i] = cache->current_entry[i]-cache->current_entry[i-1];
+        //find smallest diff
+        for(i=0;i<DEFS_CACHE_SIZE;i++)
+            if(diffs[i] < minDiff)
+            {
+                minDiff = diffs[i];
+                j = i;            
+            }
+        //position j will be deleted
+        for(i = j; i<DEFS_CACHE_SIZE-1;i++)
+        {
+            cache->current_entry[i] = cache->current_entry[i+1];
+            cache->curr_record[i] = cache->curr_record[i+1];
+            cache->idx_in_rec[i] = cache->idx_in_rec[i+1];
+            cache->offset[i] = cache->offset[i+1];
+        }
+        cache->numberOfEntries--;
+    }
+    //find where insert
+    i = 0;
+    insert_position = -1;
+    while(i < cache->numberOfEntries)
+    {
+        if(cache->current_entry[i] < current_entry)
+            insert_position = i;
+        i++;
+    }
+    insert_position++;
+    //make room
+    for(i = cache->numberOfEntries-1; i >= insert_position; i--)  
+    {
+        cache->current_entry[i+1] = cache->current_entry[i];
+        cache->curr_record[i+1] = cache->curr_record[i];
+        cache->idx_in_rec[i+1] = cache->idx_in_rec[i];
+        cache->offset[i+1] = cache->offset[i];
+    }    
+    //insert
+    cache->current_entry[insert_position] = current_entry;
+    cache->curr_record[insert_position] = curr_record;
+    cache->idx_in_rec[insert_position] = idx_in_rec;
+    cache->offset[insert_position] = offset;
+    cache->numberOfEntries++;
+}
+/**
+ *  Take params from defs cache
+ */
+static Boolean GetDefsFromCache(DefsCache *cache, long wanted_entry, long *current_entry, int *curr_record, long *idx_in_rec, long *offset)
+{
+    int     i,j;
+
+    if(cache->numberOfEntries == 0)
+        return false;
+    
+    j = -1;
+    for(i = 0; i < cache->numberOfEntries; i++)
+        if(cache->current_entry[i] < wanted_entry)
+            j = i;
+    
+    if(j < 0)
+        return false;
+    
+    *current_entry = cache->current_entry[j];
+    *curr_record = cache->curr_record[j];
+    *idx_in_rec = cache->idx_in_rec[j];
+    *offset = cache->offset[j];
+    return true;
+}
+
+/**
  *  Faster version of function get_defs_records - 
  *  diffrence: "long entry_count" is set to 1. 
  */
-static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs, SynsetDef * synsets)
+static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs, SynsetDef * synsets, WcInfo *wcInfo)
 {
     long offset = 0;
     long curr_len;
     int curr_record = 0;
     long curr_rec_size = 0;
+    long idx_in_rec = 0;
     unsigned char *def_lens = NULL;
     unsigned char *def_lens_fast = NULL;
     unsigned char *def_lens_fast_end = NULL;
-    long current_entry;
+    long current_entry = 0;
     Boolean loop_end_p;
-
+    DefsCache *cache = &wcInfo->defsCache;
+        
+    Assert(cache);
     Assert(synsets);
     Assert(entry_count >= 0);
     Assert(first_record_with_defs_len >= 0);
     Assert(defs_len_rec_count > 0);
     Assert(first_record_with_defs >= 0);
 
-    curr_record = first_record_with_defs_len;
+    if(!GetDefsFromCache(cache, synsets[0].synsetNo, &current_entry, &curr_record, &idx_in_rec, &offset))
+    {
+        curr_record = first_record_with_defs_len;
+    }
     def_lens = (unsigned char *) fsLockRecord(file, curr_record);
     if (NULL == def_lens)
     {
@@ -616,9 +707,10 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
     curr_rec_size = fsGetRecordSize(file, curr_record);
 
     /* calculate the length and offset of all entries */
-    current_entry = 0;
     def_lens_fast = def_lens;
+    def_lens_fast += idx_in_rec;
     def_lens_fast_end = def_lens + curr_rec_size;
+    
     do
     {
         curr_len = (UInt32) ((unsigned char)def_lens_fast[0]);
@@ -635,6 +727,11 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
         {
             synsets[0].offset = offset;
             synsets[0].dataSize = curr_len;
+            idx_in_rec = (long)(def_lens_fast-def_lens);
+            if(curr_len >= 255)
+                idx_in_rec-=2;
+            idx_in_rec--;    
+            AddDefsToCache(cache, current_entry, curr_record, idx_in_rec, offset);
             break;
         }
 
@@ -689,7 +786,7 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
   offset within the record and the definitions' length)
  */
  
-Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out)
+Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out, WcInfo *wcInfo)
 {
     SynsetDef synset_def;
     MemSet(&synset_def, sizeof(synset_def), 0);
@@ -705,7 +802,7 @@ Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with
     synset_def.synsetNo = entry_no;
     /*old version - slow!!! new version knows that the 1 is constant */
     //if ( !get_defs_records(file, 1, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def) )
-    if ( !get_defs_records_oneEntryCount(file, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def) )
+    if ( !get_defs_records_oneEntryCount(file, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def, wcInfo) )
     {
         return false;
     }
@@ -720,12 +817,13 @@ Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_
 {
     long offset = 0;
     long curr_len;
-    long idx_in_rec;
+    long idx_in_rec = 0;
     int curr_record = 0;
     long curr_rec_size = 0;
     unsigned char *def_lens = NULL;
-    long current_entry;
-    int entry_index;
+    long current_entry = 0;
+    long current_entry_test;
+    int entry_index = 0;
     Boolean loop_end_p;
 
     Assert(synsets);
@@ -747,6 +845,7 @@ Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_
     current_entry = 0;
     entry_index = 0;
 
+    current_entry_test = synsets[entry_index].synsetNo;
     do
     {
         curr_len = (UInt32) def_lens[idx_in_rec++];
@@ -756,7 +855,7 @@ Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_
             idx_in_rec += 2;
         }
 
-        if (current_entry == synsets[entry_index].synsetNo)
+        if (current_entry == current_entry_test)        
         {
 
             synsets[entry_index].offset = offset;
@@ -767,6 +866,7 @@ Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_
             {
                 break;
             }
+            current_entry_test = synsets[entry_index].synsetNo;
         }
 
         offset += curr_len;

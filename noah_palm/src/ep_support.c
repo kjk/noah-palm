@@ -170,7 +170,7 @@ static void epGetDef(void *data, long wordNo)
     Assert(epi);
     Assert(wordNo < epi->wordsCount);
 
-    if ( !get_defs_record(epi->file, wordNo, 5, 1, 5 + epi->defLenRecordsCount + epi->wordRecordsCount, &record, &offset, &defLen) )
+    if ( !get_defs_record(epi->file, wordNo, 5, 1, 5 + epi->defLenRecordsCount + epi->wordRecordsCount, &record, &offset, &defLen, epi->wci) )
     {
         return;
     }

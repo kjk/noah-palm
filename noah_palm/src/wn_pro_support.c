@@ -984,8 +984,6 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     unsigned char * defData = NULL;
     unsigned char * unpackedDef = NULL;
 
-    UInt32      speedTmp;
-
     wi = (WnInfo *) data;
 
     Assert(data);
@@ -1038,7 +1036,6 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 ebufAddChar(&wi->buffer, '\n');
         }
     }
-
 
     while (!end_p)
     {
@@ -1106,14 +1103,13 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 for (w = 0; w < wordsCount; w++)
                 {
                     wordNumFound = si_get_word_no(wi->file, si, syn, w);
-                    word = wn_get_word((void *) wi, wordNumFound);
                     if(wordNo == wordNumFound)
                     {
                         w++;
                         wordsCount++;
                         wordNumFound = si_get_word_no(wi->file, si, syn, w);
-                        word = wn_get_word((void *) wi, wordNumFound);
                     }
+                    word = wn_get_word((void *) wi, wordNumFound);
                     ebufAddStr(&wi->buffer, word);
                     if (w == wordsCount - 1)
                     {
@@ -1133,14 +1129,12 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             first_rec_with_defs =
                 first_rec_with_defs_len + wi->defsLenRecsCount;
 
-
             if ( !get_defs_record(wi->file, syn, first_rec_with_defs_len,
                             wi->defsLenRecsCount, first_rec_with_defs,
-                            &defs_record, &def_offset, &defDataSize) )
+                            &defs_record, &def_offset, &defDataSize, wi->wci) )
             {
                 return NULL;
             }
-
 
             Assert(defs_record > 4);
             Assert((def_offset >= 0) && (def_offset < 66000));
@@ -1199,29 +1193,18 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 Assert(unpackedLen >= 0);
             }
 
-//speeder start
-//speedTmp = TimGetTicks();
-            //shakesort is natural sort method! if its sorted it's only =O(N)
+            //pseudo sort - only one definition may be not in right place
             if(appContext->prefs.displayPrefs.listStyle!=0)
                 if(wn_pseudoSortBuffer(&wi->buffer))
                 {
                     SetGlobalBackColor(appContext);
                     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth - DRAW_DI_X - 8, appContext->screenHeight - DRAW_DI_Y - FRM_RSV_H);
                 }
-//speeder end
-//appContext->recordSpeedTicksCount += (TimGetTicks() - speedTmp);
-            //ebufReset(&wi->bufferTemp);
-            //ebufAddStrN(&wi->bufferTemp, ebufGetDataPointer(&wi->buffer), ebufGetDataSize(&wi->buffer));
 
-            //new faseter function
             ebufCopyBuffer(&wi->bufferTemp, &wi->buffer);
             ebufAddChar(&wi->bufferTemp, '\0');
-//speeder start
-//speedTmp = TimGetTicks();
 
             ebufWrapBigLines(&wi->bufferTemp,false);
-//speeder end
-//appContext->recordSpeedTicksCount += (TimGetTicks() - speedTmp);
 
             rawTxt = ebufGetDataPointer(&wi->bufferTemp);
             diSetRawTxt(&wi->displayInfo, rawTxt);
@@ -1234,8 +1217,6 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             SetScrollbarState(&wi->displayInfo, appContext->dispLinesCount, 0);
             DrawWord(SEARCH_TXT, appContext->screenHeight-FRM_RSV_H+5);
 
-//speeder end
-//appContext->recordSpeedTicksCount += (TimGetTicks() - speedTmp);
             ++syn_found_count;
             if (syn_found_count == syn_count)
                 break;

@@ -166,7 +166,7 @@ void pcReset(PackContext * pc, unsigned char *data, long offset)
     pc->currPackStrUsed = 0;
 }
 
-unsigned char pcGetChar(PackContext * pc)
+inline unsigned char pcGetChar(PackContext * pc)
 {
     unsigned char code;
 
@@ -198,7 +198,7 @@ unsigned char pcGetChar(PackContext * pc)
     return code;
 }
 
-void pcUngetChar(PackContext * pc)
+inline void pcUngetChar(PackContext * pc)
 {
     unsigned char code;
 
@@ -220,13 +220,14 @@ void pcUngetChar(PackContext * pc)
 void pcUnpack(PackContext * pc, int packedLen, unsigned char *buf, int *unpackedLen)
 {
     unsigned char code;
-
+  
     Assert(pc);
     Assert(buf);
     Assert(unpackedLen);
     Assert(packedLen > 0);
 
     *unpackedLen = 0;
+  
     while (packedLen > 0)
     {
         code = pc->currData[pc->currOffset++];
@@ -277,7 +278,9 @@ WcInfo *wcInit(AbstractFile* file, UInt32 wordsCount, int recWithComprData,
         goto Error;
 
     word_cache_init(&wci->wordCache);
-
+    //init defs 
+    wci->defsCache.numberOfEntries = 0;
+    
     wci->lastWord = 0xffffffff;
     wci->maxWordLen = maxWordLen;
     wci->wordsCount = wordsCount;
@@ -361,6 +364,7 @@ char *wcGetWord(AbstractFile* file, WcInfo * wci, UInt32 wordNo)
     {
         ++cacheNo;
     }
+    
     record = cache[cacheNo].record + wci->firstRecWithWords;
     offset = cache[cacheNo].offset;
     firstWord = cache[cacheNo].wordNo;
