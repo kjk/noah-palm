@@ -646,7 +646,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
 
         case menuItemCheckUpdates:
             //if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://arslexis.local.org:4080/updates/palm-inoah-1-0.html",NULL) )
-            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com/updates/palm-inoah-1-0.html",NULL) )
+            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com/updates/palm-inoah-1-1.html",NULL) )
                 FrmAlert(alertNoWebBrowser);
             handled=true;
             break;

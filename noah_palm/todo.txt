@@ -1,4 +1,6 @@
 iNoah
+* after succesful registration, refresh the screen
+* refresh screen after 'recent lookups' + cancel.
 * add prev/next button and menu item, like in iPedia. Release as v 1.1.
   still to do: 
   - cache the text of words locally during a session (or maybe even across sessions)
