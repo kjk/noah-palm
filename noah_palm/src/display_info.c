@@ -43,11 +43,6 @@ diFreeData(DisplayInfo * di)
     {
         new_free((void *) di->lines);
     }
-
-    if (di->lineBoldP)
-    {
-        new_free((void *) di->lineBoldP);
-    }
     MemSet(di, sizeof(DisplayInfo), 0);
 }
 
@@ -71,21 +66,6 @@ diGetLineSize(DisplayInfo * di, int lineNo)
     return StrLen(line);
 }
 
-void
-diSetLineBold(DisplayInfo * di, int lineNo, Boolean isBoldP)
-{
-    Assert(di);
-    Assert((lineNo >= 0) && (lineNo < di->linesCount));
-    di->lineBoldP[lineNo] = isBoldP;
-}
-
-Boolean diLineBoldP(DisplayInfo * di, int lineNo)
-{
-    Assert(di);
-    Assert((lineNo >= 0) && (lineNo < di->linesCount));
-    return di->lineBoldP[lineNo];
-}
-
 /* calc the number of lines in raw text */
 static int
 rawTxtLinesCount(char *txt)
@@ -93,12 +73,14 @@ rawTxtLinesCount(char *txt)
     int linesCount = 1;
     while (*txt)
     {
-        if (('\n' == txt[0]) && txt[1])
+        if (('\n' == txt[0]))
         {
             ++linesCount;
         }
         ++txt;
     }
+    if(txt[-1] =='\n')
+        --linesCount;
     return linesCount;
 }
 
@@ -109,15 +91,10 @@ addLine(DisplayInfo * di, int lineNo, char *p)
     Assert(p);
     Assert((lineNo >= 0) && (lineNo < di->linesCount));
 
-    /* 1 at the beginnig of the line means that this is a bold line */
+    //It was used to mark line as bold (I don't know if it is realy used)
     if (1 == p[0])
     {
         ++p;
-        diSetLineBold(di, lineNo, true);
-    }
-    else
-    {
-        diSetLineBold(di, lineNo, false);
     }
     di->lines[lineNo] = p;
 }
@@ -142,20 +119,8 @@ diCreateLinesInfo(DisplayInfo * di)
             di->lines = NULL;
         }
 
-        if (di->lineBoldP)
-        {
-            new_free(di->lineBoldP);
-            di->lineBoldP = NULL;
-        }
-
         di->lines = (char **) new_malloc(linesCount * sizeof(char *));
         if (NULL == di->lines)
-        {
-            return;
-        }
-
-        di->lineBoldP = (Boolean *) new_malloc(linesCount * sizeof(Boolean));
-        if (NULL == di->lineBoldP)
         {
             return;
         }
@@ -221,7 +186,6 @@ convertRawTextToDisplayInfo(DisplayInfo * di, char *rawTxt)
 
     di->linesTotalCount = 0;
     di->lines = NULL;
-    di->lineBoldP = NULL;
 
     diCreateLinesInfo(di);
 }
