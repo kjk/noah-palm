@@ -28,7 +28,7 @@ BEGIN
 #endif
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Lookup clipboard"        ID menuItemTranslate     "L"
+    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard     "L"
     MENUITEM "Stress"                  ID menuItemStress        "E"
   END
 
@@ -62,7 +62,7 @@ BEGIN
 #endif
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Lookup clipboard"        ID menuItemTranslate     "L"
+    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard     "L"
   END
 
   PULLDOWN "Bookmarks"

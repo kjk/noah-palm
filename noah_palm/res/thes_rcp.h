@@ -46,7 +46,7 @@
 #define   menuItemStress      2060
 #define   menuItemSelectDB    2070
 #define   menuItemCopy        2080
-#define   menuItemTranslate   2090
+#define   menuItemLookupClipboard   2090
 #define   menuItemBookmarkWord 2100
 #define   menuItemBookmarkView 2110
 #define   menuItemBookmarkDelete 2120

@@ -9,6 +9,20 @@
 #include "five_way_nav.h"
 #include "menu_support_database.h"
 
+#ifndef NOAH_LITE
+void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx)
+{
+    ListType *list = NULL;
+    char* listTxt;
+    Assert(frm);
+
+    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listID));
+    LstSetSelection(list, txtIdx);
+    listTxt = LstGetSelectionText(list, txtIdx);
+    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupID)), listTxt);
+}
+#endif //NOAH_LITE
+
 #ifndef I_NOAH
 
 /* those functions are not available for Noah Lite */
@@ -104,19 +118,6 @@ void FreeHistory(AppContext* appContext)
     }
     appContext->historyCount = 0;
 }
-
-void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx)
-{
-    ListType *list = NULL;
-    char* listTxt;
-    Assert(frm);
-
-    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listID));
-    LstSetSelection(list, txtIdx);
-    listTxt = LstGetSelectionText(list, txtIdx);
-    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupID)), listTxt);
-}
-
 
 // return false if didn't find anything in clipboard, true if 
 // got word from clipboard
@@ -2256,4 +2257,17 @@ void CreateNewMemo(char *memoBody, int memoBodySize)
     if (dbMemo)
         DmCloseDatabase(dbMemo);
 }
+
+Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
+{
+    UInt16 index;
+    ListType* list=NULL;
+    Assert(form);
+    index=FrmGetObjectIndex(form, listID);
+    Assert(frmInvalidObjectId!=index);
+    list=(ListType*)FrmGetObjectPtr(form, index);
+    Assert(list);
+    return LstGetSelection(list);
+}
+
 

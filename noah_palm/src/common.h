@@ -533,6 +533,8 @@ extern Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 b
 extern Char ToLower(Char in);
 extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars);
 extern void StrTrimTail(const Char* begin, const Char** end);
+extern Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID);
+
 extern void CreateNewMemo(char *memoBody, int memoBodySize);
 #ifdef _RECORD_SPEED_
 void StartTiming(AppContext* appContext, char * description);

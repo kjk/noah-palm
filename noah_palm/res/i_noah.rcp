@@ -4,7 +4,7 @@ VERSION ID 1 "1.0"
 
 FORM formDictMain AT (0 0 160 160)
 USABLE
-NOFRAME
+NOFRAME MENUID menuMain
 BEGIN
    SCROLLBAR ID     scrollDef       AT (152   1    7  142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    LABEL "Word:" ID labelWord              AT (2 147) FONT 0
@@ -96,12 +96,101 @@ BEGIN
     BITMAP "find-x2.bmp"  BPP 1 DENSITY 2
 END
 
-MENU ID menuMain 
+MENU ID menuMain
 BEGIN
-     PULLDOWN "Edit"
-     BEGIN
-          MENUITEM "Copy" ID menuEditCopy  "C"
-     	MENUITEM "Paste" ID menuEditPaste  "V"
-	MENUITEM SEPARATOR
-	MENUITEM "Preferences" ID menuEditPreferences  "P"
+  PULLDOWN "Main"
+  BEGIN
+    MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
+    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard     "T"
+  END
+
+  PULLDOWN "Bookmarks"
+  BEGIN
+#ifdef _ADD_BOOKMARKS_
+    MENUITEM "Add bookmark"            ID menuItemBookmarkWord   "A"
+    MENUITEM "Delete bookmark"         ID menuItemBookmarkDelete "D"
+    MENUITEM "View bookmarks"          ID menuItemBookmarkView   "V"
+#endif
+  END
+
+  PULLDOWN "Options"
+  BEGIN
+    MENUITEM "Preferences"             ID menuItemPrefs         "P"
+    MENUITEM "Display Prefs"           ID menuItemDispPrefs     "D" 
+    MENUITEM SEPARATOR
+    MENUITEM "Help"                    ID menuItemHelp          "H"
+    MENUITEM "About"                   ID menuItemAbout         "A"
+  END
+
 END
+
+STRING ID helpPrefs
+"\'Startup action:\' choose what will happen when"\
+"iNoah starts\n"\
+"Nothing - display standard About info\n"\
+"Last word - display definition of the last visited word\n"\
+"Clipboard - display definition of the word in a clipboard (if any)\n\n"\
+"\'Up/Down buttons:\' What to do when you press up/down"\
+"hardware buttons\n"\
+"Nothing\n"\
+"Line Scroll - scroll the definition by one line\n"\
+"1/2 Page Scroll - scroll the definition by half a page\n"\
+"Page Scroll - scroll the definition by one page\n\n"\
+"For more info see the documentation"
+
+FORM formDisplayPrefs AT (0 0 160 160)
+USABLE
+FRAME
+HELPID helpPrefs
+BEGIN
+   TITLE  "Display"
+
+   POPUPTRIGGER "Layout 1" popupListStyle AT (100 1 AUTO AUTO) LEFTANCHOR
+   LIST "Layout 1" "Layout 2" "Layout 3" ID listListStyle AT (PREVLEFT PREVTOP + 2 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
+   POPUPLIST popupListStyle listListStyle
+
+   POPUPTRIGGER "part of speech" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
+   LIST "word" "p. of speech list" "part of speech" "definition list" "definition" "synonyms" "examples"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
+   POPUPLIST popupActTag listActTag
+
+   BUTTON ""             buttonGlobalBGcol  AT (RIGHT@160-2    16      20   10) FONT 0
+   LABEL "Background:"                    AUTOID AT (RIGHT@PrevLeft-2  15) FONT 0
+
+   BUTTON "Font"         buttonFpos         AT ( 10               29      AUTO AUTO) FONT 0
+   BUTTON ""             buttonCOLpos       AT ( 95               PrevTop    20   AUTO) FONT 0
+   LABEL "Text:"                     AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
+   BUTTON ""             buttonBGpos        AT (RIGHT@160 - 2     PrevTop    20   AUTO) FONT 0
+   LABEL "Bg:"                       AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
+
+   BUTTON "OK"           buttonOk           AT (center@30  BOTTOM@160-1 40 AUTO)  FONT 0
+   BUTTON "Cancel"       buttonCancel       AT (center@80  BOTTOM@160-1 40 AUTO)  FONT 0
+   BUTTON "Default"      buttonDefault      AT (center@130 BOTTOM@160-1 40 AUTO)  FONT 0
+END 
+
+FORM formPrefs AT (0 0 160 160)
+FRAME
+MODAL
+USABLE
+DEFAULTBTNID buttonOk
+BEGIN
+   TITLE "Preferences"
+
+   LABEL "Startup action:" AUTOID AT (5 20) FONT 1
+   POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+19 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH 35) NONUSABLE VISIBLEITEMS 3
+   POPUPLIST popupStartupAction listStartupAction
+
+   LABEL "Up/Down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
+   POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
+   POPUPLIST popuphwButtonsAction listhwButtonsAction
+
+   LABEL "5-Way up/down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
+   POPUPTRIGGER  "1/2 Page Scroll" popupNavButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listNavButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
+   POPUPLIST popupNavButtonsAction listNavButtonsAction
+
+   BUTTON "OK"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
+   BUTTON "Cancel" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
+END
+

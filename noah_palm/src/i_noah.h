@@ -23,7 +23,14 @@
 /* structure of the general preferences record */
 typedef struct
 {
-    DisplayPrefs displayPrefs;
+    StartupAction           startupAction;
+    ScrollType              hwButtonScrollType;
+    ScrollType              navButtonScrollType;
+    char                    lastWord[WORD_MAX_LEN];
+    DisplayPrefs            displayPrefs;
+
+    // how do we sort bookmarks
+    BookmarkSortType        bookmarksSortType;
 } iNoahPrefs;
 
 typedef iNoahPrefs AppPrefs;

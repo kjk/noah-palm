@@ -50,7 +50,7 @@
 #define   menuItemAbout             2010
 #define   menuItemPrefs             2012
 #define   menuItemCopy              2014
-#define   menuItemTranslate         2016
+#define   menuItemLookupClipboard         2016
 #define   menuItemDispPrefs         2018
 #define   menuItemBookmarkWord      2020
 #define   menuItemBookmarkView      2022

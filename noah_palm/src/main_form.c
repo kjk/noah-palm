@@ -160,12 +160,9 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
 
 static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* event)
 {
-    UInt16 index;
-    MainFormDraw(appContext, form);
-
-    index=FrmGetObjectIndex(form, fieldWordInput);
+    FrmUpdateForm(formDictMain, redrawAll);
+    UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
     FrmSetFocus(form, index);
-
     return true;
 }
 
@@ -235,9 +232,82 @@ static Boolean MainFormScrollExit(AppContext* appContext, FormType* form, EventT
     return true;
 }
 
+inline static void MainFormHandleAbout(AppContext* appContext)
+{
+    if (appContext->currDispInfo)
+    {
+        diFree(appContext->currDispInfo);
+        appContext->currDispInfo=NULL;
+        cbNoSelection(appContext);
+        ebufFreeData(&appContext->currentWordBuf);
+        FrmUpdateForm(formDictMain, redrawAll);    
+    }
+}
+
+inline static void MainFormHandleCopy(AppContext* appContext)
+{
+    if (appContext->currDispInfo)
+        diCopyToClipboard(appContext->currDispInfo);
+}
+
+static void MainFormLookupClipboard(AppContext* appContext) 
+{
+    UInt16 length=0;
+    MemHandle handle=ClipboardGetItem(clipboardText, &length);
+    ExtensibleBuffer buffer;
+    ebufInit(&buffer, 0);
+    if (handle) 
+    {
+        const Char* text=static_cast<const Char*>(MemHandleLock(handle));
+        if (text)
+        {
+            ebufAddStrN(&buffer, const_cast<Char*>(text), length);
+            MemHandleUnlock(handle);
+        }
+    }
+    if (ebufGetDataSize(&buffer))
+    {
+        ebufAddChar(&buffer, chrNull);
+        StartLookup(appContext, ebufGetDataPointer(&buffer));
+    }
+    ebufFreeData(&buffer);
+}
+
+
 static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, EventType* event)
 {
-    return false;
+    Boolean handled=false;
+    switch (event->data.menu.itemID)
+    {
+        case menuItemAbout: 
+            MainFormHandleAbout(appContext);
+            handled=true;
+            break;
+            
+        case menuItemCopy:
+            MainFormHandleCopy(appContext);
+            handled=true;
+            break;
+            
+        case menuItemLookupClipboard:
+            MainFormLookupClipboard(appContext);
+            handled=true;
+            break;
+            
+        case menuItemPrefs:
+            FrmPopupForm(formPrefs);
+            handled=true;
+            break;            
+
+        case menuItemDispPrefs:
+            FrmPopupForm(formDisplayPrefs);
+            handled=true;
+            break;            
+            
+        default:
+            Assert(false);
+    }
+    return handled;
 }
 
 static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form) 

@@ -1074,7 +1074,7 @@ ChooseDatabase:
                     if (NULL != appContext->currDispInfo)
                         diCopyToClipboard(appContext->currDispInfo);
                     break;
-                case menuItemTranslate:
+                case menuItemLookupClipboard:
                     FTryClipboard(appContext);
                     break;
 #ifdef DEBUG

@@ -6,6 +6,7 @@
 #include "common.h"
 #include "five_way_nav.h"
 #include "main_form.h"
+#include "preferences_form.h"
 
 #include "inet_word_lookup.h"
 
@@ -57,8 +58,13 @@ static Err AppInit(AppContext* appContext)
     ebufInit(&appContext->currentDefinition, 0);
     ebufInit(&appContext->currentWordBuf, 0);
 
+    appContext->prefs.startupAction      = startupActionNone;
+    appContext->prefs.hwButtonScrollType = scrollPage;
+    appContext->prefs.navButtonScrollType = scrollPage;
+    appContext->prefs.bookmarksSortType  = bkmSortByTime;
+
     appContext->prefs.displayPrefs.listStyle = 2;
-    SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
+    SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
 
     SyncScreenSize(appContext);
 
@@ -100,12 +106,16 @@ static void AppLoadForm(AppContext* appContext, const EventType* event)
     {
         case formDictMain:
             error=MainFormLoad(appContext);
-            Assert(!error);
+            break;
+            
+        case formPrefs:
+            error=PreferencesFormLoad(appContext);
             break;
         
         default:
             Assert(false);
     }
+    Assert(!error);
 }
 
 static Boolean AppHandleEvent(AppContext* appContext, EventType* event)
@@ -125,9 +135,9 @@ static void AppEventLoop(AppContext* appContext)
 {
     Err error=errNone;
     EventType event;
-    Int32 timeout=evtWaitForever;
     do 
     {
+        Int32 timeout=evtWaitForever;
         if (LookupInProgress(appContext)) 
             timeout=0;
         EvtGetEvent(&event, timeout);
