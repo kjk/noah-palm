@@ -80,7 +80,11 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
     SetPrefsAs(&prefs[ 3], stdFont,        BLACK_Packed, WHITE_Packed );    // definition
 
     SetPrefsAs(&prefs[ 4], stdFont,  PackRGB(221,34,17), WHITE_Packed );    // example
+#ifdef THESAURUS
+    SetPrefsAs(&prefs[ 5], stdFont, PackRGB(0,0,68),    WHITE_Packed );    // synonyms
+#else
     SetPrefsAs(&prefs[ 5], boldFont, PackRGB(0,0,68),    WHITE_Packed );    // synonyms
+#endif
     SetPrefsAs(&prefs[ 6], stdFont,  BLACK_Packed,       WHITE_Packed );    // definition list
     SetPrefsAs(&prefs[ 7], boldFont, PackRGB(0,220,0),   WHITE_Packed );    // pos list
 
@@ -90,7 +94,11 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
     SetPrefsAs(&prefs[10], stdFont,        BLACK_Packed,     WHITE_Packed );    // definition
 
     SetPrefsAs(&prefs[11], stdFont,   PackRGB(221,34,17), WHITE_Packed );    // example
+#ifdef THESAURUS
+    SetPrefsAs(&prefs[12], stdFont,   PackRGB(0,0,68),    WHITE_Packed );    // synonyms
+#else
     SetPrefsAs(&prefs[12], boldFont,  PackRGB(0,0,68),    WHITE_Packed );    // synonyms
+#endif
     SetPrefsAs(&prefs[13], stdFont,   BLACK_Packed,       WHITE_Packed );    // definition list
     SetPrefsAs(&prefs[14], boldFont,  PackRGB(0,220,0),   WHITE_Packed );    // pos list
 
@@ -519,6 +527,8 @@ static void RedrawExampleDefinition(AppContext* appContext)
 
 static Boolean DisplPrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
+
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 
@@ -715,11 +725,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     SavePreferencesNoahPro(appContext);
 #endif
 #ifdef THESAURUS
-                    /*TODO: Andrzej please make SavePreferencesThes() runable 
-                        for other modules
-                        make it not "static"
-                    */
-                    //SavePreferencesThes(appContext);
+                    SavePreferencesThes(appContext);
 #endif                  
                     bfFreePTR(appContext);
 

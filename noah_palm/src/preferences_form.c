@@ -56,6 +56,7 @@ static Boolean PreferencesFormDisplayChanged(AppContext* appContext, FormType* f
 {
     RectangleType bounds;
 
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

@@ -61,6 +61,6 @@ typedef ThesPrefs AppPrefs;
 #define SUPPORT_DATABASE_NAME "Thesaurus_Temp"
 #define APP_NAME "Thesaurus"
 
-extern Err AppPerformResidentLookup(Char* term);
+extern Err AppPerformResidentLookup(char* term);
 
 #endif

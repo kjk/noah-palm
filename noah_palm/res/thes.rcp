@@ -14,7 +14,6 @@ BEGIN
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
     MENUITEM "Lookup clipboard"        ID menuItemLookupClipboard    "L"
-    MENUITEM "Exit"					   ID menuItemExit          "E"
     MENUITEM "Stress"                  ID menuItemStress        "T"
   END
 
@@ -46,7 +45,6 @@ BEGIN
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
     MENUITEM "Lookup clipboard"        ID menuItemLookupClipboard     "L"
-    MENUITEM "Exit"					   ID menuItemExit          "E"
   END
 
   PULLDOWN "Bookmarks"
@@ -78,9 +76,14 @@ BEGIN
    FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS WORD_FIELD_MAXCHARS
    POPUPTRIGGER ""   ID popupHistory  AT (128 147 17  13) FONT 0 LEFTANCHOR
    LIST "" ID           listHistory   AT (154-HISTORY_LIST_DX 156-(HISTORY_ITEMS*11) HISTORY_LIST_DX HISTORY_ITEMS*11) NONUSABLE FONT 0
-   FORMBITMAP                         AT (147 147)        BITMAP bmpFind
-   BUTTON       ""      buttonFind    AT (146 146 14  14) NOFRAME
    POPUPLIST         ID popupHistory listHistory
+   // those actually change position depending on resident/non resident mode
+   // in non-resident mode we have popupHistory and bmpFind at 146,146/14,14
+   // in resident mode we have bmpFind at 132,146/14,14 and bmpClose at 146,146/14,14
+   FORMBITMAP  AT (147 147)  BITMAP bmpFind
+   BUTTON ""  buttonFind AT (146 146 14 14) NOFRAME
+   BUTTON ""  buttonClose    AT (146 146 14  14) NOFRAME
+   FORMBITMAP  AT (147 147)  BITMAP bmpClose
 END
 
 FORM formResidentLookup AT (0 0 160 160)

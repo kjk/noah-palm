@@ -346,6 +346,7 @@ void PatternListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 
 static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

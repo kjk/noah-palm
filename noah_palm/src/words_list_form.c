@@ -238,6 +238,7 @@ static Boolean WordsListFormKeyDown(AppContext* appContext, FormType* form, Even
 
 static Boolean WordListFormDisplayChanged(AppContext* appContext, FormType* form) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

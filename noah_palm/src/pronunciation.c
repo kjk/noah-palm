@@ -735,6 +735,7 @@ static void pronFillHelpBufferWithPhonem(struct _AppContext *appContext, Extensi
  */
 static Boolean PronunciationFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

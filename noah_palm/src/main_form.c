@@ -488,6 +488,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
 
 static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 
@@ -499,6 +500,7 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
     FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
     FrmSetObjectPosByID(form, buttonAbortLookup, appContext->screenWidth-13, appContext->screenHeight-13);
 
+    // TODO: optimize, only do when dx screen size has changed   
     ReformatLastResponse(appContext);
     FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
 

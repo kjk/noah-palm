@@ -14,6 +14,7 @@
 
 static Boolean ResidentBrowseFormDisplayChanged(AppContext* appContext, FormType* form) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

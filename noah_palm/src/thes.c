@@ -221,7 +221,7 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
 
 #pragma segment Segment2
 
-static void SavePreferencesThes(AppContext* appContext)
+void SavePreferencesThes(AppContext* appContext)
 {
     DmOpenRef      db;
     UInt           recNo;
@@ -447,6 +447,7 @@ Err AppCommonInit(AppContext* appContext)
 
     appContext->bookmarksDb = NULL;
     appContext->currBookmarkDbType = bkmInvalid;
+    appContext->fInResidentMode = false;
 
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);
@@ -615,21 +616,47 @@ void DisplayAbout(AppContext* appContext)
         WinPopDrawState();    
 }
 
-static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
+static void MainFormReflow(AppContext* appContext, FormType* frm)
 {
-    if ( !DIA_Supported(&appContext->diaSettings) )
-        return false;
-
     UpdateFrmBounds(frm);
-    
+
     FrmSetObjectPosByID(frm, ctlArrowLeft, -1, appContext->screenHeight-12);
     FrmSetObjectPosByID(frm, ctlArrowRight, -1, appContext->screenHeight-12);
     FrmSetObjectBoundsByID(frm, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
-    FrmSetObjectPosByID(frm, bmpFind, appContext->screenWidth-13, appContext->screenHeight-13);
-    FrmSetObjectPosByID(frm, buttonFind, appContext->screenWidth-14, appContext->screenHeight-14);
-    FrmSetObjectPosByID(frm, popupHistory, appContext->screenWidth-32, appContext->screenHeight-13);
-    FrmSetObjectPosByID(frm, listHistory, appContext->screenWidth-80, appContext->screenHeight-60);
 
+    if (appContext->fInResidentMode)
+    {
+        FrmSetObjectPosByID(frm, bmpClose, appContext->screenWidth-13, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, buttonClose, appContext->screenWidth-14, appContext->screenHeight-14);
+        FrmSetObjectPosByID(frm, bmpFind, appContext->screenWidth-27, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, buttonFind, appContext->screenWidth-28, appContext->screenHeight-14);
+        FrmHideObject(frm,FrmGetObjectIndex(frm, popupHistory));
+    }
+    else
+    {
+        FrmSetObjectPosByID(frm, bmpFind, appContext->screenWidth-13, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, buttonFind, appContext->screenWidth-14, appContext->screenHeight-14);
+        FrmSetObjectPosByID(frm, popupHistory, appContext->screenWidth-32, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, listHistory, appContext->screenWidth-80, appContext->screenHeight-60);
+
+        FrmHideObject(frm,FrmGetObjectIndex(frm, bmpClose));
+        FrmHideObject(frm,FrmGetObjectIndex(frm, buttonClose));
+    }
+    FrmSetObjectBoundsByID(frm, fieldWordMain, -1, appContext->screenHeight-13, appContext->screenWidth-66, -1);
+}
+
+static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
+{
+    Assert( DIA_Supported(&appContext->diaSettings) );
+    if ( !DIA_Supported(&appContext->diaSettings))
+        return false;
+
+    MainFormReflow(appContext, frm);
+    // TODO: optimize, only do when dx screen size has changed
+    // HACK: we should have currentWord = -1 and check for that instead
+    // (currently currentWord = 0 here)
+    if (appContext->currDispInfo)
+        SendNewWordSelected();
     RedrawMainScreen(appContext);
     return true;
 }
@@ -640,7 +667,11 @@ static Boolean MainFormOpen(AppContext *appContext, FormType *frm)
     char *          lastDbUsedName;
     int             i;
 
+    MainFormReflow(appContext, frm);
+
     FrmDrawForm(frm);
+    FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
+
     HistoryListInit(appContext, frm);
 
     RemoveNonexistingDatabases(appContext);
@@ -819,6 +850,10 @@ static Boolean MainFormHandleEventThes(EventType * event)
                     GoToFindWordForm(appContext,frm);
                     handled = true;
                     break;
+                case buttonClose:
+                    SendStopEvent();
+                    handled=true;
+                    break;
                 case popupHistory:
                     // need to propagate the event down to popus
                     handled = false;
@@ -954,15 +989,6 @@ static Boolean MainFormHandleEventThes(EventType * event)
             {
                 DefScrollDown(appContext, appContext->prefs.hwButtonScrollType);
             }
-/*            else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
-                     || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
-                     || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
-            {
-                appContext->lastWord[0] = event->data.keyDown.chr;
-                appContext->lastWord[1] = 0;
-                FrmPopupForm(formDictFind);
-            }
-            handled = true;*/
             else
             {
                 // notify ourselves that a text field is (possibly) updated
@@ -1059,9 +1085,6 @@ static Boolean MainFormHandleEventThes(EventType * event)
                 case menuItemLookupClipboard:
                     FTryClipboard(appContext);
                     break;
-                case menuItemExit:
-                    SendStopEvent();
-                    break;
 #ifdef DEBUG
                 case menuItemStress:
                     // initiate stress i.e. going through all the words
@@ -1150,6 +1173,7 @@ static Boolean MainFormHandleEventThes(EventType * event)
 
 static Boolean FindFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 
@@ -1338,6 +1362,7 @@ static Boolean FindFormHandleEventThes(EventType * event)
 
 static Boolean SelectDictFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 
@@ -1443,6 +1468,7 @@ static void PrefsToGUI(AppPrefs* prefs, FormType * frm)
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

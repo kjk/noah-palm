@@ -202,6 +202,7 @@ static void ScanForDictsNoahLite(AppContext* appContext)
 
 static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

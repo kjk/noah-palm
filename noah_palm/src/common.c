@@ -31,9 +31,10 @@ void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx)
 
 void HistoryListInit(AppContext* appContext, FormType *frm)
 {
-    ListType *  list;
+    if (appContext->fInResidentMode)
+        return;
 
-    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+    ListType* list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
     LstSetListChoices(list, NULL, appContext->historyCount);
     LstSetDrawFunction(list, HistoryListDrawFunc);
     HistoryListSetState(appContext, frm);
@@ -41,12 +42,13 @@ void HistoryListInit(AppContext* appContext, FormType *frm)
 
 void HistoryListSetState(AppContext* appContext, FormType *frm)
 {
-    ListType *  list;
-
-    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-    if (0 == appContext->historyCount)
+    ListType* list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+    // decided to show the list always, even if empty. Might reconsider
+    // in the future.
+    // TODO: remove the code if decides this is permanent change
+/*    if (0 == appContext->historyCount)
         CtlHideControlEx(frm,popupHistory);
-    else
+    else*/
     {
         LstSetListChoices(list, NULL, appContext->historyCount);
         CtlShowControlEx(frm,popupHistory);

@@ -130,6 +130,7 @@ static Boolean ResidentLookupFormKeyDown(AppContext* appContext, FormType* form,
  */
 static Boolean ResidentLookupFormDisplayChanged(AppContext* appContext, FormType* form)
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if (  !DIA_Supported(&appContext->diaSettings) )
         return false;
 

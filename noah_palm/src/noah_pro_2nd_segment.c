@@ -287,22 +287,49 @@ void DisplayAbout(AppContext* appContext)
         WinPopDrawState();    
 }
 
-static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
+static void MainFormReflow(AppContext* appContext, FormType* frm)
 {
-    if ( !DIA_Supported(&appContext->diaSettings))
-        return false;
-
     UpdateFrmBounds(frm);
 
     FrmSetObjectPosByID(frm, ctlArrowLeft, -1, appContext->screenHeight-12);
     FrmSetObjectPosByID(frm, ctlArrowRight, -1, appContext->screenHeight-12);
-    FrmSetObjectBoundsByID(frm, scrollDef, -1, -1, -1, appContext->screenHeight-18);
-    FrmSetObjectPosByID(frm, bmpFind, -1, appContext->screenHeight-13);
-    FrmSetObjectPosByID(frm, bmpClose, -1, appContext->screenHeight-13);
-    FrmSetObjectPosByID(frm, buttonFind, -1, appContext->screenHeight-14);
-    FrmSetObjectPosByID(frm, popupHistory, -1, appContext->screenHeight-13);
-    FrmSetObjectPosByID(frm, fieldWordMain, -1, appContext->screenHeight-13);
-    FrmSetObjectPosByID(frm, listHistory, -1, appContext->screenHeight-60);
+    FrmSetObjectBoundsByID(frm, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
+
+    if (appContext->fInResidentMode)
+    {
+        FrmSetObjectPosByID(frm, bmpClose, appContext->screenWidth-13, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, buttonClose, appContext->screenWidth-14, appContext->screenHeight-14);
+        FrmSetObjectPosByID(frm, bmpFind, appContext->screenWidth-27, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, buttonFind, appContext->screenWidth-28, appContext->screenHeight-14);
+        FrmHideObject(frm,FrmGetObjectIndex(frm, popupHistory));
+    }
+    else
+    {
+        FrmSetObjectPosByID(frm, bmpFind, appContext->screenWidth-13, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, buttonFind, appContext->screenWidth-14, appContext->screenHeight-14);
+        FrmSetObjectPosByID(frm, popupHistory, appContext->screenWidth-32, appContext->screenHeight-13);
+        FrmSetObjectPosByID(frm, listHistory, appContext->screenWidth-80, appContext->screenHeight-60);
+
+        FrmHideObject(frm,FrmGetObjectIndex(frm, bmpClose));
+        FrmHideObject(frm,FrmGetObjectIndex(frm, buttonClose));
+    }
+    FrmSetObjectBoundsByID(frm, fieldWordMain, -1, appContext->screenHeight-13, appContext->screenWidth-66, -1);
+
+}
+
+static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
+{
+    Assert( DIA_Supported(&appContext->diaSettings) );
+    if ( !DIA_Supported(&appContext->diaSettings))
+        return false;
+
+    MainFormReflow(appContext, frm);
+
+    // TODO: optimize, only do when dx screen size has changed
+    // HACK: we should have currentWord = -1 and check for that instead
+    // (currently currentWord = 0 here)
+    if (appContext->currDispInfo)
+        SendNewWordSelected();
 
     RedrawMainScreen(appContext);
     return true;
@@ -314,13 +341,9 @@ static Boolean MainFormOpen(AppContext* appContext, FormType* frm, EventType* ev
     char *          lastDbUsedName;
     int             i;
 
-    if ( appContext->fInResidentMode )
-        FrmHideObject(frm,FrmGetObjectIndex(frm, bmpFind));
-    else
-        FrmHideObject(frm,FrmGetObjectIndex(frm, bmpClose));
+    MainFormReflow(appContext, frm);
 
     FrmDrawForm(frm);
-
     FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
 
     HistoryListInit(appContext, frm);
@@ -420,18 +443,189 @@ ChooseDatabase:
     return true;
 }
 
+static Boolean MainFormMenuCommand(AppContext* appContext, FormType* frm, EventType* event)
+{
+    Boolean handled = true;
+
+    switch (event->data.menu.itemID)
+    {
+        case menuItemFind:
+            GoToFindWordForm(appContext,frm);
+            break;
+        case menuItemFindPattern:
+            FrmPopupForm(formDictFindPattern);
+            break;
+        case menuItemBookmarkView:
+            if ( GetBookmarksCount(appContext)>0 )
+                FrmPopupForm(formBookmarks);
+            else
+                FrmAlert(alertNoBookmarks);
+            break;
+        case menuItemBookmarkWord:
+            AddBookmark(appContext, dictGetWord(GetCurrentFile(appContext), appContext->currentWord));
+            break;
+        case menuItemBookmarkDelete:
+            DeleteBookmark(appContext, dictGetWord(GetCurrentFile(appContext), appContext->currentWord));
+            break;
+        case menuItemAbout:
+            if (NULL != appContext->currDispInfo)
+            {
+                diFree(appContext->currDispInfo);
+                appContext->currDispInfo = NULL;
+                appContext->currentWord = 0;
+            }
+            cbNoSelection(appContext);
+            DisplayAbout(appContext);
+            break;
+        case menuItemSelectDB:
+            FrmPopupForm(formSelectDict);
+            break;
+        case menuItemShowPronunciation:
+            pronDisplayHelp(appContext,"");
+            break;
+        case menuItemDispPrefs:
+            FrmPopupForm(formDisplayPrefs);
+            break;
+        case menuItemRandomWord:
+            {
+                long wordNo = GenRandomLong(appContext->wordsCount);
+                char *word = dictGetWord(GetCurrentFile(appContext), wordNo);
+                FldClearInsert(frm, fieldWordMain, word);
+                AddToHistory(appContext, wordNo);
+                HistoryListSetState(appContext, frm);
+                DrawDescription(appContext, wordNo);
+            }
+            break;
+        case menuItemCopy:
+            if (NULL != appContext->currDispInfo)
+                diCopyToClipboard(appContext->currDispInfo);
+            break;
+        case menuItemLookupClipboard:
+            FTryClipboard(appContext);
+            break;
+#ifdef DEBUG
+        case menuItemStress:
+            // initiate stress i.e. going through all the words
+            // 0 means that stress is not in progress
+            appContext->currentStressWord = -1;
+            // get nilEvents as fast as possible
+            appContext->ticksEventTimeout = 0;
+            break;
+#endif
+        case menuItemPrefs:
+            FrmPopupForm(formPrefs);
+            break;
+
+        case sysEditMenuCopyCmd:
+        case sysEditMenuCutCmd:
+        case sysEditMenuPasteCmd:
+            // generated by command bar, not sure what to do with those
+            // so just ignore them
+            handled = false;
+            break;
+            
+        default:
+            Assert(0);
+            break;
+    }
+    return handled;
+}
+
+static Boolean MainFormNewDatabaseSelected(AppContext* appContext, FormType* frm, EventType *event)
+{
+    ListType *      list;
+    int             i;
+
+    int selectedDb = EvtGetInt( event );
+    AbstractFile* fileToOpen = appContext->dicts[selectedDb];
+    if ( GetCurrentFile(appContext) != fileToOpen )
+    {
+        DictCurrentFree(appContext);
+        if ( !DictInit(appContext, fileToOpen) )
+        {
+            // failed to initialize dictionary. If we have more - retry,
+            // if not - just quit
+            if ( appContext->dictsCount > 1 )
+            {
+                i = 0;
+                while ( fileToOpen != appContext->dicts[i] )
+                {
+                    ++i;
+                    Assert( i<appContext->dictsCount );
+                }
+                AbstractFileFree( appContext->dicts[i] );
+                while ( i<appContext->dictsCount )
+                {
+                    appContext->dicts[i] = appContext->dicts[i+1];
+                    ++i;
+                }
+                --appContext->dictsCount;
+                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+                LstSetListChoices(list, NULL, appContext->dictsCount);
+                if ( appContext->dictsCount > 1 )
+                {
+                    FrmAlert( alertDbFailedGetAnother );
+                    FrmPopupForm( formSelectDict );
+                }
+                else
+                {
+                    /* only one dictionary left - try this one */
+                    FrmAlert( alertDbFailed );
+                    SendNewDatabaseSelected( 0 );
+                }
+                return true;
+            }
+            else
+            {
+                FrmAlert( alertDbFailed);
+                SendStopEvent();
+                return true;                    
+            }
+        }
+    }
+    
+    ClearMatchingPatternDB(appContext);
+    
+    RedrawMainScreen(appContext);
+    
+    if ( startupActionClipboard == appContext->prefs.startupAction )
+    {
+        if (!FTryClipboard(appContext))
+            DisplayAbout(appContext);
+    }
+    else
+        DisplayAbout(appContext);
+    
+    if ( (startupActionLast == appContext->prefs.startupAction) &&
+        appContext->prefs.lastWord[0] )
+    {
+        DoWord( appContext, (char *)appContext->prefs.lastWord );
+    }
+    
+    // TODO: replace with HistoryListInit(frm) ? 
+    //if (appContext->historyCount > 0)
+    {
+        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+        LstSetListChoices(list, NULL, appContext->historyCount);
+        LstSetDrawFunction(list, HistoryListDrawFunc);
+        CtlShowControlEx(frm, popupHistory);
+    }
+    // TODO: remove when decided it's final
+    /*else
+    {
+        CtlHideControlEx(frm, popupHistory);
+    }*/
+    return true;
+}
+
 static Boolean MainFormHandleEventNoahPro(EventType * event)
 {
     Boolean         handled = false;
     FormType *      frm;
     Short           newValue;
-    ListType *      list;
     long            wordNo;
-    int             i;
-    int             selectedDb;
     char *          word;
     AppContext*     appContext=GetAppContext();
-    AbstractFile *  fileToOpen;
 
     Assert(appContext);
 
@@ -497,6 +691,10 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
                 case buttonFind:
                     GoToFindWordForm(appContext,frm);
                     break;
+                case buttonClose:
+                    Assert(appContext->fInResidentMode);
+                    SendStopEvent();
+                    break;                    
                 case popupHistory:
                     // need to propagate the event down to popus
                     return false;
@@ -523,85 +721,7 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
             break;
 
         case evtNewDatabaseSelected:
-            selectedDb = EvtGetInt( event );
-            fileToOpen = appContext->dicts[selectedDb];
-            if ( GetCurrentFile(appContext) != fileToOpen )
-            {
-                DictCurrentFree(appContext);
-                if ( !DictInit(appContext, fileToOpen) )
-                {
-                    // failed to initialize dictionary. If we have more - retry,
-                    // if not - just quit
-                    if ( appContext->dictsCount > 1 )
-                    {
-                        i = 0;
-                        while ( fileToOpen != appContext->dicts[i] )
-                        {
-                            ++i;
-                            Assert( i<appContext->dictsCount );
-                        }
-                        AbstractFileFree( appContext->dicts[i] );
-                        while ( i<appContext->dictsCount )
-                        {
-                            appContext->dicts[i] = appContext->dicts[i+1];
-                            ++i;
-                        }
-                        --appContext->dictsCount;
-                        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                        LstSetListChoices(list, NULL, appContext->dictsCount);
-                        if ( appContext->dictsCount > 1 )
-                        {
-                            FrmAlert( alertDbFailedGetAnother );
-                            FrmPopupForm( formSelectDict );
-                        }
-                        else
-                        {
-                            /* only one dictionary left - try this one */
-                            FrmAlert( alertDbFailed );
-                            SendNewDatabaseSelected( 0 );
-                        }
-                        return true;
-                    }
-                    else
-                    {
-                        FrmAlert( alertDbFailed);
-                        SendStopEvent();
-                        return true;                    
-                    }
-                }
-            }
-
-            ClearMatchingPatternDB(appContext);
-
-            RedrawMainScreen(appContext);
-
-            if ( startupActionClipboard == appContext->prefs.startupAction )
-            {
-                if (!FTryClipboard(appContext))
-                    DisplayAbout(appContext);
-            }
-            else
-                DisplayAbout(appContext);
-
-            if ( (startupActionLast == appContext->prefs.startupAction) &&
-                appContext->prefs.lastWord[0] )
-            {
-                DoWord( appContext, (char *)appContext->prefs.lastWord );
-            }
-
-            // TODO: replace with HistoryListInit(frm) ? 
-            if (appContext->historyCount > 0)
-            {
-                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                LstSetListChoices(list, NULL, appContext->historyCount);
-                LstSetDrawFunction(list, HistoryListDrawFunc);
-                CtlShowControlEx(frm, popupHistory);
-            }
-            else
-            {
-                CtlHideControlEx(frm, popupHistory);
-            }
-            handled = true;
+            handled = MainFormNewDatabaseSelected(appContext,frm,event);
             break;
 
         case keyDownEvent:
@@ -645,16 +765,6 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
             {
                 DefScrollDown(appContext, appContext->prefs.hwButtonScrollType);
             }
-/*            else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
-                     || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
-                     || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
-            {
-                appContext->lastWord[0] = event->data.keyDown.chr;
-                appContext->lastWord[1] = 0;
-                FrmPopupForm(formDictFind);
-                return false;
-            }
-            handled = true; */
             else
             {
                 // notify ourselves that a text field is (possibly) updated
@@ -726,92 +836,7 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
             break;
 
         case menuEvent:
-            switch (event->data.menu.itemID)
-            {
-                case menuItemFind:
-                    GoToFindWordForm(appContext,frm);
-                    break;
-                case menuItemFindPattern:
-                    FrmPopupForm(formDictFindPattern);
-                    break;
-                case menuItemBookmarkView:
-                    if ( GetBookmarksCount(appContext)>0 )
-                        FrmPopupForm(formBookmarks);
-                    else
-                        FrmAlert(alertNoBookmarks);
-                    break;
-                case menuItemBookmarkWord:
-                    AddBookmark(appContext, dictGetWord(GetCurrentFile(appContext), appContext->currentWord));
-                    break;
-                case menuItemBookmarkDelete:
-                    DeleteBookmark(appContext, dictGetWord(GetCurrentFile(appContext), appContext->currentWord));
-                    break;
-                case menuItemAbout:
-                    if (NULL != appContext->currDispInfo)
-                    {
-                        diFree(appContext->currDispInfo);
-                        appContext->currDispInfo = NULL;
-                        appContext->currentWord = 0;
-                    }
-                    cbNoSelection(appContext);
-                    DisplayAbout(appContext);
-                    break;
-                case menuItemSelectDB:
-                    FrmPopupForm(formSelectDict);
-                    break;
-                case menuItemShowPronunciation:
-                    pronDisplayHelp(appContext,"");
-                    break;
-                case menuItemDispPrefs:
-                    FrmPopupForm(formDisplayPrefs);
-                    break;
-                case menuItemRandomWord:
-                    {
-                        wordNo = GenRandomLong(appContext->wordsCount);
-                        word = dictGetWord(GetCurrentFile(appContext), wordNo);
-                        FldClearInsert(frm, fieldWordMain, word);
-                        AddToHistory(appContext, wordNo);
-                        HistoryListSetState(appContext, frm);
-                        DrawDescription(appContext, wordNo);
-                    }
-                    break;
-                case menuItemCopy:
-                    if (NULL != appContext->currDispInfo)
-                        diCopyToClipboard(appContext->currDispInfo);
-                    break;
-                case menuItemLookupClipboard:
-                    FTryClipboard(appContext);
-                    break;
-#ifdef DEBUG
-                case menuItemStress:
-                    // initiate stress i.e. going through all the words
-                    // 0 means that stress is not in progress
-                    appContext->currentStressWord = -1;
-                    // get nilEvents as fast as possible
-                    appContext->ticksEventTimeout = 0;
-                    break;
-#endif
-                case menuItemPrefs:
-                    FrmPopupForm(formPrefs);
-                    break;
-
-                case menuItemExit:
-                    SendStopEvent();
-                    break;
-
-                case sysEditMenuCopyCmd:
-                case sysEditMenuCutCmd:
-                case sysEditMenuPasteCmd:
-                    // generated by command bar, not sure what to do with those
-                    // so just ignore them
-                    handled = false;
-                    break;
-                    
-                default:
-                    Assert(0);
-                    break;
-            }
-            handled = true;
+            handled = MainFormMenuCommand(appContext,frm,event);
             break;
         case nilEvent:
 #ifdef DEBUG
@@ -840,6 +865,7 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
 
 static Boolean FindFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings))
         return false;
 
@@ -1020,6 +1046,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
 
 static Boolean SelectDictFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 
@@ -1122,6 +1149,7 @@ static void PrefsToGUI(AppPrefs *prefs, FormType * frm)
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

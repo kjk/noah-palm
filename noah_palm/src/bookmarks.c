@@ -145,6 +145,7 @@ UInt16 GetBookmarksCount(AppContext *appContext)
 
 static Boolean BookmarksFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
+    Assert( DIA_Supported(&appContext->diaSettings) );
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 

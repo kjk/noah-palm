@@ -279,9 +279,9 @@ Err AppCommonInit(AppContext* appContext)
 
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 2;
-
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     appContext->ptrOldDisplayPrefs = NULL;
+
     appContext->bookmarksDb = NULL;
     appContext->currBookmarkDbType = bkmInvalid;
     appContext->fInResidentMode = false;

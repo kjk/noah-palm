@@ -49,7 +49,6 @@
 #define   menuItemSelectDB    2070
 #define   menuItemCopy        2080
 #define   menuItemLookupClipboard   2090
-#define   menuItemExit        2095
 #define   menuItemBookmarkWord 2100
 #define   menuItemBookmarkView 2110
 #define   menuItemBookmarkDelete 2120

@@ -645,4 +645,9 @@ long GenRandomLong(long range);
 void ParseResidentWord(AppContext *appContext, char *cmdPBP);
 void DoWord(AppContext* appContext, char *word);
 Err WebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command, char *parameterP, UInt32 *resultP);
+
+#ifdef THESAURUS
+void SavePreferencesThes(AppContext* appContext);
+#endif
+
 #endif

@@ -59,7 +59,6 @@
 #define   menuItemBookmarkView      2022
 #define   menuItemBookmarkDelete    2024
 #define   menuItemRandomWord        2026
-#define   menuItemExit              2028
 #define   menuItemShowPronunciation 2030
 
 #define   buttonCancel        3001
