@@ -28,11 +28,10 @@ static UInt32 armPceNativeResourceCall(DmResType resType, DmResID resID, char* D
 	
 	if (sysFtrNumProcessorIsARM(processorType))
 		{
-//      	WinDrawChars("ARM  RUN",8,10,20);
+          	WinDrawChars("ARM  RUN",8,10,20);
 			// running on ARM; call the actual ARM resource
 			armH = DmGetResource(resType, resID);
 			armP = MemHandleLock(armH);
-	
 	
 			result = PceNativeCall((unsigned long (*)(const void *, void *, unsigned long (*)(const void *, unsigned long, const void *, unsigned long))) armP, userDataP);
 	
@@ -94,6 +93,11 @@ Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
     buf->allocated = funInp.allocated;
     buf->used = funInp.used;
     buf->data = funInp.data;
+
+    if(inpt.functionID != 110)
+    {
+       	WinDrawChars("FAIL ARM",8,10,30);
+    }
 
     return(inpt.functionID == 110)?true:false;
 }
