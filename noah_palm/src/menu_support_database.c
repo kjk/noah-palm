@@ -96,6 +96,8 @@ Err PrepareSupportDatabase(const Char* name, UInt16 bitmapId)
     return error;
 }
 
+#pragma segment Segment2
+
 Err DisposeSupportDatabase(const Char* name) 
 {
     Err error=errNone;
@@ -126,4 +128,4 @@ OnError:
     return error;
 }
 
-
+#pragma segment Segment1
