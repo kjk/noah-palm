@@ -300,13 +300,22 @@ def createSmartphoneFile(codes):
     fo.write("\n")
     fo.close()
 
-# pocketgear.com. TODO: describe format
+# pocketgear.com, comma separated or line separated format 
+# (eg unlock-1,unlock-2,unlock-3) Note: the keys cannot contain spaces.
 def createPocketGearFile(codes):
     fileName = getPocketGearFileName()
     assert not fFileExists(fileName)
     assert len(codes)>=MIN_POG_CODES
-    # TODO: implement
-    assert 0
+    fo = open(fileName, "wb")
+    fFirst = True
+    for code in codes.keys():
+        if fFirst:
+            fo.write("%s" % code)
+            fFirst=False
+        else:
+            fo.write( ",%s" % code )
+    fo.write("\n")
+    fo.close()
 
 # PalmGear. From their site:
 # Text only
