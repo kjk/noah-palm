@@ -40,9 +40,7 @@ CREATE TABLE cookies
 CREATE TABLE reg_codes
 (
   reg_code      VARCHAR(64) NOT NULL,
-  user_name     VARCHAR(255),
-  user_email    VARCHAR(255),
-  order_id      VARCHAR(255),
+  purpose		VARCHAR(255) NOT NULL,
   when_entered  TIMESTAMP NOT NULL,
   disabled_p    CHAR(1) NOT NULL DEFAULT 'f',  -- is this reg code disabled (e.g. because we decided people shared it)
 

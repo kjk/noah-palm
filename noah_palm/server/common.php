@@ -179,6 +179,9 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='sony' && $od=='ystn' )
         $name = "PEG-N610C";
 
+    if ( $oc=='sony' && $od=='rdwd' )
+        $name = "PEG-NR70, NR70V";
+
     # MISC devices
 
     if ( $oc=='psys' )
@@ -220,6 +223,9 @@ function get_device_name_by_oc_od($oc, $od)
         $name = "Palm m515";
 
     if ( $oc=='Palm' && $od=='Zpth' )
+        $name = "Zire 71";
+
+    if ( $oc=='Palm' && $od=='Zi72' )
         $name = "Zire 71";
 
     if ( $oc=='palm' && $od=='MT64' )

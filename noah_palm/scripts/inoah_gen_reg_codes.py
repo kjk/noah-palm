@@ -218,6 +218,10 @@ def main():
         if len(sys.argv) != 1:
             print "no other arguments allowed when using -special"
             usageAndExit()
+        if len(specialName) > 190:
+            # db allows 255 but we use 190 just to be safe; it's way too long anyway
+            print "-special argument too long (%d chars, only 190 allowed)" % len(specialName)
+            usageAndExit()
         specialName = "s:%s" % specialName
     else:
         if len(sys.argv) != 3:
