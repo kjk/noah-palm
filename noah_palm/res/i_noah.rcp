@@ -120,7 +120,7 @@ ALERT alertNoLookupsYet
 INFORMATION
 BEGIN
     TITLE "Information"
-    MESSAGE "You didn't make any lookups yet."
+    MESSAGE "No lookups have been made so far."
     BUTTONS "OK"
 END
 

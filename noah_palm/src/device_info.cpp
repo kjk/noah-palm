@@ -28,7 +28,6 @@ Err GetDeviceSerialNumber(ExtensibleBuffer* out)
         else
         {
             ebufAddStrN(out, data, length);
-            ebufAddChar(out, chrNull);
 #ifdef NEVER
             CreateNewMemo(data, length);
 #endif

@@ -33,10 +33,10 @@
 #define alertCustomError                   2006
 #define alertNoBookmarks                   2007
 #define alertNotImplemented                2008
-#define alertRegistrationSuccessful	2009
-#define alertAlreadyRegistered	2010
-#define alertMultipleRegistration	2011
-#define alertNoLookupsYet           2012
+#define alertRegistrationSuccessful        2009
+#define alertAlreadyRegistered             2010
+#define alertMultipleRegistration          2011
+#define alertNoLookupsYet                  2012
 
 #define bmpFind             3000
 
