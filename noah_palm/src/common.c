@@ -151,7 +151,7 @@ Boolean FTryClipboard(AppContext* appContext)
     SafeStrNCopy(txt, sizeof(txt), clipTxt, clipTxtLen);
     MemHandleUnlock(clipItemHandle);
 
-    RemoveWhiteSpaces(txt);
+    StringStrip(txt);
     strtolower(txt);
 
     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), txt);
@@ -1317,31 +1317,6 @@ void FreeInfoData(AppContext* appContext)
     }
 }
 
-/* given a string, remove white spaces from the beginning and end of the 
-string (in place) */
-void RemoveWhiteSpaces( char *src )
-{
-    char    *dst = src;
-    char    *last_space_pos = NULL;
-
-    while ( *src && ( (' ' == *src) || ('\n' == *src) || ('\t' == *src) ) )
-        ++src;
-
-    while( *src )
-    {
-        if ( (*src == ' ') && (NULL == last_space_pos) )
-        {
-            last_space_pos = dst;
-        }
-        *dst++ = *src++;
-    }
-
-    if ( NULL != last_space_pos )
-        *last_space_pos = '\0';
-    else
-        *dst = '\0';
-}
-
 /* a hack necessary for different OS versions. In <35
    the pointer to a list item was UInt, in >=35 it's
    only Int so list can only handle 2^15 items)
@@ -1372,6 +1347,123 @@ long CalcListOffset(long itemsCount, long itemNo)
     return next_offset;
 } 
 #endif //I_NOAH
+
+
+static bool isWs(char c)
+{
+    if ( (' '==c) || ('\n'==c) || ('\t'==c) )
+        return true;
+    return false;
+}
+
+/* given a string, remove white spaces from the beginning and end of the 
+string (in place) */
+void StringStrip( char *src )
+{
+    char    *dst = src;
+    char    *last_space_pos = NULL;
+
+    // skip whitspace at the beginning
+    while ( *src && isWs(*src) )
+        ++src;
+
+    while( *src )
+    {
+        // TODO: bug, it doesn't really remove white space from beginning
+        // it just cuts everything after first space
+        if ( (*src == ' ') && (NULL == last_space_pos) )
+        {
+            last_space_pos = dst;
+        }
+        *dst++ = *src++;
+    }
+
+    if ( NULL != last_space_pos )
+        *last_space_pos = '\0';
+    else
+        *dst = '\0';
+}
+
+/*
+Given a string, it does (in place, since the result is always guaranteed
+to be no bigger than the argument):
+- remove white spaces from the beginning and end of the string (strip)
+- replace newlines and tabs (\n, \t) with spaces
+- collapse multiple spaces into one
+*/
+void StringSanitize( char *src )
+{
+    char    *dst = src;
+    bool    fWasSpaceBefore = false;
+
+    // skip whitespace at the beginning
+    while ( *src && isWs(*src) )
+        ++src;
+
+    // spacial case: everything was a whitespace
+    if ( '\0' == *src)
+    {
+        *dst = '\0';
+        return;
+    }
+
+    // for the rest of the string, replace all whitespace chars with space
+    // and collapse multiple, consequtive spaces into one
+    while( *src )
+    {
+        if ( isWs(*src) )
+            *src = ' ';
+
+        if (' '==*src)
+        {
+            if (fWasSpaceBefore)
+                ++src;          // skip multiple, consequtive spaces
+            else
+                *dst++ = *src++;
+            fWasSpaceBefore = true;
+        }
+        else
+        {
+            *dst++ = *src++;
+            fWasSpaceBefore = false;
+        }
+    }
+
+    // remove whitespace from the end. we take advantage of the fact
+    // that due to previous processing, the only case we have to worry
+    // about is a single space at the end
+    // it won't work if we don't handle the special case of string being
+    // all whitespace before (it will try to access char before the string)
+    if ( ' ' == dst[-1] )
+        dst[-1] = '\0';
+    else
+        *dst = '\0';
+}
+
+/*
+Given a string, it does (in place, since the result is always guaranteed
+to be no bigger than the argument):
+- remove white spaces from the beginning and end of the string (strip)
+- leave only one word if there are more (words are spearated by whitespaces)
+*/
+void StringExtractWord( char *src )
+{
+    char    *dst = src;
+
+    // skip whitespace at the beginning
+    while ( *src && isWs(*src) )
+        ++src;
+
+    // copy the rest of the string until first white-space character
+    while( *src )
+    {
+        if ( isWs(*src) )
+            break;
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+}
+
 
 void DefScrollUp(AppContext* appContext, ScrollType scroll_type)
 {
@@ -2107,7 +2199,7 @@ static Err AppHandleResidentLookup()
 
     wordLen=FldGetSelectedText(field, word, wordLen+1);
     Assert(wordLen==StrLen(word));
-    RemoveWhiteSpaces(word);
+    StringStrip(word);
 /*    error=AppPerformResidentLookup(buffer);*/
     LaunchMyselfWithWord(buffer);
     MemPtrFree(buffer);

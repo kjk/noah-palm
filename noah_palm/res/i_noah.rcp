@@ -258,7 +258,7 @@ ALERT ID alertRegistrationOk
 INFORMATION
 BEGIN
     TITLE "Registration successful"
-    MESSAGE "Thank you for registaring iNoah."
+    MESSAGE "Thank you for registering iNoah."
     BUTTONS "OK"
 END
 

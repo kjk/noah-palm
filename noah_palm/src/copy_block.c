@@ -122,7 +122,7 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
 
 #ifndef I_NOAH
 #ifndef NOAH_LITE
-    RemoveWhiteSpaces( txt );
+    StringStrip( txt );
     strtolower(txt);
 #endif
 #endif

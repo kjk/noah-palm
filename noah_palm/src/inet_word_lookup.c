@@ -169,7 +169,7 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
     return error;
 }
 
-void StartWordLookup(AppContext* appContext, const Char* word)
+void StartWordLookup(AppContext* appContext, const char* word)
 {
     if (!HasCookie(appContext->prefs))
         StartCookieRequestWithWordLookup(appContext, word);

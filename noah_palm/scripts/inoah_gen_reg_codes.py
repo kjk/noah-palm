@@ -59,18 +59,31 @@ def csvQuote(txt):
         txt = '"%s"' % txt
     return txt
 
-def csvUnquote(txt):
-    if len(txt)>2 and txt[0]=='"' and txt[-1]=='"':
-        return txt[1:-1]
-    return txt
+# doesn't work!
+#def csvUnquote(txt):
+#    if len(txt)>2 and txt[0]=='"' and txt[-1]=='"':
+#        return txt[1:-1]
+#    return txt
 
 # note: those are very primitive and likely to fail on ony non-standard data
 def csvRowToTxt(row):
     rowQuoted = [csvQuote(el) for el in row]
     return string.join(rowQuoted,",")
 
+def checkCsvTxt(txt):
+    if -1 != txt.find(","):
+        print "'%s' contains comma(',') and it's not allowed" % txt
+        sys.exit(0)
+
+def csvRowToTxt(row):
+    for el in row:
+        checkCsvTxt(el)
+    return string.join(row,",")
+
 def csvTxtToRow(txt):
-    return [csvUnquote(el) for el in txt.split(",")]
+    #this doesn't work
+    #return [csvUnquote(el) for el in txt.split(",")]
+    return txt.split(",")
 
 g_regCodesFileName        = "reg_codes.csv"
 REG_CODE_LEN = 12

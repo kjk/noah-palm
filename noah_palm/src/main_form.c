@@ -238,29 +238,32 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
     return handled;
 }
 
+#define MAX_WORD_IN_CLIP_LEN 40
 static void MainFormLookupClipboard(AppContext* appContext)
 {
-    UInt16 length=0;
-    MemHandle handle=ClipboardGetItem(clipboardText, &length);
-    ExtensibleBuffer buffer;
-    ebufInit(&buffer, 0);
-    if (handle) 
-    {
-        const char* text=static_cast<const char*>(MemHandleLock(handle));
-        if (text)
-        {
-            ebufAddStrN(&buffer, const_cast<char*>(text), length);
-            MemHandleUnlock(handle);
-        }
-    }
-    if (ebufGetDataSize(&buffer))
-    {
-        ebufAddChar(&buffer, chrNull);
-        StartWordLookup(appContext, ebufGetDataPointer(&buffer));
-    }
-    ebufFreeData(&buffer);
-}
+    char          txtBuf[MAX_WORD_IN_CLIP_LEN+1];
+    MemHandle     clipItemHandle;
+    UInt16        clipTxtLen;
 
+    clipItemHandle = ClipboardGetItem(clipboardText, &clipTxtLen);
+
+    if (!clipItemHandle || 0==clipTxtLen)
+        return;
+
+    const char* clipTxt=static_cast<const char*>(MemHandleLock(clipItemHandle));
+    if (!clipTxt)
+    {
+        MemHandleUnlock( clipItemHandle );
+        return;
+    }
+
+    SafeStrNCopy(txtBuf, sizeof(txtBuf), clipTxt, clipTxtLen);
+    MemHandleUnlock(clipItemHandle);
+
+    StringExtractWord(txtBuf);
+
+    StartWordLookup(appContext, static_cast<const char*>(txtBuf));
+}
 
 /* Send query dict.php?get_random_word to the server */
 inline static void LookupRandomWord(AppContext* appContext)
