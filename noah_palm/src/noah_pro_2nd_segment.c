@@ -253,18 +253,18 @@ void DisplayAbout(AppContext* appContext)
     currentY+=16;
 
 #ifdef DEMO
-    DrawCenteredString(appContext, "Ver 2.1 (demo)", currentY);
+    DrawCenteredString(appContext, "Ver 3.0 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 2.1 (debug)", currentY);
+    DrawCenteredString(appContext, "Ver 3.0 (debug)", currentY);
   #else
-    DrawCenteredString(appContext, "Ver 2.1", currentY);
+    DrawCenteredString(appContext, "Ver 3.0", currentY);
   #endif
 #endif
     currentY+=20;
     
     FntSetFont(boldFont);
-    DrawCenteredString(appContext, "(C) 2000-2003 ArsLexis", currentY);
+    DrawCenteredString(appContext, "(C) 2003-2004 ArsLexis", currentY);
     currentY+=24;
 
     FntSetFont(largeFont);
@@ -331,7 +331,7 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
 */
 static long  GenRandomLong(long range)
 {
-    long    result;
+    UInt32  result;
     Int16   rand1, rand2;
 
     /* the idea is that to get better randomness we'll seed SysRandom() every
@@ -349,10 +349,10 @@ static long  GenRandomLong(long range)
 
     result = result % range;
 
-    Assert( (result>=0) && (result<range) );
+    Assert( result<range );
 
-    return result;
-} 
+    return (long)result;
+}
 
 
 static Boolean MainFormHandleEventNoahPro(EventType * event)
@@ -780,7 +780,7 @@ ChooseDatabase:
                     break;
                 case menuItemRandomWord:
                     {
-                        long wordNo = GenRandomLong(appContext->wordsCount);
+                        wordNo = GenRandomLong(appContext->wordsCount);
                         AddToHistory(appContext, wordNo);
                         HistoryListSetState(appContext, frm);
                         DrawDescription(appContext, wordNo);
