@@ -415,9 +415,10 @@ static void RedrawWordDefinition(AppContext* appContext)
     /* write the word at the bottom */
     word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
 
+    // TODO: replace with SetWordAsLastWord() ?
     wordLen = StrLen(word);
-    MemSet(appContext->prefs.lastWord, 32, 0);
-    MemMove(appContext->prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
+    MemSet(appContext->prefs.lastWord, WORD_MAX_LEN, 0);
+    MemMove(appContext->prefs.lastWord, word, wordLen < WORD_MAX_LEN-1 ? wordLen : WORD_MAX_LEN);
 
     SetBackColorWhite(appContext);
     DrawWord(word, appContext->screenHeight-FONT_DY);
@@ -999,7 +1000,9 @@ void RemoveWhiteSpaces( char *src )
 
 /* a hack necessary for different OS versions. In <35
    the pointer to a list item was UInt, in >=35 it's
-   nly Int so list can only handle 2^15 items) */
+   only Int so list can only handle 2^15 items)
+   For safety we declare the limit as a little less */
+#define MAX_ITEMS_IN_LIST 32000 
 long GetMaxListItems()
 {
 #if 0
@@ -1009,7 +1012,7 @@ long GetMaxListItems()
         return 20000;
     return 65000;
 #endif
-	return 20000;
+	return MAX_ITEMS_IN_LIST;
 }
 
 long CalcListOffset(long itemsCount, long itemNo)

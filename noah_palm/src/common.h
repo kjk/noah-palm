@@ -23,6 +23,7 @@
 #include "extensible_buffer.h"
 #include "better_formatting.h"
 #include "copy_block.h"
+#include "bookmarks.h"
 
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)
@@ -204,9 +205,9 @@ typedef struct
 typedef struct _AppContext
 {
 #ifndef I_NOAH
-    AbstractFile*     dicts[MAX_DICTS];
+    AbstractFile *     dicts[MAX_DICTS];
     int                dictsCount;
-    AppError         err;
+    AppError           err;
 #endif // I_NOAH    
 
     DisplayInfo *      currDispInfo;
@@ -246,7 +247,7 @@ typedef struct _AppContext
     long               ticksEventTimeout;
 #ifndef NOAH_LITE  
     int                historyCount;
-    char*             wordHistory[HISTORY_ITEMS];
+    char*              wordHistory[HISTORY_ITEMS];
 
 #ifndef I_NOAH
 
@@ -255,7 +256,7 @@ typedef struct _AppContext
 #endif // I_NOAH
     
 #endif    
-    AppPrefs          prefs;
+    AppPrefs           prefs;
     
 #ifndef I_NOAH    
 #ifdef DEBUG
@@ -312,15 +313,13 @@ typedef struct _AppContext
                   
     DmOpenRef bookmarksDb;
 
-    /**
-     * Which bookmarks view method was selected.
-     */
-     Int16 bookmarksSortBySelection;
-     
+    // which bookmark database is currently open
+    BookmarkSortType currBookmarkDbType;
+    
 #ifdef I_NOAH
     NetIPAddr serverIpAddress;
     ExtensibleBuffer currentDefinition;
-    ExtensibleBuffer currentWord;
+    ExtensibleBuffer currentWordBuf;
 #endif      
 } AppContext;
 
@@ -330,7 +329,6 @@ typedef struct _AppContext
 #define AppHasNotifyMgr(appContext) AppTestFlag(appContext, appHasNotifyMgr)
 
 extern AppContext* GetAppContext();
-
 
 long GetMaxListItems();
 
@@ -342,8 +340,8 @@ extern Boolean get_defs_records(AbstractFile* file, long entry_count, int first_
 #endif // I_NOAH
 
 void    ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey);
-void ClearDisplayRectangle(AppContext* appContext);
-void DrawCenteredString(AppContext* appContext, const char *str, int dy);
+void    ClearDisplayRectangle(AppContext* appContext);
+void    DrawCenteredString(AppContext* appContext, const char *str, int dy);
 void    DrawWord(char *word, int pos_y);
 char *  GetNthTxt(int n, char *txt);
 char *  GetWnPosTxt(int partOfSpeech);
@@ -466,13 +464,13 @@ void            serString  (char *str, char *prefsBlob, long *pCurrBlobSize);
 char *          deserString(unsigned char **data, long *pCurrBlobSize);
 void            deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize);
 
-void RememberLastWord(AppContext* appContext, FormType * frm);
-void DoFieldChanged(AppContext* appContext);
+void            RememberLastWord(AppContext* appContext, FormType * frm);
+void            DoFieldChanged(AppContext* appContext);
 void            SendFieldChanged(void);
 void            SendNewDatabaseSelected(int db);
 void            SendStopEvent(void);
 char *          strdup(char *s);
-long FindCurrentDbIndex(AppContext* appContext);
+long            FindCurrentDbIndex(AppContext* appContext);
 
 /**
  * Resizes object on form given object's id.

@@ -17,7 +17,7 @@ It passes AbstractFile allocated here, caller needs to free it.*/
 void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB, void* context)
 {
     AbstractFile        *file;
-    char                dbName[32];
+    char                dbName[dmDBNameLength];
     DmSearchStateType   stateInfo;
     UInt16              cardNo = 0;
     LocalID             dbId;
@@ -28,7 +28,7 @@ void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB, void*
 
     while (true)
     {
-        MemSet(dbName, 32, 0);
+        MemSet(dbName, sizeof(dbName), 0);
         err = DmGetNextDatabaseByTypeCreator(fNewSearch, &stateInfo, type, creator, 0, &cardNo, &dbId);
         fNewSearch = false;
 

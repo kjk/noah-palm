@@ -99,7 +99,7 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
 
     {
         FieldType* field=(FieldType*)FrmGetObjectPtr(form, index);
-        const Char* prevWord=ebufGetDataPointer(&appContext->currentWord);
+        const Char* prevWord=ebufGetDataPointer(&appContext->currentWordBuf);
         Assert(field);
         newWord=FldGetTextPtr(field);
         if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))

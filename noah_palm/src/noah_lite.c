@@ -93,9 +93,6 @@ static Err InitNoahLite(AppContext* appContext)
 
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 0;
-#ifdef DONT_DO_BETTER_FORMATTING
-    appContext->prefs.displayPrefs.listStyle = 0;
-#endif
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     appContext->ptrOldDisplayPrefs = NULL;
     

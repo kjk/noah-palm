@@ -41,7 +41,7 @@ static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
     long            blobSize;
     long            blobSizePhaseOne;
     int             phase;
-    AppPrefs*     prefs;
+    AppPrefs*       prefs;
     UInt32          prefRecordId = AppPrefId;
     int             i;
     unsigned char   currFilePos;
@@ -62,11 +62,10 @@ static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
         Assert( 4 == sizeof(prefRecordId) );
         // 1. preferences
         serData( (char*)&prefRecordId, (long)sizeof(prefRecordId), prefsBlob, &blobSize );
-        serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
-        serByte( 0, prefsBlob, &blobSize );  // used to be prefs->tapScrollType property
         serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
+        serByte( prefs->bookmarksSortType, prefsBlob, &blobSize );
 
         // 2. number of databases found      
         serByte( appContext->dictsCount, prefsBlob, &blobSize );
@@ -149,7 +148,6 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
     unsigned char   dbCount;
     unsigned char   currDb;
     AbstractFile *  file;
-    unsigned char   dummy;
 
     Assert( prefsBlob );
     Assert( blobSize > 8 );
@@ -163,11 +161,11 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
     blobSize -= 4;
 
     // 1. preferences
-    prefs->fDelVfsCacheOnExit = (Boolean) deserByte( &prefsBlob, &blobSize );
     prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
-    dummy = deserByte( &prefsBlob, &blobSize );  // used to be prefs->tapScrollType property
     prefs->hwButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
+    prefs->bookmarksSortType = (BookmarkSortType) deserByte( &prefsBlob, &blobSize );
+
 
     // 2. number of databases detected
     dbCount = deserByte( &prefsBlob, &blobSize );
@@ -428,18 +426,20 @@ static Err AppCommonInit(AppContext* appContext)
 
     // fill out the default values for Thesaurus preferences
     // and try to load them from pref database
-    appContext->prefs.fDelVfsCacheOnExit = true;
     appContext->prefs.startupAction = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
     appContext->prefs.dbStartupAction = dbStartupActionAsk;
     appContext->prefs.lastDbUsedName = NULL;
+    appContext->prefs.bookmarksSortType = bkmSortByTime;
+
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 2;
-#ifdef DONT_DO_BETTER_FORMATTING
     appContext->prefs.displayPrefs.listStyle = 0;
-#endif
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     appContext->ptrOldDisplayPrefs = NULL;
+
+    appContext->bookmarksDb = NULL;
+    appContext->currBookmarkDbType = bkmInvalid;
 
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);
@@ -535,9 +535,7 @@ Err AppCommonFree(AppContext* appContext)
     FreeInfoData(appContext);
     FreeHistory(appContext);
 
-//  decided to make it always true
-//    if ( appContext->prefs.fDelVfsCacheOnExit)
-        dcDelCacheDb();
+    dcDelCacheDb();
 
     if ( NULL != appContext->prefs.lastDbUsedName )
         new_free( appContext->prefs.lastDbUsedName );

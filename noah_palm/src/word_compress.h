@@ -62,11 +62,11 @@ int     p_strcmp(char *s1, char *s2);
 int     p_istrcmp(char *s1, char *s2);
 int     p_instrcmp(char *s1, char *s2, int maxLen );
 
-WcInfo *wcInit(AbstractFile* file, UInt32 wordsCount, int recWithComprData,
-        int recWithWordCache, int firstRecWithWords,
-        int recsWithWordsCount, int maxWordLen);
+WcInfo *  wcInit(AbstractFile* file, UInt32 wordsCount, int recWithComprData,
+                    int recWithWordCache, int firstRecWithWords,
+                    int recsWithWordsCount, int maxWordLen);
 Boolean   wcFree(WcInfo * wci);
-char*   wcGetWord(AbstractFile* file, WcInfo * wci, UInt32 wordNo);
-UInt32 wcGetFirstMatching(AbstractFile* file, WcInfo * wci, char *word);
+char*     wcGetWord(AbstractFile* file, WcInfo * wci, UInt32 wordNo);
+UInt32    wcGetFirstMatching(AbstractFile* file, WcInfo * wci, char *word);
 void      wcUnpackWord(WcInfo * wci, char *prevWord, char *unpacked);
 #endif

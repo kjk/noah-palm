@@ -55,13 +55,10 @@ static Err AppInit(AppContext* appContext)
     InitFiveWay(appContext);
     
     ebufInit(&appContext->currentDefinition, 0);
-    ebufInit(&appContext->currentWord, 0);
+    ebufInit(&appContext->currentWordBuf, 0);
     appContext->ticksEventTimeout=evtWaitForever;
 
     appContext->prefs.displayPrefs.listStyle = 2;
-#ifdef DONT_DO_BETTER_FORMATTING
-    appContext->prefs.displayPrefs.listStyle = 0;
-#endif
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     SyncScreenSize(appContext);
 
@@ -89,7 +86,7 @@ static void AppDispose(AppContext* appContext)
         diFree(appContext->currDispInfo);
         appContext->currDispInfo=NULL;
     }
-    ebufFreeData(&appContext->currentWord);
+    ebufFreeData(&appContext->currentWordBuf);
     ebufFreeData(&appContext->currentDefinition);
 }
 

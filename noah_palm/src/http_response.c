@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000-2004 Krzysztof Kowalczyk
-  Author: Krzysztof Kowalczyi
+  Author: Krzysztof Kowalczyk
 
   Helper for parsing HTTP response.
 */

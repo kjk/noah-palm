@@ -202,8 +202,8 @@ Err PrepareDisplayInfo(AppContext* appContext, const Char* word, const Char* res
             ebufWrapBigLines(&buffer);
             ebufSwap(&buffer, &appContext->currentDefinition);
             diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
-            ebufResetWithStr(&appContext->currentWord, (Char*)word);
-            ebufAddChar(&appContext->currentWord, chrNull);
+            ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
+            ebufAddChar(&appContext->currentWordBuf, chrNull);
         }
         else
         {

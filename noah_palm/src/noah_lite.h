@@ -21,33 +21,4 @@ typedef NoahLitePrefs AppPrefs;
 
 #define APP_NAME "Noah Lite"
 
-
-/*
-typedef struct
-{
-    AbstractFile  *     dicts[MAX_DICTS];
-    int                 dictsCount;
-    NoahErrors          err;
-    DisplayInfo *       currDispInfo;
-    ExtensibleBuffer *  helpDispBuf;
-    long                currentWord;
-    long                wordsCount;
-    int                 firstDispLine;
-    long                listItemOffset;
-    long                prevTopItem;
-    int                 penUpsToConsume;
-    long                prevSelectedWord;
-    long                selectedWord;
-    char                lastWord[WORD_MAX_LEN];
-    long                ticksEventTimeout;
-    NoahLitePrefs       prefs;
-#ifdef DEBUG
-    long                currentStressWord;
-#endif
-
-#include "common_global_data.h"
-
-} GlobalData;
-*/
-
 #endif

@@ -43,7 +43,6 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     unsigned char   dbCount;
     unsigned char   currDb;
     AbstractFile *  file;
-    unsigned char   dummy;
 
     Assert( prefsBlob );
     Assert( blobSize > 8 );
@@ -57,11 +56,10 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     blobSize -= 4;
 
     /* 1. preferences */
-    prefs->fDelVfsCacheOnExit = (Boolean) deserByte( &prefsBlob, &blobSize );
     prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
-    dummy = deserByte( &prefsBlob, &blobSize );  // used to be prefs->tapScrollType
     prefs->hwButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
+    prefs->bookmarksSortType = (BookmarkSortType) deserByte( &prefsBlob, &blobSize );
 
     Assert( blobSize > 0);
 
@@ -239,8 +237,9 @@ void ScanForDictsNoahPro(AppContext* appContext, Boolean fAlwaysScanExternal)
 
 Err AppCommonInit(AppContext* appContext)
 {
-    Err error=errNone;
-    UInt32 value=0;
+    Err     error=errNone;
+    UInt32  value=0;
+
     MemSet(appContext, sizeof(*appContext), 0);
     error=FtrSet(APP_CREATOR, appFtrContext, (UInt32)appContext);
     if (error) 
@@ -256,6 +255,7 @@ Err AppCommonInit(AppContext* appContext)
     appContext->prevSelectedWord = 0xfffff;
 
     appContext->firstDispLine = -1;
+    appContext->currentWord = -1;
     appContext->prevSelectedWord = -1;
     // disable getting nilEvent
     appContext->ticksEventTimeout = evtWaitForever;
@@ -265,19 +265,19 @@ Err AppCommonInit(AppContext* appContext)
 
     // fill out the default values for Noah preferences
     // and try to load them from pref database
-    appContext->prefs.fDelVfsCacheOnExit = true;
     appContext->prefs.startupAction = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
     appContext->prefs.dbStartupAction = dbStartupActionAsk;
     appContext->prefs.lastDbUsedName = NULL;
+    appContext->prefs.bookmarksSortType = bkmSortByTime;
 
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 2;
-#ifdef DONT_DO_BETTER_FORMATTING
-    appContext->prefs.displayPrefs.listStyle = 0;
-#endif
+
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     appContext->ptrOldDisplayPrefs = NULL;
+    appContext->bookmarksDb = NULL;
+    appContext->currBookmarkDbType = bkmInvalid;
 
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);
@@ -339,19 +339,17 @@ Err AppCommonFree(AppContext* appContext)
     FreeInfoData(appContext);
     FreeHistory(appContext);
 
-//  decided to make it always true
-//    if ( appContext->prefs.fDelVfsCacheOnExit)
-        dcDelCacheDb();
+    dcDelCacheDb();
 
     if ( NULL != appContext->prefs.lastDbUsedName )
         new_free( appContext->prefs.lastDbUsedName );
     
     if (appContext->wmpCacheDb) // this way it won't be called in resident mode and won't put PalmOS to it's knees
-    	CloseMatchingPatternDB(appContext);
+        CloseMatchingPatternDB(appContext);
 
     if (appContext->bookmarksDb)
-    	CloseBookmarksDB(appContext);
-    	
+        CloseBookmarksDB(appContext);
+
     FsDeinit(&appContext->fsSettings);
     return error;
 }

@@ -12,12 +12,14 @@
 #define APP_PREF_TYPE NOAH_PREF_TYPE
 
 // old ids for preference records
-// #define Noah10Pref      0x43212205
+//#define Noah10Pref      0x43212205
+// id for Noah Pro >v2.0 preferences
+//#define Noah21Pref      0x43212208
 
-/* id for Noah Pro >v2.0 preferences */
-#define Noah21Pref      0x43212208
+// id for Noah Pro >=v3.0 preferences
+#define Noah30Pref      0x43212209
 
-#define AppPrefId Noah21Pref
+#define AppPrefId Noah30Pref
 
 /* id for Noah Pro v 1.0 per-database preferences, no longer used */
 /* #define NoahDB10Pref    0x43212213 */
@@ -35,51 +37,17 @@
 /* structure of the general preferences record */
 typedef struct
 {
-    Boolean                 fDelVfsCacheOnExit;
     StartupAction           startupAction;
     ScrollType              hwButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
     char                    lastWord[WORD_MAX_LEN];
     char *                  lastDbUsedName;
     DisplayPrefs            displayPrefs;
+    // how do we sort bookmarks
+    BookmarkSortType        bookmarksSortType;
 } NoahPrefs;
 
 typedef NoahPrefs AppPrefs;
-
-/* Global data for Noah Pro */
-/*
-typedef struct
-{
-    AbstractFile *     dicts[MAX_DICTS];
-    int                dictsCount;
-    NoahErrors         err;
-    DisplayInfo *      currDispInfo;
-    ExtensibleBuffer * helpDispBuf;
-    long               currentWord;
-    long               wordsCount;
-    int                firstDispLine;
-    long               listItemOffset;
-    long               prevTopItem;
-    int                penUpsToConsume;
-    long               prevSelectedWord;
-    long               selectedWord;
-    Boolean            prefsPresentP;
-    char               lastWord[WORD_MAX_LEN];
-    int                historyCount;
-    char *             wordHistory[HISTORY_ITEMS];
-    NoahPrefs          prefs;
-    Boolean            fFirstRun; // is this first run or not 
-    long               ticksEventTimeout;
-#ifdef DEBUG
-    long               currentStressWord;
-#endif
-
-#include "common_global_data.h"
-  
-} GlobalData;
-
-extern GlobalData gd;
-*/
 
 #define PREF_REC_MIN_SIZE 4+5
 

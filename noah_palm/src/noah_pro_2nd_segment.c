@@ -25,7 +25,7 @@ void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
     long            blobSizePhaseOne;
     int             phase;
     NoahPrefs *     prefs;
-    UInt32          prefRecordId = Noah21Pref;
+    UInt32          prefRecordId = AppPrefId;
     AbstractFile *  currFile;
     unsigned char   currFilePos;
     int             i;
@@ -44,11 +44,11 @@ void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
         Assert( 4 == sizeof(prefRecordId) );
         /* 1. preferences */
         serData( (char*)&prefRecordId, (long)sizeof(prefRecordId), prefsBlob, &blobSize );
-        serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
-        serByte( 0, prefsBlob, &blobSize ); // used to be prefs->tapScrollType property
         serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
+        serByte( prefs->bookmarksSortType, prefsBlob, &blobSize );
+
 
         /* 2. number of databases found */
         serByte( appContext->dictsCount, prefsBlob, &blobSize );

@@ -27,26 +27,29 @@
    upgrades of the program.
  */
 
-/* id for Thes v 1.0 preferences */
-/* #define Thes10Pref      0x43212206 */
-/* id for Thes v 1.0 per-database preferences */
-/* #define ThesDB10Pref    0x43212214 */
+// id for Thes v 1.0 preferences
+//#define Thes10Pref      0x43212206
+// id for Thes v 1.0 per-database preferences
+//#define ThesDB10Pref    0x43212214
+// id for Thes v 1.1 preferences
+//#define Thes11Pref      0x43212216
 
-#define Thes11Pref      0x43212216
-#define AppPrefId Thes11Pref
+#define Thes20Pref 0x43212218
 
+#define AppPrefId Thes20Pref
 
 /* structure of the general preferences record */
 typedef struct
 {
-    Boolean                 fDelVfsCacheOnExit;
     StartupAction           startupAction;
     ScrollType              hwButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
     char                    lastDbName[dmDBNameLength];
-    char                    lastWord[dmDBNameLength];
+    char                    lastWord[WORD_MAX_LEN];
     char *                  lastDbUsedName;
     DisplayPrefs            displayPrefs;
+    // how do we sort bookmarks
+    BookmarkSortType        bookmarksSortType;
 } ThesPrefs;
 
 typedef ThesPrefs AppPrefs;

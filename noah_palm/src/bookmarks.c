@@ -1,40 +1,92 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Owner: Lukasz Szweda (qkiss@wp.pl)
+*/
+
 #include "common.h"
 #include "bookmarks.h"
 
-Err OpenBookmarksDB(AppContext* appContext, Int16 bookmarksSortBySelection)
-{
-    Err err;
-    LocalID dbID;
-    char * bookmarksDBByName = "Noah_bookmarks_n";
-    char * bookmarksDBByTime = "Noah_bookmarks_t";
-    char * bookmarksDB;
+#ifdef NOAH_LITE
+#error "This code doesn't work for Noah Lite"
+#endif
 
-    if (bookmarksSortBySelection == BOOKMARKS_SORT_BY_NAME)   // we open the bookmarks-sorted-by-name database
+/* name of the database that holds bookmarks sorted by name */
+#define BOOKMARKS_DB_BY_NAME "Noah_bookmarks_n"
+
+/* name of the database that holds bookmarks sorted by the time 
+   they were bookmarked */
+#define BOOKMARKS_DB_BY_TIME "Noah_bookmarks_t"
+
+/* Open bookmarks database (whose type is BOOKMARKS_DB_TYPE and 
+   creator is APP_CREATOR) with a given dbName */
+static DmOpenRef OpenBookmarksDBByName(char *dbName)
+{
+    Boolean             fNewSearch;
+    DmSearchStateType   stateInfo;
+    UInt16              cardNo = 0;
+    LocalID             dbId;
+    char                dbNameBuf[dmDBNameLength];
+
+    fNewSearch = true;
+    while ( errNone == DmGetNextDatabaseByTypeCreator(fNewSearch, &stateInfo, BOOKMARKS_DB_TYPE, APP_CREATOR, 0, &cardNo, &dbId) )
     {
-        bookmarksDB = bookmarksDBByName;
-        Assert(StrLen(bookmarksDB) < dmDBNameLength);
+        fNewSearch = false;
+
+        MemSet(dbNameBuf, sizeof(dbName), 0);
+        DmDatabaseInfo(cardNo, dbId, dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
+
+        if ( 0==StrCompare(dbName,dbNameBuf) )
+            return DmOpenDatabase(cardNo, dbId, dmModeReadWrite);
     }
-    else if (bookmarksSortBySelection == BOOKMARKS_SORT_BY_TIME)
+    return NULL;
+}
+
+/* Open one of the bookmark databases. If sortType is bkmSortByName
+   use bookmarks sorted by name, if bkmSortByTime use bookmarks
+   sorted by the bookmarking time */
+Err OpenBookmarksDB(AppContext* appContext, BookmarkSortType sortType)
+{
+    Err      err;
+    char *   dbName;
+ 
+    if ( sortType == appContext->currBookmarkDbType )
     {
-        bookmarksDB = bookmarksDBByTime;
-        Assert(StrLen(bookmarksDB) < dmDBNameLength);
+        // it's already open
+        Assert( appContext->bookmarksDb );
+        return errNone;
     }
-    
+
+    switch( sortType )
+    {
+        case bkmSortByName:
+            dbName = BOOKMARKS_DB_BY_NAME;
+            break;
+        case bkmSortByTime:
+            dbName = BOOKMARKS_DB_BY_TIME;
+            break;
+        default:
+            Assert(false);
+            break;
+    }
+    Assert(StrLen(dbName) < dmDBNameLength);
+
     CloseBookmarksDB(appContext);
-    if (appContext->bookmarksDb == NULL)
+
+    appContext->bookmarksDb = OpenBookmarksDBByName(dbName);
+
+    if (!appContext->bookmarksDb)
     {
-        dbID = DmFindDatabase(0, bookmarksDB);
-        if (!dbID)
-        {
-            err = DmCreateDatabase(0, bookmarksDB, 'NoAH', 'data', false);
-            if (err) return err;
-            dbID = DmFindDatabase(0, bookmarksDB);
-            if (!dbID) return dmErrCantOpen;
-        }
-        appContext->bookmarksDb = DmOpenDatabase(0, dbID, dmModeReadWrite);
-        if (NULL == appContext->bookmarksDb)
+        err = DmCreateDatabase(0, dbName, APP_CREATOR,  BOOKMARKS_DB_TYPE, false);
+        if ( errNone != err)
+            return err;
+
+        appContext->bookmarksDb = OpenBookmarksDBByName(dbName);
+        if (!appContext->bookmarksDb)
             return dmErrCantOpen;
     }
+    Assert(appContext->bookmarksDb);
+
+    appContext->currBookmarkDbType = sortType;
     return errNone;
 }
 
@@ -42,8 +94,10 @@ Err CloseBookmarksDB(AppContext* appContext)
 {
     if (appContext->bookmarksDb != NULL)
     {
+        Assert( bkmInvalid != appContext->currBookmarkDbType );
         DmCloseDatabase(appContext->bookmarksDb);
         appContext->bookmarksDb = NULL;
+        appContext->currBookmarkDbType = bkmInvalid;
     }
     return errNone;
 }
@@ -54,7 +108,7 @@ void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Int16       stringLenP;
     Boolean     truncatedP = false;
     MemHandle   recHandle;
-    char        *str;
+    char *      str;
     AppContext* appContext=GetAppContext();
 
     Assert(itemNum >= 0);
@@ -74,32 +128,41 @@ void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     }
 }
 
-UInt16 BookmarksNumRecords(AppContext* appContext)
+/* Return the number of bookmarked words */
+UInt16 BookmarksWordCount(AppContext* appContext)
 {
+    Assert(appContext->bookmarksDb);
     return DmNumRecords(appContext->bookmarksDb);
 }
 
 Boolean BookmarksFormHandleEvent(EventType * event)
 {
-    Boolean handled = false;
-    FormType * frm = NULL;
-    ListType *  list = NULL;
-    char *      listTxt = NULL;
+    Boolean     handled = false;
+    FormType *  frm;
+    ListType *  bkmList, * sortTypeList;
+    char *      listTxt;
+    UInt16      bookmarksCount;
     AppContext* appContext = GetAppContext();
 
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case frmOpenEvent:
-            list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
-            OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
-            LstSetDrawFunction(list, BookmarksListDrawFunc);
-            LstSetListChoicesEx(list, NULL, BookmarksNumRecords(appContext));
-            FrmDrawForm(frm);
-            list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listSortBy));
-            listTxt = LstGetSelectionText(list, appContext->bookmarksSortBySelection);
-            LstSetSelection(list, appContext->bookmarksSortBySelection);
+            OpenBookmarksDB(appContext, appContext->prefs.bookmarksSortType);
+            bkmList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listBookmarks));
+            LstSetDrawFunction(bkmList, BookmarksListDrawFunc);
+            bookmarksCount = BookmarksWordCount(appContext);
+            LstSetListChoices(bkmList, NULL, bookmarksCount);
+
+            sortTypeList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listSortBy));
+            // list position matches enums for simplicity
+            LstSetSelection(sortTypeList, (Int16)appContext->prefs.bookmarksSortType);
+
+            listTxt = LstGetSelectionText(sortTypeList, appContext->prefs.bookmarksSortType);
             CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
+
+            FrmDrawForm(frm);
+
             handled = true;
             break;
 
@@ -107,30 +170,49 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
+                    CloseBookmarksDB(appContext);
                     FrmReturnToForm(0);
                     handled = true;
                     break;
 
+                case popupSortBy:
+                    // do nothing
+                    break;
+
                 default:
+                    Assert(false);
                     break;
             }
             break;
 
         case popSelectEvent:
-            list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, event->data.popSelect.listID));
-            listTxt = LstGetSelectionText(list, event->data.popSelect.selection);
             switch (event->data.popSelect.listID)
             {
                 case listSortBy:
-                    CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
-                    appContext->bookmarksSortBySelection = LstGetSelection(list);
-                    OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
-                    list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
-                    LstSetListChoicesEx(list, NULL, BookmarksNumRecords(appContext));
-                    FrmDrawForm(frm);
+                    Assert( appContext->currBookmarkDbType == appContext->prefs.bookmarksSortType );
+                    if ((BookmarkSortType) event->data.popSelect.selection != appContext->prefs.bookmarksSortType)
+                    {
+                        // we changed sorting type
+                        sortTypeList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listSortBy));
+                        listTxt = LstGetSelectionText(sortTypeList, event->data.popSelect.selection);
+                        CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
+
+                        // list position matches enums for simplicity
+                        OpenBookmarksDB(appContext, (BookmarkSortType) event->data.popSelect.selection);
+                        appContext->prefs.bookmarksSortType = (BookmarkSortType) event->data.popSelect.selection;
+#ifdef DEBUG
+                        // word count shouldn't change
+                        bookmarksCount = BookmarksWordCount(appContext);
+                        bkmList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listBookmarks));
+                        Assert( LstGetNumberOfItems(bkmList) == bookmarksCount );
+#endif
+                        FrmDrawForm(frm);
+                    }
+                    handled = true;
                     break;
 
                 default:
+                    Assert(false);
                     break;
             }
             break;
@@ -138,17 +220,20 @@ Boolean BookmarksFormHandleEvent(EventType * event)
         case lstSelectEvent:
         {
             MemHandle recHandle;
-            char * str;
-            recHandle = DmQueryRecord(appContext->bookmarksDb, appContext->listItemOffset + (UInt32) event->data.lstSelect.selection);
+            char *    word;
+            recHandle = DmQueryRecord(appContext->bookmarksDb, event->data.lstSelect.selection);
+            Assert( recHandle ); // no reason it shouldn't work
             if (recHandle)
             {
-                str = MemHandleLock(recHandle);
-                appContext->currentWord = dictGetFirstMatching(GetCurrentFile(appContext), str);
+                word = (char*)MemHandleLock(recHandle);
+                Assert(word);
+                appContext->currentWord = dictGetFirstMatching(GetCurrentFile(appContext), word);
                 MemHandleUnlock(recHandle);
+                SendNewWordSelected();
             }
-            SendNewWordSelected();
+            CloseBookmarksDB(appContext);
             FrmReturnToForm(0);
-            return true;
+            handled = true;
         }
 
         default:
@@ -158,113 +243,144 @@ Boolean BookmarksFormHandleEvent(EventType * event)
 }
 
 Int16 BookmarksByNameCompare(char * r1, char * r2, Int16 sortOrder, SortRecordInfoPtr /* info1 */, 
-	SortRecordInfoPtr /* info2 */, MemHandle /* appInfoH */)
+    SortRecordInfoPtr /* info2 */, MemHandle /* appInfoH */)
 {
-    return StrCompare(r1, r2);
+    // need to use that to have the same sorting as in list of words
+    return p_istrcmp(r1,r2);
 }
 
+/* Create a new record recNum in a databse db that contains given word */
+static Err WriteWordInRecord(DmOpenRef db, UInt16 recNum, char *word)
+{
+    int         wordLen;
+    MemHandle   recHandle;
+    MemPtr      recData;
+    Err         err;
+
+    Assert(db);
+    Assert(word);
+
+    wordLen = StrLen(word)+1;
+
+    recHandle = DmNewRecord(db, &recNum, wordLen);
+    if (!recHandle)
+        return DmGetLastErr();
+
+    recData = MemHandleLock(recHandle);
+    Assert( recData );
+
+    err = DmWrite(recData, 0, word, wordLen);
+    MemHandleUnlock(recHandle);
+    DmReleaseRecord(db, recNum, true);
+    return err;
+}
+
+/* Save a given word in bookmarks database. */
 Err AddBookmark(AppContext* appContext, char * word)
 {
-    Err err;
-    MemHandle recHandle;
-    char * str;
-    UInt16 pos;
-    Boolean recFound;
-    Int16 lastSortBySelection;
+    Err                 err;
+    UInt16              pos;
+    Boolean             fWordAlreadyBookmarked;
+    MemHandle           recHandle;
+    char *              wordInRec;
+    BookmarkSortType    currDbOpen;
 
-    lastSortBySelection = appContext->bookmarksSortBySelection;
+    currDbOpen = appContext->currBookmarkDbType;
 
     // 1. See if we already have the record in bookmarks.
     //    We assume that if the record wasn't found in sorted-by-name database, it doesn't exist in the other.
     //    The sorted-by-name database is quicker to scan, because we can use binary search.
-    recFound = false;
-    if (OpenBookmarksDB(appContext, BOOKMARKS_SORT_BY_NAME) == errNone)
-    {
-        pos = DmFindSortPosition(appContext->bookmarksDb, word, NULL, (DmComparF *) BookmarksByNameCompare, 0);
-        
-        // DmFindSortPosition returns the position there the new record should be placed
-        // so if the record exist it's position is (pos - 1)
-        if (pos > 0)
-            pos--;
-        
-        recHandle = DmQueryRecord(appContext->bookmarksDb, pos);
-        if (recHandle)
-        {
-            str = MemHandleLock(recHandle);
-            if (!StrCompare(word, str))
-                recFound = true;
-            MemHandleUnlock(recHandle);
-        }
-    }
-    if (recFound)
-        return 1;
-    // 2. If we haven't fount the record, we add it to databases
-    else {
-        if (OpenBookmarksDB(appContext, BOOKMARKS_SORT_BY_NAME) == errNone)
-        {
-            // the record must be put alphabetically, so we must obtain it's position
-            pos = DmFindSortPosition(appContext->bookmarksDb, word, NULL, (DmComparF *) BookmarksByNameCompare, 0);
-            recHandle = DmNewRecord(appContext->bookmarksDb, &pos, BOOKMARKS_REC_SIZE);
-            if (recHandle)
-            {
-                str = MemHandleLock(recHandle);
-                err = DmWrite(str, 0, word, BOOKMARKS_REC_SIZE);
-                MemHandleUnlock(recHandle);
-                DmReleaseRecord(appContext->bookmarksDb, pos, true);
-            }
-        }
 
-        if (OpenBookmarksDB(appContext, BOOKMARKS_SORT_BY_TIME) == errNone)
-        {
-            // the record must be put chronogically, so we simply put it at the end of this database
-            pos = dmMaxRecordIndex;
-            recHandle = DmNewRecord(appContext->bookmarksDb, &pos, BOOKMARKS_REC_SIZE);
-            if (recHandle)
-            {
-                str = MemHandleLock(recHandle);
-                err = DmWrite(str, 0, word, BOOKMARKS_REC_SIZE);
-                MemHandleUnlock(recHandle);
-                DmReleaseRecord(appContext->bookmarksDb, pos, true);
-            }
-        }
+    err = OpenBookmarksDB(appContext, bkmSortByName);
+    if (errNone != err)
+        goto Exit;
+
+    pos = DmFindSortPosition(appContext->bookmarksDb, word, NULL, (DmComparF *) BookmarksByNameCompare, 0);
+    
+    fWordAlreadyBookmarked = false;
+    // DmFindSortPosition returns the position there the new record should be placed
+    // so if the record exist its position is (pos - 1)
+    recHandle = DmQueryRecord(appContext->bookmarksDb, pos>0 ? pos-1 : pos);
+    // it's ok if we don't get handle - this might be an empty database
+    if (recHandle)
+    {
+        wordInRec = (char*)MemHandleLock(recHandle);
+        if (0 == StrCompare(word, wordInRec))
+            fWordAlreadyBookmarked = true;
+        MemHandleUnlock(recHandle);
     }
-    appContext->bookmarksSortBySelection = lastSortBySelection;
-    OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
-    return errNone;
+    
+    if (fWordAlreadyBookmarked)
+    {
+        err = errNone;
+        goto Exit;
+    }
+
+    // 2. If we haven't found the record, we add it to databases
+
+    WriteWordInRecord(appContext->bookmarksDb, pos, word);
+    CloseBookmarksDB(appContext);
+
+    err = OpenBookmarksDB(appContext, bkmSortByTime);
+    if (errNone != err)
+        goto Exit;
+    // the record must be put chronogically, so we add it at the beginning of the database
+    WriteWordInRecord(appContext->bookmarksDb, 0, word);
+    CloseBookmarksDB(appContext);
+
+Exit:
+    if (bkmInvalid != currDbOpen)
+        OpenBookmarksDB(appContext, currDbOpen);
+    return err;
 }
 
-void DeleteBookmark(AppContext* appContext, char * word)
+/* Delete a bookmark for a given word in a bookmark database indicated by sortType */
+static Err DeleteBookmarkInDB(AppContext* appContext, BookmarkSortType sortType, char *word)
 {
-    UInt16 num, i;
-    Int16 lastSortBySelection, sortBy;
-    MemHandle recHandle;
-    char * str;
-    
-    lastSortBySelection = appContext->bookmarksSortBySelection;
+    Err          err;
+    UInt16       recsCount, i;
+    MemHandle    recHandle;
+    char *       wordInRecord;
 
-    // for all the sorting databases we iterate, find the record and remove it
-    for (sortBy = BOOKMARKS_SORT_BY_FIRST; sortBy <= BOOKMARKS_SORT_BY_LAST; sortBy++)
+    err = OpenBookmarksDB(appContext, sortType);
+    if ( errNone != err )
+        return err;
+
+    recsCount = DmNumRecords(appContext->bookmarksDb);
+    for (i = 0; i < recsCount; i++)
     {
-        if (OpenBookmarksDB(appContext, sortBy) == errNone)
+        recHandle = DmQueryRecord(appContext->bookmarksDb, i);
+        if (!recHandle)
         {
-            num = BookmarksNumRecords(appContext);
-            for (i = 0; i < num; i++)
-            {
-                recHandle = DmQueryRecord(appContext->bookmarksDb, i);
-                if (recHandle)
-                {
-                    str = MemHandleLock(recHandle);
-                    if (!StrCompare(str, word))
-                    {
-                        MemHandleUnlock(recHandle);
-                        DmRemoveRecord(appContext->bookmarksDb, i);
-                    }
-                    else
-                        MemHandleUnlock(recHandle);
-                }
-            }
+            err = DmGetLastErr();
+            goto OnError;
         }
+
+        wordInRecord = (char*)MemHandleLock(recHandle);
+        Assert(wordInRecord);
+        if (0 == StrCompare(wordInRecord, word))
+        {
+            MemHandleUnlock(recHandle);
+            DmRemoveRecord(appContext->bookmarksDb, i);
+            break;
+        }
+        MemHandleUnlock(recHandle);
     }
-    appContext->bookmarksSortBySelection = lastSortBySelection;
-    OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
+OnError:
+    CloseBookmarksDB(appContext);
+    return err;
+}
+
+/* Remove a given word from bookmarks database. It's ok for the word
+   to not be bookmarked. */
+void DeleteBookmark(AppContext* appContext, char *word)
+{
+    BookmarkSortType    currDbOpen;
+
+    currDbOpen = appContext->currBookmarkDbType;
+    // ignore error in DeleteBookmarkInDB - not much that we can do
+    DeleteBookmarkInDB(appContext, bkmSortByName, word);    
+    DeleteBookmarkInDB(appContext, bkmSortByTime, word);    
+    if (bkmInvalid != currDbOpen)
+        OpenBookmarksDB(appContext, currDbOpen);
 }
