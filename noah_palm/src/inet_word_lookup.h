@@ -9,6 +9,7 @@
 #include "common.h"
 
 extern void StartWordLookup(AppContext* appContext, const Char* word);
+extern void StartRandomWordLookup(AppContext* appContext);
 
 #ifdef DEBUG
 void testParseResponse(char *txt);

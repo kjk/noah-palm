@@ -32,13 +32,11 @@ typedef struct
 
 typedef iNoahPrefs AppPrefs;
 
-#define appVersionMajor 0
-#define appVersionMinor 5
-
 #define appPreferencesVersion 0x0101
 #define appPreferencesId    0
 
-#define protocolVersion 1
+#define     PROTOCOL_VERSION "1"
+#define     CLIENT_VERSION   "0.5"
 
 typedef enum AppEvent_
 {

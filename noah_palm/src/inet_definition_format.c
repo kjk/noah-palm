@@ -336,7 +336,7 @@ static Err ProcessCookieResponse(AppContext* appContext, const Char* responseBeg
     return error;
 }
 
-Err ProcessResponse(AppContext* appContext, const Char* word, const Char* begin, const Char* end, ResponseParsingResult& result)
+Err ProcessResponse(AppContext* appContext, const char* word, const char* begin, const char* end, ResponseParsingResult& result)
 {
     Assert(word);
     Assert(begin);

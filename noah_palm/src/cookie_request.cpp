@@ -19,22 +19,31 @@
 
 /**
  * Callback used by internet connection framework to process valid response.
- * 
+ * if context is NULL we should follow up with GET_RANDOM_WORD request,
+ * otherwise with GET_WORD request
  * @see ConnectionResponseProcessor
  */
-static Err CookieRequestResponseProcessor(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd)
+static Err CookieRequestResponseProcessor(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
 {
-    ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
-    Assert(wordBuffer);
-    const Char* word=ebufGetDataPointer(wordBuffer);
-    ResponseParsingResult result;
+    const char*             word=NULL;
+    ResponseParsingResult   result;
+
+    if (context)
+    {
+        ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
+        Assert(wordBuffer);
+        word=ebufGetDataPointer(wordBuffer);
+    }
     Err error=ProcessResponse(appContext, word, responseBegin, responseEnd, result);
     if (!error)
     {
         if (responseCookie==result)
         {
             Assert(HasCookie(appContext->prefs));
-            StartWordLookup(appContext, word);
+            if (word)
+                StartWordLookup(appContext, word);
+            else
+                StartRandomWordLookup(appContext);
         }
         else if (responseMessage!=result && responseErrorMessage!=result)
         {
@@ -54,25 +63,20 @@ static void CookieRequestContextDestructor(void* context)
 
 static Err CookieRequestPrepareRequest(ExtensibleBuffer& buffer)
 {
-    Err error=errNone;
-    ExtensibleBuffer deviceIdBuffer;
+    Err                 error=errNone;
+    ExtensibleBuffer    deviceIdBuffer;
     ebufInit(&deviceIdBuffer, 0);
     RenderDeviceIdentifier(&deviceIdBuffer);
     ebufAddChar(&deviceIdBuffer, chrNull);
-    Char* deviceId=ebufGetDataPointer(&deviceIdBuffer);
-    UInt16 deviceIdLength=ebufGetDataSize(&deviceIdBuffer);
+    char *              deviceId=ebufGetDataPointer(&deviceIdBuffer);
+    UInt16              deviceIdLength=ebufGetDataSize(&deviceIdBuffer);
+
     error=StrUrlEncode(deviceId, deviceId+deviceIdLength, &deviceId, &deviceIdLength);
     if (error)
         goto OnError;
     ebufFreeData(&deviceIdBuffer);
     
-    Char protocolVersionBuffer[8];
-    StrPrintF(protocolVersionBuffer, "%hd", (short)protocolVersion);
-    
-    Char clientVersionBuffer[8];
-    StrPrintF(clientVersionBuffer, "%hd.%hd", (short)appVersionMajor, (short)appVersionMinor);
-    
-    Char* url=TxtParamString(cookieRequestUrl, protocolVersionBuffer, clientVersionBuffer, deviceId, NULL);
+    char * url=TxtParamString(cookieRequestUrl, PROTOCOL_VERSION, CLIENT_VERSION, deviceId, NULL);
     new_free(deviceId);
     if (!url)
     {
@@ -87,22 +91,34 @@ OnError:
     
 }
 
-void StartCookieRequestWithWordLookup(AppContext* appContext, const Char* word)
+// do a GET_COOKIE request followed by GET_WORD request or GET_RANDOM_WORD
+// request (if word is NULL)
+void StartCookieRequestWithWordLookup(AppContext* appContext, const char* word)
 {
     ExtensibleBuffer request;
     ebufInit(&request, 0);
     Err error=CookieRequestPrepareRequest(request);
     if (!error)
     {
-        ExtensibleBuffer* wordBuffer=ebufNew();
-        if (wordBuffer)
+        if (word)
         {
-            ebufInitWithStr(wordBuffer, const_cast<Char*>(word));
-            StartConnection(appContext, wordBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
-                CookieRequestResponseProcessor,  CookieRequestContextDestructor);
+            ExtensibleBuffer* wordBuffer=ebufNew();
+            if (wordBuffer)
+            {
+                ebufInitWithStr(wordBuffer, const_cast<char*>(word));
+                StartConnection(appContext, wordBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
+                    CookieRequestResponseProcessor,  CookieRequestContextDestructor);
+            }
+            else
+                FrmAlert(alertMemError);
         }
         else
-            FrmAlert(alertMemError);
+        {
+            // this means GET_RANDOM_WORD in CookieRequestResponseProcessor
+            StartConnection(appContext, NULL, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
+                CookieRequestResponseProcessor,  CookieRequestContextDestructor);
+        }
+            
     }
     else
         FrmAlert(alertMemError);    

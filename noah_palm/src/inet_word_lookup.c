@@ -9,6 +9,7 @@
 #include "cookie_request.h"
 
 #define wordLookupURL           "/palm.php?pv=^0&cv=^1&c=^2&get_word=^3"
+#define randomWordURL           "/palm.php?pv=^0&cv=^1&c=^2&get_random_word"
 
 #ifdef DEBUG
 
@@ -117,7 +118,7 @@ static Err WordLookupStatusTextRenderer(void* context, ConnectionStage stage, UI
     }
     ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
     Assert(wordBuffer);
-    const Char* word=ebufGetDataPointer(wordBuffer);
+    const char* word=ebufGetDataPointer(wordBuffer);
     Assert(word);
     return WordLookupRenderStatusText(word, stage, responseLength, baseText, statusBuffer);
 }
@@ -129,24 +130,18 @@ static void WordLookupContextDestructor(void* context)
     ebufDelete(wordBuffer);
 }
 
-static Err WordLookupPrepareRequest(const Char* cookie, const Char* word, ExtensibleBuffer& buffer)
+static Err WordLookupPrepareRequest(const char* cookie, const char* word, ExtensibleBuffer& buffer)
 {
-    Err error=errNone;
-    Char* url=NULL;
+    Err     error=errNone;
+    char *  url=NULL;
     Assert(word);
-    UInt16 wordLength=StrLen(word);
-    Char* urlEncodedWord;
+    UInt16  wordLength=StrLen(word);
+    char *  urlEncodedWord;
     error=StrUrlEncode(word, word+wordLength, &urlEncodedWord, &wordLength);
     if (error)
         goto OnError;
     
-    Char protocolVersionBuffer[8];
-    StrPrintF(protocolVersionBuffer, "%hd", (short)protocolVersion);
-    
-    Char clientVersionBuffer[8];
-    StrPrintF(clientVersionBuffer, "%hd.%hd", (short)appVersionMajor, (short)appVersionMinor);
-    
-    url=TxtParamString(wordLookupURL, protocolVersionBuffer, clientVersionBuffer, cookie, urlEncodedWord);
+    url=TxtParamString(wordLookupURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncodedWord);
     new_free(urlEncodedWord);
     if (!url)
     {
@@ -230,3 +225,50 @@ void StartWordLookup(AppContext* appContext, const Char* word)
         ebufFreeData(&urlBuffer);
     }
 }
+
+static Err RandomWordPrepareRequest(const char* cookie, ExtensibleBuffer& buffer)
+{
+    Err     error=errNone;
+    char *  url=NULL;
+
+    url=TxtParamString(randomWordURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, NULL);
+    if (!url)
+    {
+        error=memErrNotEnoughSpace;
+        goto OnError;
+    }
+    ebufAddStr(&buffer, url);
+    MemPtrFree(url);
+    ebufAddChar(&buffer, chrNull);
+OnError:        
+    return error;    
+}
+
+void StartRandomWordLookup(AppContext* appContext)
+{
+    if (!HasCookie(appContext->prefs))
+        StartCookieRequestWithWordLookup(appContext, NULL);
+    else
+    {
+        ExtensibleBuffer urlBuffer;
+        ebufInit(&urlBuffer, 0);
+        Err error=RandomWordPrepareRequest(appContext->prefs.cookie, urlBuffer);
+        if (!error) 
+        {
+            const char* requestUrl=ebufGetDataPointer(&urlBuffer);
+            ExtensibleBuffer* context=ebufNew();
+            if (context)
+            {
+                ebufInitWithStr(context, "random_word");
+                StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
+                    WordLookupResponseProcessor, WordLookupContextDestructor);
+            }
+            else 
+                FrmAlert(alertMemError);            
+        }
+        else 
+            FrmAlert(alertMemError);
+        ebufFreeData(&urlBuffer);
+    }
+}
+

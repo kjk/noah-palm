@@ -237,7 +237,7 @@ static void MainFormLookupClipboard(AppContext* appContext)
 /* Send query dict.php?get_random_word to the server */
 static void LookupRandomWord(AppContext* appContext)
 {
-    FrmAlert(alertNotImplemented);
+    StartRandomWordLookup(appContext);
 }
 
 static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* event)
