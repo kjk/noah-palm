@@ -244,7 +244,9 @@ ScanNextVolume:
 
 ScanNextDir:
     currDir = ssPop(&dirsToVisit);
+
     if ( NULL == currDir) goto NoMoreFiles;
+    LogV1("FsVfsFindDb(), currDir=%s", currDir );
     err = VFSFileOpen(currVolRef, currDir, vfsModeRead, &dirRef);
     if (err != errNone)
         goto NoMoreFiles;
@@ -255,8 +257,8 @@ ScanNextDir:
         err = VFSDirEntryEnumerate(dirRef, &dirIter, &fileInfo);
         if (err != errNone)
         {
-            DrawDebug2Num("VFSDirEnum() failed", err);
-            goto NoMoreFiles;
+            LogV1("VFSDirEnum() failed with err=%d", err );
+            goto FailedDirEnum;
         }
 
         // if a dir - add to the list of dirs to visit next
@@ -292,7 +294,9 @@ ScanNextDir:
 
     Assert(expIteratorStop == dirIter);
     Assert( 0 != dirRef );
+FailedDirEnum:
     new_free(currDir);
+    currDir = NULL;
     VFSFileClose(dirRef);
     dirRef = 0;
     if (fRecursive)
@@ -303,6 +307,9 @@ ScanNextDir:
 NoMoreFiles:
     if (0 != dirRef)
         VFSFileClose(dirRef);
+
+    if ( NULL != currDir )
+        new_free(currDir);
 
     while(true)
     {

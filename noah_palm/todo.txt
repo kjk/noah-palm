@@ -1,4 +1,6 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
+* bug: second opening of a db that uses a cache is an error
+* np: add option "delete cache on exit", on by default
 * add a color icon for Noah Pro
 * change icon for Thesaurus/add a color icon
 * restore word history in Noah Pro
