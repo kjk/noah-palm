@@ -44,9 +44,8 @@ Boolean FIsPrefRecord(void *recData)
 		return false;
 }
 
-/* Create a blob containing 
-caller needs to free memory returned
-*/
+// Create a blob containing serialized prefernces.
+// Devnote: caller needs to free memory returned.
 void *GetSerializedPreferencesNoahPro(long *pBlobSize)
 {
     void *      prefsBlob;

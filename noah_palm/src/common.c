@@ -1182,17 +1182,52 @@ void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 
 void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
-    char    *str;
+    char    *str, *strTmp, *lastSlash, *mungedName = NULL;
     Int16   strDx = bounds->extent.x - bounds->topLeft.x;
-    Int16   strLen;
+    Int16   strLen, mungedNameLen, i;
     Boolean truncatedP = false;
 
     Assert(itemNum >= 0);
     str = GetDatabaseName(itemNum);
+    Assert(NULL != str);
     strLen = StrLen(str);
+
+    /* full path (in case of databases from external memory card) may be too long
+    to fit in one line in which case instead of displaying "/path/too/long/file"
+    we want to display "file (/path/too/long)". We'll do this munging for
+    all files from vfs. */
+    if ( '/' == str[0] )
+    {
+        mungedNameLen = strLen + 3 /* for " ()" */ 
+                               + 1 /* NULL termination */
+                               - 1 /* take on "/" out */;
+        mungedName = new_malloc( mungedNameLen );
+        if (mungedName)
+        {
+            for(i=0;i<strLen;i++)
+            {
+                if ( '/' == str[i] )
+                    lastSlash = &str[i];
+            }
+            strTmp = mungedName;
+            StrCopy(strTmp,lastSlash+1);
+            strTmp += StrLen(lastSlash+1);
+            *strTmp++ = ' ';
+            *strTmp++ = '(';
+            while( str < lastSlash )
+                *strTmp++ = *str++;
+            *strTmp++ = ')';
+            *strTmp++ = 0;
+            Assert((int)(strTmp-mungedName) == mungedNameLen);
+            str = mungedName;
+        }
+    }
 
     FntCharsInWidth(str, &strDx, &strLen, &truncatedP);
     WinDrawChars(str, strLen, bounds->topLeft.x, bounds->topLeft.y);
+
+    if (mungedName)
+        new_free(mungedName);
 }
 
 void ssInit( StringStack *ss )
