@@ -83,14 +83,12 @@ static void MainFormDraw(AppContext* appContext, FormType* form)
 }
 
 /* Select all text in a given Field */
-static void FldSelectAllText(FormType *form, const FieldType* field)
+static void FldSelectAllText(FieldType* field)
 {
-    // TODO: obviously.
-    UInt16 index;
-
-    index=FrmGetObjectIndex(form, fieldWordInput);
-    FrmShowObject(form, index);
-    FrmSetFocus(form, index);
+    UInt16 endPos;
+    endPos = FldGetTextLength(field);
+    FldSetSelection(field,(UInt16)0,endPos);
+    FldGrabFocus(field);
 }
 
 static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
@@ -101,7 +99,7 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
     Assert(frmInvalidObjectId!=index);
 
     {
-        const FieldType* field=(const FieldType*)FrmGetObjectPtr(form, index);
+        FieldType* field=(FieldType*)FrmGetObjectPtr(form, index);
         const Char* prevWord=ebufGetDataPointer(&appContext->currentWord);
         Assert(field);
         newWord=FldGetTextPtr(field);
@@ -109,7 +107,7 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
         if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
         {
             Err error=LookupWord(appContext, newWord);
-            FldSelectAllText(form, field);
+            FldSelectAllText(field);
             if (!error)
                 FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
         }
@@ -140,7 +138,6 @@ static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* e
 
     appContext->mainFormMode=mainFormShowingField;
     index=FrmGetObjectIndex(form, fieldWordInput);
-    FrmShowObject(form, index);
     FrmSetFocus(form, index);
 
 //    error=LookupWord(appContext, "art");
