@@ -19,23 +19,44 @@
  *
  ****************************************************/
 
-
 #include "PceNativeCall.h"
 #ifdef WIN32
 	#include "SimNative.h"
+	#include <stdio.h>
 #endif
 
 #include "../../src/armlet_structures.h"
 #include "utils68k.h"
-#include <stdio.h>
 
 unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP, Call68KFuncType *call68KFuncP);
 
+#ifndef WIN32
+unsigned long __ARMlet_Startup__(const void *emulStateP, void *userData68KP, Call68KFuncType *call68KFuncP)
+#else
 unsigned long NativeFunction(const void *emulStateP, void *userData68KP, Call68KFuncType *call68KFuncP)
+#endif
 {
 	return NativeFunctionAtTheEnd(emulStateP, userData68KP, call68KFuncP);
 }
 
+
+#ifndef WIN32
+
+#include <stdio.h>
+#include <string.h>
+
+/*
+void memmove(char *dst,char *src,int n)
+{
+
+}
+
+int strlen(char *str)
+{
+
+}
+*/
+#endif
 /*FROM THIS POINT YOU CAN ADD YOUR OWN FUNCTIONS*/
 void Function1(void *funData)
 {            
@@ -50,7 +71,7 @@ Call68KFuncType *call68KFuncPGLOBAL;
 void new_free(void * ptr)
 {
 	void* ptrSwaped;  // array of Byte
-	ptrSwaped = EndianSwap32(ptr);   
+	ptrSwaped = (void *)EndianSwap32(ptr);   
     ((call68KFuncPGLOBAL)(emulStatePGLOBAL, PceNativeTrapNo(sysTrapMemPtrFree), &ptrSwaped, 4 | kPceNativeWantA0));
 }
 
@@ -541,7 +562,7 @@ void Function10(void *funData)
     input = (armFunction10Input *) funData;
     
     buf.allocated = Read68KUnaligned32(&input->allocated);
-    buf.data = Read68KUnaligned32(&input->data);
+    buf.data = (char *) Read68KUnaligned32(&input->data);
     buf.used = Read68KUnaligned32(&input->used);
     buf.minSize = 0;
 
