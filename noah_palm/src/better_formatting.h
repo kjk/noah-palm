@@ -43,11 +43,11 @@ typedef enum {  //when displayed - reverse ordered !!!!
 
 typedef enum {
     actTagWord = 0,
+    actTagPosList,    
     actTagPos,
-    actTagSynonym,
-    actTagList,    
-    actTagBigList,    
+    actTagDefList,    
     actTagDefinition,
+    actTagSynonym,
     actTagExample
 } ActualTag;
 

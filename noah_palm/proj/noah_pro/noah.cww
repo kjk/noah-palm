@@ -53,7 +53,7 @@
             <ROW>0</ROW>
             <COLUMN>0</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.348713</PCTWIDTH>
+            <PCTWIDTH>0.348355</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -78,7 +78,7 @@
             <ROW>0</ROW>
             <COLUMN>1</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.328884</PCTWIDTH>
+            <PCTWIDTH>0.279561</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -103,11 +103,86 @@
             <ROW>0</ROW>
             <COLUMN>2</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.322403</PCTWIDTH>
+            <PCTWIDTH>0.372084</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
                 <GIDLOWPART>0</GIDLOWPART>
+            </GROUPID>
+        </DOCKINFO>
+    </WINDOW>
+    <WINDOW>
+        <SESSION>-1</SESSION>
+        <EDOCTYPE>1</EDOCTYPE>
+        <PATH USERELATIVEPATHS = "true">..\..\src\word_matching_pattern.c</PATH>
+        <FRAMELOC>
+            <X>-2</X>
+            <Y>127</Y>
+        </FRAMELOC>
+        <FRAMESIZE>
+            <W>749</W>
+            <H>737</H>
+        </FRAMESIZE>
+        <DOCKINFO>
+            <STATUS>0</STATUS>
+            <ROW></ROW>
+            <COLUMN></COLUMN>
+            <DOCKBARID></DOCKBARID>
+            <PCTWIDTH></PCTWIDTH>
+            <HGT></HGT>
+            <GROUPID>
+                <GIDHIGHPART></GIDHIGHPART>
+                <GIDLOWPART></GIDLOWPART>
+            </GROUPID>
+        </DOCKINFO>
+    </WINDOW>
+    <WINDOW>
+        <SESSION>-1</SESSION>
+        <EDOCTYPE>1</EDOCTYPE>
+        <PATH USERELATIVEPATHS = "true">..\..\src\noah_pro.c</PATH>
+        <FRAMELOC>
+            <X>8</X>
+            <Y>29</Y>
+        </FRAMELOC>
+        <FRAMESIZE>
+            <W>581</W>
+            <H>886</H>
+        </FRAMESIZE>
+        <DOCKINFO>
+            <STATUS>0</STATUS>
+            <ROW></ROW>
+            <COLUMN></COLUMN>
+            <DOCKBARID></DOCKBARID>
+            <PCTWIDTH></PCTWIDTH>
+            <HGT></HGT>
+            <GROUPID>
+                <GIDHIGHPART></GIDHIGHPART>
+                <GIDLOWPART></GIDLOWPART>
+            </GROUPID>
+        </DOCKINFO>
+    </WINDOW>
+    <WINDOW>
+        <SESSION>-1</SESSION>
+        <EDOCTYPE>1</EDOCTYPE>
+        <PATH USERELATIVEPATHS = "true">..\..\src\better_formatting.c</PATH>
+        <FRAMELOC>
+            <X>179</X>
+            <Y>30</Y>
+        </FRAMELOC>
+        <FRAMESIZE>
+            <W>706</W>
+            <H>896</H>
+        </FRAMESIZE>
+        <DOCKINFO>
+            <STATUS>0</STATUS>
+            <ROW></ROW>
+            <COLUMN></COLUMN>
+            <DOCKBARID></DOCKBARID>
+            <PCTWIDTH></PCTWIDTH>
+            <HGT></HGT>
+            <GROUPID>
+                <GIDHIGHPART></GIDHIGHPART>
+                <GIDLOWPART></GIDLOWPART>
             </GROUPID>
         </DOCKINFO>
     </WINDOW>
@@ -139,14 +214,16 @@
     <WINDOW>
         <SESSION>-2147483648</SESSION>
         <EDOCTYPE>23</EDOCTYPE>
+        <DEFAULT>true</DEFAULT>
         <PATH USERELATIVEPATHS = "false"></PATH>
+        <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
-            <X>0</X>
-            <Y>0</Y>
+            <X>4</X>
+            <Y>25</Y>
         </FRAMELOC>
         <FRAMESIZE>
-            <W>878</W>
-            <H>1530</H>
+            <W>920</W>
+            <H>948</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>

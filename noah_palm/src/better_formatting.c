@@ -62,24 +62,25 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
     DisplayElementPrefs prefs[15];
     DisplayElementPrefs *prefsToSet;
 
-    //format 3(0): (old)
+    // format 3(0): (old)
     SetPrefsAs(&prefs[ 0], 0x00,   0,  0,  0, 255,255,255 );    // color is black, font is small
-    //format 1:
-    SetPrefsAs(&prefs[ 1], 0x07,  63,127, 63, 255,255,255 );    //word
-    SetPrefsAs(&prefs[ 2], 0x01,   0,100,100, 255,255,255 );    //pos
-    SetPrefsAs(&prefs[ 3], 0x00,   0,  0,  0, 255,255,255 );    //definition
-    SetPrefsAs(&prefs[ 4], 0x00, 128,128,  0, 255,255,255 );    //example
-    SetPrefsAs(&prefs[ 5], 0x01,   0,  0, 68, 255,255,255 );    //synonyms
-    SetPrefsAs(&prefs[ 6], 0x00,   0,  0,  0, 255,255,255 );    //definition list
-    SetPrefsAs(&prefs[ 7], 0x01,   0,100,100, 255,255,255 );    //pos list
-    //format 2: (default)
-    SetPrefsAs(&prefs[ 8], 0x07,   0,  0,255, 255,255,255 );    //word
-    SetPrefsAs(&prefs[ 9], 0x01,   0, 99,  0, 255,255,255 );    //pos
-    SetPrefsAs(&prefs[10], 0x00,   0,  0,  0, 255,255,255 );    //definition
-    SetPrefsAs(&prefs[11], 0x00, 127,127,  0, 255,255,255 );    //example
-    SetPrefsAs(&prefs[12], 0x01,   0, 68, 68, 255,255,255 );    //synonyms
-    SetPrefsAs(&prefs[13], 0x00,   0,  0,  0, 255,255,255 );    //definition list
-    SetPrefsAs(&prefs[14], 0x01,   0, 99,  0, 255,255,255 );    //pos list
+    // format 1:
+    SetPrefsAs(&prefs[ 1], 0x07,  63,127, 63, 255,255,255 );    // word
+    SetPrefsAs(&prefs[ 2], 0x01,   0,100,100, 255,255,255 );    // pos
+    SetPrefsAs(&prefs[ 3], 0x00,   0,  0,  0, 255,255,255 );    // definition
+    SetPrefsAs(&prefs[ 4], 0x00, 128,128,  0, 255,255,255 );    // example
+    SetPrefsAs(&prefs[ 5], 0x01,   0,  0, 68, 255,255,255 );    // synonyms
+    SetPrefsAs(&prefs[ 6], 0x00,   0,  0,  0, 255,255,255 );    // definition list
+    SetPrefsAs(&prefs[ 7], 0x01,   0,100,100, 255,255,255 );    // pos list
+    // format 2: (default)
+    SetPrefsAs(&prefs[ 8], 0x07,   0,  0,255, 255,255,255 );    // word
+    SetPrefsAs(&prefs[ 9], 0x01,   0, 99,  0, 255,255,255 );    // pos
+    SetPrefsAs(&prefs[10], 0x00,   0,  0,  0, 255,255,255 );    // definition
+
+    SetPrefsAs(&prefs[11], 0x00, 221, 34, 17, 255,255,255 );    // example
+    SetPrefsAs(&prefs[12], 0x01,   0, 68, 68, 255,255,255 );    // synonyms
+    SetPrefsAs(&prefs[13], 0x00,   0,  0,  0, 255,255,255 );    // definition list
+    SetPrefsAs(&prefs[14], 0x01,   0, 99,  0, 255,255,255 );    // pos list
 
     prefsToSet = &prefs[0];
 
@@ -338,13 +339,13 @@ static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *display
                           displayPrefs->synonym.colorB,
                           appContext);
              break;                    
-         case actTagList:
+         case actTagDefList:
              SetTextColorRGB(displayPrefs->defList.colorR,
                           displayPrefs->defList.colorG,
                           displayPrefs->defList.colorB,
                           appContext);
              break;                    
-         case actTagBigList:
+         case actTagPosList:
              SetTextColorRGB(displayPrefs->posList.colorR,
                           displayPrefs->posList.colorG,
                           displayPrefs->posList.colorB,
@@ -384,13 +385,13 @@ static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *display
                           displayPrefs->synonym.bgcolB,
                           appContext);
              break;                    
-         case actTagList:
+         case actTagDefList:
              SetTextColorRGB(displayPrefs->defList.bgcolR,
                           displayPrefs->defList.bgcolG,
                           displayPrefs->defList.bgcolB,
                           appContext);
              break;                    
-         case actTagBigList:
+         case actTagPosList:
              SetTextColorRGB(displayPrefs->posList.bgcolR,
                           displayPrefs->posList.bgcolG,
                           displayPrefs->posList.bgcolB,
@@ -666,10 +667,10 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                         case actTagSynonym:
                             appContext->prefs.displayPrefs.synonym.font = FontSelect (appContext->prefs.displayPrefs.synonym.font);
                             break;                    
-                        case actTagList:
+                        case actTagDefList:
                             appContext->prefs.displayPrefs.defList.font = FontSelect (appContext->prefs.displayPrefs.defList.font);
                             break;                    
-                        case actTagBigList:
+                        case actTagPosList:
                             appContext->prefs.displayPrefs.posList.font = FontSelect (appContext->prefs.displayPrefs.posList.font);
                             break;                    
                     }
@@ -705,12 +706,12 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                                             &appContext->prefs.displayPrefs.synonym.colorG,
                                             &appContext->prefs.displayPrefs.synonym.colorB);
                             break;                    
-                        case actTagList:
+                        case actTagDefList:
                             RunColorSetForm(&appContext->prefs.displayPrefs.defList.colorR,
                                             &appContext->prefs.displayPrefs.defList.colorG,
                                             &appContext->prefs.displayPrefs.defList.colorB);
                             break;                    
-                        case actTagBigList:
+                        case actTagPosList:
                             RunColorSetForm(&appContext->prefs.displayPrefs.posList.colorR,
                                             &appContext->prefs.displayPrefs.posList.colorG,
                                             &appContext->prefs.displayPrefs.posList.colorB);
@@ -749,12 +750,12 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                                             &appContext->prefs.displayPrefs.synonym.bgcolG,
                                             &appContext->prefs.displayPrefs.synonym.bgcolB);
                             break;                    
-                        case actTagList:
+                        case actTagDefList:
                             RunColorSetForm(&appContext->prefs.displayPrefs.defList.bgcolR,
                                             &appContext->prefs.displayPrefs.defList.bgcolG,
                                             &appContext->prefs.displayPrefs.defList.bgcolB);
                             break;                    
-                        case actTagBigList:
+                        case actTagPosList:
                             RunColorSetForm(&appContext->prefs.displayPrefs.posList.bgcolR,
                                             &appContext->prefs.displayPrefs.posList.bgcolG,
                                             &appContext->prefs.displayPrefs.posList.bgcolB);

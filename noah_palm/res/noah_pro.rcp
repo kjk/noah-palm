@@ -148,8 +148,8 @@ BEGIN
    LIST "Layout 1" "Layout 2" "Layout 3" ID listListStyle AT (PREVLEFT PREVTOP + 2 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
    POPUPLIST popupListStyle listListStyle
 
-   POPUPTRIGGER "part of speach" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
-   LIST "word" "part of speach" "synonyms" "small list" "big list" "definition" "example"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
+   POPUPTRIGGER "part of speech" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
+   LIST "word" "p. of sp. list" "part of speech" "definition list" "definition" "synonyms" "examples"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
    POPUPLIST popupActTag listActTag
 
    BUTTON ""             buttonGlobalBGcol  AT (RIGHT@160-2    16      20   10) FONT 0
