@@ -648,6 +648,10 @@ Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
         appContext->copyBlock.state = cbIsSelection;
         cbInvertSelection(appContext);
     }
+    else
+    {
+        appContext->copyBlock.state = cbWasPenDown;
+    }
     return true;    
 }
 
