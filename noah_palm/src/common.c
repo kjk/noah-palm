@@ -1825,7 +1825,7 @@ void SyncScreenSize(AppContext* appContext)
 {
     RectangleType screenBounds;
 
-    if ( GetOsVersion(appContext) >= 35 )
+    if ( GetOsVersion(appContext) >= 40 )
     {
         WinGetBounds(WinGetDisplayWindow(), &screenBounds);
         appContext->screenWidth=screenBounds.extent.x;
