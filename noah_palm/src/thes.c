@@ -877,6 +877,10 @@ ChooseDatabase:
                 }
             }
 
+            OpenMatchingPatternDB();
+            ClearMatchingPatternDB();
+            CloseMatchingPatternDB();
+
             RedrawMainScreen();
 
             if ( startupActionClipboard == gd.prefs.startupAction )

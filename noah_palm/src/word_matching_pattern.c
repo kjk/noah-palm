@@ -250,7 +250,8 @@ void FillMatchingPatternDB(char * pattern)
             StrPrintF(tmp, "%d%%", (int)((long)(pos * 100) / (long)num));
             DrawCenteredString(tmp, rc.topLeft.y + 20);
             if (TappedInRect(&rcStop)) break;
-            str = dictGetWord(++pos);
+            if (++pos >= dictGetWordsCount()) break;
+            str = dictGetWord(pos);
         }
         new_free(tmpPattern);
     }
