@@ -80,6 +80,7 @@ static Err AppInit(AppContext* appContext)
     
     ebufInit(&appContext->currentDefinition, 0);
     ebufInit(&appContext->currentWordBuf, 0);
+    ebufInit(&appContext->lastResponse, 0);
 
     appContext->prefs.startupAction      = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
@@ -122,6 +123,7 @@ static void AppDispose(AppContext* appContext)
     }
     ebufFreeData(&appContext->currentWordBuf);
     ebufFreeData(&appContext->currentDefinition);
+    ebufFreeData(&appContext->lastResponse);
 }
 
 static void AppLoadForm(AppContext* appContext, const EventType* event)

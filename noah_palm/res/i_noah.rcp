@@ -6,6 +6,7 @@ FORM formDictMain AT (0 0 160 160)
 USABLE
 NOFRAME MENUID menuMain
 BEGIN
+   BUTTON "" ID buttonAbortLookup  AT (147 1 12 12)   NONUSABLE  NOFRAME
    SCROLLBAR ID     scrollDef       AT (152   1    7  142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    LABEL "Word:" ID labelWord              AT (2 147) FONT 0
    FIELD ID fieldWordInput          AT (PrevRight+4 PrevTop 100 12) MAXCHARS 255 UNDERLINED EDITABLE

@@ -318,6 +318,7 @@ typedef struct _AppContext
     
 #ifdef I_NOAH
     NetIPAddr serverIpAddress;
+    ExtensibleBuffer lastResponse;
     ExtensibleBuffer currentDefinition;
     ExtensibleBuffer currentWordBuf;
     void* currentLookupData;

@@ -18,6 +18,10 @@
 #include "noah_pro_2nd_segment.h"
 #endif
 
+#ifdef I_NOAH
+#include "inet_definition_format.h"
+#endif
+
 /* Free ptrOldDisplayPrefs if its not NULL*/
 void bfFreePTR(AppContext *appContext)
 {
@@ -611,6 +615,26 @@ static void CopyParamsFromTo(DisplayPrefs *src, DisplayPrefs *dst)
     dst->posList = src->posList;
 }
 
+#ifdef I_NOAH
+static void ReformatLastResponse(AppContext* appContext)
+{
+    const Char* word=ebufGetDataPointer(&appContext->currentWordBuf);
+    const Char* responseBegin=ebufGetDataPointer(&appContext->lastResponse);
+    if (word && responseBegin)
+    {
+        const Char* responseEnd=responseBegin+ebufGetDataSize(&appContext->lastResponse);
+        Err error=PrepareDisplayInfo(appContext, word, responseBegin, responseEnd);
+        Assert(!error);
+    }
+    else 
+    {
+        Assert(appContext->currDispInfo);
+        diFree(appContext->currDispInfo);
+        appContext->currDispInfo=NULL;
+    }
+}
+#endif
+
 Boolean DisplayPrefFormHandleEvent(EventType * event)
 {
     int  setColor = 0;
@@ -826,9 +850,13 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     //SavePreferencesThes(appContext);
 #endif                  
                     bfFreePTR(appContext);
+
 #ifndef I_NOAH                    
                     SendNewWordSelected();
-#endif                    
+#else
+                    ReformatLastResponse(appContext);
+#endif
+
                     FrmReturnToForm(0);
                     break;
                 case buttonCancel:
@@ -836,7 +864,9 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     bfFreePTR(appContext);
 #ifndef I_NOAH                    
                     SendNewWordSelected();
-#endif                    
+#else
+                    ReformatLastResponse(appContext);
+#endif
                     FrmReturnToForm(0);
                     break;
                 default:

@@ -28,7 +28,6 @@ void MainFormPressFindButton(const FormType* form)
     CtlHitControl(findButton);
 }
 
-
 static void MainFormDisplayAbout(AppContext* appContext)
 {
     UInt16 currentY=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
@@ -130,6 +129,10 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
             bounds.extent.y+=lookupStatusBarHeight;
             FrmSetObjectBounds(form, index, &bounds);
 
+            index=FrmGetObjectIndex(form, buttonAbortLookup);
+            Assert(frmInvalidObjectId!=index);
+            FrmHideObject(form, index);
+
             if (!data->error) 
                 appContext->firstDispLine=0;
             index=FrmGetObjectIndex(form, fieldWordInput);
@@ -146,6 +149,10 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
             bounds.topLeft.y+=lookupStatusBarHeight;
             bounds.extent.y-=lookupStatusBarHeight;
             FrmSetObjectBounds(form, index, &bounds);
+
+            index=FrmGetObjectIndex(form, buttonAbortLookup);
+            Assert(frmInvalidObjectId!=index);
+            FrmShowObject(form, index);
         }
         FrmUpdateForm(formDictMain, redrawAll); 
     }        
@@ -173,6 +180,12 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
     {
         case buttonFind:
             MainFormFindButtonPressed(appContext, form);
+            handled=true;
+            break;
+            
+        case buttonAbortLookup:
+            if (LookupInProgress(appContext))
+                AbortCurrentLookup(appContext, true, netErrUserCancel);
             handled=true;
             break;
 
@@ -363,6 +376,12 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
             bounds.extent.y-=lookupStatusBarHeight;
         FrmSetObjectBounds(form, index, &bounds);
 
+        index=FrmGetObjectIndex(form, buttonAbortLookup);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(form, index, &bounds);
+        bounds.topLeft.x=appContext->screenWidth-13;
+        FrmSetObjectBounds(form, index, &bounds);
+
         FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
         handled=true;
     }
@@ -426,13 +445,6 @@ static Boolean MainFormHandleEvent(EventType* event)
             MainFormHandleLookupProgress(appContext, form, event);
             handled=true;
             break;            
-/*            
-        case winEnterEvent:
-            // workaround for probable Sony CLIE's bug that causes only part of screen to be repainted on return from PopUps
-            if (DIA_HasSonySilkLib(&appContext->diaSettings) && form==(void*)((SysEventType*)event)->data.winEnter.enterWindow)
-                FrmUpdateForm(form, frmRedrawUpdateCode);
-            break;
-*/
     
     }
     return handled;

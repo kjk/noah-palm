@@ -24,14 +24,12 @@ typedef struct ConnectionData_
 {
     UInt16 netLibRefNum;
     ConnectionStage connectionStage;
-    Int16 percentsProgress;
     ExtensibleBuffer statusText;
     NetIPAddr* serverIpAddress;
     ExtensibleBuffer wordToFind;
     ExtensibleBuffer request;
     Int16 bytesSent;
     ExtensibleBuffer response;
-    UInt16 responseStep;
     NetSocketRef socket;
 } ConnectionData;
 
@@ -50,7 +48,6 @@ static void SendLookupProgressEvent(LookupProgressEventFlag flag, Err error=errN
 static void AdvanceConnectionStage(ConnectionData* connData)
 {
     ConnectionStage newStage = stageInvalid;
-    connData->percentsProgress=percentsNotSupported;
     switch( connData->connectionStage )
     {
         case stageResolvingAddress:
@@ -58,11 +55,9 @@ static void AdvanceConnectionStage(ConnectionData* connData)
             break;
         case stageOpeningConnection:
             newStage = stageSendingRequest;
-            connData->percentsProgress=0;
             break;
         case stageSendingRequest:
             newStage = stageReceivingResponse;
-            connData->percentsProgress=0;
             break;
        case stageReceivingResponse:
             newStage = stageFinished;
@@ -82,14 +77,27 @@ static void RenderStatusText(ConnectionData* connData, const Char* baseText)
     {
         ebufResetWithStr(&connData->statusText, text);
         MemPtrFree(text);
-        if (percentsNotSupported!=connData->percentsProgress) 
+        if (stageReceivingResponse==connData->connectionStage)
         {
-            Int16 percentsProgress=connData->percentsProgress;
-            Assert(percentsProgress>=0 && percentsProgress<=100);
-            Char buffer[5];
-            buffer[0]=' ';
-            PercentProgress(buffer+1, percentsProgress, 100);
-            ebufAddStr(&connData->statusText, buffer);
+            static const UInt16 bytesBufferSize=8; // it will be placed in code segment, so no worry about globals
+            UInt16 bytesReceived=ebufGetDataSize(&connData->response);
+            Char buffer[bytesBufferSize];
+            Int16 bytesLen=0;
+            if (bytesReceived<1024)
+                bytesLen=StrPrintF(buffer, " %dB", bytesReceived);
+            else
+            {
+                UInt16 bri=bytesReceived/1024;
+                UInt16 brf=((bytesReceived%1024)+51)/102; // round to 1/10
+                Char formatString[9];
+                StrCopy(formatString, " %d.%dkB");
+                NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
+                Char dontCare;                LocGetNumberSeparators(numFormat, &dontCare, formatString+3); // change decimal separator in place
+                bytesLen=StrPrintF(buffer, formatString, bri, brf);                
+            }
+            Assert(bytesLen<bytesBufferSize);
+            if (bytesLen>0)
+                ebufAddStrN(&connData->statusText, buffer, bytesLen);
         }
         ebufAddChar(&connData->statusText, chrNull);
     }
@@ -186,7 +194,6 @@ inline static ConnectionData* CreateConnectionData(const Char* wordToFind, NetIP
         ebufInitWithStr(&connData->wordToFind, const_cast<Char*>(wordToFind));
         ebufAddChar(&connData->wordToFind, chrNull);
         ebufInit(&connData->statusText, 0);
-        connData->percentsProgress=percentsNotSupported;
         connData->serverIpAddress=serverIpAddress;
         if (*serverIpAddress)
             AdvanceConnectionStage(connData);
@@ -314,7 +321,6 @@ static Err SendRequest(ConnectionData* connData)
     {
         Assert(!error);
         connData->bytesSent+=result;
-        connData->percentsProgress=PercentProgress(NULL, connData->bytesSent, totalSize);
         if (connData->bytesSent==totalSize)
         {
             ebufFreeData(&connData->request);
@@ -376,15 +382,6 @@ OnError:
     
 }
 
-inline static UInt16 CalculateDummyProgress(UInt16 step)
-{
-    double progress=0.5;
-    while (step--) 
-        progress/=2;
-    progress=1.0-progress;
-    return progress*100;
-}
-
 static void DumpConnectionResponseToMemo(ConnectionData * connData)
 {
     ExtensibleBuffer *  ebufResp;
@@ -401,18 +398,15 @@ static void DumpConnectionResponseToMemo(ConnectionData * connData)
 static Err ReceiveResponse(ConnectionData* connData)
 {
     Err error=errNone;
-    Int16 result=0;
+    Int16 bytesReceived=0;
     Char buffer[responseBufferSize];
-    result=NetLibReceive(connData->netLibRefNum, connData->socket, buffer, responseBufferSize, 0, NULL, 0, 
+    bytesReceived=NetLibReceive(connData->netLibRefNum, connData->socket, buffer, responseBufferSize, 0, NULL, 0, 
         MillisecondsToTicks(transmitTimeout), &error);
-    if (result>0) 
+    if (bytesReceived>0) 
     {
         Assert(!error);
-        if (ebufGetDataSize(&connData->response)+result<maxResponseLength)
-        {
-            connData->percentsProgress=PercentProgress(NULL, CalculateDummyProgress(connData->responseStep++), 100);
-            ebufAddStrN(&connData->response, buffer, result);
-        }
+        if (ebufGetDataSize(&connData->response)+bytesReceived<maxResponseLength)
+            ebufAddStrN(&connData->response, buffer, bytesReceived);
         else
         {
             error=appErrMalformedResponse;
@@ -420,12 +414,11 @@ static Err ReceiveResponse(ConnectionData* connData)
             ebufFreeData(&connData->response);
         }            
     }
-    else if (!result)
+    else if (!bytesReceived)
     {
         Assert(!error);
-        connData->percentsProgress=100;
         AdvanceConnectionStage(connData);
-        result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
+        Int16 result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
         Assert( -1 != result ); // will get asked to drop into debugger (so that we can diagnose it) when fails; It's not a big deal, so continue anyway.
 
 #ifdef DEBUG
@@ -542,7 +535,11 @@ void PerformLookupTask(AppContext* appContext)
             FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
         }
         else
+        {
             error=PrepareDisplayInfo(appContext, ebufGetDataPointer(&connData->wordToFind), begin, end);
+            if (!error)
+                ebufSwap(&connData->response, &appContext->lastResponse);
+        }            
         AbortCurrentLookup(appContext, true, error);
     }
 }
