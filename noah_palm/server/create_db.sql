@@ -50,12 +50,12 @@ CREATE TABLE reg_codes
 );
 
 -- registration code for testing
-INSERT INTO reg_codes VALUES ( 'beh', 'test user', 'test@user.com', 'test order id', CURRENT_TIMESTAMP(), 'f' );
+--INSERT INTO reg_codes VALUES ( 'beh', 'test user', 'test@user.com', 'test order id', CURRENT_TIMESTAMP(), 'f' );
 
 -- another registration code, this time disabled
-INSERT INTO reg_codes VALUES ( 'disabled', 'disabled test user', 'disabled_test@user.com', 'disabled test order id', CURRENT_TIMESTAMP(), 't');
+--INSERT INTO reg_codes VALUES ( 'disabled', 'disabled test user', 'disabled_test@user.com', 'disabled test order id', CURRENT_TIMESTAMP(), 't');
 
-INSERT INTO cookies VALUES ( 'berake', 'HNaabbcc', 'beh', CURRENT_TIMESTAMP(), 'f' );
+--INSERT INTO cookies VALUES ( 'berake', 'HNaabbcc', 'beh', CURRENT_TIMESTAMP(), 'f' );
 
 -- INSERT INTO request_log ($cookie, $word, CURRENT_TIMESTAMP());
 

@@ -1,5 +1,55 @@
 <?php
 
+function get_word_row($word)
+{
+    global $dict_db;
+    $word = $dict_db->escape($word);
+    $query = "SELECT word,def,pron FROM words WHERE word='$word';";
+    $word_row = $dict_db->get_row($query); 
+    return $word_row;
+}
+
+# for a given word try to get a row with word, its definition and pron
+# if exact match is not found, try stemming the word
+# if didnt find even after stemming, return null
+function get_word_row_try_stemming($word)
+{
+    $word_row = get_word_row($word);
+    if ( $word_row )
+        return $word_row;
+
+    # didnt find the exact word, so try a few heuristics
+
+    # if word ends with "s", try to find word without it e.g. "strings" => "string"
+    if ( "s" == substr($word,strlen($word)-1) )
+    {
+        $word = substr($word,0,strlen($word)-1);
+        $word_row = get_word_row($word);
+        if ( $word_row )
+            return $word_row;
+    }
+
+    # if word ends with "ed", try to find word without it e.g. "glued" => "glue"
+    if ( "ed" == substr($word,strlen($word)-2) )
+    {
+        $word = substr($word,0,strlen($word)-2);
+        $word_row = get_word_row($word);
+        if ( $word_row )
+            return $word_row;
+    }
+
+    # if word ends with "ing", try to find word without it e.g. "working" => "work"
+    if ( "ing" == substr($word,strlen($word)-3) )
+    {
+        $word = substr($word,0,strlen($word)-3);
+        $word_row = get_word_row($word);
+        if ( $word_row )
+            return $word_row;
+    }
+
+    return 0;
+}
+
 # tag values are encoded on palm using hex-bin encoding
 # this function undecodes the value and returns it
 # returns an empty string if there was an error decoding
@@ -74,17 +124,20 @@ function get_device_name_by_oc_od($oc, $od)
 
     # HANDSPRING devices
 
+    if ( $oc=='hspr' && $od==decode_di_tag_value("0000000B") )
+        $name = "Treo 180";
+
+    if ( $oc=='hspr' && $od==decode_di_tag_value("0000000D") )
+        $name = "Treo 270";
+
+    if ( $oc=='hspr' && $od==decode_di_tag_value("0000000E") )
+        $name = "Treo 300";
+
     if ( $oc=='hspr' && $od=='H101' )
         $name = "Treo 600";
 
     if ( $oc=='hspr' && $od=='H201' )
         $name = "Treo 600 Simulator";
-
-    if ( $oc=='hspr' && $od==decode_di_tag_value("0000000E") )
-        $name = "Treo 300";
-
-    if ( $oc=='hspr' && $od==decode_di_tag_value("0000000D") )
-        $name = "Treo 270";
 
     # SONY devices
 

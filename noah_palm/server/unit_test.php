@@ -16,8 +16,6 @@ function test_get_dn_by_name($oc,$od,$expected_name)
         $failed += 1;
         echo "FAILED test_get_dn_by_name($od,$od,$expected_name)\n";
     }
-
-
 }
 
 test_get_dn_by_name( 'hspr', 'H101', "Treo 600" );

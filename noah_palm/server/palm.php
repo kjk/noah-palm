@@ -113,7 +113,7 @@ function user_registered_p($cookie)
 {
     global $dict_db;
     $cookie = $dict_db->escape($cookie);
-    $query = ("SELECT reg_code FROM cookies WHERE cookie='$cookie';");
+    $query = "SELECT reg_code FROM cookies WHERE cookie='$cookie';";
     $reg_code = $dict_db->get_var($query);
     if ($reg_code)
         return true;
@@ -160,15 +160,6 @@ function serve_get_random_word()
     exit;
 }
 
-function get_word_row($word)
-{
-    global $dict_db;
-    $word = $dict_db->escape($word);
-    $query = "SELECT def,pron FROM words WHERE word='$word';";
-    $word_row = $dict_db->get_row($query); 
-    return $word_row;
-}
-
 function log_get_word_request($cookie,$word)
 {
     global $dict_db;
@@ -196,63 +187,13 @@ function serve_get_word($cookie,$word)
 
     # TODO: capturing=>capture
 
-    $orig_word = $word;
-
     log_get_word_request($cookie, $word);
 
-    $word_row = get_word_row($word);
-
+    $word_row = get_word_row_try_stemming($word);
     if ( $word_row )
-    {
-        write_DEF($word,$word_row->pron,$word_row->def);
-        exit;
-    }
-
-    # didnt find the exact word, so try a few heuristics
-
-    # if word ends with "s", try to find word without it e.g. "strings" => "string"
-    if ( "s" == substr($word,strlen($word)-1) )
-    {
-        $word = substr($word,0,strlen($word)-1);
-        $word_row = get_word_row($word);
-
-        if ( $word_row )
-        {
-            write_DEF($word, $word_row->pron,$word_row->def);
-            exit;
-        }
-    }
-
-    # if word ends with "ed", try to find word without it e.g. "glued" => "glue"
-    if ( "ed" == substr($word,strlen($word)-2) )
-    {
-        $word = substr($word,0,strlen($word)-2);
-
-        $word_row = get_word_row($word);
-
-        if ( $word_row )
-        {
-            write_DEF($word, $word_row->pron,$word_row->def);
-            exit;
-        }
-    }
-
-    # if word ends with "ing", try to find word without it e.g. "working" => "work"
-    if ( "ing" == substr($word,strlen($word)-3) )
-    {
-        $word = substr($word,0,strlen($word)-3);
-
-        $word_row = get_word_row($word);
-
-        if ( $word_row )
-        {
-            write_DEF($word, $word_row->pron,$word_row->def);
-            exit;
-        }
-    }
-
-    # didnt find the word
-    write_MSG("Definition of word '$orig_word' has not been found");
+        write_DEF($word_row->$word, $word_row->pron,$word_row->def);
+    else
+        write_MSG("Definition of word '$word' has not been found");
     exit;
 }
 
