@@ -38,7 +38,7 @@ def _testJoin():
     str = string.join( iterlist(l,step=2), "" )
     print str
 
-def GetFmtFromMetadata(dataDef, isBigEndian):
+def GetFmtFromMetadata(dataDef, isBigEndian=True):
     fmt = string.join(iterlist(dataDef,skip=1,step=2), "")
     if isBigEndian:
         fmt = ">" + fmt
