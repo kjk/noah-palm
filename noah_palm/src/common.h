@@ -58,6 +58,7 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #define evtFieldChanged          (firstUserEvent+1)
 #define evtNewWordSelected       (firstUserEvent+2)
 #define evtNewDatabaseSelected   (firstUserEvent+3)
+#define evtShowMalformedAlert    (firstUserEvent+4)
 
 // information about the area for displaying definitions:
 // start x, start y, number of lines (dy).
@@ -449,6 +450,7 @@ void CtlShowControlEx( FormType *frm, UInt16 objID);
 void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void SendNewWordSelected(void);
+void SendShowMalformedAlert(void);
 
 /* stores all the information about the stack of strings */
 typedef struct

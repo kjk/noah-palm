@@ -127,28 +127,33 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
     ResponseParsingResult result;
     Err error=ProcessResponse(appContext, responseBegin, responseEnd, 
         responseDefinition|responseMessage|responseErrorMessage|responseWordsList, result);
-    if (!error) 
+    if (error)
     {
-        switch (result)
-        {
-            case responseDefinition:
-                appContext->mainFormContent=mainFormShowsDefinition;
-                appContext->firstDispLine=0;
-                break;
-                
-            case responseMessage:
-            case responseErrorMessage:
-                appContext->mainFormContent=mainFormShowsMessage;
-                appContext->firstDispLine=0;
-                break;
-                
-            case responseWordsList:
-                FrmPopupForm(formWordsList);
-                break;
-                
-            default:
-                Assert(false);
-        }
+#ifdef DEBUG
+        LogStrN(appContext, responseBegin, (long) (responseEnd-responseBegin) );
+#endif
+        return error;
+    }
+
+    switch (result)
+    {
+        case responseDefinition:
+            appContext->mainFormContent=mainFormShowsDefinition;
+            appContext->firstDispLine=0;
+            break;
+            
+        case responseMessage:
+        case responseErrorMessage:
+            appContext->mainFormContent=mainFormShowsMessage;
+            appContext->firstDispLine=0;
+            break;
+            
+        case responseWordsList:
+            FrmPopupForm(formWordsList);
+            break;
+            
+        default:
+            Assert(false);
     }
     return error;
 }

@@ -491,6 +491,16 @@ void DrawDescription(AppContext* appContext, long wordNo)
 
 #endif //I_NOAH
 
+// devnote: if we use this trick for more than one alert, we should send the
+// alert number in the data field
+void SendShowMalformedAlert(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum) evtShowMalformedAlert;
+    EvtAddEventToQueue(&newEvent);
+}
+
 void ClearDisplayRectangle(AppContext* appContext)
 {
     SetGlobalBackColor(appContext);
@@ -1765,7 +1775,7 @@ void LogStrN(AppContext* appContext, const char *txt, long size)
     hf = HostFOpen(appContext->log.fileName, "a");
     if (hf)
     {
-        HostFWrite((const void*)txt, 0, size, hf);
+        HostFWrite((const void*)txt, 1, size, hf);
         HostFPrintF(hf, "\n");
         HostFClose(hf);
     }

@@ -388,7 +388,7 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
 {
     Assert(begin);
     Assert(end);
-    Err error=errNone;
+    Err error;
     if ((responseCookie & resMask) && StrStartsWith(begin, end, cookieResponse))
     {
         error=ProcessCookieResponse(appContext, begin, end);
@@ -421,9 +421,14 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
     } 
     else
         error=appErrMalformedResponse;
-        
+
     if (appErrMalformedResponse==error)
-        FrmAlert(alertMalformedResponse);
+    {
+        // we used to do just FrmAlert() here but this is not healthy and leaves
+        // the form in a broken state (objects not re-drawn, text field disabled
+        // instead post a message telling form event handling code to show the alert
+        SendShowMalformedAlert();
+    }
     else if (!error)
     {
         if (ebufGetDataPointer(&appContext->lastResponse)!=begin)

@@ -72,7 +72,7 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
     UInt16 statusBarStartY=appContext->screenHeight-lookupStatusBarHeight;
     ClearRectangle(0, statusBarStartY, appContext->screenWidth, lookupStatusBarHeight);
     WinDrawLine(0, statusBarStartY, appContext->screenWidth, statusBarStartY);
-    const Char* text=GetConnectionStatusText(appContext);
+    const char* text=GetConnectionStatusText(appContext);
     Assert(text);
     UInt16 textLen=StrLen(text);    
     WinDrawTruncChars(text, textLen, 1, statusBarStartY+1, appContext->screenWidth - 14);
@@ -171,28 +171,27 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
     UInt16      index=FrmGetObjectIndex(form, fieldWordInput);
 
     Assert(frmInvalidObjectId!=index);
-    {
-        FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
-        const Char* prevWord=ebufGetDataPointer(&appContext->currentWordBuf);
-        Assert(field);
-        newWord=FldGetTextPtr(field);
-        if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
-            StartWordLookup(appContext, newWord);
-        else if (mainFormShowsDefinition!=appContext->mainFormContent)
-        {
-            const char* currentDefinition=ebufGetDataPointer(&appContext->currentDefinition);
-            if ( NULL != currentDefinition )
-            {
-                // it can be NULL if we didn't have a definition and pressed "GO"
-                // with no word in text field
-                cbNoSelection(appContext);
-                appContext->mainFormContent=mainFormShowsDefinition;
 
-                diSetRawTxt(appContext->currDispInfo, const_cast<char*>(currentDefinition));
-                FrmUpdateForm(formDictMain, redrawAll);
-            }
-        } 
-    }
+    FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+    const char* prevWord=ebufGetDataPointer(&appContext->currentWordBuf);
+    Assert(field);
+    newWord=FldGetTextPtr(field);
+    if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
+        StartWordLookup(appContext, newWord);
+    else if (mainFormShowsDefinition!=appContext->mainFormContent)
+    {
+        const char* currentDefinition=ebufGetDataPointer(&appContext->currentDefinition);
+        if ( NULL != currentDefinition )
+        {
+            // it can be NULL if we didn't have a definition and pressed "GO"
+            // with no word in text field
+            cbNoSelection(appContext);
+            appContext->mainFormContent=mainFormShowsDefinition;
+
+            diSetRawTxt(appContext->currDispInfo, const_cast<char*>(currentDefinition));
+            FrmUpdateForm(formDictMain, redrawAll);
+        }
+    } 
 }
 
 static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, EventType* event)
@@ -225,10 +224,10 @@ static void MainFormLookupClipboard(AppContext* appContext)
     ebufInit(&buffer, 0);
     if (handle) 
     {
-        const Char* text=static_cast<const Char*>(MemHandleLock(handle));
+        const char* text=static_cast<const char*>(MemHandleLock(handle));
         if (text)
         {
-            ebufAddStrN(&buffer, const_cast<Char*>(text), length);
+            ebufAddStrN(&buffer, const_cast<char*>(text), length);
             MemHandleUnlock(handle);
         }
     }
@@ -554,7 +553,11 @@ static Boolean MainFormHandleEvent(EventType* event)
             MainFormHandleConnectionProgress(appContext, form, event);
             handled=true;
             break;            
-    
+
+        case evtShowMalformedAlert:
+            FrmAlert(alertMalformedResponse);
+            handled=true;
+            break;
     }
     return handled;
 }
