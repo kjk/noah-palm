@@ -1006,6 +1006,7 @@ in a record"
 	 (list-of-examples '()))
     (dolist (el strings)
       (cond ((= 0 (length (string-trim " " el))) nil)
+	    ((string= "\"" el) nil) ; TODO: hack around ;"; thing (e.g. in "trash these old chairs" in data.verb)
 	    ((string= (subseq el 0 2) " \"") (push (string-trim '(#\space #\") el) list-of-examples))
 	    (t (push (string-trim " " el) list-of-defs))))
 ;;       (if (string= (subseq el 0 2) " \"")
