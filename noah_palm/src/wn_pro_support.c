@@ -347,7 +347,7 @@ void si_position_at_synset(SynsetsInfo * si, long synset)
     si->currSynset = synset;
 }
 
-
+/* return number of words in a given synset */
 int si_get_words_count(SynsetsInfo * si, long synset)
 {
     int wordsCount;
@@ -370,6 +370,7 @@ int si_get_words_count(SynsetsInfo * si, long synset)
     return wordsCount;
 }
 
+/* get part of speech (i.e. noun, verb etc.) of this synset */
 int si_get_pos(SynsetsInfo * si, long synset)
 {
     int pos;
