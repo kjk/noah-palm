@@ -80,13 +80,23 @@ BEGIN
    BUTTON "" buttonFind AT (146 146 14 14) NOFRAME
 END
 
+FORM formResidentLookup AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+   SCROLLBAR         ID scrollDef     AT (152   1  7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+   FORMBITMAP                         AT (147 147)        BITMAP bmpClose
+   BUTTON       ""      buttonClose    AT (146 146 14  14) NOFRAME
+END
+
+
 FORM formSelectDict AT (0 0 160 160)
 USABLE
 FRAME
 BEGIN
    TITLE  "Select database"
 
-   LIST   ""                listOfDicts       AT (  4    20           152 AUTO) USABLE VISIBLEITEMS 8
+   LIST   ""                listOfDicts       AT (  4    20           152 90) USABLE VISIBLEITEMS 8
    BUTTON "Select"          buttonSelect      AT (  4  PREVBOTTOM+4  AUTO AUTO) FONT 0
    BUTTON "Cancel"          buttonCancel      AT (118  PREVTOP       AUTO AUTO) FONT 0
    BUTTON "Find databases"  buttonRescanDicts AT ( 43  PREVBOTTOM+6  AUTO AUTO) FONT 0
@@ -111,7 +121,7 @@ NOFRAME
 BEGIN
    BUTTON "\002"    ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
    BUTTON "\003"    ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
-   LIST   ""        listMatching    AT (  0   0  160 AUTO) USABLE VISIBLEITEMS 13
+   LIST   ""        listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
    FIELD            fieldWord       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
    BUTTON "Cancel"  buttonCancel    AT (120 146 AUTO AUTO) FONT 0
 END
@@ -139,22 +149,22 @@ BEGIN
 
    LABEL "Startup action:" AUTOID AT (5 20) FONT 1
    POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+19 PREVTOP AUTO AUTO) LEFTANCHOR
-   LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
+   LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH 35) NONUSABLE VISIBLEITEMS 3
    POPUPLIST popupStartupAction listStartupAction
 
    LABEL "Startup database:" AUTOID AT (5 PREVTOP+14) FONT 1
    POPUPTRIGGER  "Last" popupStartupDB AT (PREVRIGHT+4 PREVTOP AUTO AUTO) LEFTANCHOR
-   LIST  "Ask" "Last" ID listStartupDB AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 2
+   LIST  "Ask" "Last" ID listStartupDB AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2
    POPUPLIST popupStartupDB listStartupDB
 
    LABEL "Up/Down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
    POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (PREVRIGHT-28 PREVTOP+14 AUTO AUTO) LEFTANCHOR
-   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popuphwButtonsAction listhwButtonsAction
 
    LABEL "Tap:" AUTOID                            AT (5            PREVTOP+14) FONT 1
    POPUPTRIGGER  "1/2 Page Scroll" popupTapAction AT (PREVRIGHT+43 PREVTOP AUTO AUTO) LEFTANCHOR
-   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listTapAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listTapAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popupTapAction listTapAction
 
 /*   CHECKBOX "Delete vfs cache on exit" ID checkDeleteVfs AT (5 PREVTOP+18 AUTO AUTO) FONT 1 */
@@ -219,6 +229,14 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT alertWordNotFound
+INFORMATION
+BEGIN
+    TITLE "Word not found"
+    MESSAGE "The selected word was not found in the current database."
+    BUTTONS "OK"
+END
+
 ICONFAMILYEX
 BEGIN
     BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1
@@ -242,3 +260,18 @@ BEGIN
     BITMAP "find-x2.bmp"    BPP 1 DENSITY 2
 END
 
+
+BITMAPFAMILYEX ID bmpClose 
+BEGIN
+    BITMAP "close.bmp"    BPP 1 DENSITY 1
+    BITMAP "close-x2.bmp" BPP 1 DENSITY 2      
+END
+
+
+BITMAPFAMILYEX ID bmpMenuBarIcon  
+BEGIN
+    BITMAP "icons/no15x2.bmp"   BPP 1 DENSITY 1
+    BITMAP "icons/no15x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
+    BITMAP "icons/no30x2.bmp"   BPP 1 DENSITY 2
+    BITMAP "icons/no30x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
+END
