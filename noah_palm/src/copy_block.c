@@ -21,7 +21,7 @@
  *  Remove '//' if you want to work without selection
  */
 
-#ifndef  NOAH_LITE
+#ifdef  NOAH_LITE
 #define DONT_DO_COPY_WORD_DEFINITION 1
 #endif
 
