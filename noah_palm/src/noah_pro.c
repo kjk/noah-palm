@@ -284,7 +284,7 @@ Err AppCommonInit(AppContext* appContext)
     appContext->ptrOldDisplayPrefs = NULL;
     // set ARM state
     appContext->armIsPresent = false;
-    //appContext->armIsPresent = armTestArmLet();
+    appContext->armIsPresent = armTestArmLet();
 
     appContext->bookmarksDb = NULL;
     appContext->currBookmarkDbType = bkmInvalid;

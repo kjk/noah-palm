@@ -271,7 +271,14 @@ void DisplayAbout(AppContext* appContext)
 
     FntSetFont(largeFont);
     DrawCenteredString(appContext, "http://www.arslexis.com", currentY);
-    currentY+=40;
+    
+    currentY+=20;
+    FntSetFont(boldFont);
+    DrawCenteredString(appContext, (appContext->armIsPresent==true)?"ARM supported":"ARM not present", currentY);
+    
+    currentY+=20;
+    
+//    currentY+=40;
     
     FntSetFont(stdFont);
 #ifdef DEMO_HANDANGO

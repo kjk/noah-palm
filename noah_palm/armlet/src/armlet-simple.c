@@ -25,20 +25,16 @@
 /****************************************************
  *
  * Number - Function - return value when executed
- * 1 - Test function - retrun 101
- *
+ * 1  - Test function - retrun 101
+ * 10 - Format2OnSortedBuffer
  *
  ****************************************************/
 
-#include <stdio.h>
 #include "PceNativeCall.h"
-
 #ifdef WIN32
 	#include "SimNative.h"
+//    #include <stdio.h>
 #endif
-
-#include "../../src/armlet_structures.h"
-#include "utils68k.h"
 
 unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP, Call68KFuncType *call68KFuncP);
 
@@ -51,6 +47,10 @@ unsigned long NativeFunction(const void *emulStateP, void *userData68KP, Call68K
 	return NativeFunctionAtTheEnd(emulStateP, userData68KP, call68KFuncP);
 }
 
+#include "../../src/armlet_structures.h"
+#include "utils68k.h"
+
+
 /*FROM THIS POINT YOU CAN ADD YOUR OWN FUNCTIONS*/
 void Function1(void *funData)
 {            
@@ -59,17 +59,17 @@ void Function1(void *funData)
 /*Mem allocations*/
 #define sysTrapMemPtrNew	0xA013 // we need this in order to call into MemPtrNew
 #define sysTrapMemPtrFree	0xA012 // we need this in order to call into MemPtrFree
-const void *emulStatePGLOBAL;
-Call68KFuncType *call68KFuncPGLOBAL;
+//const void *emulStatePGLOBAL;
+//Call68KFuncType *call68KFuncPGLOBAL;
 
-void new_free(void * ptr)
+void new_free(void * ptr,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
 	void* ptrSwaped;  // array of Byte
 	ptrSwaped = (void *)EndianSwap32(ptr);   
-    ((call68KFuncPGLOBAL)(emulStatePGLOBAL, PceNativeTrapNo(sysTrapMemPtrFree), &ptrSwaped, 4 | kPceNativeWantA0));
+    ((call68KFuncP)(emulStateP, PceNativeTrapNo(sysTrapMemPtrFree), &ptrSwaped, 4 | kPceNativeWantA0));
 }
 
-void * new_malloc(unsigned long setSize)
+void * new_malloc(unsigned long setSize,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
 	unsigned long  size;     // UInt32, must be stack based
 	unsigned char* bufferP;  // array of Byte
@@ -79,11 +79,109 @@ void * new_malloc(unsigned long setSize)
 	// call MemPtrNew, using the 4 bytes of size directly from the stack
 	// The 4 specifies the size of the arguments, and we need to OR the size
 	// with kPceNativeWantA0 because the return value is a pointer type.
-	bufferP = (unsigned char *)((call68KFuncPGLOBAL)(emulStatePGLOBAL, PceNativeTrapNo(sysTrapMemPtrNew), &size, 4 | kPceNativeWantA0));
+	bufferP = (unsigned char *)((call68KFuncP)(emulStateP, PceNativeTrapNo(sysTrapMemPtrNew), &size, 4 | kPceNativeWantA0));
+
+/*    //we dont need to do it
+    setSize--;
+    while(setSize >= 0)
+    {
+        bufferP[setSize--] = 0;
+        
+    }*/
 
     return (void *)bufferP;  // return a pointer to the buffer
 }
 
+#ifndef WIN32
+/*memmove function*/
+void memmove(char *dst, char *src, int len)
+{
+    int i;
+    if(dst > src)
+    {
+        for(i=len-1;i>=0;i--)
+            dst[i] = src[i];   
+    }
+    else
+    if(dst < src)
+    {
+        for(i=0;i<len;i++)
+            dst[i] = src[i];    
+    }
+}
+
+/*strlen function*/
+unsigned long strlen(char *str)
+{
+    unsigned long i = 0;
+    while(str[i] != '\0')
+        i++;
+    return i;
+}
+#endif
+
+/*strprintstr function <=> sprintf(dst,"%s",src);*/
+void strprintstr(char *dst, char *src)
+{
+    int i = 0;
+    while(src[i] != 0)
+    {
+        dst[i] = (char) src[i];
+        i++;
+    }
+    dst[i] = 0;
+}
+/*straddstr function - add src to the end of dst*/
+/*void straddstr(char *dst, char *src)
+{
+    unsigned long i,j = 0;
+    i = strlen(dst);
+    while(src[j]!='\0')
+    {
+        dst[i] = src[j];
+        i++;
+        j++;
+    }
+    dst[i] = 0;
+}*/
+
+/*strprintshortint - printf int < 1000 as asci*/
+void strprintshortint(char *dst, int number)
+{
+    int i = 0;
+    int j = 13;
+    int number2;
+
+    if(number >= 100)
+    {
+        number2 = number;
+        j = 0;
+        while(number2 >= 100)
+        {
+            j++;
+            number2 -= 100;        
+        }
+        dst[i++] = j + '0';
+        number = number - j*100;
+    }
+
+    if(number >= 10)
+    {
+        number2 = number;
+        j = 0;
+        while(number2 >= 10)
+        {
+            j++;
+            number2 -= 10;        
+        }
+        dst[i++] = j + '0';
+        number = number - j*10;
+    }
+    
+        
+    dst[i++] = number + '0';
+    dst[i] = 0;
+}
 
 /* EBUF functions to handle buffer operations*/
 /* Extensible buffer for easier construction of string data
@@ -104,7 +202,7 @@ void ebufReplaceChar(ExtensibleBuffer *buf, char c, int pos)
     buf->data[pos] = c;
 }
 
-void ebufInsertChar(ExtensibleBuffer *buf, char c, int pos)
+void ebufInsertChar(ExtensibleBuffer *buf, char c, int pos,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
     int newAllocated;
     char *newData;
@@ -123,7 +221,7 @@ void ebufInsertChar(ExtensibleBuffer *buf, char c, int pos)
         {
             newAllocated = buf->allocated + 256;
         }
-        newData = (char *) new_malloc(newAllocated);   
+        newData = (char *) new_malloc(newAllocated,emulStateP,call68KFuncP);   
         if (!newData)
             return;
         if (buf->data)
@@ -132,7 +230,7 @@ void ebufInsertChar(ExtensibleBuffer *buf, char c, int pos)
         }
         buf->allocated = newAllocated;
         if (buf->data)
-            new_free(buf->data);
+            new_free(buf->data,emulStateP,call68KFuncP);
         buf->data = newData;
     }
     // make room if inserting 
@@ -144,20 +242,20 @@ void ebufInsertChar(ExtensibleBuffer *buf, char c, int pos)
     ++buf->used;
 }
 
-void ebufAddChar(ExtensibleBuffer *buf, char c)
+void ebufAddChar(ExtensibleBuffer *buf, char c,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
-    ebufInsertChar(buf, c, buf->used);
+    ebufInsertChar(buf, c, buf->used,emulStateP,call68KFuncP);
 }
 
-void ebufAddStrN(ExtensibleBuffer *buf, char *str, int strLen)
+void ebufAddStrN(ExtensibleBuffer *buf, char *str, int strLen,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
     int i;
     for (i = 0; i < strLen; i++)
-        ebufInsertChar(buf, str[i], buf->used);
+        ebufInsertChar(buf, str[i], buf->used,emulStateP,call68KFuncP);
 }
-void ebufAddStr(ExtensibleBuffer * buf, char *str)
+void ebufAddStr(ExtensibleBuffer * buf, char *str,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
-    ebufAddStrN(buf, str, strlen(str));
+    ebufAddStrN(buf, str, strlen(str),emulStateP,call68KFuncP);
 }
 
 //delete one char from buffer
@@ -172,13 +270,29 @@ void ebufDeleteChar(ExtensibleBuffer *buf, int pos)
 }
 
 //insert string into buf[pos]
-void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos)
+void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
     int i;
     i = strlen(string) - 1;
     for(; i >= 0; i--)
-        ebufInsertChar(buf, string[i], pos);
+        ebufInsertChar(buf, string[i], pos,emulStateP,call68KFuncP);
 }
+
+//insert "Synonyms: " into buf[pos]
+void ebufInsertSynonymsOnPos(ExtensibleBuffer *buf, int pos,const void *emulStateP,Call68KFuncType *call68KFuncP)
+{
+    ebufInsertChar(buf, ' ', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, ':', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 's', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 'm', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 'y', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 'n', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 'o', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 'n', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 'y', pos,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, 'S', pos,emulStateP,call68KFuncP);
+}
+
 
 /*Called by Function10*/
 //formatting tag code (an unused in database asci code)
@@ -264,10 +378,13 @@ int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
     char z;
     char *txt1;
     char *txt2;
+    int  div2;
     //reverse all
     txt1 = txt + offset1;
     txt2 = txt + end2 - 1;
-    for(i = 0; i < (end2-offset1)/2 ; i++)
+    
+    div2 = (end2-offset1)>>1;
+    for(i = 0; i < div2 ; i++)
     {
         z       = txt1[0];
         txt1[0] = txt2[0];
@@ -281,7 +398,8 @@ int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
     //reverse 1st
     txt1 = txt + offset1;
     txt2 = txt + offset2 - 1;
-    for(i = 0; i < (offset2-offset1)/2 ; i++)
+    div2 = (offset2-offset1)>>1;
+    for(i = 0; i < div2 ; i++)
     {
         z       = txt1[0];
         txt1[0] = txt2[0];
@@ -292,7 +410,8 @@ int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
     //reverse 2nd
     txt1 = txt + offset2;
     txt2 = txt + end2 - 1;
-    for(i = 0; i < (end2-offset2)/2 ; i++)
+    div2 = (end2-offset2)>>1;
+    for(i = 0; i < div2 ; i++)
     {
         z       = txt1[0];
         txt1[0] = txt2[0];
@@ -305,7 +424,7 @@ int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
 //word is marked as synonym! and synonyms are marked as words!
 //we need to change it... and sort synonyms after definition and examples
 //also add "synonyms:" text (but not in thes.).
-static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
+static void XchgWordsWithSynonyms(ExtensibleBuffer *buf,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
     int  i, j, k;
     int  used;
@@ -334,7 +453,8 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
         {
             ebufReplaceChar(buf, FORMAT_SYNONYM, i + 1);
 #ifndef THESAURUS   //why? think :)
-            ebufInsertStringOnPos(buf, "Synonyms: ", i + 2);
+            //ebufInsertStringOnPos(buf, "Synonyms: ", i + 2,emulStateP,call68KFuncP);
+            ebufInsertSynonymsOnPos(buf, i + 2,emulStateP,call68KFuncP);
             used = buf->used;
             data = buf->data;
 #endif
@@ -371,32 +491,70 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
     }
 }
 
+/* Print roman in dst */
+void strprintroman(char *dst, int roman)
+{
+    int i = 0;
+    dst[i++] = ' ';
+    switch(roman)
+    {
+        case 1: 
+                dst[i++] = 'I';
+            break;
+        case 2: 
+                dst[i++] = 'I';
+                dst[i++] = 'I';
+            break;
+        case 3: 
+                dst[i++] = 'I';
+                dst[i++] = 'I';
+                dst[i++] = 'I';
+            break;
+        case 4: 
+                dst[i++] = 'I';
+                dst[i++] = 'V';
+            break;
+        case 5: 
+                dst[i++] = 'V';
+            break;
+        case 6: 
+                dst[i++] = 'V';
+                dst[i++] = 'I';
+            break;
+        case 7: 
+                dst[i++] = 'V';
+                dst[i++] = 'I';
+                dst[i++] = 'I';
+            break;
+        case 8: 
+                dst[i++] = 'V';
+                dst[i++] = 'I';
+                dst[i++] = 'I';
+                dst[i++] = 'I';
+            break;
+        case 9: 
+                dst[i++] = 'I';
+                dst[i++] = 'X';
+            break;
+        default: break;
+    }
+    dst[i++] = ' ';
+    dst[i++] = 0;
+}
+
 /* Format 2 on sorted buffer*/
-void Format2onSortedBuffer(ExtensibleBuffer *buf)
+void Format2onSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {       
-    int  i, j;
+    int  i, j, p;
     int  first_pos;
     int  number;    
     int  bignumber;    
-    char str_number[10];
-    char *roman[10];  // = {""," I"," II"," III"," IV"," V"," VI"," VII"," VIII"," IX"};
+    char str_number[16];
     char *data;
     char *dataTest;
 
-    //initialize data (resident mode)
-    roman[0] = " ";
-    roman[1] = " I";
-    roman[2] = " II";
-    roman[3] = " III";
-    roman[4] = " IV";
-    roman[5] = " V";
-    roman[6] = " VI";
-    roman[7] = " VII";
-    roman[8] = " VIII";
-    roman[9] = " IX";
-  
-    XchgWordsWithSynonyms(buf);
-
+    XchgWordsWithSynonyms(buf,emulStateP,call68KFuncP);
+    
     i = 0;
     while((buf->data[i] != (char)FORMAT_TAG || buf->data[i+1] != (char)FORMAT_POS) && i+1 < buf->used)
         i++;
@@ -427,12 +585,16 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf)
                     //add numbers to buff (2. 3. 4. etc)
                     ebufDeletePos(buf, i);
                     number++;
-                    sprintf(str_number,"%d) \0",number);
+                    strprintshortint(str_number,number);
+                    p = strlen(str_number);
+                    str_number[p++] = ')';
+                    str_number[p++] = ' ';
+                    str_number[p++] = 0;
                     
                     j = 0;
                     while(str_number[j] != '\0')
                     {
-                        ebufInsertChar(buf, str_number[j], i + j);
+                        ebufInsertChar(buf, str_number[j], i + j,emulStateP,call68KFuncP);
                         j++;
                     }
                     ebufReplaceChar(buf, FORMAT_LIST, i - 1);
@@ -461,25 +623,29 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf)
                         j++;
                     }
     
-                    ebufInsertChar(buf, '\n', j);
+                    ebufInsertChar(buf, '\n', j,emulStateP,call68KFuncP);
                     j++;
                     i++;
                                     
                     if(number > 1)
                     {
-                        ebufInsertChar(buf, FORMAT_TAG, j);
-                        ebufInsertChar(buf, FORMAT_LIST , j + 1);
-                        ebufInsertChar(buf, '1', j + 2);
-                        ebufInsertChar(buf, ')', j + 3);
-                        ebufInsertChar(buf, ' ', j + 4);
+                        ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
+                        ebufInsertChar(buf, FORMAT_LIST , j + 1,emulStateP,call68KFuncP);
+                        ebufInsertChar(buf, '1', j + 2,emulStateP,call68KFuncP);
+                        ebufInsertChar(buf, ')', j + 3,emulStateP,call68KFuncP);
+                        ebufInsertChar(buf, ' ', j + 4,emulStateP,call68KFuncP);
                         i += 5;
                     }
                     
-                    sprintf(str_number,"%c%c%s \0", FORMAT_TAG, FORMAT_BIG_LIST, roman[bignumber%10]);
+                    str_number[0] = (char) FORMAT_TAG;
+                    str_number[1] = (char) FORMAT_BIG_LIST;
+                    str_number[2] = 0;
+                    strprintroman(&str_number[strlen(str_number)],bignumber);
+                    
                     j = 0;
-                    while(str_number[j] != '\0')
+                    while(str_number[j] != 0)
                     {
-                        ebufInsertChar(buf, str_number[j], first_pos - 2 + j);
+                        ebufInsertChar(buf, str_number[j], first_pos - 2 + j,emulStateP,call68KFuncP);
                         j++;
                     }
                     i += j-1;
@@ -524,31 +690,35 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf)
     while( !IsTagInLine(buf->data[j], buf->data[j+1]) )
         j++;
 
-    ebufInsertChar(buf, '\n', j);
+    ebufInsertChar(buf, '\n', j,emulStateP,call68KFuncP);
     j++;
                                 
     if(number > 1)
     {
-        ebufInsertChar(buf, FORMAT_TAG, j);
-        ebufInsertChar(buf, FORMAT_LIST , j + 1);
-        ebufInsertChar(buf, '1', j + 2);
-        ebufInsertChar(buf, ')', j + 3);
-        ebufInsertChar(buf, ' ', j + 4);
+        ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
+        ebufInsertChar(buf, FORMAT_LIST , j + 1,emulStateP,call68KFuncP);
+        ebufInsertChar(buf, '1', j + 2,emulStateP,call68KFuncP);
+        ebufInsertChar(buf, ')', j + 3,emulStateP,call68KFuncP);
+        ebufInsertChar(buf, ' ', j + 4,emulStateP,call68KFuncP);
     }
     
     if(bignumber > 1)
     {    
-        sprintf(str_number,"%c%c%s \0", FORMAT_TAG, FORMAT_BIG_LIST, roman[bignumber%10]);                     
+        str_number[0] = (char) FORMAT_TAG;
+        str_number[1] = (char) FORMAT_BIG_LIST;
+        str_number[2] = 0;
+        strprintroman(&str_number[strlen(str_number)],bignumber);
+
         j = 0;
-        while(str_number[j] != '\0')
+        while(str_number[j] != 0)
         {
-            ebufInsertChar(buf, str_number[j], first_pos - 2 + j);
+            ebufInsertChar(buf, str_number[j], first_pos - 2 + j,emulStateP,call68KFuncP);
             j++;
         }
     }
 }
 
-void Function10(void *funData)
+void Function10(void *funData,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
     armFunction10Input *input;
     ExtensibleBuffer buf;
@@ -561,7 +731,7 @@ void Function10(void *funData)
     buf.minSize = 0;
 
     
-    Format2onSortedBuffer(&buf);
+    Format2onSortedBuffer(&buf,emulStateP,call68KFuncP);
         
 
     Write68KUnaligned32(&input->data,buf.data);
@@ -575,8 +745,6 @@ unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP,
 {
     unsigned long funID;
     armMainInput *inptr;
-    call68KFuncPGLOBAL = call68KFuncP;
-    emulStatePGLOBAL = emulStateP;
     inptr = (armMainInput*) userData68KP;
 
     funID = Read68KUnaligned32(&inptr->functionID);
@@ -587,7 +755,7 @@ unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP,
                 Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
             break;
         case ARM_FUN_FORMAT2ONBUFF: //format 2 on sorted buffer
-                Function10((void*)Read68KUnaligned32(&inptr->functionData));
+                Function10((void*)Read68KUnaligned32(&inptr->functionData),emulStateP,call68KFuncP);
                 Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
             break;
         default: break;

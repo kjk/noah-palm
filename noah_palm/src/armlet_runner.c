@@ -23,14 +23,12 @@ static UInt32 armPceNativeResourceCall(DmResType resType, DmResID resID, char* D
 	MemPtr    armP;
 	UInt32    result;
 
-//	WinDrawChars("TEST RUN",8,10,10);
 	// get the processor type
 	FtrGet(sysFileCSystem, sysFtrNumProcessorID, &processorType);
 	
 	if (sysFtrNumProcessorIsARM(processorType))
 		{
-          	WinDrawChars("ARM  RUN",8,10,20);
-			// running on ARM; call the actual ARM resource
+			// running on ARM; call the ARM resource
 			armH = DmGetResource(resType, resID);
 			armP = MemHandleLock(armH);
 	
@@ -41,18 +39,14 @@ static UInt32 armPceNativeResourceCall(DmResType resType, DmResID resID, char* D
 		}
 	else if (processorType == sysFtrNumProcessorx86)
 		{
-//        	WinDrawChars("DLL  RUN",8,10,20);
 			// running on Simulator; call the DLL
 			result = PceNativeCall( (NativeFuncType*)DLLEntryPointP, userDataP);
 		}
 	else
 		{
 			// some other processor; fail gracefully
-//          WinDrawChars("NONE RUN",8,10,20);
             result = -1;
         }
-	
-// 	WinDrawChars("TEST END",8,10,30);
 	return result;
 }
 
@@ -72,7 +66,7 @@ Boolean armTestArmLet()
     return (inpt.functionID == (ARM_FUN_TESTIFPRESENT+ARM_FUN_RETURN_OFFSET))?true:false;
 }
 /**
- *  Format2 on sorted buffer
+ *  Format2 on sorted buffer - armlet version
  */
 Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
 {
@@ -94,11 +88,6 @@ Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
     buf->allocated = funInp.allocated;
     buf->used = funInp.used;
     buf->data = funInp.data;
-/*
-    if(inpt.functionID != (ARM_FUN_FORMAT2ONBUFF+ARM_FUN_RETURN_OFFSET))
-    {
-       	WinDrawChars("FAIL ARM",8,10,30);
-    }
-*/
+
     return(inpt.functionID == (ARM_FUN_FORMAT2ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
 }
