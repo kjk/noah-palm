@@ -60,14 +60,24 @@ static void MainFormDisplayAbout(AppContext* appContext)
 
     FntSetFont(largeFont);
     DrawCenteredString(appContext, "http://www.arslexis.com", currentY);
-    currentY+=40;
+    currentY+=28;
 
     FntSetFont(stdFont);
     if (0==StrLen(appContext->prefs.regCode))
     {
         DrawCenteredString(appContext, "Trial mode", currentY);
+        currentY+=14;
+#ifdef  DEMO_HANDANGO
+        DrawCenteredString(appContext, "Buy at: www.handango.com/purchase", currentY);
+        currentY+=14;
+        DrawCenteredString(appContext, "        Product ID: 101763", currentY);
+#endif
+#ifdef DEMO_PALMGEAR
+        DrawCenteredString(appContext, "Buy at: www.palmgear.com?53831", currentY);
+#endif
     }
-    
+
+
     WinPopDrawState();    
 }
 
