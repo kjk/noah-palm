@@ -12,6 +12,10 @@
 #include "common.h"
 #include "pronunciation.h"
 
+#define DRAW_DI_X_P     0
+#define DRAW_DI_Y_P     15
+
+
 /**
  *  Remove '//' if you want to work without selection
  */
@@ -703,6 +707,7 @@ static Boolean PronunciationFormDisplayChanged(AppContext* appContext, FormType*
 
     UpdateFrmBounds(frm);
     FrmSetObjectPosByID(frm, buttonOk,      -1, appContext->screenHeight-14);
+    FrmSetObjectBoundsByID(frm, scrollDef, -1, -1, -1, appContext->screenHeight-18-DRAW_DI_Y_P);
     FrmDrawForm(frm);        
     return true;
 }
@@ -763,17 +768,17 @@ static void DrawPronunciationOnForm(AppContext* appContext)
     char        wordPart[WORD_MAX_LEN + 2];
     char *      wordTest;
     int         bufferPosition;
-    int         i,j,k;
+    int         i,j;
     long        wordNoPart;
     Boolean     findSth = false;
-    int         phonems[40];
-    int         actY, tmpY, tmpY2;
     long        wordNo;
     char        *word;
     AbstractFile *file;
     ExtensibleBuffer *buf;
+    ExtensibleBuffer *buf2;
     
     buf = ebufNew();
+    buf2 = ebufNew();
 
     file = appContext->currentFile->dictData.wn->file;
     wordNo = appContext->currentWord;
@@ -782,17 +787,9 @@ static void DrawPronunciationOnForm(AppContext* appContext)
     ebufAddChar(buf,FORMAT_TAG);
     ebufAddChar(buf,FORMAT_WORD);
     ebufAddStr(buf,word);
-    ebufAddChar(buf,'\0');
-    ebufWrapBigLines(buf,false);    
-    
-    SetDrawParam(FORMAT_WORD,&appContext->prefs.displayPrefs,appContext);
-    actY = 15;
-    actY = pronDrawWord(word, 0, actY, appContext->screenWidth);
-    
-    ebufReset(buf);
-
-    for(i=0;i<40;i++)
-        phonems[i] = 0;
+    ebufAddChar(buf,'\n');
+    ebufAddChar(buf,FORMAT_TAG);
+    ebufAddChar(buf,FORMAT_PRONUNCIATION);
     
     if(!pronGetCompresedWord(appContext,file,compresed,wordNo))
     {
@@ -831,8 +828,9 @@ static void DrawPronunciationOnForm(AppContext* appContext)
             findSth = true;
             
             pronDecomprese(decompresed,compresed);
+
             for(i=0;decompresed[i]!=0;i++)
-                phonems[decompresed[i]]++;
+                pronFillHelpBufferWithPhonem(appContext, buf2, decompresed[i]);    
                         
             pron = pronTranslateDecompresed(appContext, decompresed);
 
@@ -849,7 +847,7 @@ static void DrawPronunciationOnForm(AppContext* appContext)
     {      
         pronDecomprese(decompresed,compresed);
         for(i=0;decompresed[i]!=0;i++)
-            phonems[decompresed[i]]++;
+            pronFillHelpBufferWithPhonem(appContext, buf2, decompresed[i]);    
     
         pron = pronTranslateDecompresed(appContext, decompresed);
         ebufAddChar(buf,'[');
@@ -858,43 +856,41 @@ static void DrawPronunciationOnForm(AppContext* appContext)
         ebufAddChar(buf,']');
     }
 
+    ebufAddChar(buf,'\n');
+
+    ebufAddStrN(buf,buf2->data,buf2->used);
+    ebufDelete(buf2);    
+
     ebufAddChar(buf,'\0');
-    SetDrawParam(FORMAT_PRONUNCIATION,&appContext->prefs.displayPrefs,appContext);
-    actY = pronDrawWord(buf->data, 0, actY, appContext->screenWidth);
+    ebufWrapBigLines(buf,false);
 
-    for(i=0;i<=39;i++)
-        if(phonems[i] > 0 && actY < appContext->screenHeight - 20)
-        {   //that phonem was used!
-            ebufReset(buf);
-            pronFillHelpBufferWithPhonem(appContext, buf, i);    
-            buf->data[buf->used-1] = '\0';
+    if(appContext->ptrOldDisplayPrefs==NULL)
+    {
+        /*we use currDispInfo to draw help. We need to restore it before exiting*/
+        appContext->ptrOldDisplayPrefs = (void*) appContext->currDispInfo->data;
+        //in rawTxt '\n' are replaced with '\0'. we need to replace it
+        for(i=0,j=1; i<appContext->currDispInfo->size && j<appContext->currDispInfo->linesCount;i++)
+            if(appContext->currDispInfo->data[i] == '\0')
+            {
+                appContext->currDispInfo->data[i] = '\n';
+                j++;
+            }
+        
+        appContext->currDispInfo->data = NULL;
+        appContext->currDispInfo->size = 0;
+    }
+    else
+        Assert(0);
 
-            j = 1;
-            SetDrawParam(buf->data[j],&appContext->prefs.displayPrefs,appContext);
-            k = j+1;
-            while(!IsTag(buf->data[k-1],buf->data[k]))
-                k++;
-            buf->data[k-1] = '\0';
-            tmpY = pronDrawWord(&buf->data[j+1], 0, actY, 20);
-            j = k;
-            
-            SetDrawParam(buf->data[j],&appContext->prefs.displayPrefs,appContext);
-            k = j+1;
-            while(!IsTag(buf->data[k-1],buf->data[k]))
-                k++;
-            buf->data[k-1] = '\0';
-            tmpY2 = pronDrawWord(&buf->data[j+1], 20, actY, 80);
-            tmpY = (tmpY > tmpY2)?tmpY:tmpY2;
-            j = k;
-           
-            SetDrawParam(buf->data[j],&appContext->prefs.displayPrefs,appContext);
-            tmpY2 = pronDrawWord(&buf->data[j+1], 80, actY, appContext->screenWidth);
-            tmpY = (tmpY > tmpY2)?tmpY:tmpY2;
-            
-            actY = tmpY;
-        }
+   
+    diSetRawTxt(appContext->currDispInfo, buf->data);
+    appContext->firstDispLine = 0;
+//    ClearDisplayRectangle(appContext);
+    cbNoSelection(appContext);
 
-    SetDrawParam(FORMAT_TAG,&appContext->prefs.displayPrefs,appContext);
+    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
+    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+
     ebufDelete(buf);    
 }
 
@@ -912,17 +908,44 @@ Boolean PronunciationFormHandleEvent(EventType * event)
     {
         case winDisplayChangedEvent:
             PronunciationFormDisplayChanged(appContext, frm);
+            SetGlobalBackColor(appContext);
+            ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+            DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
+            SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
             return true;
         case frmOpenEvent:
             cbNoSelection(appContext);
             FrmDrawForm(frm);
             DrawPronunciationOnForm(appContext);
             return true;
+        case sclExitEvent:
+            if (event->data.sclRepeat.newValue != appContext->firstDispLine)
+            {
+                SetGlobalBackColor(appContext);
+                ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                appContext->firstDispLine = event->data.sclRepeat.newValue;
+                DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
+                SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+            }
+            return true;
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonOk:
                     FrmReturnToForm(0);
+                    //redraw all behind the form                    
+                    diSetRawTxt(appContext->currDispInfo,(char*) appContext->ptrOldDisplayPrefs);
+                    new_free(appContext->ptrOldDisplayPrefs);
+                    appContext->ptrOldDisplayPrefs = NULL;
+                    appContext->firstDispLine = 0;
+                    cbNoSelection(appContext);
+                    ClearDisplayRectangle(appContext);
+                    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+
+                    frm = FrmGetActiveForm();
+                    FrmSetObjectBoundsByID(frm, scrollDef, -1, -1, -1, appContext->screenHeight-18);
+                    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+                   
                     break;
                 default:
                     Assert(0);
@@ -966,39 +989,6 @@ OnError:
 
 void pronDisplayHelp(AppContext* appContext, char* pronHitted)
 {
-/*    char *              rawTxt;
-    ExtensibleBuffer *  buf;
-
-    if (NULL == appContext->currDispInfo)
-    {
-        appContext->currDispInfo = diNew();
-        if (NULL == appContext->currDispInfo)
-        {
-            // TODO: we should rather exit, since this means totally out of ram 
-            return;
-        }
-    }
-
-    buf = ebufNew();
-    if (NULL == buf)
-        return;
-
-    pronFillHelpBuffer(appContext, buf);
-
-    rawTxt = ebufGetDataPointer(buf);
-
-    diSetRawTxt(appContext->currDispInfo, rawTxt);
-    //after double click on pronunciation
-    appContext->firstDispLine = pronRetPronNo(pronHitted[0], pronHitted[1]) - 1;
-    if(appContext->firstDispLine > 35)
-        appContext->firstDispLine = 35;
-    
-    ClearDisplayRectangle(appContext);
-    cbNoSelection(appContext);
-
-    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
-    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
-    ebufDelete(buf);*/
     cbNoSelection(appContext);
     FrmPopupForm(formPronunciation);
 }

@@ -128,6 +128,7 @@ USABLE
 FRAME
 BEGIN
    TITLE  "Pronunciation guide"
+   SCROLLBAR ID scrollDef AT (152 16 7 127) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    BUTTON "OK"           buttonOk           AT (RIGHT@159  BOTTOM@160-1 40 AUTO)  FONT 0
 END 
 

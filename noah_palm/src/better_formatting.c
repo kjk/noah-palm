@@ -1043,7 +1043,7 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
     char *dataEnd;
 
     i = 0;
-    if(buf->data[1] == (char)FORMAT_SYNONYM || buf->data[1] == (char)FORMAT_WORD)
+    if(buf->data[1] == (char)FORMAT_SYNONYM /*|| buf->data[1] == (char)FORMAT_WORD*/)
     {
         buf->data[1] = FORMAT_WORD;
         i = 2;
