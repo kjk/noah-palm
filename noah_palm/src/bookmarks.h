@@ -34,4 +34,6 @@ Boolean BookmarksFormHandleEvent(EventType * event);
 Err     CloseBookmarksDB(struct _AppContext* appContext);
 UInt16  GetBookmarksCount(struct _AppContext *appContext);
 
+Err BookmarksFormLoad(struct _AppContext* appContext);
+
 #endif

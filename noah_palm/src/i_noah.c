@@ -8,6 +8,7 @@
 #include "main_form.h"
 #include "preferences_form.h"
 #include "inet_word_lookup.h"
+#include "bookmarks.h"
 
 #ifdef DEBUG
 // This is a full HTTP response we get on device when asking for word "glib"
@@ -81,6 +82,8 @@ static Err AppInit(AppContext* appContext)
     ebufInit(&appContext->currentDefinition, 0);
     ebufInit(&appContext->currentWordBuf, 0);
     ebufInit(&appContext->lastResponse, 0);
+    
+    appContext->currBookmarkDbType = bkmInvalid; // has anybody idea why it isn't 0?
 
     appContext->prefs.startupAction      = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
@@ -146,6 +149,10 @@ static void AppLoadForm(AppContext* appContext, const EventType* event)
             
         case formDisplayPrefs:
             error=DisplayPrefsFormLoad(appContext);
+            break;
+
+        case formBookmarks:
+            error=BookmarksFormLoad(appContext);
             break;
         
         default:

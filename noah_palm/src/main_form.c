@@ -8,6 +8,7 @@
 #include "main_form.h"
 #include "inet_word_lookup.h"
 #include "five_way_nav.h"
+#include "bookmarks.h"
 
 typedef enum MainFormUpdateCode_ 
 {
@@ -343,7 +344,27 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
         case menuItemDispPrefs:
             FrmPopupForm(formDisplayPrefs);
             handled=true;
-            break;            
+            break;        
+            
+        case menuItemBookmarkView:
+            if (GetBookmarksCount(appContext)>0)
+                FrmPopupForm(formBookmarks);
+            else
+                FrmAlert(alertNoBookmarks);
+            handled=true;
+            break;
+
+        case menuItemBookmarkWord:
+            if (ebufGetDataSize(&appContext->currentWordBuf))
+                AddBookmark(appContext, ebufGetDataPointer(&appContext->currentWordBuf));
+            handled=true;
+            break;
+
+        case menuItemBookmarkDelete:
+            if (ebufGetDataSize(&appContext->currentWordBuf))
+                DeleteBookmark(appContext, ebufGetDataPointer(&appContext->currentWordBuf));
+            handled=true;
+            break;
             
         default:
             Assert(false);

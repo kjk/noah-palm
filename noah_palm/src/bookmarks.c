@@ -6,9 +6,18 @@
 #include "common.h"
 #include "bookmarks.h"
 
+
 #ifdef NOAH_LITE
 #error "This code doesn't work for Noah Lite"
 #endif
+
+#ifdef I_NOAH
+#include "inet_word_lookup.h"
+
+#define BOOKMARKS_DB_BY_NAME "iNoah_bookmarks_n"
+#define BOOKMARKS_DB_BY_TIME "iNoah_bookmarks_t"
+
+#else
 
 /* name of the database that holds bookmarks sorted by name */
 #define BOOKMARKS_DB_BY_NAME "Noah_bookmarks_n"
@@ -16,6 +25,8 @@
 /* name of the database that holds bookmarks sorted by the time 
    they were bookmarked */
 #define BOOKMARKS_DB_BY_TIME "Noah_bookmarks_t"
+
+#endif
 
 #define BOOKMARKS_DB_TYPE 'bkmk'
 
@@ -94,7 +105,7 @@ static void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **
     Assert(recHandle); // no reason it shouldn't work
     if (recHandle)
     {
-        str = MemHandleLock(recHandle);
+        str = (char*)MemHandleLock(recHandle);
         stringLenP = StrLen(str);
         FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
         WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
@@ -224,12 +235,20 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             {
                 word = (char*)MemHandleLock(recHandle);
                 Assert(word);
+#ifndef I_NOAH                
                 appContext->currentWord = dictGetFirstMatching(GetCurrentFile(appContext), word);
                 MemHandleUnlock(recHandle);
                 SendNewWordSelected();
+#else
+                FrmReturnToForm(0);
+                StartLookup(appContext, word);
+                MemHandleUnlock(recHandle);
+#endif                
             }
             CloseBookmarksDB(appContext);
+#ifndef I_NOAH
             FrmReturnToForm(0);
+#endif            
             handled = true;
         }
 
@@ -243,7 +262,11 @@ static Int16 BookmarksByNameCompare(char * r1, char * r2, Int16 sortOrder, SortR
     SortRecordInfoPtr /* info2 */, MemHandle /* appInfoH */)
 {
     // need to use that to have the same sorting as in list of words
+#ifndef I_NOAH    
     return p_istrcmp(r1,r2);
+#else
+    return StrCaselessCompare(r1, r2);
+#endif        
 }
 
 /* Create a new record recNum in a databse db that contains given word */
@@ -380,4 +403,25 @@ void DeleteBookmark(AppContext* appContext, char *word)
     DeleteBookmarkInDB(appContext, bkmSortByTime, word);    
     if (bkmInvalid != currDbOpen)
         OpenBookmarksDB(appContext, currDbOpen);
+}
+
+Err BookmarksFormLoad(AppContext* appContext)
+{
+    Err error=errNone;
+    FormType* form=FrmInitForm(formBookmarks);
+    if (!form)
+    {
+        error=memErrNotEnoughSpace;
+        goto OnError;
+    }
+    error=DefaultFormInit(appContext, form);
+    if (!error)
+    {
+        FrmSetActiveForm(form);
+        FrmSetEventHandler(form, BookmarksFormHandleEvent);
+    }
+    else 
+        FrmDeleteForm(form);
+OnError:
+    return error;    
 }

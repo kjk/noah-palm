@@ -73,6 +73,14 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT alertNoBookmarks
+INFORMATION
+BEGIN
+    TITLE "No bookmarks"
+    MESSAGE "No words have been bookmarked."
+    BUTTONS "OK"
+END
+
 ICONFAMILYEX
 BEGIN
     BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1
@@ -184,7 +192,19 @@ BEGIN
    BUTTON "Cancel" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
 END
 
+FORM ID formBookmarks   AT ( 0 0 160 160 )
+FRAME
+MODAL
+USABLE
+BEGIN
+   LABEL "Sort by:" labelBkmSortBy AT (1 147)
+   POPUPTRIGGER "name" popupSortBy  AT (PREVRIGHT+2 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST    "name" "time" ID listSortBy    AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2 
+   POPUPLIST popupSortBy  listSortBy
 
+   LIST   ""        listBookmarks   AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   BUTTON "Cancel"  buttonCancel    AT (121 146 AUTO AUTO) FONT 0
+END
 
 
 

@@ -3,6 +3,7 @@
 #define formDictMain        1000
 #define formDisplayPrefs 1001
 #define formPrefs           1002
+#define	formBookmarks	1003
 
 #define	menuMain            1100
 #define	menuItemCopy	1101
@@ -22,6 +23,7 @@
 #define alertWordNotFound                  2004
 #define alertMalformedResponse             2005
 #define alertCustomError                   2006
+#define alertNoBookmarks                    2007
 
 #define bmpFind         3000
 
@@ -43,6 +45,11 @@
 #define buttonBGpos 4107
 #define buttonDefault 4108
 
+#define labelBkmSortBy 4200
+#define popupSortBy	4201
+#define listSortBy	4202
+#define listBookmarks	4203
+
 #define popupStartupAction 4200
 #define listStartupAction 4201
 #define popuphwButtonsAction 4202
@@ -52,4 +59,3 @@
 
 
 #define helpPrefs   5000
-
