@@ -90,23 +90,46 @@ def _isEmptyString(str):
     if str.isspace() or len(str)==0: return True
     return False
 
+posTxtToNum = { "n.":    0, 
+                "n":     0, 
+                "adj.":  1,
+                "v.t.":  1,
+                "v.i.":  1,
+                "vi":    1,
+                "v.":    1,
+                "v":     1,
+                "vt":    1,
+                "adj.":  2,
+                "adj":   2,
+                "adv.":  3,
+                "adv":   3,
+                "pp.":   3,
+                "n or adj" : 0,
+                "exp": 0,
+                "excl":    0,
+                "acr":    0,
+                "exc":    0,
+                "abb":    0,
+                "ab":    0,
+                "gree":    0,
+                "number":  0,
+                "number.":  0,
+                "syn": 0,
+                "int": 0,
+                "exclamation" : 0,
+                "suffix":  0
+
+ }
+
 def _isPos(str):
     """Return True if this is a valid part of speech"""
-    return string.lower(str) in ["n.", "adj.", "v.t.", "v.i.", "adv.", "pp."]
+    return posTxtToNum.has_key( string.lower(str) )
+
 
 def _numericPos(posTxt):
-    posTxtToNum = [ ["n.", 0],
-                    ["adj.", 1],
-                    ["v.t.", 1],
-                    ["v.i.", 1],
-                    ["v.", 1],
-                    ["adj.",2],
-                    ["adv.",3],
-                    ["pp.",3] ]
-    posTxt = string.lower(posTxt)
-    for mapping in posTxtToNum:
-        if posTxt == mapping[0]:
-            return mapping[1]
+    key = string.lower(posTxt)
+    if posTxtToNum.has_key( key ):
+        return posTxtToNum[key]
     assert 0, "%s is not a valid pos" % posTxt
 
 class SimpleDictEntry:
@@ -1272,6 +1295,9 @@ def DoDevilDict():
     #DoSimpleDict(r"c:\kjk\noah\dicts\devils_noah.txt", r"Devil dict", r"c:\devil.pdb")
     DoSimpleDict(r"c:\kjk\noah\dicts\devils_noah.txt", r"Devil dict", r"devil.pdb")
 
+def DoSlangDict():
+    DoSimpleDict(r"c:\slang_dictionary.txt", r"Slang", r"slang.pdb")
+
 def DoAllSimpleDicts():
     for simpleDictDef in simpleDicts:
         DoSimpleDict(simpleDictDef[0], simpleDictDef[1], simpleDictDef[2])
@@ -1313,6 +1339,7 @@ if __name__ == "__main__":
         #testPickle()
         #testTiming()
         #main()
-        DoDevilDict()
+        #DoDevilDict()
+        DoSlangDict()
 
 
