@@ -287,7 +287,7 @@ void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos,const vo
 //insert "Synonyms: " into buf[pos]
 void ebufInsertSynonymsOnPos(ExtensibleBuffer *buf, int pos,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
-/*    char syn[11] = {"Synonyms: "};
+    char syn[11] = {"Synonyms: "};
     syn[0] = 'S';
     syn[1] = 'y';
     syn[2] = 'n';
@@ -299,9 +299,10 @@ void ebufInsertSynonymsOnPos(ExtensibleBuffer *buf, int pos,const void *emulStat
     syn[8] = ':';
     syn[9] = ' ';
     syn[10] = 0;
-    ebufInsertStringOnPos(buf, syn, pos,emulStateP,call68KFuncP); */
+    ebufInsertStringOnPos(buf, syn, pos,emulStateP,call68KFuncP); 
 
-    ebufInsertStringOnPos(buf, "Synonyms: ", pos,emulStateP,call68KFuncP);
+//  This is not working - char* in code is invalid???
+//    ebufInsertStringOnPos(buf, "Synonyms: ", pos,emulStateP,call68KFuncP);
 
 }
 
