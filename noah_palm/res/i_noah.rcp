@@ -5,8 +5,10 @@ VERSION ID 1 "1.0"
 FORM formDictMain AT (0 0 160 160)
 USABLE
 NOFRAME
-// MENUID menuMain
 BEGIN
+   SCROLLBAR ID     scrollDef       AT (152   1    7  142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+   FORMBITMAP                       AT (147 147)           BITMAP bmpFind
+   BUTTON ""        buttonFind      AT (146 146   14   14) NOFRAME
 END
 
 ALERT alertMemError
@@ -44,6 +46,23 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT alertWordNotFound
+INFORMATION
+BEGIN
+    TITLE "Word not found"
+    MESSAGE "The selected word was not found."
+    BUTTONS "OK"
+END
+
+ALERT alertMalformedResponse
+    DEFAULTBUTTON 0
+    ERROR
+BEGIN
+    TITLE "Error"
+    MESSAGE "Server returned malformed response."
+    BUTTONS "OK"
+END
+
 ICONFAMILYEX
 BEGIN
     BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1
@@ -62,3 +81,21 @@ BEGIN
     BITMAP "icons/no30x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
 END
 
+BITMAPFAMILYEX ID bmpFind
+BEGIN
+    BITMAP "find.bmp"     BPP 1 DENSITY 1
+    BITMAP "find-x2.bmp"  BPP 1 DENSITY 2
+END
+
+MENU ID menuMain 
+BEGIN
+     PULLDOWN "Edit"
+     BEGIN
+          MENUITEM "Copy" ID menuEditCopy  "C"
+     	MENUITEM "Paste" ID menuEditPaste  "V"
+	MENUITEM SEPARATOR
+	MENUITEM "Preferences" ID menuEditPreferences  "P"
+END
+
+     
+END

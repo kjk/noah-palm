@@ -6,7 +6,7 @@
 
 #define serverAddress                "www.arslexis.com"
 #define serverPort                      80
-#define serverRelativeURL           "/dict-raw.php?word=^0"
+#define serverRelativeURL           "/dict-raw.php?word=^0&ver=^1"
 #define maxResponseLength        8192               // reasonable limit so malicious response won't use all available memory
 #define responseBufferSize          256                 // size of single chunk used to retrieve server response
 #define addressResolveTimeout   20000              // timeouts in milliseconds

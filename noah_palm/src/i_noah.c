@@ -1,6 +1,6 @@
 #include "common.h"
 #include "five_way_nav.h"
-#include "inet_word_lookup.h"
+#include "main_form.h"
 
 static const UInt32 ourMinVersion = sysMakeROMVersion(3,0,0,sysROMStageDevelopment,0);
 static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelopment,0);
@@ -37,8 +37,11 @@ static Err AppInit(AppContext* appContext)
     if (error) 
         goto OnError;
     
-    LogInit( appContext, "c:\\thes_log.txt" );
+    LogInit( appContext, "c:\\iNoah_log.txt" );
     InitFiveWay(appContext);
+    
+    ebufInit(&appContext->currentDefinition, 0);
+    ebufInit(&appContext->currentWord, 0);
     appContext->ticksEventTimeout=evtWaitForever;
 
     appContext->prefs.displayPrefs.listStyle = 2;
@@ -59,22 +62,69 @@ OnError:
     return error;
 }
 
-static void AppFree(AppContext* appContext)
+static void AppDispose(AppContext* appContext)
 {
     Err error=errNone;
+    FrmSaveAllForms();
+    FrmCloseAllForms();
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
+    
+    if (appContext->currDispInfo)
+    {
+        diFree(appContext->currDispInfo);
+        appContext->currDispInfo=NULL;
+    }
+    ebufFreeData(&appContext->currentWord);
+    ebufFreeData(&appContext->currentDefinition);
+}
+
+static void AppLoadForm(AppContext* appContext, const EventType* event)
+{
+    Err error=errNone;
+    switch (event->data.frmLoad.formID)
+    {
+        case formDictMain:
+            error=MainFormLoad(appContext);
+            Assert(!error);
+            break;
+        
+        default:
+            Assert(false);
+    }
+}
+
+static Boolean AppHandleEvent(AppContext* appContext, EventType* event)
+{
+    Boolean handled=false;
+    switch (event->eType)
+    {
+        case frmLoadEvent:
+            AppLoadForm(appContext, event);
+            handled=true;
+            break;
+    }
+    return handled;
 }
 
 static void AppEventLoop(AppContext* appContext)
 {
+    Err error=errNone;
+    EventType event;
+    EvtGetEvent(&event, appContext->ticksEventTimeout);
+    while (event.eType != appStopEvent)
+    {
+        if (!SysHandleEvent(&event))
+            if (!MenuHandleEvent(0, &event, &error))
+                if (!AppHandleEvent(appContext, &event))
+                    FrmDispatchEvent(&event);
+        EvtGetEvent(&event, appContext->ticksEventTimeout);
+    }
 }
 
 static Err AppLaunch() 
 {
     Err error=errNone;
-    Char* response=NULL;
-    UInt16 respSize=0;
     AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
     if (!appContext)
     {
@@ -84,16 +134,9 @@ static Err AppLaunch()
     error=AppInit(appContext);
     if (error) 
         goto OnError;
-//    FrmGotoForm(formDictMain);
-//    AppEventLoop(appContext);
-    error=INetWordLookup("werk", &appContext->serverIpAddress, &response, &respSize);
-    if (!error)
-    {
-        Assert(response);
-        new_free(response);
-    }
-
-    AppFree(appContext);
+    FrmGotoForm(formDictMain);
+    AppEventLoop(appContext);
+    AppDispose(appContext);
 OnError: 
     if (appContext) 
         MemPtrFree(appContext);

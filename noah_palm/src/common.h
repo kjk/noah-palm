@@ -319,6 +319,8 @@ typedef struct _AppContext
      
 #ifdef I_NOAH
     NetIPAddr serverIpAddress;
+    ExtensibleBuffer currentDefinition;
+    ExtensibleBuffer currentWord;
 #endif      
 } AppContext;
 
@@ -519,5 +521,7 @@ extern const Char* StrFind(const Char* begin, const Char* end, const Char* subSt
 extern Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length);
 extern Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base);
 extern Char ToLower(Char in);
+extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars);
+extern void StrTrimTail(const Char* begin, const Char** end);
 
 #endif

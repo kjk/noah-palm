@@ -319,8 +319,6 @@ void SetGlobalBackColor(AppContext* appContext)
     SetBackColor( appContext, &rgb_color);
 }
 
-#ifndef I_NOAH
-
 void HideScrollbar(void)
 {
     FormType *frm;
@@ -361,6 +359,8 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     SclSetScrollBar((ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)), value, min, max, page_size);
     SetBackColorWhite(appContext); 
 }
+
+#ifndef I_NOAH
 
 #pragma segment Segment2
 
@@ -480,6 +480,8 @@ void DrawDescription(AppContext* appContext, long wordNo)
     RedrawWordDefinition(appContext);
 }
 
+#endif //I_NOAH
+
 void ClearDisplayRectangle(AppContext* appContext)
 {
     SetGlobalBackColor(appContext);
@@ -518,84 +520,6 @@ void DrawCenteredString(AppContext* appContext, const char *str, int dy)
     WinDrawChars(str, strLen, (appContext->screenWidth - strDx) / 2, dy);
 }
 
-//static int curr_y;
-//static FontID curr_font;
-//static FontID original_font;
-/*
-void dh_set_current_y(int y)
-{
-    curr_y = y;
-}
-
-void dh_save_font(void)
-{
-    original_font = FntGetFont();
-    curr_font = original_font;
-}
-
-void dh_restore_font(void)
-{
-    FntSetFont(original_font);
-}
-
-void dh_display_string(const char *str, int font, int dy)
-{
-    if (curr_font != (FontID) font)
-    {
-        curr_font = (FontID) font;
-        FntSetFont(curr_font);
-    }
-
-    DrawCenteredString(str, curr_y);
-    curr_y += dy;
-}
-*/
-
-/* display maxLines from DisplayInfo, starting with first line,
-starting at x,y  coordinates */
-/*
-void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
-                int maxLines)
-{
-    int totalLines;
-    int i;
-    char *line;
-    Int16 curY;
-    Int16 fontDY;
-    FontID prev_font;
-
-    Assert(firstLine >= 0);
-    Assert(maxLines > 0);
-
-
-    fontDY = FntCharHeight();
-
-    curY = y;
-    prev_font = FntGetFont();
-    totalLines = diGetLinesCount(di) - firstLine;
-    if (totalLines > maxLines)
-    {
-        totalLines = maxLines;
-    }
-    for (i = 0; i < totalLines; i++)
-    {
-        line = diGetLine(di, i + firstLine);
-        if (diLineBoldP(di, i + firstLine) && (prev_font != 1))
-        {
-            FntSetFont((FontID) 1);
-            prev_font = (FontID) 1;
-        }
-        else if (prev_font != 0)
-        {
-            FntSetFont((FontID) 0);
-            prev_font = (FontID) 0;
-        }
-        WinDrawChars(line, StrLen(line), x, curY);
-        curY += fontDY;
-    }
-    FntSetFont(prev_font);
-}
-*/
 /* max width of the word displayed at the bottom */
 #define MAX_WORD_DX        100
 
@@ -616,6 +540,8 @@ void DrawWord(char *word, int pos_y)
     WinDrawChars(word, wordLen, 22, pos_y - 2);
     FntSetFont(prev_font);
 }
+
+#ifndef I_NOAH
 
 /*
   Given entry number find out entry's definition (record,
@@ -2095,4 +2021,25 @@ Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base)
        *result=res;
 OnError:
     return error;    
+}
+
+const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars)
+{
+    Char buffer[2];
+    const Char* charsEnd=chars+StrLen(chars);
+    buffer[1]=chrNull;
+    while (begin<end) 
+    {
+        buffer[0]=*begin;
+        if (StrFind(chars, charsEnd, buffer)!=charsEnd)
+            break;
+        begin++;            
+    }
+    return begin;
+}
+
+void StrTrimTail(const Char* begin, const Char** end)
+{
+    while (*end>begin && *end!=StrFindOneOf((*end)-1, *end, " \r\n\t"))
+        --(*end);
 }
