@@ -42,7 +42,7 @@ inline static Err WordLookupRenderStatusText(const char* word, ConnectionStage s
                     bri++;
                     brf=0;
                 }
-                char formatString[9];
+                char formatString[10];
                 StrCopy(formatString, " %d.%d kB");
                 NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
                 char dontCare;
