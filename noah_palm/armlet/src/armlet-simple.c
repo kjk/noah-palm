@@ -259,8 +259,6 @@ void ebufAddStr(ExtensibleBuffer * buf, char *str,const void *emulStateP,Call68K
 //we will not free memory!!!
 void ebufDeleteChar(ExtensibleBuffer *buf, int pos)
 {
-    if (pos > buf->used || pos < 0)
-        return;
     if (pos < buf->used - 1)
         memmove(&(buf->data[pos]), &(buf->data[pos+1]), buf->used - pos - 1);
     buf->used--;
@@ -271,25 +269,38 @@ void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos,const vo
 {
     int i;
     i = strlen(string) - 1;
-    for(; i >= 0; i--)
-        ebufInsertChar(buf, string[i], pos,emulStateP,call68KFuncP);
+    
+    if(i+1 + buf->used < buf->allocated)
+    {
+        memmove(&buf->data[pos+i+1],&buf->data[pos],buf->used-pos);
+        buf->used += i+1;
+        for(;i >= 0; i--)
+            buf->data[pos+i] = string[i];
+    }
+    else
+    {    
+        for(; i >= 0; i--)
+            ebufInsertChar(buf, string[i], pos,emulStateP,call68KFuncP);
+    }    
 }
 
 //insert "Synonyms: " into buf[pos]
 void ebufInsertSynonymsOnPos(ExtensibleBuffer *buf, int pos,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
-    ebufInsertChar(buf, ' ', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, ':', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 's', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 'm', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 'y', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 'n', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 'o', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 'n', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 'y', pos,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, 'S', pos,emulStateP,call68KFuncP);
+    char syn[11] = {"Synonyms: "};
+    syn[0] = 'S';
+    syn[1] = 'y';
+    syn[2] = 'n';
+    syn[3] = 'o';
+    syn[4] = 'n';
+    syn[5] = 'y';
+    syn[6] = 'm';
+    syn[7] = 's';
+    syn[8] = ':';
+    syn[9] = ' ';
+    syn[10] = 0;
+    ebufInsertStringOnPos(buf, syn, pos,emulStateP,call68KFuncP);
 }
-
 
 /*Called by Function10*/
 //formatting tag code (an unused in database asci code)
@@ -534,12 +545,9 @@ void Format1OnSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
 
                 ebufReplaceChar(buf, FORMAT_LIST, i - 1);
 
-                j = 0;
-                while(str_number[j] != '\0')
-                {
-                    ebufInsertChar(buf, str_number[j], i + j,emulStateP,call68KFuncP);
-                    j++;
-                }
+                ebufInsertStringOnPos(buf, str_number, i, emulStateP,call68KFuncP);
+                j = strlen(str_number);
+                
                 i += j-1;
             }
             else
@@ -565,16 +573,24 @@ void Format1OnSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
                 }
                 j = first_pos + j;
 
-                ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
-                ebufInsertChar(buf, FORMAT_BIG_LIST, j + 1,emulStateP,call68KFuncP);
+                str_number[0] = FORMAT_TAG;
+                str_number[1] = FORMAT_BIG_LIST;
                 if(number > 1)
                 {
-                    ebufInsertChar(buf, '1', j + 2,emulStateP,call68KFuncP);
-                    j++;
+                    str_number[2] = '1';
+                    str_number[3] = ':';
+                    str_number[4] = ' ';
+                    str_number[5] = 0;
                     i++;
                 }
-                ebufInsertChar(buf, ':', j + 2,emulStateP,call68KFuncP);
-                ebufInsertChar(buf, ' ', j + 3,emulStateP,call68KFuncP);
+                else
+                {
+                    str_number[2] = ':';
+                    str_number[3] = ' ';
+                    str_number[4] = 0;
+                }
+                ebufInsertStringOnPos(buf, str_number, j, emulStateP,call68KFuncP);
+
                 i += 4;
                 number = 1;
                 first_pos = i;
@@ -603,13 +619,18 @@ void Format1OnSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
         j++;                
     }
     j = first_pos + j;
-    ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, FORMAT_BIG_LIST, j + 1,emulStateP,call68KFuncP);
-    if(number > 1)
-        ebufInsertChar(buf, '1', (j++) + 2,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, ':', j + 2,emulStateP,call68KFuncP);
-    ebufInsertChar(buf, ' ', j + 3,emulStateP,call68KFuncP);
 
+    i = 0;
+    str_number[i++] = FORMAT_TAG;
+    str_number[i++] = FORMAT_BIG_LIST;
+    if(number > 1)
+    {
+        str_number[i++] = '1';
+    }
+    str_number[i++] = ':';
+    str_number[i++] = ' ';
+    str_number[i] = 0;
+    ebufInsertStringOnPos(buf, str_number, j, emulStateP,call68KFuncP);
 }
 /* Print roman in dst */
 void strprintroman(char *dst, int roman)
@@ -629,7 +650,9 @@ void strprintroman(char *dst, int roman)
                 dst[i++] = 'I';
                 dst[i++] = 'V';
             break;
-/*        case 5: 
+        //we dont need it!
+        /*
+        case 5: 
                 dst[i++] = 'V';
             break;
         case 6: 
@@ -706,12 +729,9 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
                     str_number[p++] = ' ';
                     str_number[p++] = 0;
                     
-                    j = 0;
-                    while(str_number[j] != '\0')
-                    {
-                        ebufInsertChar(buf, str_number[j], i + j,emulStateP,call68KFuncP);
-                        j++;
-                    }
+                    ebufInsertStringOnPos(buf, str_number, i,emulStateP,call68KFuncP);
+                    j = strlen(str_number);
+
                     ebufReplaceChar(buf, FORMAT_LIST, i - 1);
                     i += j-1;
                 }
@@ -744,11 +764,13 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
                                     
                     if(number > 1)
                     {
-                        ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
-                        ebufInsertChar(buf, FORMAT_LIST , j + 1,emulStateP,call68KFuncP);
-                        ebufInsertChar(buf, '1', j + 2,emulStateP,call68KFuncP);
-                        ebufInsertChar(buf, ')', j + 3,emulStateP,call68KFuncP);
-                        ebufInsertChar(buf, ' ', j + 4,emulStateP,call68KFuncP);
+                        str_number[0] = FORMAT_TAG;
+                        str_number[1] = FORMAT_LIST;
+                        str_number[2] = '1';
+                        str_number[3] = ')';
+                        str_number[4] = ' ';
+                        str_number[5] = 0;
+                        ebufInsertStringOnPos(buf, str_number, j, emulStateP,call68KFuncP);
                         i += 5;
                     }
                     
@@ -757,12 +779,9 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
                     str_number[2] = 0;
                     strprintroman(&str_number[strlen(str_number)],bignumber);
                     
-                    j = 0;
-                    while(str_number[j] != 0)
-                    {
-                        ebufInsertChar(buf, str_number[j], first_pos - 2 + j,emulStateP,call68KFuncP);
-                        j++;
-                    }
+                    ebufInsertStringOnPos(buf, str_number, first_pos - 2, emulStateP,call68KFuncP);
+                    j = strlen(str_number);
+                    
                     i += j-1;
                     
                     i++;
@@ -810,11 +829,13 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
                                 
     if(number > 1)
     {
-        ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
-        ebufInsertChar(buf, FORMAT_LIST , j + 1,emulStateP,call68KFuncP);
-        ebufInsertChar(buf, '1', j + 2,emulStateP,call68KFuncP);
-        ebufInsertChar(buf, ')', j + 3,emulStateP,call68KFuncP);
-        ebufInsertChar(buf, ' ', j + 4,emulStateP,call68KFuncP);
+        str_number[0] = FORMAT_TAG;
+        str_number[1] = FORMAT_LIST;
+        str_number[2] = '1';
+        str_number[3] = ')';
+        str_number[4] = ' ';
+        str_number[5] = 0;
+        ebufInsertStringOnPos(buf, str_number, j, emulStateP,call68KFuncP);
     }
     
     if(bignumber > 1)
@@ -824,12 +845,7 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
         str_number[2] = 0;
         strprintroman(&str_number[strlen(str_number)],bignumber);
 
-        j = 0;
-        while(str_number[j] != 0)
-        {
-            ebufInsertChar(buf, str_number[j], first_pos - 2 + j,emulStateP,call68KFuncP);
-            j++;
-        }
+        ebufInsertStringOnPos(buf, str_number, first_pos - 2, emulStateP,call68KFuncP);
     }
 }
 /*Fasade on Format2OnSortedBuffer*/
