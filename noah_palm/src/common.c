@@ -1121,6 +1121,7 @@ long CalcListOffset(long itemsCount, long itemNo)
     return next_offset;
 } 
 #endif //I_NOAH
+
 void DefScrollUp(AppContext* appContext, ScrollType scroll_type)
 {
     DisplayInfo *di = NULL;
@@ -1202,6 +1203,7 @@ void DefScrollDown(AppContext* appContext, ScrollType scroll_type)
     DrawDisplayInfo(di, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(di, appContext->dispLinesCount, appContext->firstDispLine);
 }
+
 #ifndef I_NOAH
 // appContext->selectedWord is currently highlighted word, highlight word+dx (dx can
 // be negative in which case we highlight previous words). Used for scrolling

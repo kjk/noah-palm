@@ -163,6 +163,23 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
 {
     Boolean handled = false;
 
+    if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
+    {
+        if (FiveWayCenterPressed(appContext, event))
+        {
+            MainFormPressFindButton(form);
+        }
+        if (FiveWayDirectionPressed(appContext, event, Up ))
+        {
+            DefScrollUp(appContext, scrollLine );
+        }
+        if (FiveWayDirectionPressed(appContext, event, Down ))
+        {
+            DefScrollDown(appContext, scrollLine );
+        }
+        return true;
+    }
+
     switch (event->data.keyDown.chr)
     {
         case returnChr:
@@ -170,11 +187,13 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
             MainFormPressFindButton(form);
             handled = true;
             break;
-/*
+
         case pageUpChr:
             if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
             {
-                ScrollWordListByDx(appContext, frm, -(appContext->dispLinesCount-1) );
+                //enable after implementing prefs
+                //DefScrollUp(appContext, appContext->prefs.hwButtonScrollType);
+                DefScrollUp(appContext, scrollLine);
                 handled = true;
                 break;
             }
@@ -182,47 +201,14 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
         case pageDownChr:
             if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
             {
-                ScrollWordListByDx(appContext, frm, (appContext->dispLinesCount-1) );
+                //enable after implementing prefs
+                //DefScrollUp(appContext, appContext->prefs.hwButtonScrollType);
+                DefScrollDown(appContext,scrollLine);
                 handled = true;
                 break;
-            }*/
+            }
 
         default:
-            if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
-            {
-                if (FiveWayCenterPressed(appContext, event))
-                {
-//                    MainFormFindButtonPressed(appContext,form);
-                    MainFormPressFindButton(form);
-                    handled = true;
-                    break;
-                }
-            
-/*                if (FiveWayDirectionPressed(appContext, event, Left ))
-                {
-                    ScrollWordListByDx(appContext, frm, -(appContext->dispLinesCount-1) );
-                    handled = true;
-                    break;
-                }
-                if (FiveWayDirectionPressed(appContext, event, Right ))
-                {
-                    ScrollWordListByDx(appContext, frm, (appContext->dispLinesCount-1) );
-                    handled = true;
-                    break;
-                }
-                if (FiveWayDirectionPressed(appContext, event, Up ))
-                {
-                    ScrollWordListByDx(appContext, frm, -1 );
-                    handled = true;
-                    break;
-                }
-                if (FiveWayDirectionPressed(appContext, event, Down ))
-                {
-                    ScrollWordListByDx(appContext, frm, 1 );
-                    handled = true;
-                    break;
-                }*/
-            }
             break;
     }
     return handled;
