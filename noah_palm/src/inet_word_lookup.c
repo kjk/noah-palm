@@ -228,7 +228,7 @@ static Err PrepareGenericRequest(const char* cookie, const char* param, Extensib
     Err error=StrUrlEncode(param, param+paramLength, &urlEncParam, &paramLength);
     if (!error)
     {    
-        char* url=TxtParamString(randomWordURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncParam);
+        char* url=TxtParamString(genericURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncParam);
         if (url)
         {
             ebufAddStr(&buffer, url);
