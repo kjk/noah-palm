@@ -833,8 +833,8 @@ that this word belongs to (or 0 to mean we
 don't have enough data) */
 int wn_get_synset_count(WnInfo * wi, long wordNo)
 {
-    unsigned char *data;
-    int synset_count;
+    unsigned char * data;
+    int             synset_count;
 
     if (!wi->fastP)
     {
@@ -858,32 +858,33 @@ int wn_get_synset_count(WnInfo * wi, long wordNo)
 
 Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 {
-    WnInfo *wi = NULL;
-    char *rawTxt = NULL;
-    long defDataSize = 0;
-    int len;
-    char *word;
-    int unpackedLen;
+    WnInfo *    wi = NULL;
+    char *      rawTxt = NULL;
+    long        defDataSize = 0;
+    int         len;
+    char *      word;
+    int         unpackedLen;
 
-    int syn_count;
-    int syn_found_count = 0;
-    int wordsCount;
-    int partOfSpeech;
-    long wordNumFound;
-    long w;
-    int first_rec_with_defs_len;
-    int first_rec_with_defs;
-    int defs_record = 0;
-    long def_offset = 0;
-    char *txt = NULL;
-    long syn;
-    int res;
-    long start_syn;
-    direction dir;
-    Boolean end_p;
-    SynsetsInfo *si;
-    unsigned char *defData = NULL;
-    unsigned char *unpackedDef = NULL;
+    int         syn_count;
+    int         syn_found_count = 0;
+    int         wordsCount;
+    int         partOfSpeech;
+    long        wordNumFound;
+    long        w;
+    int         first_rec_with_defs_len;
+    int         first_rec_with_defs;
+    int         defs_record = 0;
+    long        def_offset = 0;
+    char *      txt = NULL;
+    long        syn;
+    int         res;
+    long        start_syn;
+    direction   dir;
+    Boolean     end_p;
+
+    SynsetsInfo *   si;
+    unsigned char * defData = NULL;
+    unsigned char * unpackedDef = NULL;
 
     wi = (WnInfo *) data;
 
@@ -1076,5 +1077,6 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     ebufWrapBigLines(&g_buf);
     rawTxt = ebufGetDataPointer(&g_buf);
     diSetRawTxt(di, rawTxt);
+    SetScrollbarState(di, DRAW_DI_LINES, 0);
     return 0;
 }

@@ -348,6 +348,9 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     value = firstLine;
 
     frm = FrmGetActiveForm();
+    // not really sure why I need to do it since the problem only shows up in
+    // Noah Pro and not lite/thes
+    SclDrawScrollBar( (ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)) );
     SclSetScrollBar((ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)), value, min, max, page_size);
 }
 
@@ -406,8 +409,8 @@ void RedrawWordDefinition()
 
     DrawWord(word, 149);
     ClearDisplayRectangle();
-    SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
     DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+    SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
 
 }
 
