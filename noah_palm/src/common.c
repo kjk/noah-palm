@@ -712,7 +712,7 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
     
     synsetNoFast = synsets[0].synsetNo;
 #ifdef NOAH_PRO
-    if(GetAppContext()->armIsPresent)
+    if(GetAppContext()->armIsPresent && (synsetNoFast-current_entry) >= ARMTORUN_MIN_ENTRIES_TO_GO)
     {
         while(!armGetDefsRecordWhile(&current_entry, &offset, &curr_len, &def_lens_fast, def_lens_fast_end, synsetNoFast))
         {

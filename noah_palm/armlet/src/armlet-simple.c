@@ -13,6 +13,9 @@
  *
  * File: armlet-simple.c
  *
+ * Copyright (C) 2000-2003 Krzysztof Kowalczyk
+ * Author: szymon knitter (szknitter@wp.pl)
+ *
  * Description:
  *
  * This is changed armlet example.
@@ -27,6 +30,8 @@
  * Number - Function - return value when executed
  * 1  - Test function - retrun 101
  * 10 - Format2OnSortedBuffer
+ * 11 - Format1OnSortedBuffer
+ * 20 - WhileLoopFrom Get_defs_record
  *
  ****************************************************/
 
@@ -491,6 +496,121 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf,const void *emulStateP,C
     }
 }
 
+//format 1
+void Format1OnSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KFuncType *call68KFuncP)
+{
+    int  i, j;
+    int  first_pos;
+    int  number;    
+    char str_number[10];
+
+    XchgWordsWithSynonyms(buf,emulStateP,call68KFuncP);
+
+    i = 0;
+    while((buf->data[i] != (char)FORMAT_TAG || buf->data[i+1] != (char)FORMAT_POS) && i+1 < buf->used)
+        i++;
+    
+    first_pos = i + 2;
+    if(first_pos > buf->used)
+        return;   
+    i = first_pos;
+    number = 1;
+    while( i+1 < buf->used )
+    {
+        if(buf->data[i] == (char)FORMAT_TAG && buf->data[i+1] == (char)FORMAT_POS)
+        {
+            i += 2;
+            
+            if(CmpPos(&buf->data[i], &buf->data[first_pos])==0)
+            {
+                //add numbers to buff (2. 3. 4. etc)
+                ebufDeletePos(buf, i);
+                number++;                
+                strprintshortint(str_number,number);
+                j = strlen(str_number);
+                str_number[j++] = ':';
+                str_number[j++] = ' ';
+                str_number[j] = 0;
+
+                ebufReplaceChar(buf, FORMAT_LIST, i - 1);
+
+                j = 0;
+                while(str_number[j] != '\0')
+                {
+                    ebufInsertChar(buf, str_number[j], i + j,emulStateP,call68KFuncP);
+                    j++;
+                }
+                i += j-1;
+            }
+            else
+            {
+                //put 1. in first_pos (if its not a single pos type)
+                if(buf->data[first_pos] == (char)149)
+                {
+                    ebufDeleteChar(buf, first_pos);
+                    ebufDeleteChar(buf, first_pos);
+                    i-=2;
+                }
+
+                j = 0;
+                while( !IsTagInLine(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
+                {
+                    if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
+                    {
+                        ebufDeleteChar(buf, first_pos+j);
+                        j--;
+                        i--;
+                    }
+                    j++;                
+                }
+                j = first_pos + j;
+
+                ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
+                ebufInsertChar(buf, FORMAT_BIG_LIST, j + 1,emulStateP,call68KFuncP);
+                if(number > 1)
+                {
+                    ebufInsertChar(buf, '1', j + 2,emulStateP,call68KFuncP);
+                    j++;
+                    i++;
+                }
+                ebufInsertChar(buf, ':', j + 2,emulStateP,call68KFuncP);
+                ebufInsertChar(buf, ' ', j + 3,emulStateP,call68KFuncP);
+                i += 4;
+                number = 1;
+                first_pos = i;
+                i++;
+            }
+
+        }
+        else
+            i++;
+    } 
+    
+    //put 1. in first_pos
+    if(buf->data[first_pos] == (char)149)
+    {
+        ebufDeleteChar(buf, first_pos);
+        ebufDeleteChar(buf, first_pos);
+    }
+    j = 0;
+    while( !IsTagInLine(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
+    {
+        if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
+        {
+            ebufDeleteChar(buf, first_pos+j);
+            j--;
+        }
+        j++;                
+    }
+    j = first_pos + j;
+    ebufInsertChar(buf, FORMAT_TAG, j,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, FORMAT_BIG_LIST, j + 1,emulStateP,call68KFuncP);
+    if(number > 1)
+        ebufInsertChar(buf, '1', (j++) + 2,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, ':', j + 2,emulStateP,call68KFuncP);
+    ebufInsertChar(buf, ' ', j + 3,emulStateP,call68KFuncP);
+
+}
 /* Print roman in dst */
 void strprintroman(char *dst, int roman)
 {
@@ -498,23 +618,18 @@ void strprintroman(char *dst, int roman)
     dst[i++] = ' ';
     switch(roman)
     {
-        case 1: 
-                dst[i++] = 'I';
-            break;
-        case 2: 
-                dst[i++] = 'I';
-                dst[i++] = 'I';
-            break;
         case 3: 
                 dst[i++] = 'I';
+        case 2: 
                 dst[i++] = 'I';
+        case 1: 
                 dst[i++] = 'I';
             break;
         case 4: 
                 dst[i++] = 'I';
                 dst[i++] = 'V';
             break;
-        case 5: 
+/*        case 5: 
                 dst[i++] = 'V';
             break;
         case 6: 
@@ -535,7 +650,7 @@ void strprintroman(char *dst, int roman)
         case 9: 
                 dst[i++] = 'I';
                 dst[i++] = 'X';
-            break;
+            break;*/
         default: break;
     }
     dst[i++] = ' ';
@@ -717,7 +832,7 @@ void Format2onSortedBuffer(ExtensibleBuffer *buf,const void *emulStateP,Call68KF
         }
     }
 }
-
+/*Fasade on Format2OnSortedBuffer*/
 void Function10(void *funData,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
     armFunction10Input *input;
@@ -740,7 +855,29 @@ void Function10(void *funData,const void *emulStateP,Call68KFuncType *call68KFun
     temp = buf.used;
     Write68KUnaligned32(&input->used,temp);
 }
+/*Fasade on Format1OnSortedBuffer*/
+void Function11(void *funData,const void *emulStateP,Call68KFuncType *call68KFuncP)
+{
+    armFunction10Input *input;
+    ExtensibleBuffer buf;
+    unsigned long temp;
+    input = (armFunction10Input *) funData;
+    
+    buf.allocated = Read68KUnaligned32(&input->allocated);
+    buf.data = (char *) Read68KUnaligned32(&input->data);
+    buf.used = Read68KUnaligned32(&input->used);
+    buf.minSize = 0;
 
+    
+    Format1OnSortedBuffer(&buf,emulStateP,call68KFuncP);
+        
+
+    Write68KUnaligned32(&input->data,buf.data);
+    temp = buf.allocated;
+    Write68KUnaligned32(&input->allocated,temp);
+    temp = buf.used;
+    Write68KUnaligned32(&input->used,temp);
+}
 /*while from get_defs_record*/
 unsigned long CalculateOffsetGDR(unsigned long *current_entry,unsigned long *offset, unsigned long *curr_len,
                 unsigned char **def_lens_fast, unsigned char *def_lens_fast_end,unsigned long synsetNoFast)
@@ -810,8 +947,10 @@ unsigned long NativeFunctionAtTheEnd(const void *emulStateP, void *userData68KP,
                 Function10((void*)Read68KUnaligned32(&inptr->functionData),emulStateP,call68KFuncP);
                 Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
             break;
-
-            
+        case ARM_FUN_FORMAT1ONBUFF: //format 1 on sorted buffer
+                Function11((void*)Read68KUnaligned32(&inptr->functionData),emulStateP,call68KFuncP);
+                Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);
+            break;
         case ARM_FUN_GETDEFSRECORD: //get defs record (while loop)
                 FunctionGetDefsRecord((void*)Read68KUnaligned32(&inptr->functionData));
                 Write68KUnaligned32(&inptr->functionID, funID+ARM_FUN_RETURN_OFFSET);

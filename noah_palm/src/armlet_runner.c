@@ -1,6 +1,6 @@
-/**
- *
- *
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: szymon knitter (szknitter@wp.pl)
  */
 
 #include <PalmOS.h> 
@@ -66,9 +66,9 @@ Boolean armTestArmLet()
     return (inpt.functionID == (ARM_FUN_TESTIFPRESENT+ARM_FUN_RETURN_OFFSET))?true:false;
 }
 /**
- *  Format2 on sorted buffer - armlet version
+ *  Format1/2 on sorted buffer - armlet version
  */
-Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
+Boolean armFormatonSortedBuffer(ExtensibleBuffer *buf, int format_nr)
 {
     armMainInput inpt;
     armFunction10Input funInp;
@@ -77,7 +77,14 @@ Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
     funInp.allocated = buf->allocated;
     funInp.used = buf->used;
 
-    inpt.functionID = ARM_FUN_FORMAT2ONBUFF; //format2 on sorted buffer
+    if(format_nr==1)
+        inpt.functionID = ARM_FUN_FORMAT1ONBUFF; //format1 on sorted buffer
+    else
+    if(format_nr==2)
+        inpt.functionID = ARM_FUN_FORMAT2ONBUFF; //format2 on sorted buffer
+    else
+        return false;
+            
     inpt.functionData = &funInp;                    
 	armPceNativeResourceCall(
         			'ARMC',                      // ARMC is a good
@@ -89,33 +96,10 @@ Boolean armFormat2onSortedBuffer(ExtensibleBuffer *buf)
     buf->used = funInp.used;
     buf->data = funInp.data;
 
-    return(inpt.functionID == (ARM_FUN_FORMAT2ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
-}
-/**
- *  Format1 on sorted buffer - armlet version
- */
-Boolean armFormat1onSortedBuffer(ExtensibleBuffer *buf)
-{
-    armMainInput inpt;
-    armFunction10Input funInp;
-
-    funInp.data = buf->data;
-    funInp.allocated = buf->allocated;
-    funInp.used = buf->used;
-
-    inpt.functionID = ARM_FUN_FORMAT1ONBUFF; //format1 on sorted buffer
-    inpt.functionData = &funInp;                    
-	armPceNativeResourceCall(
-        			'ARMC',                      // ARMC is a good
-					armID, 
-					"ARMlet.dll\0NativeFunction", // default dll path is the location of PalmSim.exe
-					&inpt);
- 
-    buf->allocated = funInp.allocated;
-    buf->used = funInp.used;
-    buf->data = funInp.data;
-
-    return(inpt.functionID == (ARM_FUN_FORMAT1ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
+    if(format_nr==1)
+        return(inpt.functionID == (ARM_FUN_FORMAT1ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
+    else
+        return(inpt.functionID == (ARM_FUN_FORMAT2ONBUFF+ARM_FUN_RETURN_OFFSET))?true:false;
 }
 /**
  *  get_defs_record - while loop in arm

@@ -1,6 +1,6 @@
 /*
- * 
- *
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk
+  Author: szymon knitter (szknitter@wp.pl)
  */
 
 /*
@@ -18,13 +18,15 @@
 #define ARM_FUN_GETDEFSRECORD   20
 //when function executes id is increased by this value
 #define ARM_FUN_RETURN_OFFSET   100
-
+ 
+//main input structure 
 typedef struct _armMainInput
 {
-    unsigned long functionID;
-    void *functionData;
+    unsigned long functionID; //witch function
+    void *functionData;       //data (for test - NULL)
 }armMainInput;
 
+//format1/2 on buffer
 typedef struct _armFunction10Input
 {
     char *data;
@@ -32,6 +34,7 @@ typedef struct _armFunction10Input
     unsigned long used;
 }armFunction10Input;
 
+//while loop data from get_defs_record (common.c)
 typedef struct _armFunctionGetDefsRecordInput
 {
     unsigned long current_entry;

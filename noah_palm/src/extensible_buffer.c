@@ -258,15 +258,17 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
     {
         if(sort)
             ShakeSortExtBuf(buf);
-        Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
 #ifndef NOAH_PRO
+        Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
         Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
 #else
-        if(appContext->prefs.displayPrefs.listStyle==2)
-            if(appContext->armIsPresent)
-                armFormat2onSortedBuffer(buf);
-            else
-                Format2OnSortedBuf(2, buf);
+        if(appContext->armIsPresent && buf->used >= ARMTORUN_MIN_BUF_USED)
+            armFormatonSortedBuffer(buf, appContext->prefs.displayPrefs.listStyle);
+        else
+        {
+            Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
+            Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
+        }     
 #endif   
     }
     txt = buf->data;
