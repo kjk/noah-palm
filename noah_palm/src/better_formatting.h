@@ -34,8 +34,8 @@ typedef struct {
     DisplayElementPrefs defList;
     DisplayElementPrefs posList;
     DisplayElementPrefs pronunciation;
-    Boolean enablePronunciation;
-    Boolean enablePronunciationSpecialFonts;
+    Boolean             enablePronunciation;
+    Boolean             enablePronunciationSpecialFonts;
 } DisplayPrefs;
 
 typedef enum {  //when displayed - reverse ordered !!!!

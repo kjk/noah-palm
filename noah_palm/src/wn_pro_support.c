@@ -1017,24 +1017,24 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     syn = start_syn;
     end_p = false;
 
-    if(FormatWantsWord(appContext))
+    if (FormatWantsWord(appContext))
     {
         ebufAddChar(&wi->buffer, FORMAT_TAG);
         ebufAddChar(&wi->buffer, FORMAT_SYNONYM);
         word = wn_get_word((void *) wi, wordNo);
         ebufAddStr(&wi->buffer, word);
-        ebufAddChar(&wi->buffer, '\n');
-        //pronunciation
-        if(appContext->pronData.isPronInUsedDictionary
-            && appContext->prefs.displayPrefs.enablePronunciation
-        )
+
+         if (appContext->pronData.isPronInUsedDictionary
+            && appContext->prefs.displayPrefs.enablePronunciation)
         {
+            ebufAddChar(&wi->buffer, ' ');
             ebufAddChar(&wi->buffer, FORMAT_TAG);
             ebufAddChar(&wi->buffer, FORMAT_PRONUNCIATION);
-            if(pronAddPronunciationToBuffer(appContext, &wi->buffer, wi->file, wordNo, word))
-                ebufAddChar(&wi->buffer, '\n');
+            pronAddPronunciationToBuffer(appContext, &wi->buffer, wi->file, wordNo, word);
         }
+        ebufAddChar(&wi->buffer, '\n');
     }
+
     //make sure that temp buffer is not empty
     ebufCopyBuffer(&wi->bufferTemp, &wi->buffer);
     ebufAddChar(&wi->bufferTemp, '\0');

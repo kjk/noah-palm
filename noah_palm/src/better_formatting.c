@@ -135,7 +135,7 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
             // settings common to all styles
             displayPrefs->pronunciation = prefsToSet[15];
             SetBgCol(displayPrefs, 255, 255, 255);
-            displayPrefs->enablePronunciation = false;
+            displayPrefs->enablePronunciation = true;
             displayPrefs->enablePronunciationSpecialFonts = false;
 
             if(!IsColorSupported(GetAppContext())) //we need to set all colors to black&white
@@ -420,7 +420,7 @@ static void RedrawExampleDefinition(AppContext* appContext)
         ebufAddStr(Buf, synonym); 
         ebufAddStr(Buf, "word\n"); 
 #ifdef NOAH_PRO
-        if(appContext->prefs.displayPrefs.enablePronunciation)
+        //if(appContext->prefs.displayPrefs.enablePronunciation)
         {
             ebufAddChar(Buf, FORMAT_TAG); 
             ebufAddChar(Buf, FORMAT_PRONUNCIATION); 

@@ -22,7 +22,7 @@ typedef struct
     unsigned int  recordWithPronIndex;
     unsigned int  firstRecordWithPron;
     unsigned int  numberOfPronRecords;
-}PronInFirstRecord;
+} PronInFirstRecord;
 
 typedef struct _PronunciationData
 {
@@ -30,10 +30,10 @@ typedef struct _PronunciationData
     UInt16  firstRecordWithPron;
     UInt16  numberOfPronRecords;
     Boolean isPronInUsedDictionary;
-}PronunciationData;
+} PronunciationData;
 
 Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf, AbstractFile *file, long wordNo, char *word);
-char* pronTranslateDecompresed(struct _AppContext *appContext, unsigned char *decompresed);
-void  pronDisplayHelp(struct _AppContext* appContext, char* pronHitted); //set pronHitted to NULL if you want std. info
+char *  pronTranslateDecompresed(struct _AppContext *appContext, unsigned char *decompresed);
+void    pronDisplayHelp(struct _AppContext* appContext, char* pronHitted); //set pronHitted to NULL if you want std. info
 
 #endif
