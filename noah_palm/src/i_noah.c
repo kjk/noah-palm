@@ -48,11 +48,35 @@ static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelo
 #define depPosList_id           0x70
 #define depPron_id              0x80
 
+static bool fValidFont(int id)
+{
+    switch (id)
+    {
+        case stdFont:
+        case boldFont:
+        case largeFont:
+        case largeBoldFont:
+            return true;
+        default:
+            break;
+    }
+    return false;
+}
+
 static void GetDisplayElementPrefs(PrefsStoreReader *store, DisplayElementPrefs *dep, int uniqueIdStart)
 {
     int fontId;
     Err err = store->ErrGetInt(uniqueIdStart+depFont_off, &fontId);
-    dep->font = (FontID) fontId;
+    // ugly hack: iNoah < v1.0 had problems of incorrecting saving fontId in
+    // prefs. it would get corrupted so when upgrading from <1.0 to 1.0 we
+    // might get font that are invalid and screw the display. We guard against
+    // that by detecting using a font that is outside of pre-defined fonts
+    // and leafing the default font in place
+    // this will break if a set of fonts changes (we'll revert user setting)
+    // a better way to fix that would be: don't read preferences generated
+    // by iNoah < v1.0 but it's hard to detect
+    if (fValidFont((FontID)fontId))
+        dep->font = (FontID) fontId;
     err = store->ErrGetUInt32(uniqueIdStart+depColor_off, &dep->color);
     err = store->ErrGetUInt32(uniqueIdStart+depBgCol_off, &dep->bgCol);
 }
@@ -69,7 +93,7 @@ static void LoadPreferencesInoah(AppContext* appContext)
     Err               err;
     AppPrefs *        prefs = &(appContext->prefs);
     PrefsStoreReader  store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
-    const char *            tmpStr;
+    const char *      tmpStr;
     int               tmpInt;
 
     // general pattern: set a given setting, try to read it from the database
@@ -116,7 +140,6 @@ static void LoadPreferencesInoah(AppContext* appContext)
     SetDefaultDisplayParam(dp, false, false);
 
     err = store.ErrGetUInt32(dpBgCol_id, &dp->bgCol);
-
     err = store.ErrGetBool(dpfEnablePron_id,&dp->fEnablePronunciation);
     err = store.ErrGetBool(dpfEnablePronFont_id,&dp->fEnablePronunciationSpecialFonts);
 
