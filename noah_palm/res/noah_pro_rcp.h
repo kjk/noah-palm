@@ -21,15 +21,15 @@
 #define   ctlArrowLeft        1300
 #define   ctlArrowRight       1301
 
-#define   listMatching        1400
-#define   listOfDicts         1401
-#define   listHistory         1402
-#define   listStartupAction   1403
-#define   listStartupDB       1404
-#define   listhwButtonsAction 1405
-#define   listTapAction       1406
-#define   listSortBy          1407
-#define   listBookmarks       1408
+#define   listMatching         1400
+#define   listOfDicts          1401
+#define   listHistory          1402
+#define   listStartupAction    1403
+#define   listStartupDB        1404
+#define   listhwButtonsAction  1405
+#define   listNavButtonsAction 1406
+#define   listSortBy           1407
+#define   listBookmarks        1408
 
 #define   alertMemError             1100
 #define   alertNoDB                 1109
@@ -81,6 +81,7 @@
 #define   popupStartupAction      6002
 #define   popupStartupDB          6003
 #define   popuphwButtonsAction    6004
+#define   popupNavButtonsAction   6005
 #define   popupSortBy             6006
 
 #define   helpPrefs               7001

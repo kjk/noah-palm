@@ -195,9 +195,14 @@ BEGIN
    POPUPLIST popupStartupDB listStartupDB
 
    LABEL "Up/Down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
-   POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (PREVRIGHT-28 PREVTOP+14 AUTO AUTO) LEFTANCHOR
-   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
+   POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popuphwButtonsAction listhwButtonsAction
+
+   LABEL "5-Way up/down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
+   POPUPTRIGGER  "1/2 Page Scroll" popupNavButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listNavButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
+   POPUPLIST popupNavButtonsAction listNavButtonsAction
 
    BUTTON "Ok"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
    BUTTON "CANCEL" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 

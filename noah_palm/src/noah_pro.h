@@ -39,6 +39,7 @@ typedef struct
 {
     StartupAction           startupAction;
     ScrollType              hwButtonScrollType;
+    ScrollType              navButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
     char                    lastWord[WORD_MAX_LEN];
     char *                  lastDbUsedName;

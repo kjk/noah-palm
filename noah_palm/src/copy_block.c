@@ -126,7 +126,8 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
 
     if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
     {
-        DrawDescription(appContext, wordNo);
+        appContext->currentWord = wordNo;
+        SendNewWordSelected();
         return true;
     }
     else

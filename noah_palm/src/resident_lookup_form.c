@@ -57,12 +57,12 @@ static Boolean ResidentLookupFormKeyDown(AppContext* appContext, FormType* form,
     {
         if (FiveWayDirectionPressed(appContext, event, Up ))
         {
-            DefScrollUp(appContext, scrollLine );
+            DefScrollUp(appContext, appContext->prefs.navButtonScrollType );
             handled=true;
         }
         else if (FiveWayDirectionPressed(appContext, event, Down ))
         {
-            DefScrollDown(appContext, scrollLine );
+            DefScrollDown(appContext, appContext->prefs.navButtonScrollType );
             handled=true;
         }
         else if (FiveWayDirectionPressed(appContext, event, Left))

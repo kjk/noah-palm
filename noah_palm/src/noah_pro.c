@@ -58,6 +58,7 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     /* 1. preferences */
     prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
     prefs->hwButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
+    prefs->navButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
     prefs->bookmarksSortType = (BookmarkSortType) deserByte( &prefsBlob, &blobSize );
 
@@ -267,6 +268,7 @@ Err AppCommonInit(AppContext* appContext)
     // and try to load them from pref database
     appContext->prefs.startupAction      = startupActionNone;
     appContext->prefs.hwButtonScrollType = scrollPage;
+    appContext->prefs.navButtonScrollType = scrollPage;
     appContext->prefs.dbStartupAction    = dbStartupActionLast;
     appContext->prefs.lastDbUsedName     = NULL;
     appContext->prefs.bookmarksSortType  = bkmSortByTime;

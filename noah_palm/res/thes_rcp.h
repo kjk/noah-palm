@@ -26,7 +26,7 @@
 #define   listStartupAction   1403
 #define   listStartupDB       1404
 #define   listhwButtonsAction 1405
-#define   listTapAction       1406
+#define   listNavButtonsAction 1406
 #define   listSortBy          1407
 #define   listBookmarks       1408
 
@@ -72,6 +72,7 @@
 #define   popupStartupAction      6002
 #define   popupStartupDB          6003
 #define   popuphwButtonsAction    6004
+#define   popupNavButtonsAction   6005
 #define   popupSortBy             6006
 
 //

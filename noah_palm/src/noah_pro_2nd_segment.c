@@ -46,6 +46,7 @@ void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
         serData( (char*)&prefRecordId, (long)sizeof(prefRecordId), prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
         serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
+        serByte( prefs->navButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
         serByte( prefs->bookmarksSortType, prefsBlob, &blobSize );
 
@@ -653,11 +654,11 @@ ChooseDatabase:
                 }
                 if (FiveWayDirectionPressed(appContext, event, Up ))
                 {
-                    DefScrollUp(appContext, scrollLine );
+                    DefScrollUp(appContext, appContext->prefs.navButtonScrollType );
                 }
                 if (FiveWayDirectionPressed(appContext, event, Down ))
                 {
-                    DefScrollDown(appContext, scrollLine );
+                    DefScrollDown(appContext, appContext->prefs.navButtonScrollType );
                 }
                 return false;
             }
@@ -1169,6 +1170,7 @@ static void PrefsToGUI(AppContext* appContext, FormType * frm)
     SetPopupLabel(frm, listStartupAction, popupStartupAction, appContext->prefs.startupAction);
     SetPopupLabel(frm, listStartupDB, popupStartupDB, appContext->prefs.dbStartupAction);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, appContext->prefs.hwButtonScrollType);
+    SetPopupLabel(frm, listNavButtonsAction, popupNavButtonsAction, appContext->prefs.navButtonScrollType);
 }
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -1236,6 +1238,10 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
                     appContext->prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popuphwButtonsAction)), listTxt);
                     break;
+                case listNavButtonsAction:
+                    appContext->prefs.navButtonScrollType = (ScrollType) event->data.popSelect.selection;
+                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupNavButtonsAction)), listTxt);
+                    break;
                 default:
                     Assert(0);
                     break;
@@ -1247,6 +1253,7 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
                 case popupStartupAction:
                 case popupStartupDB:
                 case popuphwButtonsAction:
+                case popupNavButtonsAction:
                     // need to propagate the event down to popus
                     handled = false;
                     break;
