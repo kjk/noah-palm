@@ -1,5 +1,8 @@
+#define _ADD_FIND_WORD_PATTERN_ 1
+
 #define   formDictMain        1008
 #define   formDictFind        1002
+#define   formDictFindPattern 1003
 #define   formSelectDict      1004
 #define   formPrefs           1005
 #define   formDisplayPrefs    1006
@@ -28,6 +31,7 @@
 #define   menuMain            2000
 #define   menuItemSelectDB    2002
 #define   menuItemFind        2004
+#define   menuItemFindPattern 2005
 #define   menuItemHelp        2006
 #define   menuItemStress      2008
 #define   menuItemAbout       2010
@@ -44,6 +48,8 @@
 #define   buttonDefinition    3006
 #define   buttonExample       3007
 #define   buttonRescanDicts   3008
+#define   buttonOneChar       3009
+#define   buttonAnyChar       3010
 
 #define   scrollDef           4008
 

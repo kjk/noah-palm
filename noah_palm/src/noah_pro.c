@@ -1083,6 +1083,9 @@ ChooseDatabase:
                 case menuItemFind:
                     FrmPopupForm(formDictFind);
                     break;
+                case menuItemFindPattern:
+                    FrmPopupForm(formDictFindPattern);
+                    break;
                 case menuItemAbout:
                     if (NULL != gd.currDispInfo)
                     {
@@ -1380,6 +1383,149 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
     return handled;
 }
 
+// Event handler proc for the find word using pattern dialog
+static Boolean FindPatternFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        UInt16 index=0;
+        ListType* list=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+
+        index=FrmGetObjectIndex(frm, listMatching);
+        Assert(index!=frmInvalidObjectId);
+        list=(ListType*)FrmGetObjectPtr(frm, index);
+        Assert(list);
+        LstSetHeight(list, gd.dispLinesCount);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.extent.x=gd.screenWidth;
+        FrmSetObjectBounds(frm, index, &newBounds);
+        
+        index=FrmGetObjectIndex(frm, fieldWord);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonFind);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonCancel);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonOneChar);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonAnyChar);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        FrmDrawForm(frm);
+        handled=true;
+    }
+    return handled;
+}
+
+Boolean FindPatternFormHandleEventNoahPro(EventType * event)
+{
+    Boolean handled = false;
+    FormPtr frm = FrmGetActiveForm();
+    FieldPtr fld;
+    ListPtr list;
+    static long lastWordPos;
+    char * pattern;
+
+    switch (event->eType)
+    {
+        case winDisplayChangedEvent:
+            handled = FindPatternFormDisplayChanged(frm);
+            break;
+                        
+        case frmOpenEvent:
+            OpenMatchingPatternDB();
+            list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+            fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+            LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords());
+            LstSetDrawFunction(list, PatternListDrawFunc);
+            FrmDrawForm(frm);
+            LstSetSelectionEx(list, lastWordPos);
+            pattern = (char *) MemPtrNew(WORDS_CACHE_SIZE);
+            ReadPattern(pattern);
+            if (StrLen(pattern) > 0)
+                FldInsert(fld, pattern, StrLen(pattern));
+            FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
+            MemPtrFree(pattern);
+            handled = true;
+            break;
+
+        case ctlSelectEvent:
+            switch (event->data.ctlSelect.controlID)
+            {
+                case buttonCancel:
+                    CloseMatchingPatternDB();
+                    FrmReturnToForm(0);
+                    break;
+
+                case buttonFind:
+                    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+                    list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+                    pattern = FldGetTextPtr(fld);
+                    if (pattern != NULL) {
+                        ClearMatchingPatternDB();
+                        WritePattern(pattern);
+                        FillMatchingPatternDB(pattern);
+                        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords());
+                        LstSetDrawFunction(list, PatternListDrawFunc);
+                        LstDrawList(list);
+                    }
+                    handled = true;
+                    break;
+                
+                case buttonOneChar:
+                    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+                    FldInsert(fld, "?", 1);
+                    handled = true;
+                    break;
+
+                case buttonAnyChar:
+                    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+                    FldInsert(fld, "*", 1);
+                    handled = true;
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+
+        case lstSelectEvent:
+            lastWordPos = gd.listItemOffset + (UInt32) event->data.lstSelect.selection;
+            ReadMatchingPatternRecord(lastWordPos, &gd.currentWord);
+            SendNewWordSelected();
+            FrmReturnToForm(0);
+            return true;
+
+        default:
+            break;
+    }
+    
+    return handled;
+}
+
 static Boolean SelectDictFormDisplayChanged(FormType* frm) 
 {
     Boolean handled=false;
@@ -1645,6 +1791,10 @@ Boolean HandleEventNoahPro(EventType * event)
 
             case formDictFind:
                 FrmSetEventHandler(frm, FindFormHandleEventNoahPro);
+                return true;
+
+            case formDictFindPattern:
+                FrmSetEventHandler(frm, FindPatternFormHandleEventNoahPro);
                 return true;
 
             case formSelectDict:

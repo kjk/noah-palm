@@ -8,6 +8,9 @@ BEGIN
   PULLDOWN "Main"
   BEGIN
     MENUITEM "Find word"               ID menuItemFind  "F"
+#ifdef _ADD_FIND_WORD_PATTERN_
+    MENUITEM "Find word (pattern)"     ID menuItemFindPattern   "W"
+#endif
     MENUITEM "Help"                    ID menuItemHelp  "I"
     MENUITEM "About"                   ID menuItemAbout "A"
     MENUITEM "Stress"                  ID menuItemStress
@@ -19,6 +22,9 @@ BEGIN
   PULLDOWN "Main"
   BEGIN
     MENUITEM "Find word"               ID menuItemFind  "F"
+#ifdef _ADD_FIND_WORD_PATTERN_
+    MENUITEM "Find word (pattern)"     ID menuItemFindPattern   "W"
+#endif
     MENUITEM "Help"                    ID menuItemHelp  "H"
     MENUITEM "About"                   ID menuItemAbout "A"
   END
@@ -57,6 +63,18 @@ BEGIN
    LIST ""          listMatching  AT (  0   0  160 AUTO) USABLE VISIBLEITEMS 13
    FIELD            fieldWord     AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
    BUTTON "Cancel"  buttonCancel  AT (120 146 AUTO AUTO) FONT 0
+END
+
+FORM formDictFindPattern AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+   LIST   ""        listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   FIELD            fieldWord       AT ( 2 147   45 AUTO) UNDERLINED MAXCHARS 20
+   BUTTON "Find"    buttonFind      AT (50 146 AUTO AUTO) FONT 0
+   BUTTON "Cancel"  buttonCancel    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
+   BUTTON "?"       buttonOneChar   AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
+   BUTTON "*"       buttonAnyChar   AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
 END
 
 ALERT alertMemError
