@@ -607,7 +607,8 @@ void DrawWord(char *word, int pos_y)
  */
 Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out)
 {
-    SynsetDef synset_def = { 0 };
+    SynsetDef synset_def;
+    MemSet(&synset_def, sizeof(synset_def), 0);
 
     Assert(entry_no >= 0);
     Assert(first_record_with_defs_len >= 0);
@@ -982,7 +983,9 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
     return 0;
 }
 
-static const char helpText[] =
+//static const char helpText[] =
+
+#define helpText \
     " Instructions:\n" \
     "\255 to lookup a definition of a word\n" \
     "  press the find button in the right\n" \
@@ -994,7 +997,7 @@ static const char helpText[] =
     "  or previous word\n" \
     "\n" \
     " For more information go to\n" \
-    " www.arslexis.com\n";
+    " www.arslexis.com\n"
 
 Boolean CreateHelpData(AppContext* appContext)
 {
