@@ -23,32 +23,42 @@
 #   'purpose' describes to whom it was assigned (i.e. 'pg' for PalmGear,
 #             'h' for handango, 'es' for eSellerate
 # and custom strings for special reg codes)
+# Reg codes from this file can be imported via import_reg_codes.py script.
 #
 # We also generate a *.txt file with serial numbers ready to be uploaded to
 # eSellerate/PalmGear/Handango. The format of this file:
 #  eSellerate: serial number per line, at least 500 serial numbers
 #  TODO: PalmGear, Handango
 #
-# We also generate a *.sql file that must be imported to the inoahdb.reg_codes
-# table so that those codes are 
-#
 # Usage:
-#  -count N : generate $N reg codes
-#  -purpose who : reg codes usage. Valid entries:
-#     - 'h' for Handango
-#     - 'pg' for PalmGear
-#     - 'es' for eSellerate
 #  -special who: a special code. the idea is to give out codes to some people
 #                (like reviewers) and be able to track what they do with the
 #                software
+# or:
+# $purpose $count
+#
+#  $count   : number of reg codes to generate
+#  $purpose : who the reg codes are for Valid entries:
+#     - 'h' for Handango
+#     - 'pg' for PalmGear
+#     - 'es' for eSellerate
+
 #
 # History:
 #  2004-04-15  created
+#  2004-06-20  more work done
 
 import sys,os,csv,random,time,StringIO
 
 g_regCodesFileName        = "reg_codes.csv"
 REG_CODE_LEN = 12
+
+# minimum number of per-file codes for Esellerate, Handango and PalmGear
+MIN_ES_CODES = 500
+
+# TODO: check those limits
+MIN_PG_CODES = 100
+MIN_H_CODES = 100
 
 # given argument name in argName, tries to return argument value
 # in command line args and removes those entries from sys.argv
@@ -80,23 +90,42 @@ def genRegCode(regCodeLen):
         regCode += num
     return regCode
 
-g_curDate = None
+def getCurDate():
+    return time.localtime()
+
+g_stableDate = None
 def getStableDate():
-    global g_curDate
-    if None == g_curDate:
-        g_curDate = time.localtime()
-    return g_curDate
+    global g_stableDate
+    if None == g_stableDate:
+        g_stableDate = getCurDate()
+    return g_stableDate
 
-g_curDateTxt = None
+g_stableDateTxt = None
 def getStableDateTxt():
-    global g_curDateTxt
-    if None == g_curDateTxt:
-        g_curDateTxt = time.strftime("%Y-%m-%d %H:%M", getStableDate())
-    return g_curDateTxt
+    global g_stableDateTxt
+    if None == g_stableDateTxt:
+        g_stableDateTxt = time.strftime("%Y-%m-%d %H:%M", getStableDate())
+    return g_stableDateTxt
 
-def getSQLFileName():
-    fileName = time.strftime("%Y-%m-%d_%H_%M.sql", getStableDate())
+# generate a unique file name
+def getUniqueDatedFileName(prefix):
+    fileName = prefix + time.strftime("%Y-%m-%d_%H_%M.txt", getStableDate())
+    count = 1
+    while True:
+        if not fFileExists(fileName):
+            return fileName
+        print "getUniqueDatedFileName(): file '%s' exists, generating a new one" % fileName
+        fileName = prefix + time.strftime("%Y-%m-%d_%H_%M", getStableDate())
+        fileName = "%s-%d.txt" % (fileName,count)
+        count += 1
     return fileName
+
+def getEsellerateFileName():
+    return getUniqueDatedFileName("es-")
+def getHandangoFileName():
+    return getUniqueDatedFileName("h-")
+def getPalmGearFileName():
+    return getUniqueDatedFileName("pg-")
 
 # we need to read previous csv data in order to avoid generating duplicate codes
 def readPreviousCodes():
@@ -149,48 +178,90 @@ def genNewCodes(count, purpose, prevCodes):
     return newCodes
 
 def usageAndExit():
-    print "Usage: inoah_gen_reg_codes.py [-special who] [-count N -purpose who]"
+    print "Usage: inoah_gen_reg_codes.py [-special who] [$purpose (es,h,pg) $count]"
+    print "e.g. inoah_gen_reg_codes.py es 700"
     sys.exit(0)
 
-def main():
-    if fFileExists(getSQLFileName()):
-        print "file %s exists; wait a minute. literally." % getSQLFileName()
-        usageAndExit()
 
-    special = getRemoveCmdArg("-special")
-    if special:
+#  eSellerate: serial number per line, at least 500 serial numbers
+def createEsellerateFile(codes):
+    fileName = getEsellerateFileName()
+    assert not fFileExists(fileName)
+    assert len(codes)>=MIN_ES_CODES
+    fo = open(fileName, "wb")
+    for code in codes.keys():
+        fo.write( "%s\n" % code )
+    fo.close()
+
+def createHandangoFile(codes):
+    fileName = getHandangoFileName()
+    assert not fFileExists(fileName)
+    assert len(codes)>=MIN_H_CODES
+
+    # TODO: find out the format of Handango file
+    assert False
+    #fo = open(fileName, "wb")
+    #for code in codes.keys():
+    #    fo.write( "%s\n" % code )
+    #fo.close()
+
+def createPalmGearFile(codes):
+    fileName = getPalmGearFileName()
+
+    # TODO: find out the format of PalmGear file
+    assert False
+
+
+def main():
+    specialName = getRemoveCmdArg("-special")
+    if specialName:
         if len(sys.argv) != 1:
             print "no other arguments allowed when using -special"
             usageAndExit()
+        specialName = "s:%s" % specialName
     else:
-        regCodesCount = getRemoveCmdArg("-count")
-        if None == regCodesCount:
+        if len(sys.argv) != 3:
             usageAndExit()
-        regCodesCount = int(regCodesCount)
-        validPurpose = ["pg", "h", "es"]
-        purpose = getRemoveCmdArg("-purpose")
-        if None == purpose:
-            usage()
-        if purpose not in validPurpose:
+        purpose = sys.argv[1]
+        if purpose not in ["pg", "h", "es"]:
             print 'purpose cannot be %s. Must be "pg", "h" or "es"' % purpose
             usageAndExit()
-    # invalid number of arguments
-    if len(sys.argv) != 1:
-        print "invalid argument '%s'" % sys.argv[1]
-        usageAndExit()
+        regCodesCount = int(sys.argv[2])
+
+    if None == specialName:
+        if "es" == purpose:
+            if regCodesCount < MIN_ES_CODES:
+                print "When generating Esellerate codes, the minium number of codes is %d" % MIN_ES_CODES
+                usageAndExit()
+
+        if "h" == purpose:
+            if regCodesCount < MIN_H_CODES:
+                print "When generating Handango codes, the minium number of codes is %d" % MIN_H_CODES
+                usageAndExit()
+
+        if "pg" == purpose:
+            if regCodesCount < MIN_PG_CODES:
+                print "When generating PalmGear codes, the minium number of codes is %d" % MIN_PG_CODES
+                usageAndExit()
 
     print "reading previous codes"
     prevCodes = readPreviousCodes()
     print "read %d old codes" % len(prevCodes)
     print "start generating new codes"
 
-    if special:
-        newCodes = genNewCodes(1, special, prevCodes)
+    if specialName:
+        newCodes = genNewCodes(1, specialName, prevCodes)
     else:
         newCodes = genNewCodes(regCodesCount, purpose, prevCodes)
+        if "es" == purpose:
+            createEsellerateFile(newCodes)
+        if "h" == purpose:
+            createHandangoFile(newCodes)
+        if "pg" == purpose:
+            createPalmGearFile(newCodes)
     print "generated %d new codes" % len(newCodes)
+    
     saveNewCodesToCsv(newCodes)
-    saveNewCodesToSQL(newCodes)
 
 if __name__=="__main__":
     main()
