@@ -281,7 +281,9 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
             DefScrollUp(appContext, appContext->prefs.navButtonScrollType );
         if (FiveWayDirectionPressed(appContext, event, Down ))
             DefScrollDown(appContext, appContext->prefs.navButtonScrollType );
-        return true;
+        // mark as unhandled so that left/right works in text field for
+        // moving the cursor
+        return false;
     }
 
     switch (event->data.keyDown.chr)
