@@ -464,6 +464,7 @@ static void FinalizeConnection(AppContext* appContext, ConnectionData* connData)
         (*responseProcessor)(appContext, context, begin, end);
     if (context && contextDestructor)
         (*contextDestructor)(context);
+    ebufFreeData(&response);        
 }                            
 
 
