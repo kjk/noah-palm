@@ -51,11 +51,17 @@ void *wn_new(void)
 
     wi = (WnInfo *) new_malloc(sizeof(WnInfo));
     if (NULL == wi)
+    {
+        LogG("wn_new() new_malloc(sizeof(WnInfo)) failed" );
         goto Error;
+    }
 
     firstRecord = (WnFirstRecord *) CurrFileLockRecord(0);
     if (NULL == firstRecord)
+    {
+        LogG("wn_new() CurrFileLockRecord(0) failed" );
         goto Error;
+    }
 
     wi->recordsCount = CurrFileGetRecordsCount();
     wi->wordsCount = firstRecord->wordsCount;
@@ -126,7 +132,7 @@ void *wn_new(void)
     }
 
   Exit:
-    CurrFileUnlockRecord(0);
+    if ( NULL != firstRecord ) CurrFileUnlockRecord(0);
     return (void *) wi;
   Error:
     if (wi)

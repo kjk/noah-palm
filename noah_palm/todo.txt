@@ -1,14 +1,14 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
-* bug: second opening of a db that uses a cache is an error
+* bug np: returning from preferences screen clutters def display
+* make Noah Lite compile
+* preferences in Noah Pro
+ - remember last used db
 * add a color icon for Noah Pro
 * change icon for Thesaurus/add a color icon
 * restore word history in Noah Pro
 * restore/add word history to Thesaurus
 * preferences in Thes
  - remember last used db
-* preferences in Noah Pro
- - remember last used db
-* make Noah Lite compile
 * marketing improvements in Noah Lite
  - detect dbs in vfs, message that not supported (go to Noah Pro for support)
  - only give one database (say more in Noah Pro)
@@ -29,4 +29,5 @@ For the next version:
 words is empty. Possible solution: write "a" in gd.lastWord on startup?
 * [DONE 2002/11/29] np: make the box with list of databases bigger (the whole screen)
 * [DONE 2002/11/29] np: add option "delete cache on exit", on by default
+* [DONE 2002/11/29] bug: second opening of a db that uses a cache is an error
 

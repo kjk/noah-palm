@@ -29,8 +29,10 @@ struct DbCacheData *dcNew(AbstractFile *file, UInt32 cacheCreator)
     {
         dcDeinit(data);
         new_free(data);
+        LogV1( "dcNew(%s), vfsInitCacheData() failed", file->fileName );
         return NULL;
     }
+    LogV1( "dcNew(%s) ok", file->fileName );
     return data;
 }
 

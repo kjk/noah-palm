@@ -232,7 +232,9 @@ void DictCurrentFree(void)
 {
     SavePreferences();
     dictDelete();
+    if ( NULL != GetCurrentFile() ) FsFileClose( GetCurrentFile() );
 }
+
 
 Boolean DictInit(AbstractFile *file)
 {

@@ -88,6 +88,7 @@ void *wnlex_new(void)
     if ( NULL == firstRecord )
     {
         LogG("wnlex_new(), CurrFileLockRecord(0) failed" );
+        goto Error;
     }
 
     wi->recordsCount = CurrFileGetRecordsCount();
@@ -178,7 +179,7 @@ void *wnlex_new(void)
     }
 
 Exit:
-    CurrFileUnlockRecord(0);
+    if (NULL != firstRecord) CurrFileUnlockRecord(0);
     LogG( "wnlex_new() ok" );
     return (void *) wi;
 Error:

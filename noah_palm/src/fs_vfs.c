@@ -165,26 +165,27 @@ Boolean ReadPdbHeader(UInt16 volRef, char *fileName, PdbHeader *hdr)
     if (errNone != err)
     {
         fileRef = 0;
-        DrawDebug2("rh/fo() fail:", fileName);
+        LogV1( "ReadPdbHeader(%s) VFSFileOpen() fail", fileName );
         goto Error;
     }
 
     err = VFSFileRead(fileRef, sizeof(PdbHeader), (void *) hdr, &bytesRead);
     if ((err != errNone) && (bytesRead != sizeof(PdbHeader)))
     {
-        DrawDebug2("rh/fr() fail:", fileName);
+        LogV1( "ReadPdbHeader(%s) VFSFileRead() fail", fileName );
         goto Error;
     }
 
     if ((0 == hdr->recordsCount) || (hdr->recordsCount > 300))
     {
         /* I assume that this is a bogus file (non-PDB) */
+        LogV1( "ReadPdbHeader(%s) not a pdb", fileName );
         goto Error;
     }
 
     if (errNone != VFSFileClose(fileRef))
     {
-        DrawDebug2("rh/fc fail:", fileName);
+        LogV1( "ReadPdbHeader(%s) VFSFileClose() fail", fileName );
         goto Error;
     }
     return true;
@@ -353,7 +354,7 @@ Err vfsCopyExternalToMem(AbstractFile *file, UInt32 offset, UInt32 size, void *d
     leftToCopy = size;
     currentOffset = 0;
 
-    LogV1( "vfsCopyExternalToMem() offset: %ld", offset );
+    // LogV1( "vfsCopyExternalToMem() offset: %ld", offset );
     err = VFSFileOpen(file->volRef, file->fileName, vfsModeRead, &fileRef);
     if (errNone != err)
     {

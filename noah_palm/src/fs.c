@@ -181,6 +181,7 @@ AbstractFile *AbstractFileDeserialize( char *blob )
 
 Boolean FsFileOpen(AbstractFile *file)
 {
+    LogV1( "FsFileOpen(%s)", file->fileName );
     switch(file->fsType)
     {
         case eFS_MEM:
@@ -199,7 +200,7 @@ Boolean FsFileOpen(AbstractFile *file)
 #ifdef NOAH_PRO
             file->data.cacheData = dcNew(file, NOAH_PRO_CREATOR);
 #endif
-#ifdef NOAH_LITE_CREATOR
+#ifdef NOAH_LITE
             file->data.cacheData = dcNew(file, NOAH_LITE_CREATOR);
 #endif
             if ( NULL == file->data.cacheData )
@@ -218,6 +219,7 @@ Boolean FsFileOpen(AbstractFile *file)
 
 void FsFileClose(AbstractFile *file)
 {
+    LogV1( "FsFileClose(%s)", file->fileName );
     switch(file->fsType)
     {
         case eFS_MEM:
