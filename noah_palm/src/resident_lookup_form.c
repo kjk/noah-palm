@@ -4,7 +4,21 @@
  * @author Andrzej Ciarkowski (a.ciarkowski@interia.pl)
  */
 #include "resident_lookup_form.h"
+#include "resident_browse_form.h"
 #include "five_way_nav.h"
+
+static void ResidentLookupFormFindPressed(AppContext* appContext) 
+{
+    long currentWord=appContext->currentWord;
+    Err error=PopupResidentBrowseForm(appContext);
+    if (!error) 
+    {
+        if (appContext->currentWord!=currentWord)
+            DrawDescription(appContext, appContext->currentWord);
+    }
+    else 
+        Assert(false);
+}
 
 /**
  * Handles navigation to previous or next word.
@@ -31,7 +45,7 @@ static void ResidentLookupFormWordNavigate(AppContext* appContext, Boolean next)
  * @param event actual event object.
  * @return <code>true</code> if event was handled.
  */
-static Boolean ResidentLookupKeyDown(AppContext* appContext, FormType* form, EventType* event)
+static Boolean ResidentLookupFormKeyDown(AppContext* appContext, FormType* form, EventType* event)
 {
     Boolean handled=false;
     if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
@@ -93,6 +107,8 @@ static Boolean ResidentLookupFormDisplayChanged(AppContext* appContext, FormType
         FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, 1, 7, appContext->screenHeight-18);
         FrmSetObjectBoundsByID(form, bmpClose, appContext->screenWidth-13, appContext->screenHeight-13, 13, 13);
         FrmSetObjectBoundsByID(form, buttonClose, appContext->screenWidth-14, appContext->screenHeight-14, 14, 14);
+        FrmSetObjectBoundsByID(form, bmpFind, appContext->screenWidth-27, appContext->screenHeight-13, 13, 13);
+        FrmSetObjectBoundsByID(form, buttonFind, appContext->screenWidth-28, appContext->screenHeight-14, 14, 14);
 
         FrmUpdateForm(formResidentLookup, frmRedrawUpdateCode);
         handled=true;
@@ -175,7 +191,12 @@ static Boolean ResidentLookupFormControlSelected(AppContext* appContext, FormTyp
         case ctlArrowRight:
             ResidentLookupFormWordNavigate(appContext, true);
             handled=true;
-            break;                
+            break;      
+            
+        case buttonFind:
+            ResidentLookupFormFindPressed(appContext);
+            handled=true;
+            break;
         
         case buttonClose:
             break;
@@ -197,14 +218,14 @@ static Boolean ResidentLookupFormControlSelected(AppContext* appContext, FormTyp
  */
 static Boolean ResidentLookupFormWinEnter(AppContext* appContext, FormType* form, EventType* event)
 {
-    Boolean handled=false;
-    if (((struct _WinEnterEventType*)&event->data)->enterWindow==(void*)form)
+    struct _WinEnterEventType* winEnter=(struct _WinEnterEventType*)&event->data;
+    if (winEnter->enterWindow==(void*)form && !appContext->currDispInfo) // this means we're entering this window for the first time and we have to do initial word lookup
     {
         WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
         WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
         DrawDescription(appContext, appContext->currentWord);
     }
-    return handled;
+    return false;
 }
 
 /**
@@ -235,7 +256,7 @@ static Boolean ResidentLookupFormHandleEvent(EventType* event)
             break;
             
         case keyDownEvent:
-            handled=ResidentLookupKeyDown(appContext, form, event);
+            handled=ResidentLookupFormKeyDown(appContext, form, event);
             break;
             
         case penUpEvent:

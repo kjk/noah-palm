@@ -9,6 +9,7 @@
 #define   formDisplayPrefs    1006
 #define   formResidentLookup  1007
 #define   formBookmarks       1009
+#define   formResidentBrowse  1010
 
 #define   fieldWord           1200
 

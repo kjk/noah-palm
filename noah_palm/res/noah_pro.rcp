@@ -115,7 +115,21 @@ BEGIN
    BUTTON "\003"        ctlArrowRight AT (  8 148 10  11) FONT 4 NOFRAME
    FORMBITMAP                         AT (147 147)        BITMAP bmpClose
    BUTTON       ""      buttonClose    AT (146 146 14  14) NOFRAME
+   
+   FORMBITMAP                         AT (133 147)        BITMAP bmpFind
+   BUTTON       ""      buttonFind    AT (132 146 14  14) NOFRAME
 	
+END
+
+FORM formResidentBrowse AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+   BUTTON "\002"            ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
+   BUTTON "\003"            ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
+   LIST ""                  listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   FIELD                    fieldWord       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   BUTTON "Cancel"          buttonCancel    AT (120 146 AUTO AUTO) FONT 0
 END
 
 FORM formSelectDict AT (0 0 160 160)
