@@ -299,6 +299,8 @@ Err PrefsStoreReader::ErrOpenPrefsDatabase()
         _recHandle = NULL;
     }
 
+    DmCloseDatabase(_db);
+    _db = 0;
     err = psErrNoPrefDatabase;
 ExitAndMarkNotFound:
     _fDbNotFound = true;
