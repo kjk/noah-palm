@@ -24,7 +24,8 @@
 #define   menuItemHelp        2030
 #define   menuItemAbout       2040
 #define   menuItemPrefs       2050
-#define   menuItemStress    2060
+#define   menuItemStress      2060
+#define   menuItemSelectDB    2070
 
 #define   buttonCancel        3001
 #define   buttonFind          3002

@@ -72,8 +72,9 @@ typedef struct
 
 typedef struct
 {
+    AbstractFile    *dicts[MAX_DICTS];
+    int             dictsCount;
     NoahErrors         err;
-    int                currentDb;
     DisplayInfo        *currDispInfo;
     ExtensibleBuffer   *helpDipsBuf;
     long               currentWord;

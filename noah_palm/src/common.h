@@ -95,8 +95,6 @@ typedef struct
 /* global data that is common for thes/noah lite/noah pro */
 typedef struct
 {
-    AbstractFile    *dicts[MAX_DICTS];
-    int             dictsCount;
 } CommonGlobalData;
 
 extern CommonGlobalData cgd;

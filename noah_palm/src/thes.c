@@ -6,11 +6,10 @@
 #include "display_info.h"
 #include "roget_support.h"
 
-void DictCurrentFree(void);
-
 #define evtFieldChanged          (firstUserEvent+1)
 #define evtNewWordSelected       (firstUserEvent+2)
 #define evtNewDatabaseSelected   (firstUserEvent+3)
+#define evtRedisplayCurrentWord  (firstUserEvent+4)
 
 #ifdef DEMO
 char helpText[] =
@@ -128,18 +127,18 @@ void LoadPreferences(NoahDBPrefs * data, UInt32 dataLen)
 void DictFoundCBThes( AbstractFile *file )
 {
     Assert( file );
-    if (cgd.dictsCount>=MAX_DICTS)
+    if (gd.dictsCount>=MAX_DICTS)
         return;
 
-    cgd.dicts[cgd.dictsCount++] = file;
+    gd.dicts[gd.dictsCount++] = file;
     return;
 }
 
 void FreeDicts(void)
 {
-    while(cgd.dictsCount>0)
+    while(gd.dictsCount>0)
     {
-        AbstractFileFree( cgd.dicts[--cgd.dictsCount] );
+        AbstractFileFree( gd.dicts[--gd.dictsCount] );
     }
 }
 
@@ -151,7 +150,6 @@ void ScanForDictsThes(void)
 Err InitThesaurus(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
-    MemSet((void *) &cgd, sizeof(CommonGlobalData), 0);
 
 /*     gd.current_timeout = -1; */
     gd.prevSelectedWord = 0xfffff;
@@ -182,53 +180,20 @@ Boolean DictInit(AbstractFile *file)
         return false;
 
     if ( !dictNew() )
-    {
+        return false;
 
-    }
-    
+    // TODO: save last used database in preferences
     gd.wordsCount = dictGetWordsCount();
     gd.currentWord = 0;
     gd.listItemOffset = 0;
 
     return true;
 }
-
-#if 0
-Boolean DictInit(int db_num)
-{
-
-    Assert((db_num >= 0) && (db_num < cgd.dictsCount));
-
-    gd.currentDb = db_num;
-    dbInfo = &(gd.foundDbs[db_num]);
-    MemMove(gd.prefs.lastDbName, dbInfo->dbName, 32);
-    SavePreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs), 0);
-
-    gd.dbPrefs.recordId = ThesDB10Pref;
-    MemMove(gd.dbPrefs.dbName, dbInfo->dbName, 32);
-    gd.dbPrefs.historyCount = 0;
-    LoadPreferences(&gd.dbPrefs, sizeof(NoahDBPrefs));
-
-    gd.dictData = dictNew();
-    if (NULL == gd.dictData)
-        goto Error;
-
-    gd.wordsCount = dictGetWordsCount();
-    gd.currentWord = 0;
-    gd.listItemOffset = 0;
-
-#if 0
-    MemSet((void *) &(gd.dbPrefs.lastWord[0]), wordHistory, 0);
-#endif
-    return true;
-Error:
-    DictCurrentFree();
-    return false;
-}
-#endif
 
 void DictCurrentFree(void)
 {
+    if ( NULL == GetCurrentFile() ) return;
+
 #ifdef NEVER
     int i;
     // TODO: need to fix that to be dictionary-specific instead of global
@@ -240,11 +205,12 @@ void DictCurrentFree(void)
         }
     }
 #endif
+
     // SavePreferences(&gd.dbPrefs, sizeof(NoahDBPrefs),0);
 
     dictDelete();
-
     FsFileClose( GetCurrentFile() );
+    SetCurrentFile( NULL );
     if (gd.currDispInfo)
     {
         diFree(gd.currDispInfo);
@@ -352,7 +318,7 @@ int LastUsedDatabase(void)
 {
     #if 0
     int i;
-    for (i = 0; i < cgd.dictsCount; i++)
+    for (i = 0; i < gd.dictsCount; i++)
     {
         if (0 == StrCompare(gd.prefs.lastDbName, gd.foundDbs[i].dbName))
         {
@@ -418,7 +384,7 @@ Boolean MainFormHandleEventThes(EventType * event)
         DisplayAboutThes();
         ScanForDictsThes();
 
-        if (0 == cgd.dictsCount)
+        if (0 == gd.dictsCount)
         {
             FrmAlert(alertNoDB);
             MemSet(&newEvent, sizeof(EventType), 0);
@@ -428,15 +394,18 @@ Boolean MainFormHandleEventThes(EventType * event)
         }
 
         fileToOpen = NULL;
-        if (1 == cgd.dictsCount )
+        if (1 == gd.dictsCount )
         {
-            fileToOpen = cgd.dicts[0];
+            fileToOpen = gd.dicts[0];
         }
         else
         {
             if (dbStartupActionLast == gd.prefs.dbStartupAction)
             {
-                /* fileToOpen = LastUsedDatabase(); */
+#if 0
+                // TODO: use last used database
+                fileToOpen = LastUsedDatabase();
+#endif
                 fileToOpen = NULL;
             }
         }
@@ -547,6 +516,11 @@ Boolean MainFormHandleEventThes(EventType * event)
 /*           gd.start_seconds_count = TimGetSeconds();
            gd.current_timeout = 50; */
         }
+        handled = true;
+        break;
+
+    case evtRedisplayCurrentWord:
+        DrawDescription(gd.currentWord);
         handled = true;
         break;
 
@@ -670,6 +644,9 @@ Boolean MainFormHandleEventThes(EventType * event)
             stress(1);
             break;
 #endif
+        case menuItemSelectDB:
+            FrmPopupForm(formSelectDict);
+            break;
         case menuItemHelp:
             DisplayHelp();
             break;
@@ -902,11 +879,10 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         frm = FrmGetActiveForm();
         list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
         LstSetDrawFunction(list, ListDbDrawFunc);
-        LstSetListChoices(list, NULL, cgd.dictsCount);
+        LstSetListChoices(list, NULL, gd.dictsCount);
         LstSetSelection(list, selectedDb);
         LstMakeItemVisible(list, selectedDb);
-#if 0
-        if (-1 == gd.currentDb)
+        if (NULL == GetCurrentFile)
         {
             FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
         }
@@ -914,7 +890,6 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         {
             FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
         }
-#endif
         FrmDrawForm(frm);
         return true;
         break;
@@ -928,25 +903,21 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         switch (event->data.ctlSelect.controlID)
         {
         case buttonSelect:
-#if 0
-            if (gd.currentDb != selectedDb)
+            if ( GetCurrentFile() != gd.dicts[selectedDb] )
             {
-                if (-1 != gd.currentDb)
-                    DictCurrentFree();
-                gd.currentDb = selectedDb;
-                DictInit(gd.currentDb);
+                DictCurrentFree();
+                DictInit(gd.dicts[selectedDb]);
             }
-#endif
             MemSet(&newEvent, sizeof(EventType), 0);
             newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
             EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
         case buttonCancel:
-#if 0
-            if (-1 == gd.currentDb)
-                Assert(0);
-#endif
+            Assert( NULL != GetCurrentFile() );
+            MemSet(&newEvent, sizeof(EventType), 0);
+            newEvent.eType = (eventsEnum) evtRedisplayCurrentWord;
+            EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
         }
@@ -975,6 +946,7 @@ Boolean PrefFormHandleEvent(EventType * event)
     FormType *frm = NULL;
     ListType *list = NULL;
     char *listTxt = NULL;
+    EventType newEvent;
 
     frm = FrmGetActiveForm();
     switch (event->eType)
@@ -1028,7 +1000,12 @@ Boolean PrefFormHandleEvent(EventType * event)
             break;
         case buttonOk:
             SavePreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs),0);
+            // pass through
         case buttonCancel:
+            Assert( NULL != GetCurrentFile() );
+            MemSet(&newEvent, sizeof(EventType), 0);
+            newEvent.eType = (eventsEnum) evtRedisplayCurrentWord;
+            EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             handled = true;
             break;

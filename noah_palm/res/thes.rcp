@@ -23,11 +23,12 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Preferences"             ID menuItemPrefs  "P"
-    MENUITEM "Find word"               ID menuItemFind   "F"
-    MENUITEM "Info"                    ID menuItemHelp   "I"
-    MENUITEM "About"                   ID menuItemAbout  "A"
-    MENUITEM "Stress"                  ID menuItemStress "S"
+    MENUITEM "Preferences"             ID menuItemPrefs    "P"
+    MENUITEM "Find word"               ID menuItemFind     "F"
+    MENUITEM "Select database"         ID menuItemSelectDB "S"
+    MENUITEM "Info"                    ID menuItemHelp     "I"
+    MENUITEM "About"                   ID menuItemAbout    "A"
+    MENUITEM "Stress"                  ID menuItemStress   "T"
   END
 END
 #else
@@ -37,6 +38,7 @@ BEGIN
   BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs "P"
     MENUITEM "Find word"               ID menuItemFind  "F"
+    MENUITEM "Select database"         ID menuItemSelectDB "S"
     MENUITEM "Info"                    ID menuItemHelp  "I"
     MENUITEM "About"                   ID menuItemAbout "A"
   END

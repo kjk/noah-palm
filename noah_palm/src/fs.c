@@ -22,12 +22,10 @@
 #include "fs_vfs.h"
 #endif
 
-
 static AbstractFile *currFile=NULL;
 
 void SetCurrentFile(AbstractFile *file)
 {
-    Assert( file );
     currFile = file;
 }
 

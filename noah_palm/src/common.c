@@ -737,6 +737,7 @@ Boolean dictNew(void)
 void dictDelete(void)
 {
     AbstractFile *file = GetCurrentFile();
+    if ( NULL == file ) return;
     switch (CurrFileDictType())
     {
         case ROGET_TYPE:
@@ -963,8 +964,8 @@ void DefScrollDown(ScrollType scroll_type)
 
 char *GetDatabaseName(int dictNo)
 {
-    Assert((dictNo >= 0) && (dictNo < cgd.dictsCount));
-    return cgd.dicts[dictNo]->fileName;
+    Assert((dictNo >= 0) && (dictNo < gd.dictsCount));
+    return gd.dicts[dictNo]->fileName;
 }
 
 void LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount)
