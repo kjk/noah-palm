@@ -1014,7 +1014,6 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         /* force updating the field */
         if (word[0])
         {
-            LogV1("FindForm(): word[0]=%d", (int)word[0] );
             FldInsert(fld, word, StrLen(word));
             // DoFieldChanged();
             MemSet(&newEvent, sizeof(EventType), 0);
@@ -1023,7 +1022,6 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         }
         else
         {
-            LogV1("FindForm(): selected word = %ld", gd.selectedWord );
             LstSetSelectionEx(list, gd.selectedWord);
         }
         FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
