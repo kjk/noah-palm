@@ -988,7 +988,7 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
 #ifdef _RECORD_SPEED_
             buf = ebufNew();
             Assert(buf);
-            ebufAddStr(buf, "wn_get_display_info non-ARM; '");
+            ebufAddStr(buf, "wn_gdi non-ARM; '");
             word = dictGetWord(file, wordNo);
             Assert(word);
             ebufAddStr(buf, word);
@@ -1009,7 +1009,7 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
 #ifdef _RECORD_SPEED_
             buf = ebufNew();
             Assert(buf);
-            ebufAddStr(buf, "wnlex_get_display_info non-ARM; '");
+            ebufAddStr(buf, "wnlex_gdi non-ARM; '");
             word = dictGetWord(file, wordNo);
             Assert(word);
             ebufAddStr(buf, word);
