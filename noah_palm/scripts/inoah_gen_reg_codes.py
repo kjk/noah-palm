@@ -228,7 +228,7 @@ def createEsellerateFile(codes):
     assert len(codes)>=MIN_ES_CODES
     fo = open(fileName, "wb")
     for code in codes.keys():
-        fo.write( "%s\n" % code )
+        fo.write( "%s\r\n" % code )
     fo.close()
 
 def createHandangoFile(codes):
