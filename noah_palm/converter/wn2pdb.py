@@ -568,34 +568,100 @@ class CompInfoGenOld:
         print packStrings
         return packStrings
 
+def calcNewCodesCount(usedCodes):
+    assert usedCodes <= 256
+    codesToMake = 256-usedCodes
+    formula = ((200,50),(120,40),(60,25),(30,10),(-1,18))
+    for el in formula:
+        if codesToMake > el[0]:
+            return el[1]
+    assert 0
+
 class CompInfoGenOrig:
     """Given a list of strings, generate compression info (packStrings). This
     should be identical to the way original lisp version works"""
-    def __init__(self,strList,dx=256,dy=256):
+    #def __init__(self,strList,dx=256,dy=256):
+    def __init__(self,strList):
         self.strList = strList
         self.compressedStrList = None
         self.fCompressionInfoBuilt = False
-        self.dx = dx
-        self.dy = dy
+        #self.dx = dx
+        #self.dy = dy
         self._clearFreqInfo()
+        self.charToCode = [0 for i in range(256)]
+        self.usedCodes = 1 # zero always maps to zero
+        self.oneCharCodes = 0
+        self.codeToChar = [[0,0] for i in range(256)]
+        self.strToCode = ['' for i in range(256)]
+        self.freq = [[0 for i in range(256)] for t in range(256)]
+        self.compressionTable = [[0 for i in range(256)] for t in range(256)]
+
+    def _reserveCodes(self,n):
+        for i in range(n):
+            self.charToCode[i] = i
+            self.codeToChar[i][0] = i
+        self.usedCodes = n
 
     def _clearFreqInfo(self):
         # would it be better to do:
         # for i in range(self.dx*self.dy): self.freqTable[i] = 0
         # this version might create a lot of garbage
-        self.freqTable = [0 for i in range(self.dx*self.dy)]
+        #self.freqTable = [0 for i in range(self.dx*self.dy)]
+        self.freq = [[0 for i in range(256)] for t in range(256)]
+
+    def _charToCode(self,c):
+        code = self.charToCode[c]
+        if (code == 0) and (c != 0):
+            code = self.usedCodes
+            self.charToCode[c] = code
+            self.codeToChar[code][0] = c
+            self.usedCodes += 1
+        return code
+
+    def _codeString(self,txt):
+        strOutAsList = [self._charToCode(ord(c)) for c in txt]
+        strOut = string.join(strOutAsList,"")
+        return strOut
 
     def inc(self,x,y):
-        self.freqTable[x+y*self.dy] += 1
+        #self.freqTable[x+y*self.dy] += 1
+        self.freq[x][y] += 1
 
     def val(self,x,y):
-        return self.freqTable[x+y*self.dy]
+        #return self.freqTable[x+y*self.dy]
+        return self.freq[x][y]
+
+    def _addPair(self,x,y):
+        self.compressionTable[x][y] = self.usedCodes
+        self.codeToChar[self.usedCodes][0] = x
+        self.codeToChar[self.usedCodes][1] = y
+        sef.usedCodes += 1
+
+    def _strFromCodeIter(self,code):
+        codesToProcess = [code]
+        oneCharCodes = self.oneCharCodes
+        while len(codesToProcess) > 0:
+            # code = pop(codesToProcess)
+            code = codesToProcess[-1]
+            if code <= oneCharCodes:
+                yield self.codeToChar[code][0]
+            else:
+                # push(codesToProcess,self.codeToChar[code][1])
+                codesToProcess.append(self.codeToChar[code][1])
+                # push(codesToProcess,self.codeToChar[code][1])
+                codesToProcess.append(self.codeToChar[code][0])
+    
+    def _stringFromCode(self,code):
+        strFromCode = [c for c in self._strFromCodeIter(code)]
+        s = string.join(strFromCode,"")
+        return s
 
     def incStr(self,s):
         x = ord(s[0])
         for c in s[1:]:
             y = ord(c)
-            self.freqTable[x+y*self.dy] += 1 # self.inc(x,y) but faster
+            #self.freqTable[x+y*self.dy] += 1 # self.inc(x,y) but faster
+            self.freq[x][y] += 1
             x = y
 
     def _getStrFromPos(self,pos):
@@ -652,6 +718,24 @@ class CompInfoGenOrig:
         assert 256 == len(packStrings)
         print packStrings
         return packStrings
+
+    def _buildPackStrings(self):
+        packStrings = [self._stringFromCode(code) for code in range(256)]
+        # UNDONE: sort strings by length
+        assert 256 == len(packStrings)
+        print packStrings
+        return packStrings
+
+    def _buildPackDataOnePass(codesToUse):
+        # UNDONE: do it
+        
+
+
+    def _buildPackData(self):
+        self.oneCharCodes = self.usedCodes
+        while self.usedCodes < 256:
+            self._buildPackDataOnePass(calcNewCodesCount(self.usedCodes))
+            return self._buildPackStrings()
 
 def buildStringCompressorOld(strList):
     """Given a list of strings, build compressor object optimal for compressing

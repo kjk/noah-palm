@@ -251,7 +251,7 @@ format to an output stream"
 	    (incf (aref freq el1 el2))
 	    (setq el1 el2))))
 
-(defun pi-char->code (pack-info char-as-int)
+(defun pack-info-char->code (pack-info char-as-int)
   "map a given character to a code, create new mapping if doesn't exist yet"
   (let* ((char->code (pack-info-char->code pack-info))
 	 (code (aref char->code char-as-int)))
@@ -399,13 +399,13 @@ build the actual data to do compression"
 	 (char-list (map 'list #'char->int str))
 	 (index -1))
     (dolist (char char-list)
-	    (setf (aref str-out (incf index)) (int->char (pi-char->code pack-info char))))
+	    (setf (aref str-out (incf index)) (int->char (pack-info-char->code pack-info char))))
     str-out))
 
 ; given a string return string that is build by
 ; replacing chars with codes. 
 ; (defun code-string2 (pack-info str)
-;   (let* ((code-list (map 'list #'(lambda (x) (pi-char->code pack-info (char->int x))) str)))
+;   (let* ((code-list (map 'list #'(lambda (x) (pack-info-char->code pack-info (char->int x))) str)))
 ;     (int-list->string code-list)))
 
 ; given a coded string return string that is built by
