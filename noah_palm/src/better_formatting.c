@@ -466,7 +466,8 @@ static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, App
 /* Now we dont use Font button draw in current font... but we can do it here!*/
 //    FontID prev_font;
     RectangleType r;
-
+    UInt16 index=0;
+    FormType* frm = FrmGetActiveForm();
 //    prev_font = FntGetFont();
 //    WinDrawChars("Aa",2, 70, 30);
     
@@ -495,6 +496,32 @@ static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, App
 
     SetTextColorBlack(appContext);
 //    FntSetFont(prev_font);
+#ifdef NOAH_PRO
+    if(actTag == actTagPronunciation)
+    {
+        index=FrmGetObjectIndex(frm, buttonFpos);
+        Assert(index!=frmInvalidObjectId);
+        FrmHideObject(frm, index);
+        FrmGetObjectBounds(frm, index, &r);
+        r.topLeft.x=28;
+        FrmSetObjectBounds(frm, index, &r);
+        FrmShowObject(frm, index);
+        index=FrmGetObjectIndex(frm, checkEnablePron);
+        FrmSetControlValue (frm, index, appContext->prefs.displayPrefs.enablePronunciation);
+        FrmShowObject(frm, index);
+    }
+    else    
+    {
+        FrmHideObject(frm, FrmGetObjectIndex(frm, checkEnablePron));
+        index=FrmGetObjectIndex(frm, buttonFpos);
+        Assert(index!=frmInvalidObjectId);
+        FrmHideObject(frm, index);
+        FrmGetObjectBounds(frm, index, &r);
+        r.topLeft.x=10;
+        FrmSetObjectBounds(frm, index, &r);
+        FrmShowObject(frm, index);
+    }
+#endif
 }
 
 /* Makes definition and draw it! */
@@ -502,7 +529,10 @@ static void RedrawExampleDefinition(AppContext* appContext)
 {
     ExtensibleBuffer *Buf;
     char *rawTxt;
-    
+#ifdef NOAH_PRO
+    char *pron;
+    unsigned char decompresed[10];
+#endif  
     char pos[3], word[3], def[3], example[3], synonym[3], point[3];  
     
     //initialize data (resident mode)
@@ -522,6 +552,22 @@ static void RedrawExampleDefinition(AppContext* appContext)
     {
         ebufAddStr(Buf, synonym); 
         ebufAddStr(Buf, "word\n"); 
+#ifdef NOAH_PRO
+        if(appContext->prefs.displayPrefs.enablePronunciation)
+        {
+            ebufAddChar(Buf, FORMAT_TAG); 
+            ebufAddChar(Buf, FORMAT_PRONUNCIATION); 
+            ebufAddStr(Buf, "["); 
+            decompresed[0] = 36;
+            decompresed[1] = 12;
+            decompresed[2] = 9;
+            decompresed[3] = 0;
+            pron = pronTranslateDecompresed(appContext, decompresed);
+            ebufAddStr(Buf, pron); 
+            new_free(pron);
+            ebufAddStr(Buf, "]\n"); 
+        }      
+#endif  
     }
     ebufAddStr(Buf, pos); 
     ebufAddStr(Buf, point); 
@@ -683,7 +729,9 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
     char *      listTxt = NULL;
     char        txt[20];
     AppContext* appContext;
-
+#ifdef NOAH_PRO            
+    char *tab[10];
+#endif
     frm = FrmGetActiveForm();
     appContext=GetAppContext();
     
@@ -708,6 +756,18 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
             SetPopupLabel(frm, listActTag, popupActTag, actTag);
             RedrawExampleDefinition(appContext);
             RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+            
+#ifdef NOAH_PRO            
+            if(appContext->pronData.isPronInUsedDictionary)
+            {
+                list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag));
+                for(setColor = 0; setColor < 7; setColor++)
+                    tab[setColor] = LstGetSelectionText(list, setColor); 
+                tab[setColor] = "pronunciation";
+                LstSetListChoices (list, tab , 8);
+            }
+#endif            
+            
             return true;
 
         case popSelectEvent:
@@ -885,6 +945,17 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     RedrawExampleDefinition(appContext);
                     setColor = 2;
                     break;
+#ifdef NOAH_PRO
+                case checkEnablePron:
+                    actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
+                    if(FrmGetControlValue (frm, FrmGetObjectIndex(frm, checkEnablePron)))
+                         appContext->prefs.displayPrefs.enablePronunciation = true;
+                    else
+                         appContext->prefs.displayPrefs.enablePronunciation = false;
+                    RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+                    RedrawExampleDefinition(appContext);
+                    break;
+#endif                    
                 case buttonDefault:
                     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 

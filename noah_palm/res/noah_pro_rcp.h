@@ -90,6 +90,7 @@
 #define   buttonCOLpos            9014
 #define   buttonBGpos             9018
 #define   buttonDefault           9030
+#define   checkEnablePron         9032
 
 #define   popupListStyle          9040
 #define   popupActTag             9041

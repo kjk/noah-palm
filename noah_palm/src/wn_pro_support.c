@@ -1027,7 +1027,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         ebufAddChar(&wi->buffer, '\n');
         //pronunciation
         if(appContext->pronData.isPronInUsedDictionary
-            /*&& appContext->prefs.displayPrefs.enablePronunciation*/
+            && appContext->prefs.displayPrefs.enablePronunciation
         )
         {
             ebufAddChar(&wi->buffer, FORMAT_TAG);

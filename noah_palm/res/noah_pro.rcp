@@ -147,12 +147,13 @@ BEGIN
    POPUPLIST popupListStyle listListStyle
 
    POPUPTRIGGER "part of speech" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
-   LIST "word" "p. of speech list" "part of speech" "definition list" "definition" "synonyms" "examples"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
+   LIST "word" "p. of speech list" "part of speech" "definition list" "definition" "synonyms" "examples" ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
    POPUPLIST popupActTag listActTag
 
    BUTTON ""             buttonGlobalBGcol  AT (RIGHT@160-2    16      20   10) FONT 0
    LABEL "Background:"                    AUTOID AT (RIGHT@PrevLeft-2  15) FONT 0
 
+   CHECKBOX ""           checkEnablePron    AT ( 2                29      25   AUTO) FONT 0
    BUTTON "Font"         buttonFpos         AT ( 10               29      AUTO AUTO) FONT 0
    BUTTON ""             buttonCOLpos       AT ( 95               PrevTop    20   AUTO) FONT 0
    LABEL "Text:"                     AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
