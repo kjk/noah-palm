@@ -2035,3 +2035,6 @@ in a record"
   (do-newer-plant-3)
   (do-newer-plant-4))
 
+(defun do-french ()
+  (let ((ds (make-simple-datasource :file-name "french.txt")))
+    (do-simple ds "French" "french.pdb" "simp")))

@@ -315,6 +315,7 @@ void LoadPreferencesNoahPro()
         MemPtrUnlock(recData);
     }
     DmCloseDatabase(db);
+    gd.fFirstRun = !fRecFound;
 }
 
 void DictFoundCBNoahPro( AbstractFile *file )
@@ -361,6 +362,7 @@ void VfsFindCbNoahPro( AbstractFile *file )
 void ScanForDictsNoahPro(void)
 {
     FsMemFindDb( NOAH_PRO_CREATOR, WORDNET_PRO_TYPE, NULL, &DictFoundCBNoahPro );
+    FsMemFindDb(NOAH_PRO_CREATOR, SIMPLE_TYPE, NULL, &DictFoundCBNoahPro );
 
     /* TODO: show a progress dialog with a number of files processed so far */
     FsVfsFindDb( &VfsFindCbNoahPro );
@@ -406,6 +408,7 @@ Err InitNoahPro(void)
     gd.prefs.hwButtonScrollType = scrollPage;
     gd.prefs.dbStartupAction = dbStartupActionAsk;
     gd.prefs.lastDbUsedName = NULL;
+    // TODO: gd.prefs.
 
     FsInit();
 
