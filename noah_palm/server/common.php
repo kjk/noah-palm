@@ -118,6 +118,9 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='sony' && $od=='goku' )
         $name =  "PEG-TJ35";
 
+    if ( $oc=='sony' && $od=='luke' )
+        $name = "PEG-TJ37";
+
     # MISC devices
 
     if ( $oc=='psys' )
