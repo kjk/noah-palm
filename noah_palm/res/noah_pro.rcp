@@ -330,7 +330,7 @@ END
 BITMAPFAMILYEX ID bmpMenuBarIcon  
 BEGIN
     BITMAP "icons/no_mb_smallx2.bmp"   BPP 1 DENSITY 1
-    BITMAP "icons/no_mb_smallx256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
+    BITMAP "icons/no_mb_smallx256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 255
     BITMAP "icons/no_mb_bigx2.bmp"     BPP 1 DENSITY 2
-    BITMAP "icons/no_mb_bigx256.bmp"   BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
+    BITMAP "icons/no_mb_bigx256.bmp"   BPP 8 DENSITY 2 TRANSPARENCY 255 255 255
 END

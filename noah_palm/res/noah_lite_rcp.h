@@ -1,5 +1,3 @@
-#define _ADD_FIND_WORD_PATTERN_ 1
-
 #define   formDictMain      1001
 #define   formDictFind      1002
 #define   formDictFindPattern 1003

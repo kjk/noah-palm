@@ -1,4 +1,4 @@
-#define _ADD_FIND_WORD_PATTERN_ 1
+//#define _ADD_FIND_WORD_PATTERN_ 1
 #define _ADD_BOOKMARKS_ 1
 
 #define   formDictMain        1001
