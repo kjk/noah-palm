@@ -88,12 +88,17 @@ def csvTxtToRow(txt):
 g_regCodesFileName        = "reg_codes.csv"
 REG_CODE_LEN = 12
 
-# minimum number of per-file codes for Esellerate, Handango and PalmGear
+# minimum number of per-file codes for Esellerate
 MIN_ES_CODES = 500
 
-# TODO: check those limits
-MIN_PG_CODES = 100
-MIN_H_CODES = 100
+# minimum number of per-file codes for PalmGear
+# PalmGear says that they send e-mail if number of regcodes below 50
+# no mention of any other limit
+MIN_PG_CODES = 500
+
+# TODO: check MIN_H_CODES limit
+# minimum number of per-file codes for Handango
+MIN_H_CODES = 500
 
 # given argument name in argName, tries to return argument value
 # in command line args and removes those entries from sys.argv
@@ -221,7 +226,7 @@ def usageAndExit():
     sys.exit(0)
 
 
-#  eSellerate: serial number per line, at least 500 serial numbers
+#  eSellerate: serial number per line
 def createEsellerateFile(codes):
     fileName = getEsellerateFileName()
     assert not fFileExists(fileName)
@@ -243,12 +248,25 @@ def createHandangoFile(codes):
     #    fo.write( "%s\n" % code )
     #fo.close()
 
+# PalmGear. From their site:
+# Text only
+# One code per line
+# File extension .txt
+# For ease of entry by customers it is suggested that characters such
+# as 0 (zero) or others easily confused not be used. Once the quantity
+# remaining reaches 50 or less our system will send an email alerting and
+# requesting that more codes be uploaded. Should the quantity drop to zero
+# customers will be emailed notifying that the code pool is depleted and that
+# the developer will email the code to them. 
 def createPalmGearFile(codes):
     fileName = getPalmGearFileName()
 
-    # TODO: find out the format of PalmGear file
-    assert False
-
+    assert not fFileExists(fileName)
+    assert len(codes)>=MIN_PG_CODES
+    fo = open(fileName, "wb")
+    for code in codes.keys():
+        fo.write( "%s\r\n" % code )
+    fo.close()
 
 def main():
     specialName = getRemoveCmdArg("-special")
