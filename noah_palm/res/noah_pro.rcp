@@ -111,10 +111,12 @@ USABLE
 NOFRAME
 BEGIN
    SCROLLBAR         ID scrollDef     AT (152   1  7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+   BUTTON "\002"        ctlArrowLeft  AT (  0 148  8  11) FONT 4 NOFRAME
+   BUTTON "\003"        ctlArrowRight AT (  8 148 10  11) FONT 4 NOFRAME
    FORMBITMAP                         AT (147 147)        BITMAP bmpClose
    BUTTON       ""      buttonClose    AT (146 146 14  14) NOFRAME
+	
 END
-
 
 FORM formSelectDict AT (0 0 160 160)
 USABLE
