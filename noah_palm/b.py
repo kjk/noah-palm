@@ -30,16 +30,17 @@ def CreateDirIfNotExists(dirName):
     except OSError:
         pass
 
-npd_objs = [ "noah_pro", "wn_lite_ex_support", "wn_pro_support", "simple_support", "ep_support",
-             "word_compress", "mem_leak", "display_info", "common", "extensible_buffer",
-             "fs", "fs_ex", "fs_mem", "fs_vfs" ]
+npd_objs = [ "noah_pro", "word_compress", "mem_leak", "display_info", "common", "extensible_buffer",
+             "fs", "fs_ex", "fs_mem", "fs_vfs",
+             "wn_lite_ex_support", "wn_pro_support", "simple_support", "ep_support" ]
 
-nld_objs = [ "noah_pro", "wn_lite_ex_support", "wn_pro_support", "simple_support", "ep_support",
-             "word_compress", "mem_leak", "display_info", "common", "extensible_buffer",
-             "fs", "fs_ex", "fs_mem", "fs_vfs" ]
+nld_objs = [ "noah_pro", "word_compress", "mem_leak", "display_info", "common", "extensible_buffer",
+             "fs", "fs_mem", "fs_ex", "fs_vfs",
+             "wn_lite_ex_support" ]
 
-thd_objs = [ "thes", "roget_support", "word_compress", "display_info", "common",
-             "mem_leak", "extensible_buffer", "fs", "fs_mem" ]
+thd_objs = [ "thes", "word_compress", "mem_leak", "display_info", "common", "extensible_buffer",
+             "fs", "fs_mem", "fs_ex", "fs_vfs",
+              "roget_support"]
 
 
 def GenObjs( objList ):

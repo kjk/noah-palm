@@ -92,13 +92,6 @@ typedef struct
 
 
 #define MAX_DICTS 5
-/* global data that is common for thes/noah lite/noah pro */
-typedef struct
-{
-} CommonGlobalData;
-
-extern CommonGlobalData cgd;
-
 long GetMaxListItems();
 
 Boolean get_defs_record(long entry_no, int first_record_with_defs_len,

@@ -18,9 +18,7 @@
 
 typedef enum  {
     eFS_MEM = 4,
-#ifdef FS_VFS
     eFS_VFS
-#endif
 } eFsType;
 
 struct MemData;
@@ -61,7 +59,7 @@ typedef struct
 } AbstractFile;
 
 typedef void (FIND_DB_CB)(AbstractFile *);
-typedef Boolean (IS_DB_OK)(UInt32 creator, UInt32 type, char *name);
+//typedef Boolean (IS_DB_OK)(UInt32 creator, UInt32 type, char *name);
 
 Boolean FFileExists(AbstractFile *file);
 Boolean FvalidFsType( eFsType fsType );
@@ -75,7 +73,8 @@ AbstractFile    *AbstractFileDeserialize( char *blob );
 /* this is defined in fs_mem.c but exported globally */
 void            FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB);
 /* this is defined in fs_vfs.c but exported globally */
-void            FsVfsFindDb( IS_DB_OK *cbDbOk, FIND_DB_CB *cbDbFound );
+//void            FsVfsFindDb( IS_DB_OK *cbDbOk, FIND_DB_CB *cbDbFound );
+void FsVfsFindDb( FIND_DB_CB *cbCheckFile );
 
 void    FsInit();
 void    FsDeinit();

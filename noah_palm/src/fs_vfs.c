@@ -3,10 +3,11 @@
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
+#include "extensible_buffer.h"
+
 #include "fs.h"
 #include "fs_ex.h"
 #include "fs_vfs.h"
-#include "extensible_buffer.h"
 
 #define MAX_VFS_VOLUMES 3
 static Boolean g_fVfsPresent = false;
@@ -58,7 +59,6 @@ Boolean FsVfsInit(void)
     }
 
     volIterator = expIteratorStart;
-    /* for now only enumerate one volume */
     while ( (volIterator != vfsIteratorStop) && (g_VfsVolumeCount < MAX_VFS_VOLUMES))
     {
         err = VFSVolumeEnumerate(&volRef, &volIterator);
@@ -89,7 +89,9 @@ Boolean FFsVfsPresent(void)
     return g_fVfsPresent;
 }
 
-void FsVfsFindDb( IS_DB_OK *cbDbOk FIND_DB_CB *cbDbFound )
+/* Iterate over all files on the vfs file system and call the callback
+for each file */
+void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
 {
     if (!FFsVfsPresent()) return;
 
@@ -107,44 +109,13 @@ void BuildFullPath(char *dir, char *file, char *fullPath)
     StrCat( fullPath, file );
 }
 
-UInt16   VfsUnlockRegion(VfsData *data)
-{
-    return dcGetRecordsCount(&data->cacheData);
-}
-
-long VfsGetRecordSize(VfsData *data, UInt16 recNo)
-{
-    return dcGetRecordSize(&data->cacheData, recNo);
-}
-
-void *VfsLockRecord(VfsData *data, UInt16 recNo)
-{
-    return dcLockRecord(&data->cacheData, recNo);
-}
-
-void  VfsUnlockRecord(VfsData *data, UInt16 recNo)
-{
-    return dcUnlockRecord(&data->cacheData, recNo);
-}
-
-void  *VfsLockRegion(VfsData *data, UInt16 recNo, UInt16 offset, UInt16 size)
-{
-    return dcLockRegion( &data->cacheData, recNo, offset, size);
-}
-
-void  VfsUnlockRegion(VfsData *data, char *dataPtr)
-{
-    return dcUnlockRegion(&data->cacheData, dataPtr);
-}
-
 #if 0
 // TODO: remove ?
-void vfsStdSetCurrentDir(void *data, char *dir)
+void vfsStdSetCurrentDir(struct VfsData *vfs, char *dir)
 {
-    VfsData *std = (VfsData*)data;
     // undone: really necessary?
-    ssDeinit( &std->dirsToVisit );
-    ssPush( &std->dirsToVisit, dir );
+    ssDeinit( &vfs->dirsToVisit );
+    ssPush( &vfs->dirsToVisit, dir );
 }
 #endif
 
@@ -152,82 +123,85 @@ void vfsStdSetCurrentDir(void *data, char *dir)
 // more than enough (256 according to docs)
 #define VFS_MAX_PATH_SIZE 256+40
 
-static void VfsDeinit(void *data)
+void VfsDeinit(struct VfsData *vfs)
 {
-    VfsData *std = (VfsData*)data;
+    ssDeinit( &vfs->dirsToVisit );
+    //dcDeinit(&vfs->cacheData);
 
-    ssDeinit( &std->dirsToVisit );
-    dcDeinit(&std->cacheData);
+    vfs->worksP = false;
 
-    std->worksP = false;
-
-    if ( std->fileInfo.nameP)
+    if ( vfs->fileInfo.nameP)
     {
-        new_free( std->fileInfo.nameP );
-        std->fileInfo.nameP = NULL;
+        new_free( vfs->fileInfo.nameP );
+        vfs->fileInfo.nameP = NULL;
     }
 
-    if ( std->fullFileName )
+    if ( vfs->fullFileName )
     {
-        new_free( std->fullFileName );
-        std->fullFileName = NULL;
+        new_free( vfs->fullFileName );
+        vfs->fullFileName = NULL;
     }
 
-    if ( std->currDir )
+    if ( vfs->currDir )
     {
-        new_free( std->currDir );
-        std->currDir = NULL;
+        new_free( vfs->currDir );
+        vfs->currDir = NULL;
     }
 
-    if (0 != std->dirRef)
+    if (0 != vfs->dirRef)
     {
-        VFSFileClose(std->dirRef);
-        std->dirRef = 0;
+        VFSFileClose(vfs->dirRef);
+        vfs->dirRef = 0;
     }
 }
 
-VfsData *stdNew(void)
+struct VfsData *vfsNew(void)
 {
-    return NULL;
+    struct VfsData *data = (struct VfsData*) new_malloc( sizeof(struct VfsData) );
+    if ( errNone != vfsInit(data) )
+    {
+        new_free( data );
+        return NULL;
+    }
+    return data;
 }
 
 /* Init VFS. Return true if exist and inited properly */
-static Err stdInit(void *data)
+Err vfsInit(struct VfsData *vfs)
 {
     Err         err = errNone;
     UInt32      vfsMgrVersion;
     UInt16      volRef;
     UInt32      volIterator;
-    VfsData     *std = (VfsData*)data;
 
-    MemSet( std, sizeof(VfsData), 0 );
-    dcInit(&std->cacheData);
+    MemSet( vfs, sizeof(struct VfsData), 0 );
+    //dcInit(&vfs->cacheData);
 
-    std->recursiveP = true;
-    std->worksP = false;
+    vfs->recursiveP = true;
+    vfs->worksP = false;
 
-    std->fileInfo.nameP = new_malloc(VFS_MAX_PATH_SIZE);
-    if ( NULL == std->fileInfo.nameP )
+    vfs->fileInfo.nameP = new_malloc(VFS_MAX_PATH_SIZE);
+    if ( NULL == vfs->fileInfo.nameP )
     {
-        VfsDeinit(data);
+        VfsDeinit(vfs);
         return ERR_NO_MEM;
     }
-    std->fileInfo.nameBufLen = VFS_MAX_PATH_SIZE;
+    vfs->fileInfo.nameBufLen = VFS_MAX_PATH_SIZE;
 
-    std->fullFileName = new_malloc(VFS_MAX_PATH_SIZE);
-    if ( NULL == std->fullFileName )
+    vfs->fullFileName = new_malloc(VFS_MAX_PATH_SIZE);
+    if ( NULL == vfs->fullFileName )
     {
-        VfsDeinit(data);
+        VfsDeinit(vfs);
         return ERR_NO_MEM;
     }
-    std->currDir = NULL;
-    ssInit(&std->dirsToVisit);
+    vfs->currDir = NULL;
+    ssInit(&vfs->dirsToVisit);
 
     err = FtrGet(sysFileCVFSMgr, vfsFtrIDVersion, &vfsMgrVersion);
     if (err)
     {
         DrawDebug("FtrGet(sysFileCVSMgr) failed");
-        VfsDeinit(data);
+        VfsDeinit(vfs);
         return err;
     }
 
@@ -239,17 +213,17 @@ static Err stdInit(void *data)
         err = VFSVolumeEnumerate(&volRef, &volIterator);
         if (errNone == err)
         {
-            std->volRef = volRef;
+            vfs->volRef = volRef;
             volIterator = vfsIteratorStop;
         }
         else
         {
             DrawDebug("FtrGet(sysFileCVSMgr) failed");
-            VfsDeinit(data);
+            VfsDeinit(vfs);
             return false;
         }
     }
-    std->worksP = true;
+    vfs->worksP = true;
     return errNone;
 }
 
@@ -269,7 +243,7 @@ static UInt32 stdGetFileSize(FileRef fileRef)
 
 #define COPY_AT_ONCE 1024
 
-static Err stdCopyExternalToMem(void *data, UInt32 offset, UInt32 size, void *dstBuf)
+Err vfsCopyExternalToMem(struct VfsData *vfs, UInt32 offset, UInt32 size, void *dstBuf)
 {
     Err     err = errNone;
     char    buf[COPY_AT_ONCE];
@@ -278,19 +252,18 @@ static Err stdCopyExternalToMem(void *data, UInt32 offset, UInt32 size, void *ds
     UInt32  currentOffset;
     UInt32  copyThisTime;
     UInt32  bytesRead;
-    VfsData *std = (VfsData*)data;
 
     leftToCopy = size;
     currentOffset = 0;
 
-    err = VFSFileOpen(std->volRef, std->fullFileName, vfsModeRead, &fileRef);
+    err = VFSFileOpen(vfs->volRef, vfs->fullFileName, vfsModeRead, &fileRef);
     if (errNone != err)
     {
-        DrawDebug2("VFSFileOpen() failed:", std->fullFileName);
+        DrawDebug2("VFSFileOpen() failed:", vfs->fullFileName);
         goto Error;
     }
 
-    err = VFSFileSeek(fileRef, fsOriginBeginning, offset);
+    err = VFSFileSeek(fileRef, vfsOriginBeginning, offset);
     while (leftToCopy > 0)
     {
         if (leftToCopy >= COPY_AT_ONCE)
@@ -347,7 +320,7 @@ static Err stdCopyExternalToMem(void *data, UInt32 offset, UInt32 size, void *ds
    file for each record).
    Return false if sth. goes really wrong
 */
-static Boolean stdReadHeader(void *data)
+Boolean vfsReadHeader(struct VfsData *vfs)
 {
     Err                err = errNone;
     FileRef            fileRef = 0;
@@ -357,59 +330,60 @@ static Boolean stdReadHeader(void *data)
     UInt32             fileSize;
     UInt32             recSize;
     PdbRecordHeader    pdbRecHeader;
+#ifdef NOAH_PRO
     char               recSizeBuf[30];
     char               recNumBuf[10];
-    VfsData            *std = (VfsData*)data;
+#endif
 
-    if (true == std->headerInitedP)
+    if (true == vfs->headerInitedP)
     {
         return true;
     }
 
-    err = VFSFileOpen(std->volRef, std->fullFileName, vfsModeRead, &fileRef);
+    err = VFSFileOpen(vfs->volRef, vfs->fullFileName, vfsModeRead, &fileRef);
 
     if (errNone != err)
     {
         fileRef = 0;
-        DrawDebug2("fo() fail:", std->fullFileName);
+        DrawDebug2("fo() fail:", vfs->fullFileName);
         goto Error;
     }
 
     err = VFSFileRead(fileRef, sizeof(PdbHeader), (void *) &hdr, &bytesRead);
     if ((err != errNone) && (bytesRead != sizeof(PdbHeader)))
     {
-        DrawDebug2("fr() fail:", std->fullFileName);
+        DrawDebug2("fr() fail:", vfs->fullFileName);
         goto Error;
     }
 
-    std->dbCreator = hdr.creator;
-    std->dbType = hdr.type;
+    vfs->dbCreator = hdr.creator;
+    vfs->dbType = hdr.type;
 
-    std->cacheData.recsCount = hdr.recordsCount;
+    vfs->cacheData.recsCount = hdr.recordsCount;
 
 /*      DrawDebug2Num ( "recsCount:", (UInt32) hdr.recordsCount ); */
-    MemMove(std->name, hdr.name, dmDBNameLength);
+    MemMove(vfs->name, hdr.name, dmDBNameLength);
 
-    if ((0 == std->cacheData.recsCount) || (std->cacheData.recsCount > 200))
+    if ((0 == vfs->cacheData.recsCount) || (vfs->cacheData.recsCount > 200))
     {
         /* I assume that this is a bogus file (non-PDB) */
         goto Error;
     }
 
-    if (std->cacheData.recsInfo)
+    if (vfs->cacheData.recsInfo)
     {
-        new_free(std->cacheData.recsInfo);
-        std->cacheData.recsInfo = NULL;
+        new_free(vfs->cacheData.recsInfo);
+        vfs->cacheData.recsInfo = NULL;
     }
-    std->cacheData.recsInfo = (OneVfsRecordInfo*) new_malloc(std->cacheData.recsCount * sizeof(OneVfsRecordInfo));
+    vfs->cacheData.recsInfo = (OneVfsRecordInfo*) new_malloc(vfs->cacheData.recsCount * sizeof(OneVfsRecordInfo));
 
-    if (NULL == std->cacheData.recsInfo)
+    if (NULL == vfs->cacheData.recsInfo)
     {
-        DrawDebug2Num("no recsInfo", std->cacheData.recsCount);
+        DrawDebug2Num("no recsInfo", vfs->cacheData.recsCount);
         goto Error;
     }
 
-    for (i = 0; i < std->cacheData.recsCount; i++)
+    for (i = 0; i < vfs->cacheData.recsCount; i++)
     {
 
         err = VFSFileRead(fileRef, sizeof(PdbRecordHeader), (void *) &pdbRecHeader, &bytesRead);
@@ -418,15 +392,15 @@ static Boolean stdReadHeader(void *data)
             // that's ok, the file on external memory card doesn't have to be *pdb file
             goto Error;
         }
-        std->cacheData.recsInfo[i].offset = pdbRecHeader.recOffset;
+        vfs->cacheData.recsInfo[i].offset = pdbRecHeader.recOffset;
     }
 
 
     /* calc sizes of all records, size of rec n is offset of rec n+1
        - offset of rec n */
-    for (i = 1; i < std->cacheData.recsCount; i++)
+    for (i = 1; i < vfs->cacheData.recsCount; i++)
     {
-        recSize = (std->cacheData.recsInfo[i].offset - std->cacheData.recsInfo[i -1].offset);
+        recSize = (vfs->cacheData.recsInfo[i].offset - vfs->cacheData.recsInfo[i -1].offset);
 
 #ifdef NOAH_PRO
 #include "noah_pro_rcp.h"
@@ -440,33 +414,33 @@ static Boolean stdReadHeader(void *data)
         }
 #endif
 
-        std->cacheData.recsInfo[i - 1].size = (UInt16) recSize;
+        vfs->cacheData.recsInfo[i - 1].size = (UInt16) recSize;
     }
     fileSize = stdGetFileSize(fileRef);
     if (0 == fileSize)
     {
         goto Error;
     }
-    i = std->cacheData.recsCount - 1;
-    std->cacheData.recsInfo[i].size = (UInt16) (fileSize - std->cacheData.recsInfo[i].offset);
+    i = vfs->cacheData.recsCount - 1;
+    vfs->cacheData.recsInfo[i].size = (UInt16) (fileSize - vfs->cacheData.recsInfo[i].offset);
 
     /* initialize data for caching purposes */
-    for (i = 0; i < std->cacheData.recsCount; i++)
+    for (i = 0; i < vfs->cacheData.recsCount; i++)
     {
-        std->cacheData.recsInfo[i].data = NULL;
-        std->cacheData.recsInfo[i].lockCount = 0;
+        vfs->cacheData.recsInfo[i].data = NULL;
+        vfs->cacheData.recsInfo[i].lockCount = 0;
     }
 
     if (errNone != VFSFileClose(fileRef))
     {
-        DrawDebug("stdReadHeader() VFSFileClose() fail");
+        DrawDebug("vfsReadHeader() VFSFileClose() fail");
         goto Error;
     }
 
-    std->headerInitedP = true;
+    vfs->headerInitedP = true;
     return true;
   Error:
-    DrawDebug2("rh() f", std->fullFileName);
+    DrawDebug2("rh() f", vfs->fullFileName);
     if (0 != fileRef)
     {
         VFSFileClose(fileRef);
@@ -474,41 +448,34 @@ static Boolean stdReadHeader(void *data)
     return false;
 }
 
-static UInt32 stdGetDbCreator(void *data)
+UInt32 vfsGetDbCreator(struct VfsData *vfs)
 {
-    VfsData *std = (VfsData*)data;
-
-    stdReadHeader(std);
-    return std->dbCreator;
+    vfsReadHeader(vfs);
+    return vfs->dbCreator;
 }
 
-static UInt32 stdGetDbType(void *data)
+UInt32 vfsGetDbType(struct VfsData *vfs)
 {
-    VfsData *std = (VfsData*)data;
-    stdReadHeader(std);
-    return std->dbType;
+    vfsReadHeader(vfs);
+    return vfs->dbType;
 }
 
-static char *stdGetDbName(void *data)
+char *vfsGetDbName(struct VfsData *vfs)
 {
-    VfsData *std = (VfsData*)data;
-    stdReadHeader(std);
-    return std->name;
+    vfsReadHeader(vfs);
+    return vfs->name;
 }
 
-static char *stdGetDbPath(void *data)
+char *stdGetDbPath(struct VfsData *vfs)
 {
-    VfsData *std = (VfsData*)data;
-
-    stdReadHeader(std);
-    return std->fullFileName;
+    vfsReadHeader(vfs);
+    return vfs->fullFileName;
 }
 
 /* Init iteration over files in VFS. */
-static void stdIterateRestart(void *data)
+static void stdIterateRestart(struct VfsData *vfs)
 {
-    VfsData *std = (VfsData*)data;
-    std->iterationInitedP = false;
+    vfs->iterationInitedP = false;
 }
 
 /* return true if given file attributes represent a file
@@ -539,42 +506,41 @@ static Boolean isDirP(UInt32 fileAttr)
    do a recursive scan.
    Return false if no more files.
  */
-Boolean stdIterateOverDbs(void *data)
+Boolean stdIterateOverDbs(struct VfsData *vfs)
 {
     Err     err;
-    VfsData *std = (VfsData*)data;
 
-    std->headerInitedP = false;
+    vfs->headerInitedP = false;
 
-    if (false == std->iterationInitedP)
+    if (false == vfs->iterationInitedP)
     {
-        if (0 != std->dirRef)
+        if (0 != vfs->dirRef)
         {
-            VFSFileClose(std->dirRef);
-            std->dirRef = 0;
+            VFSFileClose(vfs->dirRef);
+            vfs->dirRef = 0;
         }
 
-        if (std->currDir)
-            new_free(std->currDir);
+        if (vfs->currDir)
+            new_free(vfs->currDir);
 
-        std->currDir = ssPop( &std->dirsToVisit );
+        vfs->currDir = ssPop( &vfs->dirsToVisit );
         // exit if no more dirs to visit
-        if ( NULL == std->currDir )
+        if ( NULL == vfs->currDir )
             goto NoMoreFiles;
 
-        err = VFSFileOpen(std->volRef, std->currDir, vfsModeRead, &std->dirRef);
+        err = VFSFileOpen(vfs->volRef, vfs->currDir, vfsModeRead, &vfs->dirRef);
         if (err != errNone)
         {
             DrawDebug("iter_over_db() VFSFileOpen() fail");
             goto NoMoreFiles;
         }
-        std->iterationInitedP = true;
-        std->dirIter = expIteratorStart;
+        vfs->iterationInitedP = true;
+        vfs->dirIter = expIteratorStart;
     }
 
-    while (std->dirIter != expIteratorStop)
+    while (vfs->dirIter != expIteratorStop)
     {
-        err = VFSDirEntryEnumerate(std->dirRef, &std->dirIter, &std->fileInfo);
+        err = VFSDirEntryEnumerate(vfs->dirRef, &vfs->dirIter, &vfs->fileInfo);
         if (err != errNone)
         {
             DrawDebug2Num("VFSDirEnum() failed", err);
@@ -582,32 +548,32 @@ Boolean stdIterateOverDbs(void *data)
         }
 
         // if a dir - add to the list of dirs to visit next
-        if (isDirP(std->fileInfo.attributes) && std->recursiveP )
+        if (isDirP(vfs->fileInfo.attributes) && vfs->recursiveP )
         {
-            BuildFullPath( std->currDir, std->fileInfo.nameP, std->fullFileName );
-            ssPush( &std->dirsToVisit, std->fullFileName );
+            BuildFullPath( vfs->currDir, vfs->fileInfo.nameP, vfs->fullFileName );
+            ssPush( &vfs->dirsToVisit, vfs->fullFileName );
         } 
-        else if (isFileP(std->fileInfo.attributes))
+        else if (isFileP(vfs->fileInfo.attributes))
         {
-            BuildFullPath( std->currDir, std->fileInfo.nameP, std->fullFileName );
+            BuildFullPath( vfs->currDir, vfs->fileInfo.nameP, vfs->fullFileName );
             return true;
         }
     }
 
-    Assert(expIteratorStop == std->dirIter);
+    Assert(expIteratorStop == vfs->dirIter);
     // this could be a tail recursion
-    if (std->recursiveP )
+    if (vfs->recursiveP )
     {
-        std->iterationInitedP = false;
-        return stdIterateOverDbs(data);
+        vfs->iterationInitedP = false;
+        return stdIterateOverDbs(vfs);
     }
 
 NoMoreFiles:
-    std->iterationInitedP = false;
-    if (0 != std->dirRef)
+    vfs->iterationInitedP = false;
+    if (0 != vfs->dirRef)
     {
-        VFSFileClose(std->dirRef);
-        std->dirRef = 0;
+        VFSFileClose(vfs->dirRef);
+        vfs->dirRef = 0;
     }
     return false;
 }

@@ -10,8 +10,10 @@
 
 /* VFS uses a database in memory to cache
    frequently referenced records from CF. Those
-   are params uniquely identifying this database.
-   Creator is NOAH_PRO_CREATOR */
+   are params uniquely identifying this database.*/
+
+#include "fs_vfs.h"
+
 /* vfsc ~= VFS cache */
 #define VFS_CACHE_TYPE 'vfsc'
 #define VFS_CACHE_DB_NAME "fs cache"
@@ -46,6 +48,8 @@ typedef struct
 
 typedef struct
 {
+    struct VfsData      *vfs;
+    UInt32              cacheCreator;
     DmOpenRef           cacheDbRef;   /* pointer to opened cached database */
     int                 recsCount;    /* number of records in the pdb */
     /* mapping of record no in real db <=>
@@ -61,20 +65,21 @@ typedef struct
 } DbCacheData;
 
 /* dc stands for Database Cache */
-void    dcDelCacheDb();
-void    dcInit(DbCacheData *cache);
-void    dcDeinit(DbCacheData *cache);
-UInt16  dcGetRecordsCount(DbCacheData *cache);
-long    dcGetRecordSize(DbCacheData *cache, UInt16 recNo);
-LocalID dcCreateCacheDb(DbCacheData *cache);
-Err     dcCacheDbRef(DbCacheData *cache);
-void    dcCloseCacheDb(DbCacheData *cache);
-Err     dcCacheRecord(DbCacheData *cache, UInt16 recNo);
-Err     dcUpdateFirstCacheRec(DbCacheData *cache, CacheDBInfoRec * dbFirstRec);
-void    *dcLockRecord(DbCacheData *cache, UInt16 recNo);
-void    *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size);
-void    dcUnlockRecord(DbCacheData *cache, UInt16 recNo);
-void    dcUnlockRegion(DbCacheData *cache,void *regionPtr);
+DbCacheData *dcNew(struct VfsData *vfs, UInt32 cacheCreator);
+void         dcDelCacheDb(void);
+void         dcInit(DbCacheData *cache);
+void         dcDeinit(DbCacheData *cache);
+UInt16       dcGetRecordsCount(DbCacheData *cache);
+long         dcGetRecordSize(DbCacheData *cache, UInt16 recNo);
+LocalID      dcCreateCacheDb(DbCacheData *cache);
+Err          dcCacheDbRef(DbCacheData *cache);
+void         dcCloseCacheDb(DbCacheData *cache);
+Err          dcCacheRecord(DbCacheData *cache, UInt16 recNo);
+Err          dcUpdateFirstCacheRec(DbCacheData *cache, CacheDBInfoRec * dbFirstRec);
+void        *dcLockRecord(DbCacheData *cache, UInt16 recNo);
+void        *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size);
+void         dcUnlockRecord(DbCacheData *cache, UInt16 recNo);
+void         dcUnlockRegion(DbCacheData *cache,char *regionPtr);
 //Boolean dcCacheRecords(DbCacheData *cache, int recsCount, UInt16 * recs);
 
 #endif

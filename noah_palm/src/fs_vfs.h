@@ -11,10 +11,11 @@
 #include <VFSMgr.h>
 #include <ExpansionMgr.h>
 #include <PalmOS.h>
+#include "common.h"
 #include "fs.h"
 #include "fs_ex.h"
 
-typedef struct
+struct VfsData
 {
     UInt16          volRef;
     FileRef         dirRef;
@@ -34,10 +35,20 @@ typedef struct
     char            *currDir;
 
     StringStack     dirsToVisit;
-    DbCacheData     cacheData;
-}VfsData;
+};
 
 Boolean FsVfsInit(void);
 void    FsVfsDeinit(void);
 Boolean FFsVfsPresent(void);
+
+struct VfsData *vfsNew(void);
+Err             vfsInit(struct VfsData *vfs);
+void            VfsDeinit(struct VfsData *vfs);
+
+UInt32          vfsGetDbCreator(struct VfsData *vfs);
+UInt32          vfsGetDbType(struct VfsData *vfs);
+char *          vfsGetDbName(struct VfsData *vfs);
+Boolean         vfsReadHeader(struct VfsData *vfs);
+Err             vfsCopyExternalToMem(struct VfsData *vfs, UInt32 offset, UInt32 size, void *dstBuf);
+
 #endif

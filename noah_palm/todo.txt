@@ -1,12 +1,18 @@
+* make a new trial version for Handango (30 days to do it, till dec 22)
+
+
+* vfs_ex should use vfs and not the other way around (invert ownership 
+relationship)
 * add vfs support for Thes
-* add history to Thes
 * bring Noah Pro to using only vfs/mem
+* save preferences in Thes
 * figure out the "wordHistory" business in thes.c
 * "Timo Laitinen" <timolai@utu.fi> can beta-test MemPlug version (e-mail 4 Nov
 2002)
 * make Noah Lite compile
 * change the way we iterate over dbs
 * save which db is used in preferences
+* add word history to Thes
 
 We have:
 - abstracted acess to files (either vfs or internal memory db api), it mimics the internal db api. vfs implementation adds caching of records in internal memory

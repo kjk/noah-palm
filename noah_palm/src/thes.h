@@ -41,7 +41,7 @@
 
 /* id for Thes v 1.0 preferences */
 #define Thes10Pref      0x43212206
-/* if for Thes v 1.0 per-database preferences */
+/* id for Thes v 1.0 per-database preferences */
 #define ThesDB10Pref    0x43212214
 
 /* structure of the general preferences record */
@@ -68,12 +68,10 @@ typedef struct
     char            lastWord[WORD_MAX_LEN];
 } NoahDBPrefs;
 
-#define MAX_DBS 2
-
 typedef struct
 {
-    AbstractFile    *dicts[MAX_DICTS];
-    int             dictsCount;
+    AbstractFile       *dicts[MAX_DICTS];
+    int                dictsCount;
     NoahErrors         err;
     DisplayInfo        *currDispInfo;
     ExtensibleBuffer   *helpDipsBuf;

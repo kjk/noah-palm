@@ -24,7 +24,6 @@ char helpText[] =
 #endif
 
 GlobalData gd;
-CommonGlobalData cgd;
 
 void SavePreferences(NoahDBPrefs * data, UInt32 dataLen, int recursionDepth)
 {
@@ -142,9 +141,16 @@ void FreeDicts(void)
     }
 }
 
+/* checks if a given file is a thesaurus database */
+void ThesVfsFindCb( AbstractFile *file )
+{
+
+}
+
 void ScanForDictsThes(void)
 {
     FsMemFindDb( THES_CREATOR, ROGET_TYPE, NULL, &DictFoundCBThes );
+    FsVfsFindDb( &ThesVfsFindCb );
 }
 
 Err InitThesaurus(void)

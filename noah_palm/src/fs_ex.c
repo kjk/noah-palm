@@ -3,11 +3,7 @@
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
-#ifdef NOAH_PRO
-/* only supported for Noah Pro, will bomb if used with Noah Lite */
-#include "noah_pro.h"
-#endif
-
+#include "common.h"
 #include "fs.h"
 #include "fs_ex.h"
 
@@ -20,6 +16,17 @@ void dcDelCacheDb(void)
         return;
 
     DmDeleteDatabase(0, dbId );
+}
+
+DbCacheData *dcNew(struct VfsData *vfs, UInt32 cacheCreator)
+{
+    DbCacheData *data = (DbCacheData*) new_malloc( sizeof(DbCacheData) );
+    if (NULL==data) return NULL;
+    Assert( vfs );
+    Assert( 0 != cacheCreator );
+    data->vfs = vfs;
+    data->cacheCreator = cacheCreator;
+    return data;
 }
 
 void dcInit(DbCacheData *cache)
@@ -83,7 +90,7 @@ LocalID dcCreateCacheDb(DbCacheData *cache)
     UInt32          firstRecSize = 0;
     LocalID         dbId = 0;
 
-    err = DmCreateDatabase(0, VFS_CACHE_DB_NAME, NOAH_PRO_CREATOR, VFS_CACHE_TYPE, false);
+    err = DmCreateDatabase(0, VFS_CACHE_DB_NAME, cache->cacheCreator, VFS_CACHE_TYPE, false);
     if (err)
     {
         goto Error;
@@ -128,9 +135,9 @@ LocalID dcCreateCacheDb(DbCacheData *cache)
     }
 
     dbFirstRec->signature = VFS_CACHE_DB_SIG_V1;
-    dbFirstRec->realDbCreator = vfsGetDbCreator();
-    dbFirstRec->realDbType = vfsGetDbType();
-    MemMove(dbFirstRec->realDbName, vfsGetDbName(), 32);
+    dbFirstRec->realDbCreator = vfsGetDbCreator(cache->vfs);
+    dbFirstRec->realDbType = vfsGetDbType(cache->vfs);
+    MemMove(dbFirstRec->realDbName, vfsGetDbName(cache->vfs), 32);
     dbFirstRec->realDbRecsCount = CurrFileGetRecordsCount();
 
     err = dcUpdateFirstCacheRec(cache, dbFirstRec);
@@ -198,7 +205,7 @@ Err dcCacheDbRef(DbCacheData *cache)
     UInt32          reslFirstRecSize = 0;
 
     /* need to read database header first */
-    if (false == vfsReadHeader())
+    if (false == vfsReadHeader(cache->vfs))
     {
         goto Error;
     }
@@ -377,7 +384,7 @@ Err dcCacheRecord(DbCacheData *cache, UInt16 recNo)
     }
 
     recData = (char*) MemHandleLock(recHandle);
-    err = vfsCopyExternalToMem(offsetInPdbFile, recSize, recData);
+    err = vfsCopyExternalToMem(cache->vfs, offsetInPdbFile, recSize, recData);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, recPos, false );
     if (err)
@@ -521,7 +528,7 @@ void *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
     dstData = MemHandleLock(recHandle);
     /* copy data from CF to memory record */
     offsetInPdbFile = cache->recsInfo[recNo].offset + offset;
-    err = vfsCopyExternalToMem(offsetInPdbFile, size, dstData);
+    err = vfsCopyExternalToMem(cache->vfs, offsetInPdbFile, size, dstData);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, cache->lockRegionCacheRec, false);
     if (err)
@@ -534,7 +541,7 @@ void *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
     cache->lastLockedRegion = recData;
 
     return (void*)recData;
-  Error:
+Error:
     DrawDebug("dcLockRegion failed");
     return NULL;
 }
