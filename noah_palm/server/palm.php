@@ -10,13 +10,14 @@ define( 'ERR_INVALID_PV',        4);
 define( 'ERR_NO_COOKIE',         5);
 define( 'ERR_UKNOWN_REQUEST',    6);
 define( 'ERR_NO_DI',             7);
-define( 'ERR_RANDOM_NOT_EMPTY',  8);
-define( 'ERR_DB_CONNECT_FAIL',   9);
-define( 'ERR_DB_SELECTDB_FAIL', 10);
-define( 'ERR_DB_SELECT_FAIL',   11);
-define( 'ERR_RECENT_LOOKUPS_NOT_EMPTY', 12);
-define( 'ERR_COOKIE_UNKNOWN',   13);  # client sent a cookie that we didnt generate
-define( 'ERR_COOKIE_DISABLED',  14);  # client sent a cookie that we disabled for some reason
+define( 'ERR_INVAlID_DI',        8); # di (device id) that client sent doesn't correspond to a known format
+define( 'ERR_RANDOM_NOT_EMPTY',  9);
+define( 'ERR_DB_CONNECT_FAIL',  10);
+define( 'ERR_DB_SELECTDB_FAIL', 11);
+define( 'ERR_DB_SELECT_FAIL',   12);
+define( 'ERR_RECENT_LOOKUPS_NOT_EMPTY', 13);
+define( 'ERR_COOKIE_UNKNOWN',   14);  # client sent a cookie that we didnt generate
+define( 'ERR_COOKIE_DISABLED',  15);  # client sent a cookie that we disabled for some reason
 
 require( "dbsettings.inc" );
 
@@ -152,12 +153,12 @@ function serve_get_random_word()
     exit;
 }
 
-function get_word_def($word)
+function get_word_row($word)
 {
     global $dict_db;
-    $query = "SELECT def FROM words WHERE word='$word';";
-    $def = $dict_db->get_var($query); 
-    return $def;
+    $query = "SELECT def,pron FROM words WHERE word='$word';";
+    $word_row = $dict_db->get_row($query); 
+    return $word_row;
 }
 
 function log_get_word_request($cookie,$word)
@@ -169,6 +170,7 @@ function log_get_word_request($cookie,$word)
 
 function serve_get_word($cookie,$word)
 {
+/*
     if ( $word=='wl' )
     {
         write_WORDLIST( "word one\nand another\nand even more\nword three\ntest\nsample\n" );
@@ -180,14 +182,14 @@ function serve_get_word($cookie,$word)
         write_MSG( "This is a test message. Do you hear me now?" );
         exit;
     }
-
+*/
     log_get_word_request($cookie, $word);
 
-    $def = get_word_def($word);
+    $word_row = get_word_row($word);
 
-    if ( $def != "" )
+    if ( $word_row )
     {
-        write_DEF($word,$word,$def);
+        write_DEF($word,$word_row->pron,$word_row->def);
         exit;
     }
 
@@ -197,10 +199,11 @@ function serve_get_word($cookie,$word)
     if ( "s" == substr($word,strlen($word)-1) )
     {
         $word = substr($word,0,strlen($word)-1);
-        $def = get_word_def($word);
-        if ( $def != "" )
+        $word_row = get_word_row($word);
+
+        if ( $word_row )
         {
-            write_DEF($word, NULL,$def);
+            write_DEF($word, $word_row->pron,$word_row->def);
             exit;
         }
     }
@@ -209,10 +212,12 @@ function serve_get_word($cookie,$word)
     if ( "ed" == substr($word,strlen($word)-2) )
     {
         $word = substr($word,0,strlen($word)-2);
-        $def = get_word_def($word);
-        if ( $def != "" )
+
+        $word_row = get_word_row($word);
+
+        if ( $word_row )
         {
-            write_DEF($word,$word,$def);
+            write_DEF($word, $word_row->pron,$word_row->def);
             exit;
         }
     }
@@ -221,10 +226,12 @@ function serve_get_word($cookie,$word)
     if ( "ing" == substr($word,strlen($word)-3) )
     {
         $word = substr($word,0,strlen($word)-3);
-        $def = get_word_def($word);
-        if ( $def != "" )
+
+        $word_row = get_word_row($word);
+
+        if ( $word_row )
         {
-            write_DEF($word,$word,$def);
+            write_DEF($word, $word_row->pron,$word_row->def);
             exit;
         }
     }
@@ -243,7 +250,7 @@ function serve_recent_lookups($cookie)
     global $dict_db;
 
     $words = "";
-    $query = "SELECT word FROM request_log WHERE cookie='$cookie' ORDER BY query_time;";
+    $query = "SELECT DISTINCT word FROM request_log WHERE cookie='$cookie' ORDER BY query_time;";
     $rows = $dict_db->get_results($query);
     $words_count = 0;
     foreach ( $rows as $row )
@@ -258,11 +265,57 @@ function serve_recent_lookups($cookie)
     exit;
 }
 
+# each di tag consists of tag name and tag value
+# known tag names are:
+#  HS - hex-bin encoded hotsync name
+#  SN - hex-bin encoded device serial number (if exists)
+#  PN - hex-bin encoded phone number (if exists)
+#  OC - hex-bin encoded OEM company ID
+#  OD - hex-bin encoded OEM device ID
+
+function is_valid_di_tag($tag)
+{
+
+    if ( strlen($tag)<2 )
+        return false;
+
+    $tag_name = substr($tag,0,2);
+
+    # TODO: also check tag values for corectness ?
+    if ( $tag_name == "HS" )
+        return true;
+
+    if ( $tag_name == "SN" )
+        return true;
+
+    if ( $tag_name == "HS" )
+        return true;
+
+    if ( $tag_name == "PN" )
+        return true;
+
+    if ( $tag_name == "OC" )
+        return true;
+
+    if ( $tag_name == "OD" )
+        return true;
+
+    return false;
+}
+
 # check if $device_id is in proper format
 function validate_di($device_id)
 {
-    # TODO
+    $tags = explode(":", $device_id);
 
+    foreach( $tags as $tag )
+    {
+        if ( !is_valid_di_tag($tag) )
+        {
+            report_error(ERR_INVALID_DI);
+            exit;
+        }
+    }
 }
 
 # check if $cookie is a valid cookie (was assigned by us and is not disabled)
@@ -288,21 +341,20 @@ function validate_cookie($cookie)
 }
 
 $protocol_version = $HTTP_GET_VARS['pv'];
-if ( is_null($protocol_version) )
+if ( empty($protocol_version) )
     report_error(ERR_NO_PV);
 validate_protocol_version($protocol_version);
 
 $client_version = $HTTP_GET_VARS['cv'];
-if ( is_null($client_version) )
+if ( empty($client_version) )
     report_error(ERR_NO_CV);
 validate_client_version($client_version);
 
 # the only request that doesnt require cookie
-$get_cookie = $HTTP_GET_VARS['get_cookie'];
-if ( !is_null($get_cookie) )
+if ( isset( $HTTP_GET_VARS['get_cookie'] ) )
 {
     $device_id = $HTTP_GET_VARS['di'];
-    if ( is_null($device_id) )
+    if ( empty($device_id) )
         report_error(ERR_NO_DI);
     validate_di($device_id);
     serve_get_cookie($device_id);
@@ -310,7 +362,7 @@ if ( !is_null($get_cookie) )
 
 # all other requests require cookie to be present
 $cookie = $HTTP_GET_VARS['c'];
-if ( is_null($cookie) )
+if ( empty($cookie) )
     report_error(ERR_NO_COOKIE);
 validate_cookie($cookie);
 

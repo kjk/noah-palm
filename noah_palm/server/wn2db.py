@@ -28,7 +28,8 @@ unparsed = []
 # wordnet_data_dir = "/home/kjk/src/wn10-10-00/"
 # wordnet_data_dir = "c:\\kjk\src\wn10-10-00\\"
 #wordnet_data_dir = "C:\\kjk\\src\\mine\\dict_data\\wordnet16\\"
-wordnet_data_dir = "C:\\kjk\\src\\mine\\dicts_data\\wordnet16\\"
+#wordnet_data_dir = "C:\\kjk\\src\\mine\\dicts_data\\wordnet16\\"
+wordnet_data_dir = "C:\\kjk\\src\\mine\\dicts_data\\WordNet-20\\dict\\"
 
 # we'll use this file to create a subset of synsets for Noah Lite
 #engpolFileName = "c:\\kjk\\src\\mine\\dict_data\\eng_pol.txt"
@@ -628,6 +629,20 @@ def getSqlPrelude():
     fo.close()
     return txt
 
+pron_data_file = "C:\\kjk\\src\\mine\\dicts_data\\cmu_dict\\c06d"
+
+def load_pron_data():
+    # TODO
+    pass
+
+# return pronunciation for a given word/sentence
+# empty string means no pronunciation
+def get_pron_for_word(word):
+    #pron = "(pron: %s)" % word
+    # TODO
+    pron = ""
+    return pron
+
 def doSql():
     global proSynsets
 
@@ -658,13 +673,17 @@ def doSql():
     # wordsToPrint = 10
     for w in all_words.iterkeys():
         full_def = all_words[w]
-        sqlTxt = "INSERT INTO words VALUES (%d,'%s','%s');\n" % (word_no, sql_qq(w), sql_qq(full_def) )
+        pron = get_pron_for_word(w)
+        sqlTxt = "INSERT INTO words VALUES (%d,'%s',SOUNDEX('%s'), '%s','%s');\n" % (word_no, sql_qq(w), sql_qq(w), sql_qq(pron), sql_qq(full_def) )
         print sqlTxt
         word_no +=1
         #if word_no > wordsToPrint:
         #    break
 
 def doWindows():
+    epWords = readEPWords(engpolFileName)
+    #print "ep words count: %d" % epWords.getWordsCount()
+
     for fileName in dataFiles:
         #print "groking file: %s" % fileName
         grok_one_data_file(fileName)
@@ -700,9 +719,6 @@ if __name__ == "__main__":
     if (sys.argv[1] != '-win') and (sys.argv[1] != '-sql'):
         usage()
         sys.exit(0)
-
-    epWords = readEPWords(engpolFileName)
-    #print "ep words count: %d" % epWords.getWordsCount()
 
     if sys.argv[1] == '-win':
         doWindows()

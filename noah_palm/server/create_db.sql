@@ -6,9 +6,11 @@ USE inoahdb;
 
 CREATE TABLE words
 (
-  word_no  INT,
-  word     VARCHAR(255) BINARY NOT NULL,
-  def      TEXT NOT NULL,
+  word_no    INT,
+  word       VARCHAR(255) BINARY NOT NULL,
+  word_snd   VARCHAR(255) BINARY, -- soundex version of a word
+  pron       VARCHAR(255) BINARY NOT NULL,
+  def        TEXT NOT NULL,
 
   PRIMARY KEY(word)
 );
