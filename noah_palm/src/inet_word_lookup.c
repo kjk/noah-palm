@@ -142,7 +142,7 @@ static Err WordLookupPrepareRequest(const char* cookie, const char* word, Extens
     Assert(word);
     UInt16  wordLength=StrLen(word);
     char *  urlEncodedWord;
-    error=StrUrlEncode(word, word+wordLength, &urlEncodedWord, &wordLength);
+    error=StrUrlEncode(word, word+wordLength+1, &urlEncodedWord, &wordLength);
     if (error)
         goto OnError;
     
@@ -207,6 +207,7 @@ void StartWordLookup(AppContext* appContext, const Char* word)
             if (context)
             {
                 ebufInitWithStr(context, const_cast<char*>(word));
+                ebufAddChar(context, chrNull);
                 StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
                     WordLookupResponseProcessor, WordLookupContextDestructor);
             }
@@ -225,7 +226,7 @@ static Err PrepareGenericRequest(const char* cookie, const char* param, Extensib
     Assert(param);
     char* urlEncParam=NULL;
     UInt16 paramLength=StrLen(param);
-    Err error=StrUrlEncode(param, param+paramLength, &urlEncParam, &paramLength);
+    Err error=StrUrlEncode(param, param+paramLength+1, &urlEncParam, &paramLength);
     if (!error)
     {    
         char* url=TxtParamString(genericURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncParam);
@@ -258,6 +259,7 @@ void StartRandomWordLookup(AppContext* appContext)
             if (context)
             {
                 ebufInitWithStr(context, "random word");
+                ebufAddChar(context, chrNull);
                 StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
                     WordLookupResponseProcessor, WordLookupContextDestructor);
             }
@@ -292,7 +294,8 @@ static Err RecentLookupsResponseProcessor(AppContext* appContext, void* context,
 
 void StartRecentLookupsRequest(AppContext* appContext)
 {
-    if (!HasCookie(appContext->prefs))        FrmAlert(alertNoLookupsYet);
+    if (!HasCookie(appContext->prefs))
+        FrmAlert(alertNoLookupsYet);
     else 
     {
         ExtensibleBuffer urlBuffer;

@@ -138,6 +138,7 @@ void StartCookieRequestWithWordLookup(AppContext* appContext, const char* word)
             if (wordBuffer)
             {
                 ebufInitWithStr(wordBuffer, const_cast<char*>(word));
+                ebufAddChar(wordBuffer, chrNull);
                 StartConnection(appContext, wordBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
                     CookieRequestResponseProcessorWithLookup,  CookieRequestContextDestructor);
             }
@@ -168,6 +169,7 @@ void StartCookieRequestWithRegistration(AppContext* appContext, const char* seri
         if (snBuffer)
         {
             ebufInitWithStr(snBuffer, const_cast<char*>(serialNumber));
+            ebufAddChar(snBuffer, chrNull);
             StartConnection(appContext, snBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
                 CookieRequestResponseProcessorWithRegistration, CookieRequestContextDestructor);
         }
