@@ -684,9 +684,16 @@ Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
     // penDown with the same/close coordinates. We just ignore penMove events
     // if they fall within very close range of penDown that started this
     // processing. without this double-click on word is totally broken
-    if (ABS(appContext->copyBlock.penDownX - screenX) <= PEN_MOVE_IGNORE_THRESH_X)
-        return true;
-    if (ABS(appContext->copyBlock.penDownY - screenY) <= PEN_MOVE_IGNORE_THRESH_Y)
+    
+    //old version - bug when just moving horizontal or vertical
+    //if (ABS(appContext->copyBlock.penDownX - screenX) <= PEN_MOVE_IGNORE_THRESH_X)
+    //    return true;
+    //if (ABS(appContext->copyBlock.penDownY - screenY) <= PEN_MOVE_IGNORE_THRESH_Y)
+    //    return true;
+    
+    //new version - works good
+    if (ABS(appContext->copyBlock.penDownX - screenX) <= PEN_MOVE_IGNORE_THRESH_X
+        && ABS(appContext->copyBlock.penDownY - screenY) <= PEN_MOVE_IGNORE_THRESH_Y)
         return true;
 
     if(screenY > appContext->copyBlock.nextDy[appContext->lastDispLine - appContext->firstDispLine + 1]
