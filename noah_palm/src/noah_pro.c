@@ -854,12 +854,13 @@ ChooseDatabase:
                 DoWord( (char *)gd.prefs.lastWord );
             }
 
+            // TODO: replace with HistoryListInit(frm) ? 
             if (gd.historyCount > 0)
             {
-                CtlShowControlEx(frm, popupHistory);
                 list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
                 LstSetListChoices(list, NULL, gd.historyCount);
                 LstSetDrawFunction(list, HistoryListDrawFunc);
+                CtlShowControlEx(frm, popupHistory);
             }
             else
             {

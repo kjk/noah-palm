@@ -20,17 +20,20 @@
 # synset is a list of words, part of speech, definition
 # and a list of examples
 
-import string, re
+import sys,string, re
 from struct import pack
 
 unparsed = []
 
 # wordnet_data_dir = "/home/kjk/src/wn10-10-00/"
 # wordnet_data_dir = "c:\\kjk\src\wn10-10-00\\"
-wordnet_data_dir = "C:\\kjk\\src\\mine\\dict_data\\wordnet16\\"
+#wordnet_data_dir = "C:\\kjk\\src\\mine\\dict_data\\wordnet16\\"
+wordnet_data_dir = "C:\\kjk\\src\\mine\\noah_dicts\\wordnet16\\"
 
 # we'll use this file to create a subset of synsets for Noah Lite
-engpolFileName = "c:\\kjk\\src\\mine\\dict_data\\eng_pol.txt"
+#engpolFileName = "c:\\kjk\\src\\mine\\dict_data\\eng_pol.txt"
+
+engpolFileName = "c:\\kjk\\src\\mine\\noah_dicts\\eng_pol.txt"
 
 #dataFiles = [ "data.adv" ]
 dataFiles = [ "data.adv", "data.adj", "data.noun", "data.verb" ]
@@ -93,9 +96,6 @@ def readEPWords(fileName):
         line = f.readline()
     f.close()
     return epWords
-
-epWords = readEPWords(engpolFileName)
-print "ep words count: %d" % epWords.getWordsCount()
 
 # used to generate sequence of synset IDs
 next_synset_id = 0
@@ -236,15 +236,9 @@ class Synset:
         markedTxt = self.getTxtMarked()
         sqlTxt = ""
         for w in self.words:
-            sqlTxt = sqlTxt + "INSERT INTO definitions (word, definition) VALUES ("
-            sqlTxt = sqlTxt + "'" + sql_qq(w) + "', '" + sql_qq(markedTxt) + "');\n";
+            sqlTxt = sqlTxt + "INSERT INTO words (word,def,which_db) VALUES ("
+            sqlTxt = sqlTxt + "'" + sql_qq(w) + "', '" + sql_qq(markedTxt) + "', 'f' );\n";
         return sqlTxt
-
-    def dumpSql(self):
-        print self.getSqlInMarked()
-        
-    def dumpXML(self):
-        print self.getXML()
 
 # parse a line (string) from the wordnet file and convert the data
 # to synset struct
@@ -319,7 +313,10 @@ def line_to_synset(line, nested_level=0):
                             return line_to_synset( line + "\"", nested_level+1)
                         unparsed.append(line)
                         return None
-                examples.append(gloss_part[ex_start:ex_end])
+                if ex_end > ex_start:
+                    # TODO: this is a hack to fix parsing of "home"
+                    # probably should just start looking from ex_start+1
+                    examples.append(gloss_part[ex_start:ex_end])
                 break
             else:
                 examples.append(gloss_part[ex_start:ex_end])
@@ -625,23 +622,98 @@ def sortFun(x, y):
     y = y.replace("_", " " )
     return cmp(x, y)
 
-if __name__ == "__main__":
+sql_prelude = """
+DROP DATABASE IF EXISTS noahdb;
+CREATE DATABASE noahdb;
+USE noahdb;
+
+CREATE TABLE words (
+  word varchar(255) BINARY NOT NULL,
+  def  text NOT NULL,
+  which_db char NOT NULL, -- 'f' - only in full database (Noah Pro), 'm' - in medium and full database (Noah Lite)
+  PRIMARY KEY(word)
+);
+"""
+
+def doSql():
+    global proSynsets
+
     for fileName in dataFiles:
-        print "groking file: %s" % fileName
+        #print "groking file: %s" % fileName
         grok_one_data_file(fileName)
 
     if len(unparsed) > 0:
         print "Unparsed:", len(unparsed)
         for i in unparsed:
             print i
-    #dumpSql(sqlFileName)
-    #dumpSynsets( "wn_all.txt" )
-    
+    print sql_prelude
+    # first gather full definitions for all words
+    all_words = {}
+    limit = 999999
+    for synset in proSynsets:
+        limit -= 1
+        if limit == 0:
+            break
+        word_def = synset.getTxtMarked()
+        for w in synset.words:
+            if all_words.has_key(w):
+                all_words[w] = all_words[w] + word_def
+            else:
+                all_words[w] = word_def
 
+    for w in all_words.iterkeys():
+        full_def = all_words[w]
+        sqlTxt = "INSERT INTO words (word,def,which_db) VALUES ("
+        sqlTxt = sqlTxt + "'" + sql_qq(w) + "', '" + sql_qq(full_def) + "', 'f' );\n";
+        print sqlTxt
+
+def doWindows():
+    for fileName in dataFiles:
+        #print "groking file: %s" % fileName
+        grok_one_data_file(fileName)
+    if len(unparsed) > 0:
+        print "Unparsed:", len(unparsed)
+        for i in unparsed:
+            print i
     makeLiteSynsets()
     makeLiteWords()
     dumpStats()
     #dumpWindowsFormat( winProFileName )
     dumpWindowsFormat( winLiteFileName, 1 )
-    
-        
+
+def usage():
+    print "Usage: wn2db.py [-win] [-sql]";
+
+line_to_test = """10410205 26 n 01 home 0 001 @ 10040804 n 0000 | an environment offering affection and security; "home is where the heart is"; "he grew up in a good Christian home";  "there's no place like home"  """
+
+def test_line():
+    synset = line_to_synset(line_to_test)
+    txt = synset.getTxtMarked()
+    print "." + txt + "."
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        usage()
+        sys.exit(0)
+
+    if sys.argv[1] == "-test":
+        test_line()
+        sys.exit(0)
+
+    if (sys.argv[1] != '-win') and (sys.argv[1] != '-sql'):
+        usage()
+        sys.exit(0)
+
+    epWords = readEPWords(engpolFileName)
+    #print "ep words count: %d" % epWords.getWordsCount()
+
+    if sys.argv[1] == '-win':
+        doWindows()
+        sys.exit(0)
+
+    if sys.argv[1] == '-sql':
+        doSql()
+        sys.exit(0)
+
+    usage()
+
