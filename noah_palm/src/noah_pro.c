@@ -298,8 +298,7 @@ void DisplayAboutNoahPro(void)
 
 void SetWordAsLastWord( char *txt, int wordLen )
 {
-#if 0
-    MemSet((void *) &(gd.foundDbs[gd.currentDb].lastWord[0]), WORD_MAX_LEN, 0);
+    MemSet((void *) &(gd.lastWord[0]), WORD_MAX_LEN, 0);
     if ( -1 == wordLen )
     {
         wordLen = StrLen( txt );
@@ -308,8 +307,7 @@ void SetWordAsLastWord( char *txt, int wordLen )
     {
         wordLen = WORD_MAX_LEN - 1;
     }
-    MemMove((void *) &(gd.foundDbs[gd.currentDb].lastWord[0]), txt, wordLen);
-#endif
+    MemMove((void *) &(gd.lastWord[0]), txt, wordLen);
 }
 
 /* return 0 if didn't find anything in clipboard, 1 if 
@@ -550,10 +548,9 @@ ChooseDatabase:
             newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
             EvtAddEventToQueue(&newEvent);
         }
-
+#endif
         WinDrawLine(0, 145, 160, 145);
         WinDrawLine(0, 144, 160, 144);
-#endif
         if (!TryClipboard())
         {
             DisplayAboutNoahPro();
@@ -632,6 +629,8 @@ ChooseDatabase:
             LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
         }
 #endif
+        WinDrawLine(0, 145, 160, 145);
+        WinDrawLine(0, 144, 160, 144);
         DrawDescription(gd.currentWord);
         gd.penUpsToConsume = 1;
         handled = true;
@@ -690,6 +689,9 @@ ChooseDatabase:
             }
         }
 
+        FrmDrawForm(frm);
+        WinDrawLine(0, 145, 160, 145);
+        WinDrawLine(0, 144, 160, 144);
 
         if (!TryClipboard())
         {
@@ -712,11 +714,6 @@ ChooseDatabase:
             EvtAddEventToQueue(&newEvent);
             return true;
         }
-        FrmDrawForm(frm);
-        WinDrawLine(0, 145, 160, 145);
-        WinDrawLine(0, 144, 160, 144);
-        DisplayAboutNP();
-
         // TODO: needs to trigger showing find word dialog
 #if 0
         if ((startupActionLast == gd.prefs.startupAction)
@@ -759,10 +756,8 @@ ChooseDatabase:
                  || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
                  || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
         {
-#if 0
-            MemSet((void *) &(gd.foundDbs[gd.currentDb].lastWord[0]), WORD_MAX_LEN, 0);
-            gd.foundDbs[gd.currentDb].lastWord[0] = event->data.keyDown.chr;
-#endif
+            gd.lastWord[0] = event->data.keyDown.chr;
+            gd.lastWord[1] = 0;
             FrmPopupForm(formDictFind);
         }
         handled = true;
@@ -994,9 +989,7 @@ Event handler proc for the find word dialog
 Boolean FindFormHandleEventNoahPro(EventType * event)
 {
     Boolean     handled = false;
-#if 0
     char        *word;
-#endif
     FormPtr     frm;
     FieldPtr    fld;
     ListPtr     list;
@@ -1017,12 +1010,11 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         gd.prevTopItem = 0;
         gd.selectedWord = 0;
         Assert(gd.selectedWord < gd.wordsCount);
-/*         LstSetSelectionEx(list, gd.selectedWord); */
-#if 0
-        word = &(gd.foundDbs[gd.currentDb].lastWord[0]);
+        word = &(gd.lastWord[0]);
         /* force updating the field */
         if (word[0])
         {
+            LogV1("FindForm(): word[0]=%d", (int)word[0] );
             FldInsert(fld, word, StrLen(word));
             // DoFieldChanged();
             MemSet(&newEvent, sizeof(EventType), 0);
@@ -1031,13 +1023,12 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         }
         else
         {
+            LogV1("FindForm(): selected word = %ld", gd.selectedWord );
             LstSetSelectionEx(list, gd.selectedWord);
         }
         FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
-#endif
-
         // CtlHideControlEx( frm, listMatching );
-        gd.listDisabledP = true;
+        //gd.listDisabledP = true;
         FrmDrawForm(frm);
         handled = true;
         break;
@@ -1047,8 +1038,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
            come back here, we'll come back to the same place */
         RememberLastWord(FrmGetActiveForm());
         /* set the selected word as current word */
-        gd.currentWord =
-            gd.listItemOffset + (UInt32) event->data.lstSelect.selection;
+        gd.currentWord = gd.listItemOffset + (UInt32) event->data.lstSelect.selection;
         /* send a msg to yourself telling that a new word
            have been selected so we need to draw the
            description */
@@ -1121,8 +1111,11 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         {
         case buttonCancel:
             RememberLastWord(FrmGetActiveForm());
-            FrmReturnToForm(0);
+            MemSet(&newEvent, sizeof(EventType), 0);
+            newEvent.eType = (eventsEnum) evtNewWordSelected;
+            EvtAddEventToQueue(&newEvent);
             handled = true;
+            FrmReturnToForm(0);
             break;
         default:
             Assert(0);

@@ -564,6 +564,8 @@ ChooseDatabase:
             LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
         }
         DrawDescription(gd.currentWord);
+        WinDrawLine(0, 145, 160, 145);
+        WinDrawLine(0, 144, 160, 144);
         gd.penUpsToConsume = 1;
         handled = true;
         break;
@@ -621,7 +623,8 @@ ChooseDatabase:
             }
         }
 
-
+        WinDrawLine(0, 145, 160, 145);
+        WinDrawLine(0, 144, 160, 144);
         if (!TryClipboard())
         {
             DisplayAboutThes();
@@ -650,10 +653,8 @@ ChooseDatabase:
         else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
                  || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z')))
         {
-#if 0
-            MemSet((void *) &(gd.dbPrefs.lastWord[0]), wordHistory, 0);
-#endif
             gd.dbPrefs.lastWord[0] = event->data.keyDown.chr;
+            gd.dbPrefs.lastWord[1] = 0;
             FrmPopupForm(formDictFind);
         }
         handled = true;
@@ -856,7 +857,6 @@ Boolean FindFormHandleEventThes(EventType * event)
         gd.prevTopItem = 0;
         gd.selectedWord = 0;
         Assert(gd.selectedWord < gd.wordsCount);
-/*         LstSetSelectionEx(list, gd.selectedWord); */
         word = &(gd.dbPrefs.lastWord[0]);
         /* force updating the field */
         if (word[0])
@@ -966,6 +966,9 @@ Boolean FindFormHandleEventThes(EventType * event)
         {
         case buttonCancel:
             RememberLastWord(FrmGetActiveForm());
+            MemSet(&newEvent, sizeof(EventType), 0);
+            newEvent.eType = (eventsEnum) evtNewWordSelected;
+            EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             handled = true;
             break;

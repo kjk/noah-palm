@@ -1,5 +1,8 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
-* bring Noah Pro to using only vfs/mem
+* add a color icon for Noah Pro
+* change icon for Thesaurus/add a color icon
+* restore word history in Noah Pro
+* restore/add word history to Thesaurus
 * preferences in Thes
  - remember last used db
 * preferences in Noah Pro
@@ -17,4 +20,8 @@
 * [DONE 2002/11/24] make vfs_ex compile
 * [DONE 2002/11/24] change the way we iterate over dbs
 * [DONE 2002/11/24] add vfs support for Thes
+* [DONE 2002/11/25] bring Noah Pro to using only vfs/mem
+* [DONE 2002/11/25] bug: the line separating definition window and navigation is missing
+* [DONE 2002/11/25] bug: in Noah Pro when you start and press the looking glass icon, the list of 
+words is empty. Possible solution: write "a" in gd.lastWord on startup?
 

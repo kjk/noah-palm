@@ -86,6 +86,7 @@ typedef struct
     long                prevSelectedWord;
     long                selectedWord;
     Boolean             prefsPresentP;
+    char                lastWord[WORD_MAX_LEN];
     NoahPrefs           prefs;
 } GlobalData;
 
