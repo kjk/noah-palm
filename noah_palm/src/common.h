@@ -359,7 +359,8 @@ typedef struct _AppContext
     UInt32 recordSpeedTicksCount;
 #endif
     // if this resident mode lookup, this points to a word to lookup
-    char * residentWordLookup;
+    char *  residentWordLookup;
+    Boolean fInResidentMode;
 } AppContext;
 
 #define AppTestFlag(appContext, flag) (((appContext)->flags & (1<<(flag)))!=0)

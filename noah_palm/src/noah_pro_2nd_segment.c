@@ -298,6 +298,7 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
     FrmSetObjectPosByID(frm, ctlArrowRight, -1, appContext->screenHeight-12);
     FrmSetObjectBoundsByID(frm, scrollDef, -1, -1, -1, appContext->screenHeight-18);
     FrmSetObjectPosByID(frm, bmpFind, -1, appContext->screenHeight-13);
+    FrmSetObjectPosByID(frm, bmpClose, -1, appContext->screenHeight-13);
     FrmSetObjectPosByID(frm, buttonFind, -1, appContext->screenHeight-14);
     FrmSetObjectPosByID(frm, popupHistory, -1, appContext->screenHeight-13);
     FrmSetObjectPosByID(frm, fieldWordMain, -1, appContext->screenHeight-13);
@@ -313,7 +314,13 @@ static Boolean MainFormOpen(AppContext* appContext, FormType* frm, EventType* ev
     char *          lastDbUsedName;
     int             i;
 
+    if ( appContext->fInResidentMode )
+        FrmHideObject(frm,FrmGetObjectIndex(frm, bmpFind));
+    else
+        FrmHideObject(frm,FrmGetObjectIndex(frm, bmpClose));
+
     FrmDrawForm(frm);
+
     FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
 
     HistoryListInit(appContext, frm);

@@ -284,6 +284,7 @@ Err AppCommonInit(AppContext* appContext)
     appContext->ptrOldDisplayPrefs = NULL;
     appContext->bookmarksDb = NULL;
     appContext->currBookmarkDbType = bkmInvalid;
+    appContext->fInResidentMode = false;
 
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);

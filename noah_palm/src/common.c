@@ -2743,6 +2743,8 @@ void ParseResidentWord(AppContext *appContext, char *cmdPBP)
 
     // the real word is after the prefix
     appContext->residentWordLookup = cmdPBP+MAGIC_RESIDENT_LOOKUP_PREFIX_LEN;
+    appContext->fInResidentMode = true;
+
     return;
 NoResidentLaunch:
     // we have not been launched by ourselves. don't know what it might mean
