@@ -204,10 +204,16 @@ typedef struct
 extern LogInfo g_Log;
 extern char    g_logBuf[512];
 
-void LogInit( LogInfo *logInfo, char *fileName);
+void LogInit(LogInfo *logInfo, char *fileName);
 void Log(LogInfo *logInfo, char *txt);
 
 #define LogG(f) Log(&g_Log,f)
+
+#define LogV1(f,d) StrPrintF( g_logBuf, f, d );\
+        LogG( g_logBuf );
+
+#define LogV2(f,d1,d2) StrPrintF( g_logBuf, f, d1, d2 );\
+        Log( &g_Log, g_logBuf );
 #else
 #define LogG(f)
 #define LogInit(f)

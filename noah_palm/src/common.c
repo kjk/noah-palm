@@ -709,16 +709,12 @@ Boolean dictNew(void)
 {
     AbstractFile *file;
 
-    LogG( "dictNew() 1" );
     file = GetCurrentFile();
-    LogG( "dictNew() 2" );
 
     switch (CurrFileDictType())
     {
         case ROGET_TYPE:
-            LogG( "dictNew(): roget 1" );
             file->dictData.roget = RogetNew();
-            LogG( "dictNew(): roget 2" );
             if (NULL == file->dictData.roget)
             {
                 LogG( "dictNew(): RogetNew() failed" );
@@ -735,7 +731,7 @@ Boolean dictNew(void)
             Assert(0);
             break;
     }
-    LogG( "dictNew() finished ok" );
+    LogG( "dictNew() ok" );
     return true;
 }
 

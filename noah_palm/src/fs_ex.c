@@ -29,7 +29,7 @@ struct DbCacheData *dcNew(AbstractFile *file, UInt32 cacheCreator)
     {
         dcDeinit(data);
         new_free(data);
-        data = NULL;
+        return NULL;
     }
     return data;
 }
@@ -167,9 +167,11 @@ LocalID dcCreateCacheDb(struct DbCacheData *cache)
     }
 
     cache->lockRegionCacheRec = recPos;
+    LogG( "dcCreateCacheDb(): ok");
     return errNone;
 
-  Error:
+Error:
+    LogG( "dcCreateCacheDb(): failed");
     if (0 != cache->cacheDbRef)
     {
         DmCloseDatabase(cache->cacheDbRef);
@@ -272,8 +274,8 @@ Err dcCacheDbRef(struct DbCacheData *cache)
         }
     }
     return errNone;
-  Error:
-    DrawDebug("cacheDbRef error");
+Error:
+    LogG( "dcCacheDbRef(): failed");
     if (errNone == err)
     {
         err = DmGetLastErr();
@@ -340,9 +342,7 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
     int             recToDelete;
 
     recSize = cache->recsInfo[recNo].size;
-
     offsetInPdbFile = cache->recsInfo[recNo].offset;
-    /*DrawCacheRec(recNo);*/
 
     while(1)
     {
@@ -350,6 +350,7 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
         recHandle = DmNewRecord(cache->cacheDbRef, &recPos, recSize);
         if (0 == recHandle)
         {
+            LogG( "dcCacheRecord(): failed to create new record" );
             /* failed to create new record-assume it's because there is no 
             free memory left. try to free some memory by deleting records */
             recToDelete = dcFindRecordToDelete(cache);
@@ -376,6 +377,7 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
     recHandle = DmGetRecord(cache->cacheDbRef, recPos);
     if (0 == recHandle)
     {
+        LogG( "dcCacheRecord(): DmGetRecord() failed" );
         goto Error;
     }
 
@@ -396,7 +398,8 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
     }
     return errNone;
 
-  Error:
+Error:
+    LogG( "dcCacheRecord() failed" );
     if (errNone == err)
     {
         err = DmGetLastErr();

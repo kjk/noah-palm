@@ -344,14 +344,22 @@ Err vfsCopyExternalToMem(AbstractFile *file, UInt32 offset, UInt32 size, void *d
     leftToCopy = size;
     currentOffset = 0;
 
+    LogV1( "vfsCopyExternalToMem() offset: %ld", offset );
     err = VFSFileOpen(file->volRef, file->fileName, vfsModeRead, &fileRef);
     if (errNone != err)
     {
-        DrawDebug2("VFSFileOpen() failed:", file->fileName);
+        LogG( "vfsCopyExternalToMem(): FSFileOpen() failed" );
+        LogG( file->fileName );
         goto Error;
     }
 
     err = VFSFileSeek(fileRef, vfsOriginBeginning, offset);
+    if ( err != errNone )
+    {
+        LogG( "vfsCopyExternalToMem(): VFSFileSeek() failed" );
+        LogG( file->fileName );
+        goto Error;
+    }
     while (leftToCopy > 0)
     {
         if (leftToCopy >= COPY_AT_ONCE)
@@ -365,12 +373,26 @@ Err vfsCopyExternalToMem(AbstractFile *file, UInt32 offset, UInt32 size, void *d
         err = VFSFileRead(fileRef, copyThisTime, (void *) buf, &bytesRead);
         if ((err != errNone) || (copyThisTime != bytesRead))
         {
+#ifdef DEBUG
+            if ( err != errNone )
+            {
+                /* LogV2( "vfsCopyExternalToMem(%s): VFSFileRead() failed, err=%d", file->fileName, err ); */
+                LogV1( "vfsCopyExternalToMem(%s): VFSFileRead() failed", file->fileName );
+                LogV1( "err=%d", err );
+            }
+            else
+            {
+                LogV1( "vfsCopyExternalToMem(%s): VFSFileRead() failed because copyThisTime != bytesRead", file->fileName );
+            }
+#endif
             goto Error;
         }
 
         err = DmWrite(dstBuf, currentOffset, buf, copyThisTime);
         if (err)
         {
+            LogG( "vfsCopyExternalToMem(): DmWrite() failed" );
+            LogG( file->fileName );
             goto Error;
         }
         currentOffset += copyThisTime;
@@ -381,12 +403,15 @@ Err vfsCopyExternalToMem(AbstractFile *file, UInt32 offset, UInt32 size, void *d
     err = VFSFileClose(fileRef);
     if (errNone != err)
     {
-        DrawDebug("FfsClose() failed");
+        LogG( "vfsCopyExternalToMem(): VFSFileClose() failed" );
+        LogG( file->fileName );
         goto Error;
     }
 
     return errNone;
   Error:
+    LogG( "vfsCopyExternalToMem(): failed" );
+    LogG( file->fileName );
     if (0 != fileRef)
     {
         VFSFileClose(fileRef);
@@ -414,23 +439,27 @@ Boolean vfsInitCacheData(AbstractFile *file, struct DbCacheData *cacheData)
     UInt32          bytesRead;
     PdbRecordHeader pdbRecHeader;
 
-    MemSet( &hdr, 0, sizeof(hdr) );
-    if ( !ReadPdbHeader( file->volRef, file->fileName, &hdr ) )
-        return false;
-
-    cacheData->recsCount = hdr.recordsCount;
-    cacheData->recsInfo = (OneVfsRecordInfo*) new_malloc(cacheData->recsCount * sizeof(OneVfsRecordInfo));
-
-    if (NULL == cacheData->recsInfo)
-    {
-        DrawDebug2Num("no recsInfo", cacheData->recsCount);
-        goto Error;
-    }
-
     err = VFSFileOpen(file->volRef, file->fileName, vfsModeRead, &fileRef);
     if (errNone != err)
     {
         fileRef = 0;
+        goto Error;
+    }
+
+    err = VFSFileRead(fileRef, sizeof(PdbHeader), (void *) &hdr, &bytesRead);
+    if ((err != errNone) && (bytesRead != sizeof(PdbHeader)))
+    {
+        LogV1( "vfsInitCacheData(%s): VFSFileRead() for PdbHeader failed", file->fileName );
+        goto Error;
+    }
+
+    LogV1( "vfsInitCacheData(): hdr.recordsCount=%d", hdr.recordsCount );
+    cacheData->recsCount = hdr.recordsCount;
+    cacheData->recsInfo = (OneVfsRecordInfo*) new_malloc_zero(cacheData->recsCount * sizeof(OneVfsRecordInfo));
+
+    if (NULL == cacheData->recsInfo)
+    {
+        LogV1( "vfsInitCacheData(): cacheData->recsInfo null, cacheData->recsCount", cacheData->recsCount );
         goto Error;
     }
 
