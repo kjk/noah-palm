@@ -89,7 +89,7 @@ BEGIN
    BUTTON ""  buttonFind AT (146 146 14 14) NOFRAME
    BUTTON ""  buttonClose    AT (146 146 14  14) NOFRAME
    FORMBITMAP  AT (147 147)  BITMAP bmpClose
-END
+"END
 
 FORM formResidentLookup AT (0 0 160 160)
 USABLE

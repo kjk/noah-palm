@@ -87,7 +87,7 @@ BEGIN
 
    POPUPTRIGGER "Layout 1" popupListStyle AT (100 1 AUTO AUTO) LEFTANCHOR
    LIST "Layout 1" "Layout 2" "Layout 3" ID listListStyle AT (PREVLEFT PREVTOP + 2 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
-   POPUPLIST popupListStyle listListStyle
+   POPUPLIST popupListStyle
 
    POPUPTRIGGER "part of speech" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
    LIST "word" "p. of speech list" "part of speech" "definition list" "definition" "synonyms" "examples"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
