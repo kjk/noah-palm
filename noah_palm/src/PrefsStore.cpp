@@ -373,6 +373,7 @@ ExitAndMarkNotFound:
 // we're called again (and re-start from the beginning if we don't find data)
 Err PrefsStoreReader::ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem)
 {
+    Assert(uniqueId>=0);
     Assert(prefItem);
 
     Err err = ErrOpenPrefsDatabase();
@@ -404,6 +405,7 @@ Err PrefsStoreReader::ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem)
         if (recSizeLeft<2)
             return psErrDatabaseCorrupted;
         int id = deserInt(&currData,&recSizeLeft);
+        Assert(id>=0);
         Assert(recSizeLeft>=2);
         if (recSizeLeft<2)
             return psErrDatabaseCorrupted;
@@ -426,7 +428,7 @@ Err PrefsStoreReader::ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem)
                 Assert(recSizeLeft>=sizeof(long));
                 if (recSizeLeft<sizeof(long))
                     return psErrDatabaseCorrupted;
-                prefItem->value.longVal = deserInt(&currData, &recSizeLeft);
+                prefItem->value.longVal = deserLong(&currData, &recSizeLeft);
                 break;
             case pitUInt16:
                 Assert(recSizeLeft>=sizeof(UInt16));
@@ -563,6 +565,8 @@ static PrefItem * FindPrefItemById(PrefItem *items, int itemsCount, int uniqueId
 
 Err PrefsStoreWriter::ErrSetItem(PrefItem *item)
 {
+    Assert(item->uniqueId>=0);
+
     if ( NULL != FindPrefItemById((PrefItem*)_items, _itemsCount, item->uniqueId) )
     {
         Assert(0); // we assert because we never want this to happen
@@ -667,6 +671,7 @@ static void* SerializeItems(PrefItem *items, int itemsCount, long *pBlobSize)
         serData( (char*)PREFS_STORE_RECORD_ID, StrLen(PREFS_STORE_RECORD_ID), prefsBlob, &blobSize );
         for(int item=0; item<itemsCount; item++)
         {
+            Assert( items[item].uniqueId >= 0 );
             serInt( items[item].uniqueId, prefsBlob, &blobSize);
             serInt( (int)items[item].type, prefsBlob, &blobSize);
             switch( items[item].type )
