@@ -51,7 +51,7 @@ function is_valid_di_tag($tag)
         return false;
 
     $tag_name  = substr($tag,0,2);
-    $valid_tag_names = array('HS', 'SN', 'PN', 'OC', 'OD');
+    $valid_tag_names = array('HS', 'SN', 'PN', 'OC', 'OD', 'DN');
 
     if ( !in_array($tag_name, $valid_tag_names) )
         return false;

@@ -7,7 +7,7 @@ define( 'ERR_INVALID_PV',        4);
 define( 'ERR_NO_COOKIE',         5);
 define( 'ERR_UKNOWN_REQUEST',    6);
 define( 'ERR_NO_DI',             7);
-define( 'ERR_INVAlID_DI',        8); # di (device id) that client sent doesnt correspond to a known format
+define( 'ERR_INVALID_DI',        8); # di (device id) that client sent doesnt correspond to a known format
 define( 'ERR_RANDOM_NOT_EMPTY',  9);
 define( 'ERR_DB_CONNECT_FAIL',  10);
 define( 'ERR_DB_SELECTDB_FAIL', 11);
