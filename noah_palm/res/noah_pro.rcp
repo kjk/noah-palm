@@ -54,9 +54,7 @@ BEGIN
   PULLDOWN "Options"
   BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
-#ifndef DONT_DO_BETTER_FORMATTING
     MENUITEM "Display Prefs"           ID menuItemDispPrefs     "I" 
-#endif
     MENUITEM SEPARATOR
     MENUITEM "Help"                    ID menuItemHelp          "H"
     MENUITEM "About"                   ID menuItemAbout         "A"
@@ -211,7 +209,7 @@ BEGIN
    LIST    "name" "time" ID listSortBy    AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2 
    POPUPLIST popupSortBy  listSortBy
 
-   LIST   ""        listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   LIST   ""        listBookmarks   AT (  0   0  160 145) USABLE VISIBLEITEMS 13
    BUTTON "Cancel"  buttonCancel    AT (121 146 AUTO AUTO) FONT 0
 END
 

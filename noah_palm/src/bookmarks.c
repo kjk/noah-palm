@@ -17,6 +17,8 @@
    they were bookmarked */
 #define BOOKMARKS_DB_BY_TIME "Noah_bookmarks_t"
 
+#define BOOKMARKS_DB_TYPE 'bkmk'
+
 /* Open bookmarks database (whose type is BOOKMARKS_DB_TYPE and 
    creator is APP_CREATOR) with a given dbName */
 static DmOpenRef OpenBookmarksDBByName(char *dbName)

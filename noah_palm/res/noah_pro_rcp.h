@@ -24,6 +24,7 @@
 #define   listhwButtonsAction 1405
 #define   listTapAction       1406
 #define   listSortBy          1407
+#define   listBookmarks       1408
 
 #define   alertMemError             1100
 #define   alertNoDB                 1109

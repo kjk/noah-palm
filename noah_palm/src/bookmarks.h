@@ -10,10 +10,6 @@
 
 #include <PalmOS.h>
 
-#define BOOKMARKS_DB_TYPE 'bkmk'
-
-#define BOOKMARKS_REC_SIZE WORDS_CACHE_SIZE + 1
-
 /* those are IDs of list items in listSortBy list in formBookmarks */
 #define BKM_LST_SEL_NAME 0
 #define BKM_LST_SEL_TIME 1
