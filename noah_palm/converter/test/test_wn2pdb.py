@@ -67,17 +67,22 @@ class Wn2PdbTest(unittest.TestCase):
         # to test compression we'll compress/decompress a large text file
         # i.e. wn2pdb.py script itself
         lines = getLinesFromFile()
+        print ""
+
+        comp = wn2pdb.CompInfoGenOrig(lines)
+        compressionThree = self._testCompressionWithCompressor(comp, lines)
+        print "compressed size for CompInfoGenOrig : %d" % compressionThree[1]
+
         comp = wn2pdb.CompInfoGen(lines)
         compressionOne = self._testCompressionWithCompressor(comp,lines)
-        print "\ncompressed size for CompInfoGen     : %d" % compressionOne[1]
+        print "compressed size for CompInfoGen     : %d" % compressionOne[1]
+
         comp = wn2pdb.CompInfoGenWeak(lines)
         compressionTwo = self._testCompressionWithCompressor(comp,lines)
         print "compressed size for CompInfoGenWeak : %d" % compressionTwo[1]
-        #comp = wn2pdb.CompInfoGenOrig(lines)
-        #compressionThree = self._testCompressionWithCompressor(comp, lines)
-        #print "compressed size for CompInfoGenOrig: %d" % compressionThree[1]
+
         assert compressionOne[0] == compressionTwo[0]
-        #assert comprssionTwo[0] == compressionThree[0]
+        assert comprssionTwo[0] == compressionThree[0]
 
 def getLinesFromFile():
     fileName = os.path.join("..", "wn2pdb.py")

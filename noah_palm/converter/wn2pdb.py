@@ -205,7 +205,9 @@ class WordCompressor:
         self.lastInCommon = prefixLen
         self.prevWord = word
         if prefixLen==0:
-            return chr(0) + word
+            #UNDONE: not sure which one is correct
+            #return chr(0) + word
+            return word
         else:
             #Undone: which one is faster?
             #return struct.pack("c%ds"%(len(w)-prefixLen),chr(prefixLen),w[prefixLen:])
@@ -224,12 +226,6 @@ class WordCompressor:
         Needed for generating word cache"""
         self.prevWord = ''
         self.lastInCommon = 0
-
-def testWordCompressor():
-    wc = WordCompressor()
-    for w in ["abasement", "abatis", "abdication"]:
-        wCompressed = wc.compress(w)
-        print wCompressed
 
 def compressedWordsGen(words):
     """Generate compressed words from a collection of words"""
@@ -417,12 +413,138 @@ def sortFreqList(l):
     #l.sort( _freqSortFunc )
     l.sort( _freqSortFuncByCompression )
 
+
+def freq_el_make(i,j,freq):
+    return (i,j,freq)
+
+def freq_el_freq(freq):
+    return freq[2]
+
+def freq_el_j(freq):
+    return freq[1]
+
+def freq_el_i(freq):
+    return freq[0]
+
+def _sortFreqFunc(f1,f2):
+    if freq_el_freq(f1) > freq_el_freq(f2):
+        return 1
+    elif freq_el_freq(f1) < freq_el_freq(f2):
+        return -1
+    else:
+        return 0
+
+def freq_el_conflicts_p(f1,f2):
+    if freq_el_i(f1) == freq_el_j(f2) or freq_el_j(f1) == freq_el_i(f2):
+        return True
+    else:
+        return False
+
+def freq_conflicts_p(freq_list,freq_el):
+    for f_el in freq_list:
+        if freq_el_conflicts_p(f_el,freq_el):
+            return True
+    return False
+
+class Freq:
+    def __init__(self,dx=256,dy=256):
+        self.dx = dx
+        self.dy = dy
+        self.freq = [[0 for y in range(self.dy)] for x in range(self.dx)]
+
+    def clearFreq(self):
+        for x in range(self.dx):
+            for y in range(self.dy):
+                self.freq[x][y] = 0
+
+    def addStr(self,s):
+        x = ord(s[0])
+        for c in s[1:]:
+            y = ord(c)
+            self.freq[x][y] += 1
+            x = y
+
+    def val(self,x,y):
+        assert (x>=0) and (x<self.dx)
+        assert (y>=0) and (y<self.dy)
+        return self.freq[x][y]
+
+    def buildFreqForStrings(self,strList):
+        self.clearFreq()
+        for s in strList:
+            self.addStr(s)
+
+    def getMaxFreq(self,maxElements):
+        # gather all frequencies in a list
+        l = []
+        for x in range(self.dx):
+            for y in range(self.dy):
+                freq = self.freq[x][y]
+                if freq != 0:
+                    l.append(freq_el_make(x,y,freq))
+        l.sort(_sortFreqFunc)
+        res = []
+        for f_el in l:
+            if not freq_conflicts_p(res,f_el):
+                res.append(f_el)
+                if len(res) >= maxElements:
+                    break
+        res.reverse()
+        return res
+
+    def getMostFrequent(self,n):
+        """find n most frequent strings from freqTable and return as a list
+        whose elements are [frequency, string]"""
+        result = []
+        currThresh = 1 # UNDONE: was -1, why?
+        for x in range(self.dx):
+            for y in range(self.dy):
+                freq = self.freq[x][y]
+                if freq >= currThresh:
+                    # need to insert or replace element from the list of most
+                    # frequently used elements
+                    if len(result) < n:
+                        # add to the list since we don't have n elements yet
+                        result.append( [freq, chr(x)+chr(y)] )
+                        if len(result) == n:
+                            # when we finally found all elements, we need to
+                            # adjust threshold from permitting anything to the
+                            # real threshold
+                            currThresh = _getSmallestFreq(result)
+                    else:
+                        if freq > currThresh: # we don't want to fill full table with existing freq's
+                            # need to replace element on the list
+                            pos = _getPosOfThisFreq(result,currThresh)
+                            result[pos] = [freq, chr(x)+chr(y)]
+                            currThresh = _getSmallestFreq(result)
+        return result
+
+    def getFreqsAsList(self,maxResults):
+        """gather frequencies in a list whose elements are (x,y,frequency)
+        and are sorted by frequency and conflicting frequencies are removed"""
+        l = []
+        for x in range(self.dx):
+            for y in range(self.dy):
+                freq = self.freq[x][y]
+                if freq != 0:
+                    l.append(freq_el_make(x,y,freq))
+        l.sort(_sortFreqFunc)
+        res = []
+        for freqEl in l:
+            if not freq_conflicts_p(res,freqEl):
+                res.append(freqEl)
+                if len(res) >= maxResults:
+                    break
+        res.reverse()
+        return res
+
 class CompInfoGen:
-    """Given a list of strings, generate compression info (packStrings)"""
+    """Given a list of strings, generate compression info (packStrings).
+    Compression is slightly worse than in the original Lisp implementation."""
     def __init__(self,strList):
         self.strList = strList
-        self.fCompressionInfoBuilt = False
-        self.table = {}
+        self.table = None
+        self.reservedCodes = 0
         self.FREQ_IDX = 0
         self.NEXT_TABLE_IDX = 1
         self.FULL_STR_IDX = 2
@@ -448,10 +570,10 @@ class CompInfoGen:
                     self._incStr(currStr)
 
     def _buildCompressionInfo(self):
-        if not self.fCompressionInfoBuilt:
-            for s in self.strList:
-                self.incStr(s)
-            self.fCompressionInfoBuilt = True
+        assert self.table == None
+        self.table = {}
+        for s in self.strList:
+            self.incStr(s)
 
     def _getFlattenedFreqList(self,result=[],table=None):
         if table==None:
@@ -466,14 +588,15 @@ class CompInfoGen:
             self._getFlattenedFreqList(result,newTable)
         return result
 
+    def reserveCodes(self,codesToReserve):
+        self.reservedCodes = codesToReserve
+
     def buildPackStrings(self):
         """Given frequency table filled in, generate packStrings for best
         compression (except it probably isn't optimal)"""
         self._buildCompressionInfo()
-        # we need to reserve first 32
-        reservedCodes = 32
-        codesLeft = 256-reservedCodes
-        packStrings = [chr(n) for n in range(reservedCodes)]
+        codesLeft = 256-self.reservedCodes
+        packStrings = [chr(n) for n in range(self.reservedCodes)]
         # we need all one-letter ones
         for c in self.table.keys():
             packStrings.append(c)
@@ -491,81 +614,37 @@ class CompInfoGen:
             assert codesLeft > 0
             packStrings.append(el)
             codesLeft -= 1
-        print packStrings
+        #print packStrings
         return packStrings
 
-class CompInfoGenOld:
-    """Given a list of strings, generate compression info (packStrings)"""
-    def __init__(self,strList,dx=256,dy=256):
-        self.freqTable = [0 for i in range(dx*dy)]
+class CompInfoGenWeak:
+    """Given a list of strings, generate compression info (packStrings).
+    It works and is simple but compression is worse than in CompInfoGen"""
+    def __init__(self,strList):
+        self.freqTable = Freq(256,256)
         self.strList = strList
-        self.fCompressionInfoBuilt = False
-        self.dx = dx
-        self.dy = dy
-    def inc(self,x,y):
-        self.freqTable[x+y*self.dy] += 1
-    def val(self,x,y):
-        return self.freqTable[x+y*self.dy]
-    def incStr(self,s):
-        x = ord(s[0])
-        for c in s[1:]:
-            y = ord(c)
-            self.freqTable[x+y*self.dy] += 1 # self.inc(x,y) but faster
-            x = y
-    def _getStrFromPos(self,pos):
-        x = pos % self.dy
-        y = pos / self.dy
-        s = chr(x)+chr(y)
-        return s
-    def _getMostFrequent(self,n):
-        result = []
-        currThresh = -1
-        elPos = -1
-        for freq in self.freqTable:
-            elPos += 1
-            if freq >= currThresh:
-                # need to insert or replace element from the list of most
-                # frequently used elements
-                if len(result) < n:
-                    # add to the list since we don't have n elements yet
-                    result.append( [freq, self._getStrFromPos(elPos)] )
-                    if len(result) == n:
-                        # when we finally found all elements, we need to
-                        # adjust threshold from permitting anything to the
-                        # real threshold
-                        currThresh = _getSmallestFreq(result)
-                else:
-                    if freq > currThresh: # we don't want to fill full table with existing freq's
-                        # need to replace element on the list
-                        pos = _getPosOfThisFreq(result,currThresh)
-                        result[pos] = [freq, self._getStrFromPos(elPos)]
-                        currThresh = _getSmallestFreq(result)
-        return result
+        self.reservedCodes = 0
 
-    def _buildCompressionInfo(self):
-        if not self.fCompressionInfoBuilt:
-            for s in self.strList:
-                self.incStr(s)
-            self.fCompressionInfoBuilt = True
+    def reserveCodes(self,codesToReserve):
+        self.reservedCodes = codesToReserve
 
     def buildPackStrings(self):
-        self._buildCompressionInfo()
-        reservedCodes = 32
+        self.freqTable.buildFreqForStrings(self.strList)
         #dumpListByFreq(flist)
-        packStrings = [chr(n) for n in range(reservedCodes)]
-        codesLeft = 256-reservedCodes
+        packStrings = [chr(n) for n in range(self.reservedCodes)]
+        codesLeft = 256-self.reservedCodes
         for x in range(256):
             for y in range(256):
-                if self.val(x,y) > 0:
+                if self.freqTable.val(x,y) > 0:
                     #print "found for x=%d ('%s')" % (x,chr(x))
                     packStrings.append(chr(x))
                     codesLeft -= 1
                     break
-        flist = self._getMostFrequent(codesLeft)
+        flist = self.freqTable.getMostFrequent(codesLeft)
         for el in flist:
             packStrings.append( el[1] )
         assert 256 == len(packStrings)
-        print packStrings
+        #print packStrings
         return packStrings
 
 def calcNewCodesCount(usedCodes):
@@ -577,37 +656,37 @@ def calcNewCodesCount(usedCodes):
             return el[1]
     assert 0
 
+def printFreqList(l):
+    for el in l:
+        x = freq_el_i(el)
+        y = freq_el_j(el)
+        freq = freq_el_freq(el)
+        txt = chr(x) + chr(y)
+        print "%s %d (%d,%d)" % (txt,freq,x,y)
+
 class CompInfoGenOrig:
     """Given a list of strings, generate compression info (packStrings). This
     should be identical to the way original lisp version works"""
-    #def __init__(self,strList,dx=256,dy=256):
     def __init__(self,strList):
-        self.strList = strList
-        self.compressedStrList = None
-        self.fCompressionInfoBuilt = False
-        #self.dx = dx
-        #self.dy = dy
-        self._clearFreqInfo()
+        #self.compressedStrList = None
+        self.freqTable = Freq(256,256)
         self.charToCode = [0 for i in range(256)]
         self.usedCodes = 1 # zero always maps to zero
         self.oneCharCodes = 0
         self.codeToChar = [[0,0] for i in range(256)]
         self.strToCode = ['' for i in range(256)]
-        self.freq = [[0 for i in range(256)] for t in range(256)]
         self.compressionTable = [[0 for i in range(256)] for t in range(256)]
+        self.reservedCodes = 0
+        self.origStrings = strList
 
-    def _reserveCodes(self,n):
-        for i in range(n):
+    def _codeStrings(self):
+        self.strList = [self._codeString(s) for s in self.origStrings]
+
+    def _reserveCodes(self):
+        for i in range(self.reservedCodes):
             self.charToCode[i] = i
             self.codeToChar[i][0] = i
-        self.usedCodes = n
-
-    def _clearFreqInfo(self):
-        # would it be better to do:
-        # for i in range(self.dx*self.dy): self.freqTable[i] = 0
-        # this version might create a lot of garbage
-        #self.freqTable = [0 for i in range(self.dx*self.dy)]
-        self.freq = [[0 for i in range(256)] for t in range(256)]
+        self.usedCodes = self.reservedCodes
 
     def _charToCode(self,c):
         code = self.charToCode[c]
@@ -619,17 +698,9 @@ class CompInfoGenOrig:
         return code
 
     def _codeString(self,txt):
-        strOutAsList = [self._charToCode(ord(c)) for c in txt]
+        strOutAsList = [chr(self._charToCode(ord(c))) for c in txt]
         strOut = string.join(strOutAsList,"")
         return strOut
-
-    def inc(self,x,y):
-        #self.freqTable[x+y*self.dy] += 1
-        self.freq[x][y] += 1
-
-    def val(self,x,y):
-        #return self.freqTable[x+y*self.dy]
-        return self.freq[x][y]
 
     def _addPair(self,x,y):
         self.compressionTable[x][y] = self.usedCodes
@@ -656,118 +727,74 @@ class CompInfoGenOrig:
         s = string.join(strFromCode,"")
         return s
 
-    def incStr(self,s):
-        x = ord(s[0])
-        for c in s[1:]:
-            y = ord(c)
-            #self.freqTable[x+y*self.dy] += 1 # self.inc(x,y) but faster
-            self.freq[x][y] += 1
-            x = y
-
-    def _getStrFromPos(self,pos):
-        x = pos % self.dy
-        y = pos / self.dy
-        s = chr(x)+chr(y)
-        return s
-
-    def _buildFreqInfo(self,strList):
-        for s in strList:
-            self.incStr(s)
-
-    def _getMostFrequent(self,n):
-        result = []
-        currThresh = -1
-        elPos = -1
-        for freq in self.freqTable:
-            elPos += 1
-            if freq >= currThresh:
-                # need to insert or replace element from the list of most
-                # frequently used elements
-                if len(result) < n:
-                    # add to the list since we don't have n elements yet
-                    result.append( [freq, self._getStrFromPos(elPos)] )
-                    if len(result) == n:
-                        # when we finally found all elements, we need to
-                        # adjust threshold from permitting anything to the
-                        # real threshold
-                        currThresh = _getSmallestFreq(result)
-                else:
-                    if freq > currThresh: # we don't want to fill full table with existing freq's
-                        # need to replace element on the list
-                        pos = _getPosOfThisFreq(result,currThresh)
-                        result[pos] = [freq, self._getStrFromPos(elPos)]
-                        currThresh = _getSmallestFreq(result)
-        return result
-
-    def buildPackStrings(self):
-        self._buildCompressionInfo()
-        reservedCodes = 32
-        #dumpListByFreq(flist)
-        packStrings = [chr(n) for n in range(reservedCodes)]
-        codesLeft = 256-reservedCodes
-        for x in range(256):
-            for y in range(256):
-                if self.val(x,y) > 0:
-                    #print "found for x=%d ('%s')" % (x,chr(x))
-                    packStrings.append(chr(x))
-                    codesLeft -= 1
-                    break
-        flist = self._getMostFrequent(codesLeft)
-        for el in flist:
-            packStrings.append( el[1] )
-        assert 256 == len(packStrings)
-        print packStrings
-        return packStrings
-
     def _buildPackStrings(self):
         packStrings = [self._stringFromCode(code) for code in range(256)]
         # UNDONE: sort strings by length
         assert 256 == len(packStrings)
-        print packStrings
+        #print packStrings
         return packStrings
 
-    def _buildPackDataOnePass(codesToUse):
-        # UNDONE: do it
-        
+    def _buildPackDataOnePass(self,codesToUse):
+        sortedFreq = self.freqTable.getFreqsAsList(codesToUse)
+        realNewCodes = len(sortedFreq)
+        newList = []
+        assert 0 != realNewCodes
+        for el in sortedFreq:
+            self._addPair(freq_el_i(el),freq_el_j(el))
+        for el in self.strList:
+            newList.append( self._tmpPackString(el) )
+        self.strList = newList
+        self._clearCompressionTable()
+        if self.usedCodes < 256:
+            self.freqTable.buildFreqForStrings(self.strList)
 
+    def _clearCompressionTable(self):
+        for x in range(256):
+            for y in range(256):
+                self.compressionTable[x][y] = 0
+
+    def _tmpPackString(self,s):
+        result = []
+        if len(s) == 0:
+            return ""
+        x = s[0]
+        s = s[1:]
+        while True:
+            if len(s) == 0:
+                result.append(x)
+                break
+            y = s[0]
+            s = s[1:]
+            if self.compressionTable[ord(x)][ord(y)] == 0:
+                # no code for this pair, so just append first character
+                result.append(x)
+                x = y
+            else:
+                x = chr(self.compressionTable[ord(x)][ord(y)])
+                result.append(x)
+        resultString = string.join(result,"")
+        return resultString
 
     def _buildPackData(self):
         self.oneCharCodes = self.usedCodes
         while self.usedCodes < 256:
             self._buildPackDataOnePass(calcNewCodesCount(self.usedCodes))
-            return self._buildPackStrings()
+        return self._buildPackStrings()
 
-def buildStringCompressorOld(strList):
-    """Given a list of strings, build compressor object optimal for compressing
-    those strings"""
-    # UNDONE: build even better compression
-    comp = StringCompressor(packStrings)
-    return comp
+    def buildPackStrings(self):
+        self._reserveCodes()
+        self._codeStrings()
+        return self._buildPackData()
 
 def buildStringCompressor(strList):
     """Given a list of strings, build compressor object optimal for compressing
     those strings"""
-    #ft = CompInfoGenOld()
+    #ft = CompInfoGenWeak()
     ft = CompInfoGen(strList)
     packStrings = ft.buildPackStrings()
     assert 256 == len(packStrings)
     comp = StringCompressor(packStrings)
     return comp
-
-def testCompress():
-    wordsToTest = ["me", "him", "blah", "zipper", "groggle", "restful", "paranoia", "glam", "groblerz"]
-    comp = _buildDummyStringCompressor()
-    for word in wordsToTest:
-        compWord = comp.compress(word)
-        assert compWord == word
-        uncompWord = comp.uncompress(compWord)
-        assert word == uncompWord
-
-    comp = buildStringCompressor(wordsToTest)
-    for word in wordsToTest:
-        compWord = comp.compress(word)
-        uncompWord = comp.uncompress(compWord)
-        assert word == uncompWord
 
 def buildWordCacheRecData(wordsCacheEntries):
     """Given a list of entries for word cache information, build pdb record data,
@@ -847,20 +874,6 @@ def buildWordsRecs(words):
     compressionRecData = strComp.getCompressionRecData()
     print "buildWordsRecs end"
     return (compressionRecData, wordCacheRecData, wordsRecsData)
-    
-# Generates all the information needed for packed words:
-# - pdb records with packed words
-class WordsPacker:
-    def __init__(self):
-        pass
-
-class PackInfo:
-    def __init__(self):
-        pass
-    def _reserverCodes(self,codesCount):
-        assert codesCount <= 255
-    def _getStrByCode(self,str):
-        pass
 
 def byteArrayToBlob(byteArr):
     assert len(byteArr)>0
@@ -1138,57 +1151,4 @@ if __name__ == "__main__":
         #main()
         DoDevilDict()
 
-def freq_el_make(i,j,freq):
-    return (i,j,freq)
 
-def freq_el_freq(freq):
-    return freq[2]
-def freq_el_i(freq):
-    return freq[0]
-def freq_el_j(freq):
-    return freq[1]
-
-def _sortFreqFunc(f1,f2):
-    if freq_el_freq(f1) > freq_el_freq(f2):
-        return 1
-    elif freq_el_freq(f1) < freq_el_freq(f2):
-        return -1
-    else:
-        return 0
-
-def freq_el_conflicts_p(f1,f2):
-    if freq_el_i(f1) == freq_el_j(f2) or freq_el_j(f1) == freq_el_i(f2):
-        return True
-    else
-        return False
-
-def freq_conflicts_p(freq_list,freq_el):
-    for f_el in freq_list:
-        if freq_el_conflicts_p(f_el,freq_el)
-            return True
-    return False
-
-def freq_sort(freq_array,n):
-    # gather all frequencies in a list
-    l = []
-    for i in range(256):
-        for j in range(256):
-            freq = freq_array[i][j]
-            if freq != 0:
-                l.append(freq_el_make(i,j,freq))
-    l.sort(_sortFreqFunc)
-    res = []
-    for f_el in l:
-        if not freq_conflicts_p(res,f_el):
-            res.append(f_el)
-            if len(res) >= n:
-                res.reverse()
-                return res
-    res.reverse()
-    return res
-
-class pack_info:
-    def __init__(self):
-        self.str-list = []
-        self.str-to-code = [0 for t in range(256)]
-        
