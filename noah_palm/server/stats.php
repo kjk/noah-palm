@@ -7,6 +7,8 @@ require( "dbsettings.inc" );
 
 require_once("ez_mysql.php");
 
+require_once("common.php");
+
 $dict_db = new inoah_db(DBUSER, '', DBNAME, DBHOST);
 
 $unique_cookies_query = "SELECT COUNT(DISTINCT cookie) FROM cookies;";
@@ -59,6 +61,33 @@ Unique cookies created so far: <?php total_and_day_avg($unique_cookies) ?>. <br>
 Unique devices registered so far: <?php total_and_day_avg($unique_devices) ?>. <br>
 Total requests so far: <?php total_and_day_avg($total_requests) ?> which is 
 <?php aveg($total_requests,$unique_devices) ?> per unique device (unique user?). <br>
+Recent registrations:
+<table>
+
+<?php
+    $recent_regs_max = 15;
+    $recent_regs_q = "SELECT * FROM cookies ORDER BY when_created DESC LIMIT $recent_regs_max;";
+    $recent_regs_rows = $dict_db->get_results($recent_regs_q);
+
+    $color = "white";
+    foreach ( $recent_regs_rows as $row )
+    {
+        $when_created = $row->when_created;
+        $dev_info = $row->dev_info;
+        $dev_info_decoded = decode_di($dev_info);
+        echo "<tr>\n";
+        echo "  <td bgcolor=$color>$when_created</td>\n";
+        echo "  <td bgcolor=$color>$dev_info</td>\n";
+        echo "  <td bgcolor=$color>$dev_info_decoded</td>\n";
+        echo "</tr>\n";
+        if ($color=="white")
+            $color = "lightgray";
+        else
+            $color = "white";
+    }
+?>
+
+</table>
 
 </body>
 </html>

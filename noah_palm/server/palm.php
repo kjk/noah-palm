@@ -20,6 +20,8 @@ require( "dbsettings.inc" );
 
 require_once("ez_mysql.php");
 
+require_once("common.php");
+
 $dict_db = new inoah_db(DBUSER, '', DBNAME, DBHOST);
 
 function validate_protocol_version( $pv )
@@ -54,7 +56,10 @@ function write_DEF( $word, $pron, $def )
     print "DEF\n";
     print "$word\n";
     if ( $pron )
+    {
+        $pron = strtolower($pron);
         print "PRON $pron\n";
+    }
     print $def;
 }
 

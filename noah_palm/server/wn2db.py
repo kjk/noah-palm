@@ -630,18 +630,49 @@ def getSqlPrelude():
     return txt
 
 pron_data_file = "C:\\kjk\\src\\mine\\dicts_data\\cmu_dict\\c06d"
+pron_data = {}
+
+def dump_pron_data_info():
+    global pron_data
+    print "Elements in pron_data: %d" % len(pron_data)
+    dumpedCount = 0
+    DUMP_LIMIT = 5
+    for key in pron_data.keys():
+        print "%s->%s" % (key, pron_data[key])
+        dumpedCount += 1
+        if dumpedCount > DUMP_LIMIT:
+            break
 
 def load_pron_data():
-    # TODO
-    pass
+    global pron_data,pron_data_file
+    assert 0 == len(pron_data)
+    fo = open(pron_data_file, "rb")
+    # first few lines are header lines starting with "##" but after
+    # that we don't expect any lines to start with it
+    fFinishedHeader = False
+    for l in fo.readlines():
+        if string.find(l,"##") == 0:
+            # this is a header line, skip it
+            assert fFinishedHeader == False
+            continue
+        else:
+            fFinishedHeader = True
+            space_pos = string.find(l," ")
+            assert space_pos != -1
+            word = l[0:space_pos]
+            pron = string.strip( l[space_pos+1:] )
+            pron_data[ string.lower(word)] = pron
+    fo.close()
 
 # return pronunciation for a given word/sentence
 # empty string means no pronunciation
 def get_pron_for_word(word):
-    #pron = "(pron: %s)" % word
-    # TODO
-    pron = ""
-    return pron
+    global pron_data
+    word = string.lower(word)
+    if pron_data.has_key(string.lower(word)):
+        return pron_data[word]
+    else:
+        return ""
 
 def doSql():
     global proSynsets
@@ -668,7 +699,7 @@ def doSql():
                 all_words[w] = all_words[w] + word_def
             else:
                 all_words[w] = word_def
-
+    load_pron_data()
     word_no = 1
     # wordsToPrint = 10
     for w in all_words.iterkeys():
@@ -708,6 +739,9 @@ def test_line():
     print "." + txt + "."
 
 if __name__ == "__main__":
+    #load_pron_data()
+    #dump_pron_data_info()
+
     if len(sys.argv) != 2:
         usage()
         sys.exit(0)
