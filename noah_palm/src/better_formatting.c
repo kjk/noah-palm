@@ -438,6 +438,8 @@ static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, App
 //    FntSetFont(prev_font);
 }
 
+#ifndef I_NOAH
+
 /* Makes definition and draw it! */
 static void RedrawExampleDefinition(AppContext* appContext)
 {
@@ -820,6 +822,8 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
     }
     return false;
 }
+
+#endif I_NOAH
 
 //return 1 if "ab" is tag else return 0
 static int  IsTag(char a, char b)

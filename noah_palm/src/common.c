@@ -171,6 +171,7 @@ void FreeDicts(AppContext* appContext)
     }
 }
 
+#endif // I_NOAH
 
 /*
 Detect an Palm OS version and return it in a way easy for later
@@ -317,6 +318,8 @@ void SetGlobalBackColor(AppContext* appContext)
     rgb_color.b = appContext->prefs.displayPrefs.bgcolB;
     SetBackColor( appContext, &rgb_color);
 }
+
+#ifndef I_NOAH
 
 void HideScrollbar(void)
 {
@@ -1478,6 +1481,8 @@ char *ssPop( StringStack *ss )
     return toReturn;
 }
 
+#endif // I_NOAH
+
 #ifdef DEBUG
 static void LogInitFile(LogInfo* logInfo)
 {
@@ -1512,6 +1517,8 @@ void Log(AppContext* appContext, char *txt)
     }
 }
 #endif
+
+#ifndef I_NOAH
 
 void EvtSetInt( EventType *event, int i)
 {
@@ -1751,6 +1758,8 @@ long FindCurrentDbIndex(AppContext* appContext)
     return 0;
 }
 
+#endif // I_NOAH
+
 void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey) {
     UInt16 index;
     RectangleType objBounds;
@@ -1778,6 +1787,8 @@ Err DefaultFormInit(AppContext* appContext, FormType* frm)
 {
     return DIA_FrmEnableDIA(&appContext->diaSettings, frm, FRM_MIN_H, FRM_PREF_H, FRM_MAX_H, FRM_MIN_W, FRM_PREF_W, FRM_MAX_W);
 }
+
+#ifndef I_NOAH
 
 #ifndef NOAH_LITE
 static Err AppHandleResidentLookup()
@@ -1880,12 +1891,16 @@ Err AppHandleSysNotify(SysNotifyParamType* param)
     return error;
 }
 
+#endif // I_NOAH
+
 AppContext* GetAppContext() 
 {
     AppContext* res=0;
     Err error=FtrGet(APP_CREATOR, appFtrContext, (UInt32*)&res);
     return res;
 }
+
+#ifndef I_NOAH
 
 UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize) 
 {

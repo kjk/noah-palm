@@ -3,4 +3,5 @@
 
 #define alertMemError                               2000
 #define alertRomIncompatible                    2001
-#define alertNoWirelessInternetLibrary        2002
+#define alertNetworkLibraryNotFound          2002
+#define alertUnableToInitializeNetLibrary     2003

@@ -1,4 +1,4 @@
- #ifndef _I_NOAH_H_
+#ifndef _I_NOAH_H_
 #define _I_NOAH_H_
 
 #include "i_noah_rcp.h"
@@ -18,7 +18,7 @@
 /* structure of the general preferences record */
 typedef struct
 {
-    long tweakMe;
+    DisplayPrefs displayPrefs;
 } iNoahPrefs;
 
 typedef iNoahPrefs AppPrefs;

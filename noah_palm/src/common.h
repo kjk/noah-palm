@@ -27,9 +27,9 @@
 #define    Assert(c)          {}
 #endif
 
-#ifndef I_NOAH
-
 #define strlen StrLen
+
+#ifndef I_NOAH
 
 #define  ENGPOL_TYPE            'enpl'
 #define  SIMPLE_TYPE            'simp'
@@ -172,7 +172,6 @@ typedef struct
 
 #ifdef I_NOAH
 #include "i_noah.h"
-#include "i_noah_rcp.h"
 #endif
 
 typedef enum _AppFeature
@@ -212,8 +211,12 @@ typedef struct _AppContext
     ExtensibleBuffer * helpDispBuf;
     long               currentWord;
     long               wordsCount;
+#endif // I_NOAH
+    
     int                firstDispLine;
     int                lastDispLine;
+
+#ifndef I_NOAH    
     long               listItemOffset;
     long               prevTopItem;
     int                penUpsToConsume;
@@ -274,7 +277,7 @@ typedef struct _AppContext
      * Settings used by DynamicInputArea implementation.
      */
     DIA_Settings diaSettings;
-      
+    
 #ifndef I_NOAH      
     FS_Settings fsSettings;
     AbstractFile* currentFile;
@@ -299,6 +302,10 @@ typedef struct _AppContext
      * Which bookmarks view method was selected.
      */
      Int16 bookmarksSortBySelection;
+     
+#ifdef I_NOAH
+    NetIPAddr serverIpAddress;
+#endif      
 } AppContext;
 
 #define AppTestFlag(appContext, flag) (((appContext)->flags & (1<<(flag)))!=0)

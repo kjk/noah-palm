@@ -26,12 +26,21 @@ BEGIN
     BUTTONS "OK"
 END
 
-ALERT ID alertNoWirelessInternetLibrary
+ALERT ID alertNetworkLibraryNotFound
     DEFAULTBUTTON 0
     ERROR
 BEGIN
-    TITLE "System Incompatible"
-    MESSAGE "Your system doesn't support Wireless Internet library that is required to run this application."
+    TITLE "Error"
+    MESSAGE "Network library was not found."
+    BUTTONS "OK"
+END
+
+ALERT ID alertUnableToInitializeNetLibrary
+    DEFAULTBUTTON 0
+    ERROR
+BEGIN
+    TITLE "Error"
+    MESSAGE "Unable to initialize network library."
     BUTTONS "OK"
 END
 
