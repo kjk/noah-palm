@@ -8,13 +8,14 @@
 #  -get word
 #  -getrandom
 #  -newcookie
+#  -recentlookups
 #  -regcode reg_code
 #   add cmd line options -get term, -get-random for driving the script from cmd line
 
 import sys, re, socket, random, pickle, httplib, urllib
 
 # server string must be of form "name:port"
-g_serverList = ["dict-pc.arslexis.com:3000", "dict.arslexis.com:80", "dict-pc.local.org:80"]
+g_serverList = ["dict-pc.arslexis.com:4080", "dict.arslexis.com:80", "dict-pc.local.org:80"]
 
 g_defaultServerNo = 0 # index within g_serverList
 
@@ -23,7 +24,7 @@ g_exampleDeviceInfo = "HS50616C6D204F5320456D756C61746F72:OC70616C6D:OD00000000"
 
 DEF_ID  = "DEF"
 
-g_commonParams = {'pv': '1', 'cv': '0.5'}
+g_commonParams = {'pv': '1', 'cv': '1'}
 
 g_pickleFileName = "client_pickled_data.dat"
 def pickleState():
@@ -85,14 +86,21 @@ def buildGetCookieConn():
     server = getCurrentServer()
     conn = httplib.HTTPConnection(server)
     params = g_commonParams;
-    conn.request("GET", "/palm.php?pv=1&cv=0.5&get_cookie=&di=%s" % g_exampleDeviceInfo)
+    conn.request("GET", "/palm.php?pv=1&cv=1&get_cookie=&di=%s" % g_exampleDeviceInfo)
     return conn
 
 def buildGetRandomDefConn():
     global g_commonParams
     server = getCurrentServer()
     conn = httplib.HTTPConnection(server)
-    conn.request("GET", "/palm.php?pv=1&cv=0.5&c=%s&get_random_word=" % getGlobalCookie())
+    conn.request("GET", "/palm.php?pv=1&cv=1&c=%s&get_random_word=" % getGlobalCookie())
+    return conn
+
+def buildGetRecentLookupsConn():
+    global g_commonParams
+    server = getCurrentServer()
+    conn = httplib.HTTPConnection(server)
+    conn.request("GET", "/palm.php?pv=1&cv=1&c=%s&recent_lookups=" % getGlobalCookie())
     return conn
 
 def extractCookieFromResponse(res):
@@ -147,6 +155,15 @@ def getRandomDef():
     conn.close()
     return data
 
+def getRecentLookups():
+    conn = buildGetRecentLookupsConn()
+    res = conn.getresponse()
+    #print res.status, res.reason
+    data = res.read()
+    conn.close()
+    return data
+
+
 def doGetDef(term,regCode):
     if not getGlobalCookie():
         getCookie()
@@ -159,8 +176,14 @@ def doGetRandomDef():
     data = getRandomDef()
     print data
 
+def doGetRecentLookups():
+    if not getGlobalCookie():
+        getCookie()
+    data = getRecentLookups()
+    print "'%s'" % data
+
 def usageAndExit():
-    print "Usage: client.py [-newcookie] [-get word] [-getrandom] [-regcode reg_code]"
+    print "Usage: client.py [-newcookie] [-get word] [-getrandom] [-recentlookups] [-regcode reg_code]"
     sys.exit(0)
 
 def main():
@@ -172,6 +195,9 @@ def main():
     regCode = getRemoveCmdArg("-regcode")
     if fDetectRemoveCmdFlag("-getrandom"):
         doGetRandomDef()
+
+    if fDetectRemoveCmdFlag("-recentlookups"):
+        doGetRecentLookups()
 
     word = getRemoveCmdArg("-get")
     if word:

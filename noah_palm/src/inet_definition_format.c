@@ -294,36 +294,6 @@ Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin,
     return error;
 }
 
-static UInt16 IterateWordsList(const char* responseBegin, const char* responseEnd, char** targetList=NULL)
-{
-    UInt16      wordsCount=0;
-    const char* wordBegin=responseBegin+wordsListResponseLen;
-    while (wordBegin<responseEnd)
-    {
-        const char* wordEnd=StrFind(wordBegin, responseEnd, "\n");
-        if (wordBegin!=wordEnd)
-        {
-            if (targetList)
-            {
-                UInt16 wordLength=wordEnd-wordBegin;
-                char*& targetWord=targetList[wordsCount];
-                targetWord=static_cast<char*>(new_malloc_zero(sizeof(char)*(wordLength+1)));
-                if (targetWord) 
-                {
-                    StrNCopy(targetWord, wordBegin, wordLength);
-                    targetWord[wordLength]=chrNull;
-                }
-            }
-            wordsCount++;
-        }
-        if (wordEnd>=responseEnd)
-            wordBegin=responseEnd;
-        else
-            wordBegin=wordEnd+1;
-    }
-    return wordsCount;
-}
-
 static Int16 StrSortComparator(void* str1, void* str2, Int32)
 {
     const char* s1=*(const char**)str1;
@@ -331,30 +301,157 @@ static Int16 StrSortComparator(void* str1, void* str2, Int32)
     return StrCompare(s1, s2);
 }
 
-static Err ProcessWordsListResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
+static const char *ExtractLine(const char **txt, int *txtLenLeft, int *lineLenOut)
 {
-    Err error=errNone;
-    Assert(!appContext->wordsList);
-    UInt16 wordsCount=IterateWordsList(responseBegin, responseEnd);
-    if (wordsCount)
+    const char *result = *txt;
+
+    Assert(txt);
+    Assert(*txt);
+
+    if (0==*txtLenLeft)
     {
-        char** wordsStorage=static_cast<char**>(new_malloc_zero(sizeof(char*)*wordsCount));
-        if (wordsStorage)
+        *lineLenOut=0;
+        return result;
+    }
+
+    const char *curPos = *txt;
+    int         curLenLeft = *txtLenLeft;
+    while( (*curPos != '\n') && (curLenLeft>0) )
+    {
+        ++curPos;
+        --curLenLeft;
+    }
+    *lineLenOut = curPos - *txt;
+    if (*curPos=='\n')
+    {
+        ++curPos;
+        Assert(curLenLeft>0);
+        --curLenLeft;
+    }
+    *txt = curPos;
+    *txtLenLeft = curLenLeft;
+
+    return result;
+}
+
+#ifdef DEBUG
+extern void testExtractLine();
+void testExtractLine()
+{
+    const char *txt, *txtOrig;
+    int         txtLenLeft;
+    const char *extractedLine;
+    int         lineLen;
+
+    txt = ""; txtOrig = txt;
+    txtLenLeft = StrLen(txt);
+    extractedLine = ExtractLine(&txt,&txtLenLeft,&lineLen);
+    Assert(extractedLine==txtOrig);
+    Assert(txtLenLeft==0);
+
+    txt = "\n"; txtOrig = txt;
+    txtLenLeft = StrLen(txt);
+    extractedLine = ExtractLine(&txt,&txtLenLeft,&lineLen);
+    Assert( (extractedLine==txtOrig) && (0==lineLen) && (0==txtLenLeft));
+    extractedLine = ExtractLine(&txt,&txtLenLeft,&lineLen);
+    Assert((0==txtLenLeft) && (0==lineLen));
+
+    txt = "me\nhim\n"; txtOrig = txt;
+    txtLenLeft = StrLen(txt);
+    extractedLine = ExtractLine(&txt,&txtLenLeft,&lineLen);
+    Assert( (extractedLine==txtOrig) && (2==lineLen) && (4==txtLenLeft));
+    extractedLine = ExtractLine(&txt,&txtLenLeft,&lineLen);
+    Assert( (extractedLine == (txtOrig+3)) && (3==lineLen) && (0==txtLenLeft));
+    extractedLine = ExtractLine(&txt,&txtLenLeft,&lineLen);
+    Assert((0==txtLenLeft) && (0==lineLen));
+}
+#endif
+
+/* Given a list of words, one word per line, extract those words and return
+as char ** array. List of words must end by an empty line (and there must be
+nothing after that empty line). The list might be empty, in which case we return
+NULL and set wordsCount to 0. We might also return NULL when there is an error
+parsing the response, in which case wordsCount is set to -1. */
+static char **ExtractWordsFromListResponse(const char*txt, int txtLen, int *wordsCountOut)
+{
+    int          wordsCount=0;
+    const char * txtTmp;
+    const char * word;
+    char **      words;
+    int          txtLenLeft;
+    int          phase;
+    int          lineLen;
+    int          wordNo;
+
+    Assert(txt);
+    Assert(txtLen>0);
+    Assert(wordsCountOut);
+
+    // phase==0 - calculating number of words
+    // pahse==1 - extracting the words
+    for (phase=0; phase<=1; phase++)
+    {
+        txtTmp = txt;
+        txtLenLeft = txtLen;
+        wordNo = 0;
+        // TODO: handle out of mem
+        if (1==phase)
+            words=static_cast<char**>(new_malloc_zero(sizeof(char*)*wordsCount));
+
+        while (true)
         {
-            IterateWordsList(responseBegin, responseEnd, wordsStorage);
-            SysQSort(wordsStorage, wordsCount, sizeof(const char*), StrSortComparator, NULL);
-            appContext->wordsList=wordsStorage;
-            appContext->wordsInListCount=wordsCount;
-        }
-        else
-        {
-            FrmAlert(alertMemError);
-            error=memErrNotEnoughSpace;
+            word=ExtractLine(&txtTmp,&txtLenLeft,&lineLen);
+            // we skip an empty line
+            // TODO: we should check, that this is the last line
+            if (0==lineLen)
+            {
+                if (0==txtLenLeft)
+                    break;
+                continue;
+            }
+            if (0==phase)
+                ++wordsCount;
+            else
+            {
+                words[wordNo] = static_cast<char*>(new_malloc_zero(sizeof(char)*(lineLen+1)));
+                StrNCopy(words[wordNo], word, lineLen);
+                ++wordNo;
+            }                
         }
     }
-    else
-        error=appErrMalformedResponse;    
-    return error;
+    Assert(wordNo==wordsCount);
+    *wordsCountOut = wordsCount;
+    return words;
+}
+
+static Err ProcessWordsListResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
+{
+    char **      wordsList;
+    int          wordsCount;
+    const char * wordsListStart;
+    int          wordsListLen;
+
+    Assert(!appContext->wordsList);
+
+    wordsListStart = responseBegin + wordsListResponseLen;
+    wordsListLen = responseEnd - wordsListStart;
+    Assert( wordsListLen>=0 );
+
+    wordsList = ExtractWordsFromListResponse(wordsListStart,wordsListLen,&wordsCount);
+
+    if (NULL==wordsList)
+    {
+        if (-1==wordsCount)
+            return appErrMalformedResponse;
+        appContext->wordsList=NULL;
+        appContext->wordsInListCount=0;
+        return errNone;
+    }
+
+    SysQSort(wordsList, wordsCount, sizeof(const char*), StrSortComparator, NULL);
+    appContext->wordsList=wordsList;
+    appContext->wordsInListCount=wordsCount;
+    return errNone;
 }
 
 static Err ProcessMessageResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd, Boolean isErrorMessage=false)

@@ -425,6 +425,10 @@ static void AppEventLoop(AppContext* appContext)
     } while (appStopEvent!=event.eType);
 }
 
+#ifdef DEBUG
+extern void testExtractLine();
+#endif
+
 static Err AppLaunch() 
 {
     Err error=errNone;
@@ -437,6 +441,11 @@ static Err AppLaunch()
     error=AppInit(appContext);
     if (error) 
         goto OnError;
+
+#ifdef DEBUG
+    testExtractLine();
+#endif
+
     FrmGotoForm(formDictMain);
 
     AppEventLoop(appContext);
