@@ -441,12 +441,12 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             MainFormHandleAbout(appContext);
             handled=true;
             break;
-            
+
         case menuItemCopy:
             MainFormHandleCopy(appContext);
             handled=true;
             break;
-            
+
         case menuItemLookupClipboard:
             MainFormLookupClipboard(appContext);
             handled=true;
@@ -456,7 +456,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             LookupRandomWord(appContext);
             handled=true;
             break;
-            
+
         case menuItemRecentLookups:
             MainFormHandleRecentLookups(appContext);
             handled=true;
@@ -476,7 +476,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             MainFormHandleRegister(appContext);
             handled=true;
             break;
-            
+
         case menuItemBookmarkView:
             if (GetBookmarksCount(appContext)>0)
                 FrmPopupForm(formBookmarks);
@@ -498,11 +498,11 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             break;
 
         case menuItemGotoWebsite:
-            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com",NULL) )
+            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com/pda/inoah.html",NULL) )
                 FrmAlert(alertNoWebBrowser);
             handled=true;
             break;
-            
+
         case sysEditMenuCopyCmd:
         case sysEditMenuCutCmd:
         case sysEditMenuPasteCmd:

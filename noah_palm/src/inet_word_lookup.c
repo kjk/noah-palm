@@ -8,11 +8,11 @@
 #include "inet_definition_format.h"
 #include "cookie_request.h"
 
-#define wordLookupURL           "/palm.php?pv=^0&cv=^1&c=^2&get_word=^3"
+#define wordLookupURL               "/palm.php?pv=^0&cv=^1&c=^2&get_word=^3"
 
 #define genericURL                  "/palm.php?pv=^0&cv=^1&c=^2&^3"
-#define randomWordRequestParam "get_random_word="
-#define recentLookupsRequestParam "recent_lookups="
+#define randomWordRequestParam      "get_random_word="
+#define recentLookupsRequestParam   "recent_lookups="
 
 //not used
 //#define randomWordURL           "/palm.php?pv=^0&cv=^1&c=^2&get_random_word"
