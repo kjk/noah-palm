@@ -135,8 +135,8 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
             // settings common to all styles
             displayPrefs->pronunciation = prefsToSet[15];
             displayPrefs->bgCol = WHITE_Packed;
-            displayPrefs->enablePronunciation = true;
-            displayPrefs->enablePronunciationSpecialFonts = false;
+            displayPrefs->fEnablePronunciation = true;
+            displayPrefs->fEnablePronunciationSpecialFonts = false;
 
             if(!IsColorSupported(GetAppContext())) //we need to set all colors to black&white
             {   
@@ -660,7 +660,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 
                     if ( actTagPronunciation == actTag )
                     {
-                        if(! displayPrefs->enablePronunciationSpecialFonts)
+                        if(! displayPrefs->fEnablePronunciationSpecialFonts)
                             displayPrefs->pronunciation.font = FontSelect(displayPrefs->pronunciation.font);
                     } else {
                         dep = GetDEPForTag(displayPrefs, actTag);
@@ -697,9 +697,9 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                 case checkEnablePron:
                     actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
                     if(FrmGetControlValue (frm, FrmGetObjectIndex(frm, checkEnablePron)))
-                         displayPrefs->enablePronunciation = true;
+                         displayPrefs->fEnablePronunciation = true;
                     else
-                         displayPrefs->enablePronunciation = false;
+                         displayPrefs->fEnablePronunciation = false;
                     RedrawFormElements(appContext,actTag,displayPrefs);
                     RedrawExampleDefinition(appContext);
                     break;

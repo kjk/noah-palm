@@ -26,6 +26,36 @@ static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelo
 #define cookie_id                5
 #define fShowPronunciation_id    6
 #define dpListStyle_id           7
+#define dpBgCol_id               8
+#define dpfEnablePron_id         9
+#define dpfEnablePronFont_id    10
+
+// each of those marks the beginning of unique ids for storing
+// a given DisplayElementPrefs. Currently we only need to store
+// 3 elements per DisplayElementPrefs but to make it future-proof
+// I'm allocating them 16 ids apart
+#define  depFont_off            0
+#define  depColor_off           1
+#define  depBgCol_off           2
+
+#define depPos_id               0x10 // == 16
+#define depWord_id              0x20
+#define depDefinition_id        0x30
+#define depExample_id           0x40
+#define depSynonym_id           0x50
+#define depDefList_id           0x60
+#define depPosList_id           0x70
+#define depPron_id              0x80
+
+static void GetDisplayElementPrefs(PrefsStoreReader *store, DisplayElementPrefs *dep, int uniqueIdStart)
+{
+    UInt16 tmpUInt16 = dep->font;
+    Err err = store->ErrGetUInt16(uniqueIdStart+depFont_off, &tmpUInt16);
+    dep->font = (FontID)tmpUInt16;
+
+    err = store->ErrGetUInt32(uniqueIdStart+depColor_off, &dep->color);
+    err = store->ErrGetUInt32(uniqueIdStart+depBgCol_off, &dep->bgCol);
+}
 
 // General idea is to load all the preferences setting from the database,
 // set a default value if setting is not in the database
@@ -76,22 +106,47 @@ static void LoadPreferencesInoah(AppContext* appContext)
     prefs->fShowPronunciation = true;
     err = store.ErrGetBool(fShowPronunciation_id, &prefs->fShowPronunciation);
 
-    prefs->displayPrefs.listStyle = 2;
-    err = store.ErrGetUInt16(dpListStyle_id, (UInt16*)&prefs->displayPrefs.listStyle);
+    DisplayPrefs *dp=&(prefs->displayPrefs);
 
-    // TODO: display prefs
-    SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
+    dp->listStyle = 2;
+    err = store.ErrGetUInt16(dpListStyle_id, (UInt16*)&dp->listStyle);
 
+    SetDefaultDisplayParam(dp, false, false);
+
+    err = store.ErrGetBool(dpfEnablePron_id,&dp->fEnablePronunciation);
+    err = store.ErrGetBool(dpfEnablePronFont_id,&dp->fEnablePronunciationSpecialFonts);
+
+    GetDisplayElementPrefs(&store, &dp->pos, depPos_id);
+    GetDisplayElementPrefs(&store, &dp->word, depWord_id);
+    GetDisplayElementPrefs(&store, &dp->definition, depDefinition_id);
+    GetDisplayElementPrefs(&store, &dp->example, depExample_id);
+    GetDisplayElementPrefs(&store, &dp->synonym, depSynonym_id);
+    GetDisplayElementPrefs(&store, &dp->defList, depDefList_id);
+    GetDisplayElementPrefs(&store, &dp->posList, depPosList_id);
+    GetDisplayElementPrefs(&store, &dp->pronunciation, depPron_id);
+  
 }
 
+// devnote: uniqueIdStart is the first unique id for storing given DisplayElementPrefs
+// currently we only need 3 but for to make things future proof, those should
+// be at least 0x10 id apart
+static void SetDisplayElementPrefs(PrefsStoreWriter *store, DisplayElementPrefs *dep, int uniqueIdStart)
+{
+    Err err = store->ErrSetUInt16(uniqueIdStart+depFont_off, dep->font);
+    Assert(!err);
+    err = store->ErrSetUInt32(uniqueIdStart+depColor_off, dep->color);
+    Assert(!err);
+    err = store->ErrSetUInt32(uniqueIdStart+depBgCol_off, dep->bgCol);
+    Assert(!err);
+}
+ 
 static void SavePreferencesInoah(AppContext* appContext)
 {
-    Err                 err;
     AppPrefs *          prefs = &(appContext->prefs);
     PrefsStoreWriter    store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
 
     // ignore all errors, we can't do much about them anyway
-    err = store.ErrSetUInt16(startupAction_id, (UInt16)prefs->startupAction );
+    Err err = store.ErrSetUInt16(startupAction_id, (UInt16)prefs->startupAction );
     Assert(!err);
     err = store.ErrSetUInt16(hwButtonScrolType_id, (UInt16)prefs->hwButtonScrollType);
     Assert(!err);
@@ -105,12 +160,30 @@ static void SavePreferencesInoah(AppContext* appContext)
     Assert(!err);
     err = store.ErrSetBool(fShowPronunciation_id,prefs->fShowPronunciation);
     Assert(!err);
-    err = store.ErrSetUInt16(dpListStyle_id,(UInt16)prefs->displayPrefs.listStyle);
+
+    DisplayPrefs *dp=&(prefs->displayPrefs);
+    err = store.ErrSetUInt16(dpListStyle_id,(UInt16)dp->listStyle);
     Assert(!err);
+    err = store.ErrSetUInt32(dpBgCol_id,dp->bgCol);
+    Assert(!err);
+
+    err = store.ErrSetBool(dpfEnablePron_id, dp->fEnablePronunciation);
+    Assert(!err);
+    err = store.ErrSetBool(dpfEnablePronFont_id, dp->fEnablePronunciationSpecialFonts);
+    Assert(!err);
+
+    SetDisplayElementPrefs(&store, &dp->pos, depPos_id);
+    SetDisplayElementPrefs(&store, &dp->word, depWord_id);
+    SetDisplayElementPrefs(&store, &dp->definition, depDefinition_id);
+    SetDisplayElementPrefs(&store, &dp->example, depExample_id);
+    SetDisplayElementPrefs(&store, &dp->synonym, depSynonym_id);
+    SetDisplayElementPrefs(&store, &dp->defList, depDefList_id);
+    SetDisplayElementPrefs(&store, &dp->posList, depPosList_id);
+    SetDisplayElementPrefs(&store, &dp->pronunciation, depPron_id);
+
     err = store.ErrSavePreferences();
     Assert(!err);
 
-    // TODO: display prefs
 };
 
 static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
@@ -221,7 +294,7 @@ OnError:
 
 static void AppDispose(AppContext* appContext)
 {
-    Err error=errNone;
+    Err error;
     if (ebufGetDataSize(&appContext->currentWordBuf))
     {
         StrNCopy(appContext->prefs.lastWord, ebufGetDataPointer(&appContext->currentWordBuf), WORD_MAX_LEN-1);
@@ -249,7 +322,7 @@ static void AppDispose(AppContext* appContext)
     {
         while (appContext->wordsInListCount)
         {
-            Char* word=appContext->wordsList[--appContext->wordsInListCount];
+            char* word=appContext->wordsList[--appContext->wordsInListCount];
             if (word)
                 new_free(word);
         }

@@ -47,6 +47,7 @@ private:
     DmOpenRef   _db;
     MemHandle   _recHandle;
     unsigned char *  _recData;
+    Boolean     _fDbNotFound;
 
     Err ErrOpenPrefsDatabase();
     Err ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem);

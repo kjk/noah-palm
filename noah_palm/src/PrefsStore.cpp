@@ -46,7 +46,7 @@ Serialization of an item:
 
 PrefsStoreReader::PrefsStoreReader(char *dbName, UInt32 dbCreator, UInt32 dbType)
     : _dbName(dbName), _dbCreator(dbCreator), _dbType(dbType), _db(0),
-      _recHandle(NULL), _recData(NULL)
+      _recHandle(NULL), _recData(NULL), _fDbNotFound(false)
 {
     Assert(dbName);
     Assert(StrLen(dbName) < dmDBNameLength);
@@ -78,17 +78,28 @@ Err PrefsStoreReader::ErrOpenPrefsDatabase()
         return errNone;
     }
 
+    // we already tried to open the database but couldn't, so don't try again
+    if (_fDbNotFound)
+        return psErrNoPrefDatabase;
+
     LocalID dbId;
     Err err = ErrFindDatabaseByNameTypeCreator(_dbName, _dbType, _dbCreator, &dbId);
     if (dmErrCantFind==err)
-        return psErrNoPrefDatabase;
+    {
+        err = psErrNoPrefDatabase;
+        goto ExitAndMarkNotFound;
+    }
     if (err)
-        return err;
+        goto ExitAndMarkNotFound;
     Assert(0!=dbId);
 
     _db = DmOpenDatabase(0, dbId, dmModeReadWrite);
     if (!_db)
-        return DmGetLastErr();
+    {
+        err = DmGetLastErr();
+        Assert(err);
+        goto ExitAndMarkNotFound;
+    }
 
     UInt16 recsCount = DmNumRecords(_db);
     for (UInt16 recNo = 0; recNo < recsCount; recNo++)
@@ -104,7 +115,11 @@ Err PrefsStoreReader::ErrOpenPrefsDatabase()
         MemHandleUnlock(_recHandle);
         _recHandle = NULL;
     }
-    return psErrNoPrefDatabase;  // should it be more specific psErrNoPrefRecord?
+
+    err = psErrNoPrefDatabase;
+ExitAndMarkNotFound:
+    _fDbNotFound = true;
+    return err;
 }
 
 static char *deserStringInPlace(unsigned char **data, long *pCurrBlobSize)

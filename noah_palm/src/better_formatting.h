@@ -52,6 +52,8 @@ typedef struct {
 typedef struct {
     int         listStyle;
     PackedRGB   bgCol;
+    Boolean     fEnablePronunciation;
+    Boolean     fEnablePronunciationSpecialFonts;
     DisplayElementPrefs pos;
     DisplayElementPrefs word;
     DisplayElementPrefs definition;
@@ -60,8 +62,6 @@ typedef struct {
     DisplayElementPrefs defList;
     DisplayElementPrefs posList;
     DisplayElementPrefs pronunciation;
-    Boolean             enablePronunciation;
-    Boolean             enablePronunciationSpecialFonts;
 } DisplayPrefs;
 
 typedef enum {  //when displayed - reverse ordered !!!!
