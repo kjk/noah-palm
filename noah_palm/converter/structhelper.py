@@ -8,6 +8,8 @@
 # are names and values are extracted values
 
 # Author: Krzysztof Kowalczyk
+# krzysztofk@pobox.com
+
 from __future__ import generators
 import struct,string
 
@@ -44,21 +46,32 @@ def GetFmtFromMetadata(dataDef, isBigEndian=True):
         fmt = ">" + fmt
     return fmt
 
-def ExtractDataUsingFmt(dataDef,packedData,fmt):
+def UnpackDataUsingFmt(dataDef,packedData,fmt):
     unpackedData = struct.unpack(fmt,packedData)
     retDict = {}
     for (name,val) in zip(iterlist(dataDef,step=2),unpackedData):
         retDict[name] = val
     return retDict
 
-def ExtractData(dataDef, packedData, isBigEndian=False):
+def UnpackData(dataDef, packedData, isBigEndian=False):
     """Given definition of packed data in format ['name', 'fmt', ...]
     return a dict that maps names to values extracted from packedData.
     isBigEndian says if numerics in packedData are packed in
     big endian(motorola)/network order (false by default because Intel
     uses little endian"""
     fmt = GetFmtFromMetadata(dataDef, isBigEndian)
-    return ExtractDataUsingFmt(dataDef,packedData,fmt)
+    return UnpackDataUsingFmt(dataDef,packedData,fmt)
+
+def PackData(dataDef,dataValues,isBigEndign=False):
+    """Given definition of packed data in dataDef and a dict dataValues
+    with a value for each data, return packed data"""
+    values = []
+    for name in iterlist(dataDef,step=2):
+        val = dataValues[name]
+        values.append(val)
+    fmt = GetFmtFromMetadata(dataDef,isBigEndian)
+    packedData = struct.pack(fmt,*values)
+    return packedData
 
 if __name__=="__main__":
     _testJoin()

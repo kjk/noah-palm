@@ -1,7 +1,6 @@
 # dump the Noah's dictionary pdb format
 
-# Author: Krzysztof Kowalczyk
-# krzyszotfk@pobox.com
+# Author: Krzysztof Kowalczyk# krzyszotfk@pobox.com
 
 from __future__ import generators
 import string,struct
@@ -66,7 +65,7 @@ def _extractSimpleFirstRecordData(data):
     fmt = structhelper.GetFmtFromMetadata(simpleFirstRecDef)
     assert 18 == struct.calcsize(fmt)
     assert len(data) >= struct.calcsize(fmt)
-    firstRec = structhelper.ExtractDataUsingFmt(simpleFirstRecDef,data,fmt)
+    firstRec = structhelper.UnpackDataUsingFmt(simpleFirstRecDef,data,fmt)
     return firstRec
 
 def _extractWnProFirstRecordData(data):
@@ -83,7 +82,7 @@ def _extractWnProFirstRecordData(data):
     else:
         firstRecHdr = data
         synsetCachePacked = None
-    firstRec = structhelper.ExtractDataUsingFmt(wnProFirstRecDef,firstRecHdr,fmt)
+    firstRec = structhelper.UnpackDataUsingFmt(wnProFirstRecDef,firstRecHdr,fmt)
     synCache = []
     if synsetCachePacked:
         for i in range(len(synsetCachePacked)/SYN_CACHE_REC_SIZE):
@@ -132,6 +131,12 @@ def _dumpPackStrings(packStrings,condensed):
             str += "\n"
     print str
 
+def unpackData(data,packStrings):
+    l = []
+    for c in data:
+        l.append(packStrings[ord(c)])
+    return string.join(l,"")
+
 def _iterPackedChars(recData,packStrings):
     for c in recData:
         txt = packStrings[ord(c)]
@@ -161,13 +166,6 @@ def _iterWords(recData,packStrings):
             # so we start it right away
             currWord += c
         
-def _dumpWords(recData,packStrings):
-    """Given a data of a record with compressed words and pack strings
-    used to compress the words, dump the words"""
-    for w in _iterWords(recData,packStrings):
-        print w
-
-
 def _dumpRecWithPackStrings(data,condensed=False):
     packStrings = _extractPackStrings(data)
     _dumpPackStrings(packStrings,condensed)
@@ -196,20 +194,188 @@ def _dumpWordCacheRecord(recData):
         (wordNo,recNo,recOffset) = struct.unpack(">LHH",entryData)
         print "  word=%d,recNo=%d,recOffset=%d" % (wordNo,recNo,recOffset)
 
+class SimpleDictionaryData:
+    def __init__(self,db):
+        self.db = db
+        self.firstRec = None
+        self.wordsPackStrings = None
+        self.defsPackStrings = None
+        self.wordsList = None
+        self.defsDataList = None
+        self.posData = None
+    
+    def getWordCacheRecord(self):
+        return self.db.records[1].data
+
+    def fHasPosData(self):
+        fHasPos = self.getAttr("hasPosInfoP")
+        return fHasPos
+
+    def getPosData(self):
+        """Return continuous pos (part-of-speech) data (i.e. if originally it's in
+        more than one record, return concatenated data from all records"""
+        if self.posData == None and self.fHasPosData():
+            firstPosRec = 4 + self.getAttr("wordsRecsCount") + self.getAttr("defsLenRecsCount") + self.getAttr("defsRecsCount")
+            data = ""
+            for n in range(self.getAttr("posRecsCount")):
+                data += self.db.records[firstPosRec+n].data
+            assert len(data)>0
+            self.posData = data
+        return self.posData
+
+    def getPosByWord(self,word):
+        wordNo = self._getWordNo(word)
+        pos = wordNo / 4
+        posData = self.getPosData()
+        b = ord(posData[pos])
+        rest = wordNo % 4
+        b = b >> 2*rest
+        b = b & 3
+        pos = ["noun", "verb", "adj.", "adv."][b]
+        return pos
+
+    def getWordsPackStrings(self):
+        if self.wordsPackStrings == None:
+            self.wordsPackStrings = _extractPackStrings(self.db.records[2].data)
+        return self.wordsPackStrings
+
+    def getDefsPackStrings(self):
+        if self.defsPackStrings == None:
+            self.defsPackStrings = _extractPackStrings(self.db.records[3].data)
+        return self.defsPackStrings
+
+    def getAttr(self,var):
+        if self.firstRec == None:
+            self.firstRec = _extractSimpleFirstRecordData(self.db.records[0].data)
+        return self.firstRec[var]
+
+    def getWordsRecsData(self):
+        l = []
+        for i in range(self.getAttr("wordsRecsCount")):
+            l.append(self.db.records[4+i].data)
+        return l
+
+    def _constructWordsList(self):
+        if self.wordsList == None:
+            wordsList = []
+            for rec in self.getWordsRecsData():
+                for w in _iterWords(rec,self.getWordsPackStrings()):
+                    wordsList.append(w)
+            self.wordsList = wordsList
+        return self.wordsList
+
+    def _getRecsWithDefLens(self):
+        recsList = []
+        firstRecWithDefLens = 4 + self.getAttr("wordsRecsCount")
+        recsWithDefLens = self.getAttr("defsLenRecsCount")
+        for i in range(recsWithDefLens):
+            recsList.append( self.db.records[firstRecWithDefLens+i].data )
+        return recsList
+
+    def _constructDefsDataList(self):
+        if self.defsDataList == None:
+            defsDataList = []
+            recsWithDefLens = self._getRecsWithDefLens()
+            currOffset = 0
+            currLen = 0
+            needMore = 0
+            for recData in recsWithDefLens:
+                for c in recData:
+                    if needMore == 2:
+                        needMore = 1
+                        currLen = ord(c)
+                    elif needMore == 1:
+                        needMore = 0
+                        currLen = currLen * 256 + ord(c)
+                    else:
+                        currLen = ord(c)
+                        if currLen == 255:
+                            needMore = 2
+                    if needMore == 0:
+                        defData = (currOffset,currLen)
+                        defsDataList.append(defData)
+                        currOffset += currLen
+            self.defsDataList = defsDataList
+        return self.defsDataList
+
+    def _convertOffsetToRecOffset(self,offset):
+        """Given a total offset of the defintion, convert it to an offset within a record
+        i.e. retun record number and offset in the record"""
+        rec = 4 + self.getAttr("wordsRecsCount") + self.getAttr("defsLenRecsCount")
+        while offset >= len(self.db.records[rec].data):
+            offset -= len(self.db.records[rec].data)
+            rec += 1
+        return (rec,offset)
+
+    def getWordsList(self):
+        self._constructWordsList()
+        return self.wordsList
+
+    def _getWordNo(self,word):
+        wordsList = self._constructWordsList()
+        n = 0
+        for w in wordsList:
+            if w == word:
+                return n
+            n += 1
+        assert 0, "Word %s has not been found" % word
+
+    def getDefByWord(self,word):
+        no = self._getWordNo(word)
+        return self.getDef(no)
+
+    def getDefPosition(self,no):
+        defsDataList = self._constructDefsDataList()
+        data = defsDataList[no]
+        offset = data[0]
+        len = data[1]
+        (rec,offsetInRec) = self._convertOffsetToRecOffset(offset)
+        return (rec,offsetInRec,len)
+
+    def getDefLenOffsetByWord(self,word):
+        no = self._getWordNo(word)
+        defsDataList = self._constructDefsDataList()
+        data = defsDataList[no]
+        offset = data[0]
+        len = data[1]
+        return (offset,len)
+
+    def getDef(self,no):
+        (rec,offsetInRec,len) = self.getDefPosition(no)
+        data = self.db.records[rec].data
+        compressedDef = data[offsetInRec:offsetInRec+len]
+        uncompressedDef = unpackData(compressedDef,self.getDefsPackStrings())
+        return uncompressedDef
+
 def _dumpSimpleData(db):
+    fPrintWords = False
+    fPrintDefs = False
     print "Record 0:"
-    firstRecData = db.records[0].data
-    firstRec = _extractSimpleFirstRecordData(firstRecData)
+    simpleDictData = SimpleDictionaryData(db)
     for name in structhelper.iterlist(simpleFirstRecDef,step=2):
-        print "%s: %d" % (name, firstRec[name])
+        print "%s: %d" % (name, simpleDictData.getAttr(name))
     print "Record 1: record with word cache"
-    _dumpWordCacheRecord(db.records[1].data)
+    _dumpWordCacheRecord(simpleDictData.getWordCacheRecord())
     print "wordsPackStrings"
-    _dumpRecWithPackStrings(db.records[2].data,True)
+    _dumpPackStrings(simpleDictData.getWordsPackStrings(),True)
     print "defsPackStrings"
-    _dumpRecWithPackStrings(db.records[3].data,True)
-    packedStrings = _extractPackStrings(db.records[2].data)
-    _dumpWords(db.records[4].data,packedStrings)
+    _dumpPackStrings(simpleDictData.getDefsPackStrings(),True)
+    packedStrings = simpleDictData.getWordsPackStrings()
+    wordsRecsCount = simpleDictData.getAttr("wordsRecsCount")
+    for word in simpleDictData.getWordsList():
+        (offset,len) = simpleDictData.getDefLenOffsetByWord(word)
+        if simpleDictData.fHasPosData():
+            pos = simpleDictData.getPosByWord(word)
+            if fPrintWords:
+                #print "%s, %s (%d,%d)" % (word,pos,offset,len)
+                print "%s (%s)" % (word,pos)
+        else:
+            if fPrintWords:
+                print "%s" % (word)
+                #print "%s, (%d,%d)" % (word,offset,len)
+        d = simpleDictData.getDefByWord(word)
+        if fPrintDefs:
+            print d
 
 def _dumpGeneric(db):
     print '%d records in "%s"' % (len(db.records), db.name)
@@ -231,7 +397,6 @@ def _dumpGeneric(db):
     else:
         print "Unknown dbType ('%s'), must be 'wn20' or 'wnet' or 'simp'" % db.dbType
         
-        
 
 def dumpNoahPdb(fileName):
     print "Dumping file %s" % fileName
@@ -245,4 +410,3 @@ _fileDevilOrig = r"C:\kjk\src\mine\dict_data\pdb\originals\devil.pdb"
 if __name__ == '__main__':
     #dumpNoahPdb( _fileMediumOld )
     dumpNoahPdb( _fileDevilOrig )
-

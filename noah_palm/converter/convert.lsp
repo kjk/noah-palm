@@ -721,7 +721,7 @@ build the actual data to do compression"
 	     (word-packer-total-compressed-words-len packer))))
 
 ;; create another word cache entry (i.e. that's where we store the
-;; whole, uncompressed word so we can quickly localize words nearby
+;; whole, uncompressed word so we can quickly locate words nearby
 (defmethod packer-add-word-cache-entry ((packer word-packer) word)
   (push (make-word-cache-info :word-number
 			      (word-packer-current-word packer)

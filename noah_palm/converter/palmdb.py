@@ -123,8 +123,6 @@ class PDB(object):
         if fileName==None: return
         self._readHeader()
 
-        self._t = 5
-
     def _raiseInvalidFile(self):
         # TODO: better exception
         raise ValueError( "%s is not a valid PDB file" % self.fileName )
@@ -182,7 +180,7 @@ class PDB(object):
          self._nextRecordList,recordsCount) = struct.unpack(">32sHHLLLLLL4s4sLLH", headerData)
         self._name = self._name.strip("\x00")
 
-        #self._header = structhelper.ExtractData(hdrDef,headerData,isBigEndian=True)
+        #self._header = structhelper.UnpackData(hdrDef,headerData,isBigEndian=True)
         #self._header["name"] = self._header["name"].strip("\x00")
 
         # sanity checkig of the pdb file
