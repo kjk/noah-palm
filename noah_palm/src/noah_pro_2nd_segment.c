@@ -724,7 +724,7 @@ ChooseDatabase:
             {
                 --appContext->penUpsToConsume;
                 handled = true;
-                break;
+                //break;
             }
 
             if(cbPenUpEvent(appContext,event->screenX,event->screenY))

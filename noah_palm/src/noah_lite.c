@@ -435,7 +435,7 @@ static Boolean MainFormHandleEventNoahLite(EventType * event)
             {
                 --appContext->penUpsToConsume;
                 handled = true;
-                break;
+                //break;
             }
             if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
             {
