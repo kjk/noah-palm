@@ -10,6 +10,7 @@
 #include "inet_word_lookup.h"
 #include "bookmarks.h"
 #include "words_list_form.h"
+#include "blowfish.h"
 
 #ifdef DEBUG
 // This is a full HTTP response we get on device when asking for word "glib"
