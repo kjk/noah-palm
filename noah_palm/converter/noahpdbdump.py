@@ -3,8 +3,8 @@
 # Author: Krzysztof Kowalczyk
 
 #from __future__ import generators
-import palmdb,struct
-import structhelper
+import string,struct
+import palmdb,structhelper
 
 NoahProCreator = "NoAH"
 WnProType = "wn20"
@@ -63,6 +63,40 @@ def _extractWnProFirstRecordData(data):
             synCache.append(unpackedTuple)
     return (firstRec,synCache)
 
+def _extractBigEndianInt(data):
+    i = struct.unpack(">H",data[0:2])
+    return (i[0],data[2:])
+
+# There are 256 pack strings i.e. they map a byte to a string (possibly one-char string)
+# This data is encoded in one record. This proc decoded this data and returns as 256-element
+# array where array elements are strings
+def _extractPackStrings(data):
+    (maxComprStrLen,data) = _extractBigEndianInt(data)
+    print "maxComprStrLen=%d" % maxComprStrLen
+    stringsByLen = []
+    total = 0
+    for tmp in range(maxComprStrLen):
+        (count,data) = _extractBigEndianInt(data)
+        stringsByLen.append(count)
+        total += count
+    assert total == 256
+    packStrings = []
+    strLen = 1
+    for count in stringsByLen:
+        for n in range(count):
+            str = data[:strLen]
+            data = data[strLen:]
+            packStrings.append(str)
+        strLen += 1
+    return packStrings
+
+def _dumpPackStrings(packStrings):
+    for (s,pos) in zip(packStrings,range(len(packStrings))):
+        if len(s)==1 and ord(s[0])<=ord(' '):
+            print "%d=%d" % (pos,ord(s[0]))
+        else:
+            print "%d=%s" % (pos,s)
+
 def _dumpWnProData(db):
     firstRecData = db.records[0].data
     (firstRec,synCache) = _extractWnProFirstRecordData(firstRecData)
@@ -70,6 +104,12 @@ def _dumpWnProData(db):
         print "%s: %d" % (name, firstRec[name])
     for s in synCache:
         print "synsetNo=%d, wordsCount=%d" % s
+    wordsPackStrings = _extractPackStrings(db.records[2].data)
+    defsPackStrings  = _extractPackStrings(db.records[3].data)
+    print "wordsPackStrings"
+    _dumpPackStrings(wordsPackStrings)
+    print "defsPackStrings"
+    _dumpPackStrings(defsPackStrings)
 
 def _dumpWnLiteData(db):
     pass
