@@ -75,3 +75,13 @@ MemPtr new_malloc_zero(long size)
 }
 #endif
 
+#if defined(__cplusplus) && defined(MEM_LEAKS)
+
+void operator delete(void* p)
+{
+    if (p)
+        new_free_fn(p, "", 0); 
+}
+
+#endif 
+
