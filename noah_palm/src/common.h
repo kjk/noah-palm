@@ -15,6 +15,7 @@
 #include "mem_leak.h"
 #include "display_info.h"
 #include "extensible_buffer.h"
+#include "better_formatting.h"
 
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)
@@ -193,6 +194,7 @@ typedef struct _AppContext
     long               currentWord;
     long               wordsCount;
     int                firstDispLine;
+    int                lastDispLine;
     long               listItemOffset;
     long               prevTopItem;
     int                penUpsToConsume;
@@ -281,7 +283,6 @@ void    dh_display_string(const char *str, int font, int dy);
 void    ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey);
 void ClearDisplayRectangle(AppContext* appContext);
 void DrawCenteredString(AppContext* appContext, const char *str, int dy);
-void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y, int maxLines);
 void    DrawWord(char *word, int pos_y);
 char *  GetNthTxt(int n, char *txt);
 char *  GetWnPosTxt(int partOfSpeech);
@@ -300,9 +301,9 @@ void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void    strtolower(char *txt);
 void AddToHistory(AppContext* appContext, UInt32 wordNo);
 void FreeHistory(AppContext* appContext);
-void    SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx);
 Boolean FTryClipboard(AppContext* appContext);
 #endif
+void    SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx);
 
 Boolean dictNew(AbstractFile* file);
 void dictDelete(AbstractFile* file);

@@ -53,7 +53,7 @@
             <ROW>0</ROW>
             <COLUMN>0</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.424686</PCTWIDTH>
+            <PCTWIDTH>0.389371</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -78,7 +78,7 @@
             <ROW>0</ROW>
             <COLUMN>1</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.276436</PCTWIDTH>
+            <PCTWIDTH>0.125446</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -103,7 +103,7 @@
             <ROW>0</ROW>
             <COLUMN>2</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.298878</PCTWIDTH>
+            <PCTWIDTH>0.485183</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -112,37 +112,9 @@
         </DOCKINFO>
     </WINDOW>
     <WINDOW>
-        <SESSION>-1</SESSION>
-        <EDOCTYPE>1</EDOCTYPE>
-        <PATH USERELATIVEPATHS = "true">..\..\src\noah_lite.c</PATH>
-        <MAXIMIZED>true</MAXIMIZED>
-        <FRAMELOC>
-            <X>4</X>
-            <Y>4</Y>
-        </FRAMELOC>
-        <FRAMESIZE>
-            <W>654</W>
-            <H>491</H>
-        </FRAMESIZE>
-        <DOCKINFO>
-            <STATUS>0</STATUS>
-            <ROW></ROW>
-            <COLUMN></COLUMN>
-            <DOCKBARID></DOCKBARID>
-            <PCTWIDTH></PCTWIDTH>
-            <HGT></HGT>
-            <GROUPID>
-                <GIDHIGHPART></GIDHIGHPART>
-                <GIDLOWPART></GIDLOWPART>
-            </GROUPID>
-        </DOCKINFO>
-    </WINDOW>
-    <WINDOW>
         <SESSION>-2147483648</SESSION>
         <EDOCTYPE>36</EDOCTYPE>
-        <DEFAULT>true</DEFAULT>
         <PATH USERELATIVEPATHS = "false"></PATH>
-        <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
             <X>8</X>
             <Y>45</Y>
@@ -167,9 +139,7 @@
     <WINDOW>
         <SESSION>-2147483648</SESSION>
         <EDOCTYPE>23</EDOCTYPE>
-        <DEFAULT>true</DEFAULT>
         <PATH USERELATIVEPATHS = "false"></PATH>
-        <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
             <X>0</X>
             <Y>0</Y>

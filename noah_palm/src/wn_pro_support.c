@@ -921,6 +921,16 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     syn = start_syn;
     end_p = false;
 
+            if(FormatWantsWord(appContext))
+            {
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_SYNONYM);
+                word = wn_get_word((void *) wi, wordNo);
+                ebufAddStr(&wi->buffer, word);
+                ebufAddChar(&wi->buffer, '\n');
+            }
+
+
     while (!end_p)
     {
         Assert(syn < wi->synsetsCount);
@@ -937,6 +947,9 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         /* if word found add up the definition */
         if (2 == res)
         {
+            ebufAddChar(&wi->buffer, FORMAT_TAG);
+            ebufAddChar(&wi->buffer, FORMAT_POS);
+
             ebufAddChar(&wi->buffer, 149);
             ebufAddChar(&wi->buffer, ' ');
 
@@ -947,20 +960,62 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             wordsCount = si_get_words_count(wi->file, si, syn);
             Assert(wordsCount > 0);
 
-            for (w = 0; w < wordsCount; w++)
+            if(wordsCount > 1 && FormatWantsWord(appContext))
             {
-                wordNumFound = si_get_word_no(wi->file, si, syn, w);
-                word = wn_get_word((void *) wi, wordNumFound);
-                ebufAddStr(&wi->buffer, word);
-                if (w == wordsCount - 1)
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_WORD);
+            }
+            else
+            if(!FormatWantsWord(appContext))
+            {
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_WORD);
+            }
+            //all words
+            if(!FormatWantsWord(appContext))
+                for (w = 0; w < wordsCount; w++)
                 {
-                    txt = "\n";
+                    wordNumFound = si_get_word_no(wi->file, si, syn, w);
+                    word = wn_get_word((void *) wi, wordNumFound);
+                
+                    ebufAddStr(&wi->buffer, word);
+                    if (w == wordsCount - 1)
+                    {
+                        txt = "\n";
+                    }
+                    else
+                    {
+                        txt = ", ";
+                    }
+                    ebufAddStr(&wi->buffer, txt);
                 }
-                else
+            else
+            //only synonyms!
+            if(wordsCount > 1)
+            {  
+                wordsCount--;
+                for (w = 0; w < wordsCount; w++)
                 {
-                    txt = ", ";
+                    wordNumFound = si_get_word_no(wi->file, si, syn, w);
+                    word = wn_get_word((void *) wi, wordNumFound);
+                    if(wordNo == wordNumFound)
+                    {
+                        w++;
+                        wordsCount++;
+                        wordNumFound = si_get_word_no(wi->file, si, syn, w);
+                        word = wn_get_word((void *) wi, wordNumFound);
+                    }
+                    ebufAddStr(&wi->buffer, word);
+                    if (w == wordsCount - 1)
+                    {
+                        txt = "\n";
+                    }
+                    else
+                    {
+                        txt = ", ";
+                    }
+                    ebufAddStr(&wi->buffer, txt);
                 }
-                ebufAddStr(&wi->buffer, txt);
             }
 
             first_rec_with_defs_len = 4 + wi->wordsRecsCount +
@@ -1009,12 +1064,17 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
                 if (1 == unpackedDef[0])
                 {
+                    ebufAddChar(&wi->buffer, FORMAT_TAG);
+                    ebufAddChar(&wi->buffer, FORMAT_DEFINITION);
                     txt = " ";
                 }
                 else
                 {
+                    ebufAddChar(&wi->buffer, FORMAT_TAG);
+                    ebufAddChar(&wi->buffer, FORMAT_EXAMPLE);
                     txt = " \"";
                 }
+
                 ebufAddStr(&wi->buffer, txt);
                 ebufAddStrN(&wi->buffer, (char *) (unpackedDef - len), len);
 
@@ -1027,6 +1087,13 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 ++unpackedDef;
                 Assert(unpackedLen >= 0);
             }
+            //shakesort is natural sort method! if its sorted it's only =O(N)
+            if(GetDisplayListStyle(appContext)!=0)
+                if(ShakeSortExtBuf(&wi->buffer))
+                {
+                    SetGlobalBackColor(appContext);
+                    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-8, appContext->screenWidth-FRM_RSV_H);
+                }
 
             ebufReset(&wi->bufferTemp);
             ebufAddStrN(&wi->bufferTemp, ebufGetDataPointer(&wi->buffer), ebufGetDataSize(&wi->buffer));
@@ -1037,6 +1104,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             diSetRawTxt(&wi->displayInfo, rawTxt);
             if (0 == syn_found_count)
             {
+                SetGlobalBackColor(appContext);            
                 ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-8, appContext->screenWidth-FRM_RSV_H);
             }
             DrawDisplayInfo(&wi->displayInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);

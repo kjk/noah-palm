@@ -39,7 +39,9 @@ BEGIN
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
     MENUITEM "Translate clipboard"     ID menuItemTranslate     "T"
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
-/*    MENUITEM "Display Prefs"           ID menuItemDispPrefs    "D" */
+#ifndef DONT_DO_BETTER_FORMATTING
+    MENUITEM "Display Prefs"           ID menuItemDispPrefs     "I" 
+#endif
     MENUITEM "Help"                    ID menuItemHelp          "H"
     MENUITEM "About"                   ID menuItemAbout         "A"
     MENUITEM "Stress"                  ID menuItemStress        "T"
@@ -66,7 +68,9 @@ BEGIN
     MENUITEM "Copy to clipboard"       ID menuItemCopy         "C"
     MENUITEM "Translate clipboard"     ID menuItemTranslate    "T"
     MENUITEM "Preferences"             ID menuItemPrefs        "P"
-/*    MENUITEM "Display Prefs"           ID menuItemDispPrefs "D" */
+#ifndef DONT_DO_BETTER_FORMATTING
+    MENUITEM "Display Prefs"           ID menuItemDispPrefs    "I" 
+#endif
     MENUITEM "Help"                    ID menuItemHelp         "H"
     MENUITEM "About"                   ID menuItemAbout        "A"
   END
@@ -148,14 +152,29 @@ FORM formDisplayPrefs AT (0 0 160 160)
 USABLE
 FRAME
 BEGIN
-   TITLE  "Display preferences"
+   TITLE  "Display"
 
-   BUTTON "Main text"    buttonHeadword     AT ( 12        20       AUTO AUTO) FONT 0
-   BUTTON "Definition"   buttonDefinition   AT (PrevLeft PrevTop+20 AUTO AUTO) FONT 0
-   BUTTON "Example"      buttonExample      AT (PrevLeft PrevTop+20 AUTO AUTO) FONT 0
-   BUTTON "Ok"           buttonOk           AT ( 40       120       AUTO AUTO) FONT 0
-   BUTTON "Cancel"       buttonCancel       AT ( 80       120       AUTO AUTO) FONT 0
-END
+   POPUPTRIGGER "Layout 1" popupListStyle AT (100 1 AUTO AUTO) LEFTANCHOR
+   LIST "Layout 1" "Layout 2" "Layout 3" ID listListStyle AT (PREVLEFT PREVTOP + 2 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
+   POPUPLIST popupListStyle listListStyle
+
+   POPUPTRIGGER "part of speach" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
+   LIST "word" "part of speach" "synonyms" "small list" "big list" "definition" "example"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
+   POPUPLIST popupActTag listActTag
+
+   BUTTON ""             buttonGlobalBGcol  AT (RIGHT@160-2    16      20   10) FONT 0
+   LABEL "Background:"                    AUTOID AT (RIGHT@PrevLeft-2  15) FONT 0
+
+   BUTTON "Font"         buttonFpos         AT ( 10               29      AUTO AUTO) FONT 0
+   BUTTON ""             buttonCOLpos       AT ( 95               PrevTop    20   AUTO) FONT 0
+   LABEL "Text:"                     AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
+   BUTTON ""             buttonBGpos        AT (RIGHT@160 - 2     PrevTop    20   AUTO) FONT 0
+   LABEL "Bg:"                       AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
+
+   BUTTON "Ok"           buttonOk           AT (center@30  BOTTOM@160-1 40 AUTO)  FONT 0
+   BUTTON "Cancel"       buttonCancel       AT (center@80  BOTTOM@160-1 40 AUTO)  FONT 0
+   BUTTON "Default"      buttonDefault      AT (center@130 BOTTOM@160-1 40 AUTO)  FONT 0
+END 
 
 FORM formDictFind AT (0 0 160 160)
 USABLE

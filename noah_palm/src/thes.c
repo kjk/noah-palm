@@ -107,6 +107,8 @@ static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
         {
             serString( appContext->wordHistory[i], prefsBlob, &blobSize );
         }
+        /* 8. better formatting data*/
+        serData( (char*)&appContext->prefs.displayPrefs, (long)sizeof(appContext->prefs.displayPrefs), prefsBlob, &blobSize );
 
         if ( 1 == phase )
         {
@@ -204,6 +206,8 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
     {
         appContext->wordHistory[i] = deserString( &prefsBlob, &blobSize );
     }
+    /* 8. better formatting data*/
+    deserData( (unsigned char*)&appContext->prefs.displayPrefs, (long)sizeof(appContext->prefs.displayPrefs), &prefsBlob, &blobSize );
 }
 
 static void SavePreferencesThes(AppContext* appContext)
@@ -419,6 +423,12 @@ static Err AppCommonInit(AppContext* appContext)
     appContext->prefs.hwButtonScrollType = scrollPage;
     appContext->prefs.dbStartupAction = dbStartupActionAsk;
     appContext->prefs.lastDbUsedName = NULL;
+    // fill out the default display preferences
+    appContext->prefs.displayPrefs.listStyle = 2;
+#ifdef DONT_DO_BETTER_FORMATTING
+    appContext->prefs.displayPrefs.listStyle = 0;
+#endif
+    SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);
     LoadPreferencesThes(appContext);
@@ -1071,6 +1081,10 @@ ChooseDatabase:
 #endif
                 case menuItemPrefs:
                     FrmPopupForm(formPrefs);
+                    break;
+
+                case menuItemDispPrefs:
+                    FrmPopupForm(formDisplayPrefs);
                     break;
                     
                 case menuItemFindPattern:
@@ -1752,6 +1766,10 @@ static Boolean HandleEventThes(AppContext* appContext, EventType * event)
             break;
         case formPrefs:
             FrmSetEventHandler(frm, PrefFormHandleEventThes);
+            handled = true;
+            break;
+        case formDisplayPrefs:
+            FrmSetEventHandler(frm, DisplayPrefFormHandleEventNoahPro);
             handled = true;
             break;
         case formDictFindPattern:

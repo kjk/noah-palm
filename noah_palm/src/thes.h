@@ -47,6 +47,7 @@ typedef struct
     char                    lastDbName[dmDBNameLength];
     char                    lastWord[dmDBNameLength];
     char *                  lastDbUsedName;
+    DisplayPrefs            displayPrefs;
 } ThesPrefs;
 
 typedef ThesPrefs AppPrefs;

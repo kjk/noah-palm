@@ -107,6 +107,9 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     {
         appContext->wordHistory[i] = deserString( &prefsBlob, &blobSize );
     }
+    /* 8. better formatting data*/
+    deserData( (unsigned char*)&appContext->prefs.displayPrefs, (long)sizeof(appContext->prefs.displayPrefs), &prefsBlob, &blobSize );
+    
 }
 
 static void LoadPreferencesNoahPro(AppContext* appContext)
@@ -266,6 +269,14 @@ Err AppCommonInit(AppContext* appContext)
     appContext->prefs.hwButtonScrollType = scrollPage;
     appContext->prefs.dbStartupAction = dbStartupActionAsk;
     appContext->prefs.lastDbUsedName = NULL;
+
+    // fill out the default display preferences
+    appContext->prefs.displayPrefs.listStyle = 2;
+#ifdef DONT_DO_BETTER_FORMATTING
+    appContext->prefs.displayPrefs.listStyle = 0;
+#endif
+    SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
+
 
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);

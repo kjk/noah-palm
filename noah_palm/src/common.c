@@ -247,6 +247,7 @@ void SetTextColor(AppContext* appContext, RGBColorType *color)
     if ( GetOsVersion(appContext) >= 40 )
     {
         WinSetTextColorRGB (color, NULL);
+        WinSetForeColorRGB (color, NULL);
     }
 }
 
@@ -280,21 +281,25 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
 {
     FormType    *frm;
     Short        min, max, value, page_size;
+    AppContext  *appContext = GetAppContext();
 
-    if (maxLines > diGetLinesCount(di))
+    SetGlobalBackColor(appContext);
+    if ((appContext->lastDispLine - firstLine + 1) > diGetLinesCount(di))
     {
         HideScrollbar();
+        SetBackColorWhite(appContext); 
         return;
     }
 
-    if (maxLines + firstLine > diGetLinesCount(di))
+    if ((appContext->lastDispLine + 1) > diGetLinesCount(di))
     {
         /* ??? */
+        SetBackColorWhite(appContext); 
         return;
     }
 
     min = 0;
-    page_size = maxLines;
+    page_size = (appContext->lastDispLine - firstLine + 1);
     max = diGetLinesCount(di) - page_size;
     value = firstLine;
 
@@ -303,6 +308,7 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     // Noah Pro and not lite/thes
     SclDrawScrollBar( (ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)) );
     SclSetScrollBar((ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)), value, min, max, page_size);
+    SetBackColorWhite(appContext); 
 }
 
 void DisplayHelp(AppContext* appContext)
@@ -415,6 +421,7 @@ void DrawDescription(AppContext* appContext, long wordNo)
 
 void ClearDisplayRectangle(AppContext* appContext)
 {
+    SetGlobalBackColor(appContext);
     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth - DRAW_DI_X, appContext->screenHeight - DRAW_DI_Y - FRM_RSV_H);
 }
 
@@ -485,6 +492,7 @@ void dh_display_string(const char *str, int font, int dy)
 
 /* display maxLines from DisplayInfo, starting with first line,
 starting at x,y  coordinates */
+/*
 void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
                 int maxLines)
 {
@@ -498,7 +506,6 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     Assert(firstLine >= 0);
     Assert(maxLines > 0);
 
-/*    SetTextColorRed(); */
 
     fontDY = FntCharHeight();
 
@@ -516,20 +523,18 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
         {
             FntSetFont((FontID) 1);
             prev_font = (FontID) 1;
-/*            SetTextColorRed(); */
         }
         else if (prev_font != 0)
         {
             FntSetFont((FontID) 0);
             prev_font = (FontID) 0;
-/*            SetTextColorRed(); */
         }
         WinDrawChars(line, StrLen(line), x, curY);
         curY += fontDY;
     }
     FntSetFont(prev_font);
 }
-
+*/
 /* max width of the word displayed at the bottom */
 #define MAX_WORD_DX        100
 
@@ -1031,16 +1036,18 @@ void DefScrollUp(AppContext* appContext, ScrollType scroll_type)
     if ((scrollNone == scroll_type) || (NULL == di) || (0 == appContext->firstDispLine))
         return;
 
+    to_scroll = appContext->lastDispLine - appContext->firstDispLine;
+
     switch (scroll_type)
     {
     case scrollLine:
         to_scroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = appContext->dispLinesCount / 2;
+        to_scroll = to_scroll / 2;
         break;
     case scrollPage:
-        to_scroll = appContext->dispLinesCount;
+        to_scroll = to_scroll;
         break;
     default:
         Assert(0);
@@ -1052,6 +1059,7 @@ void DefScrollUp(AppContext* appContext, ScrollType scroll_type)
     else
         appContext->firstDispLine = 0;
 
+    SetGlobalBackColor(appContext); //global back color
     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H);
     DrawDisplayInfo(di, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(di, appContext->dispLinesCount, appContext->firstDispLine);
@@ -1068,9 +1076,11 @@ void DefScrollDown(AppContext* appContext, ScrollType scroll_type)
     if ((scrollNone == scroll_type) || (NULL == di))
         return;
 
-    invisible_lines = diGetLinesCount(di) - appContext->firstDispLine - appContext->dispLinesCount;
+    invisible_lines = diGetLinesCount(di) - appContext->lastDispLine - 1;
     if (invisible_lines <= 0)
         return;
+
+    to_scroll = appContext->lastDispLine - appContext->firstDispLine;
 
     switch (scroll_type)
     {
@@ -1078,10 +1088,10 @@ void DefScrollDown(AppContext* appContext, ScrollType scroll_type)
         to_scroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = appContext->dispLinesCount / 2;
+        to_scroll = to_scroll / 2;
         break;
     case scrollPage:
-        to_scroll = appContext->dispLinesCount;
+        to_scroll = to_scroll;
         break;
     default:
         Assert(0);
@@ -1093,6 +1103,7 @@ void DefScrollDown(AppContext* appContext, ScrollType scroll_type)
     else
         appContext->firstDispLine += invisible_lines;
 
+    SetGlobalBackColor(appContext); //global back color
     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H);
     DrawDisplayInfo(di, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(di, appContext->dispLinesCount, appContext->firstDispLine);

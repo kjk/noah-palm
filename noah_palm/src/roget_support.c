@@ -119,6 +119,7 @@ Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
     char *          posTxt;
     char *          rawTxt;
     int             pos;
+    AppContext    * appContext = GetAppContext();
 
     unsigned char *words_in_syn_count_data = NULL;
     long words_left;
@@ -138,6 +139,14 @@ Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
     wordNums = (UInt16 *) fsLockRecord(info->file, wordsInSynRec);
     words_left = fsGetRecordSize(info->file, wordsInSynRec) / 2;
 
+    if(FormatWantsWord(appContext))
+    {
+        ebufAddChar(&info->buffer, FORMAT_TAG);
+        ebufAddChar(&info->buffer, FORMAT_SYNONYM);
+        word = RogetGetWord(info, wordNo);
+        ebufAddStr(&info->buffer, word);
+        ebufAddChar(&info->buffer, '\n');
+    }
     for (i = 0; i < info->synsetsCount; i++)
     {
         word_present_p = 0;
@@ -156,6 +165,8 @@ Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
 
         if (word_present_p)
         {
+            ebufAddChar(&info->buffer, FORMAT_TAG);
+            ebufAddChar(&info->buffer, FORMAT_POS);
             ebufAddChar(&info->buffer, 149);
             ebufAddChar(&info->buffer, ' ');
 
@@ -167,17 +178,47 @@ Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
             ebufAddStr(&info->buffer, posTxt);
             ebufAddChar(&info->buffer, ' ');
 
-            for (j = 0; j < wordCount; j++)
+            if(!FormatWantsWord(appContext))
             {
-                thisWordNo = (UInt32) wordNums[j];
-                word = RogetGetWord(info, thisWordNo);
-                ebufAddStr(&info->buffer, word);
-                if (j != (wordCount - 1))
+                ebufAddChar(&info->buffer, FORMAT_TAG);
+                ebufAddChar(&info->buffer, FORMAT_WORD);
+    
+                for (j = 0; j < wordCount; j++)
                 {
-                    ebufAddStr(&info->buffer, ", ");
+                    thisWordNo = (UInt32) wordNums[j];
+                    word = RogetGetWord(info, thisWordNo);
+                    ebufAddStr(&info->buffer, word);
+                    if (j != (wordCount - 1))
+                    {
+                        ebufAddStr(&info->buffer, ", ");
+                    }
                 }
+                ebufAddChar(&info->buffer, '\n');
             }
-            ebufAddChar(&info->buffer, '\n');
+            else
+            if(FormatWantsWord(appContext) && wordCount > 1)
+            {
+                ebufAddChar(&info->buffer, FORMAT_TAG);
+                ebufAddChar(&info->buffer, FORMAT_WORD);
+                wordCount--;
+                for (j = 0; j < wordCount; j++)
+                {
+                    thisWordNo = (UInt32) wordNums[j];
+                    if(thisWordNo == wordNo)
+                    {
+                        j++;
+                        wordCount++;
+                        thisWordNo = (UInt32) wordNums[j];
+                    }
+                    word = RogetGetWord(info, thisWordNo);
+                    ebufAddStr(&info->buffer, word);
+                    if (j != (wordCount - 1))
+                    {
+                        ebufAddStr(&info->buffer, ", ");
+                    }
+                }
+                ebufAddChar(&info->buffer, '\n');
+            }
         }
         wordNums += wordCount;
         words_left -= wordCount;

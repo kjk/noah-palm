@@ -9,6 +9,7 @@
 #include "five_way_nav.h"
 #include "word_matching_pattern.h"
 #include "bookmarks.h"
+#include "better_formatting.h"
 
  // Create a blob containing serialized prefernces.
 // Devnote: caller needs to free memory returned.
@@ -87,6 +88,8 @@ void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
         {
             serString(appContext->wordHistory[i], prefsBlob, &blobSize);
         }
+        /* 8. better formatting data*/
+        serData( (char*)&appContext->prefs.displayPrefs, (long)sizeof(appContext->prefs.displayPrefs), prefsBlob, &blobSize );
 
         if ( 1 == phase )
         {
@@ -1392,35 +1395,6 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
             break;
     }
     return handled;
-}
-
-static Boolean DisplayPrefFormHandleEventNoahPro(EventType* event)
-{
-    AppContext* appContext=GetAppContext();
-    switch (event->eType)
-    {
-        case frmOpenEvent:
-            FrmDrawForm(FrmGetActiveForm());
-            return true;
-
-        case ctlSelectEvent:
-            switch (event->data.ctlSelect.controlID)
-            {
-                case buttonOk:
-                    SavePreferencesNoahPro(appContext);
-                case buttonCancel:
-                    FrmReturnToForm(0);
-                    break;
-                default:
-                    Assert(0);
-                    break;
-            }
-            return true;
-
-        default:
-            break;
-    }
-    return false;
 }
 
 static Boolean HandleEventNoahPro(AppContext* appContext, EventType * event)

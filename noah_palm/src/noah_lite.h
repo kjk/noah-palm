@@ -14,6 +14,7 @@
 typedef struct
 {
     char                lastWord[WORD_MAX_LEN];
+    DisplayPrefs        displayPrefs;
 } NoahLitePrefs;
 
 typedef NoahLitePrefs AppPrefs;

@@ -70,3 +70,19 @@
 // Falch.net PilRC Designer
 //
 #define   helpPrefs               7001
+
+//Better Formatting //9000 - 9100
+#define   menuItemDispPrefs       9000
+#define   formDisplayPrefs        9001
+
+#define   buttonFpos              9010
+#define   buttonCOLpos            9014
+#define   buttonBGpos             9018
+#define   buttonDefault           9030
+
+#define   popupListStyle          9040
+#define   popupActTag             9041
+#define   listListStyle           9043
+#define   listActTag              9044
+
+#define   buttonGlobalBGcol       9050

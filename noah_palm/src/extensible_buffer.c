@@ -6,6 +6,7 @@
 #include <PalmOS.h>
 #include "extensible_buffer.h"
 #include "common.h"
+#include "better_formatting.h"
 
 /* Kind of like a constructor in C++ */
 ExtensibleBuffer *ebufNew(void)
@@ -192,6 +193,7 @@ void ebufAddStr(ExtensibleBuffer * buf, char *str)
   if a give line doesn't fit in one line on a display, wrap it
   into as many lines as needed
  */
+/* 
 void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start)
 {
     char *txt;
@@ -214,9 +216,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     FntCharsInWidth(txt, &string_dx, &string_len, &fits);
     if (fits)
         return;
-    /* doesn't fit, so we have to cut it */
-    /* find last space or some other charactar that is save
-       to wrap around */
+ 
     pos = string_len - 1;
     found = false;
     while ((pos > 0) && (found == false))
@@ -247,12 +247,11 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     }
     if (found == false)
     {
-        /* didn't find so just brutally insert a newline */
         ebufInsertChar(buf, '\n', line_start + string_len - 1);
         pos = line_start + string_len;
     }
 }
-
+*/
 /* wrap all lines that are too long to fit on the screen */
 void ebufWrapBigLines(ExtensibleBuffer *buf)
 {
@@ -262,10 +261,23 @@ void ebufWrapBigLines(ExtensibleBuffer *buf)
     int spaces;
     int line_len;
     Boolean line_start;
+    AppContext* appContext=GetAppContext();
+    FontID prevfont;
 
+    prevfont = FntGetFont();
+
+    curr_pos = 0;
     txt = ebufGetDataPointer(buf);
     len = ebufGetDataSize(buf);
-    curr_pos = 0;
+
+    if(GetDisplayListStyle(appContext)!=0)
+    {
+        ShakeSortExtBuf(buf);
+        Format1OnSortedBuf(GetDisplayListStyle(appContext), buf);
+        Format2OnSortedBuf(GetDisplayListStyle(appContext), buf);
+        txt = ebufGetDataPointer(buf);
+        len = ebufGetDataSize(buf);
+    }    
 
     /* find every line, calculate the number of spaces at its
        beginning & fetch this to a proc that will wrap this line
@@ -284,7 +296,7 @@ void ebufWrapBigLines(ExtensibleBuffer *buf)
             while ((curr_pos + line_len < len)
                    && (txt[curr_pos + line_len] != '\n'))
                 ++line_len;
-            ebufWrapLine(buf, curr_pos, line_len, spaces);
+            ebufWrapLine(buf, curr_pos, line_len, spaces, appContext);
             /* this might have changed our buffer, so we have to re-get it */
             txt = ebufGetDataPointer(buf);
             len = ebufGetDataSize(buf);
@@ -296,5 +308,6 @@ void ebufWrapBigLines(ExtensibleBuffer *buf)
         ++curr_pos;
     }
     while (curr_pos < len);
+    FntSetFont(prevfont);
 }
 

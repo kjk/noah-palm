@@ -90,6 +90,13 @@ static Err InitNoahLite(AppContext* appContext)
     appContext->currentStressWord = 0;
 #endif
 
+    // fill out the default display preferences
+    appContext->prefs.displayPrefs.listStyle = 0;
+#ifdef DONT_DO_BETTER_FORMATTING
+    appContext->prefs.displayPrefs.listStyle = 0;
+#endif
+    SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
+
     SyncScreenSize(appContext);
     FsInit(&appContext->fsSettings);
 

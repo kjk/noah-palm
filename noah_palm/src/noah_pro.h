@@ -31,6 +31,7 @@
    upgrades of the program.
  */
 
+#include "better_formatting.h"
 /* structure of the general preferences record */
 typedef struct
 {
@@ -41,6 +42,7 @@ typedef struct
     DatabaseStartupAction   dbStartupAction;
     char                    lastWord[WORD_MAX_LEN];
     char *                  lastDbUsedName;
+    DisplayPrefs			displayPrefs;
 } NoahPrefs;
 
 typedef NoahPrefs AppPrefs;
