@@ -415,6 +415,26 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
     return handled;
 }
 
+static bool isDigit(char c)
+{
+    if (c>='0' && c<='9')
+        return true;
+    return false;
+}
+
+// remove in-place all non-digits from buf. buf must be null-terminated.
+static void RemoveNonDigits(char *buf)
+{
+    char *tmp = buf;
+    while (*buf)
+    {
+        if (isDigit(*buf))
+            *tmp++ = *buf;
+        buf++;
+    }
+    *tmp = '\0';
+}
+
 // Show a registration dialog where a user enters registration code.
 // if fDeleteAfterCancel is set to true, we'll remove the registration code
 // from preferences. We want this behavior if "re-enter registration code" was
@@ -467,6 +487,7 @@ static void MainFormHandleRegister(AppContext* appContext, bool fDeleteAfterCanc
             regCodeLen=MAX_REG_CODE_LENGTH;
         }
         SafeStrNCopy((char*)appContext->prefs.regCode, sizeof(appContext->prefs.regCode), regCode, regCodeLen);
+        RemoveNonDigits( (char*)appContext->prefs.regCode );
         // save preferences just for sure - so that we don't loose regCode
         // in case of a crash
         SavePreferencesInoah(appContext);

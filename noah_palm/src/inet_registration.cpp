@@ -31,25 +31,26 @@ static Err RegistrationPrepareRequest(const char* cookie, const char* serialNumb
     UInt16  snLength=StrLen(serialNumber);
     char *  urlEncSn=NULL;
     error=StrUrlEncode(serialNumber, serialNumber+snLength+1, &urlEncSn, &snLength); // StrUrlEncode preserves null-terminator
-    if (!error) 
+    if (error)
+        return error;
+
+    UInt16 cookieLength=StrLen(cookie);
+    char* urlEncCookie=NULL;
+    error=StrUrlEncode(cookie, cookie+cookieLength+1, &urlEncCookie, &cookieLength);
+    if (error)
+        return error;
+    
+    char* url=TxtParamString(registrationRequestUrl, PROTOCOL_VERSION, CLIENT_VERSION, urlEncCookie, urlEncSn);
+    if (url)
     {
-        UInt16 cookieLength=StrLen(cookie);
-        char* urlEncCookie=NULL;
-        error=StrUrlEncode(cookie, cookie+cookieLength+1, &urlEncCookie, &cookieLength);
-        if (!error)
-        {
-            char* url=TxtParamString(registrationRequestUrl, PROTOCOL_VERSION, CLIENT_VERSION, urlEncCookie, urlEncSn);
-            if (url)
-            {
-                ebufAddStr(&buffer, url);
-                MemPtrFree(url);
-            }
-            else
-                error=memErrNotEnoughSpace;
-            new_free(urlEncCookie);
-        }
-        new_free(urlEncSn);
+        ebufAddStr(&buffer, url);
+        MemPtrFree(url);
     }
+    else
+        error=memErrNotEnoughSpace;
+    ebufAddChar(&buffer, chrNull);
+    new_free(urlEncCookie);
+    new_free(urlEncSn);
     return error;    
 }
 
@@ -81,7 +82,7 @@ void StartRegistration(AppContext* appContext, const char* serialNumber)
         Err error=RegistrationPrepareRequest(appContext->prefs.cookie, serialNumber, requestBuffer);
         if (!error)
         {
-            const Char* requestText=ebufGetDataPointer(&requestBuffer);
+            const char* requestText=ebufGetDataPointer(&requestBuffer);
             StartConnection(appContext, NULL, requestText, GeneralStatusTextRenderer,
                 RegistrationResponseProcessor, NULL);
         }
