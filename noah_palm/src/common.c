@@ -1161,7 +1161,7 @@ void StopTiming(AppContext* appContext)
     buf = ebufNew();
     Assert(buf);
     ebufAddStr(buf, appContext->recordSpeedDescription);
-    tmpString = new_malloc(maxStrIToALen);
+    tmpString = (char *)new_malloc(maxStrIToALen);
     StrPrintF(tmpString, "%ld", appContext->recordSpeedTicksCount);
     ebufAddStr(buf, tmpString);
     new_free(tmpString);
