@@ -457,11 +457,7 @@ static void FinalizeConnection(AppContext* appContext, ConnectionData* connData)
     ebufSwap(&response, &connData->response);
     const Char* begin=ebufGetDataPointer(&response);
     const Char* end=begin+ebufGetDataSize(&response);
-
-/*
-        const Char* begin=deviceMessageResponse;
-        const Char* end=begin+StrLen(begin);
-*/        
+       
     void* context=connData->context;
     connData->context=NULL;
     ConnectionResponseProcessor* responseProcessor=connData->responseProcessor;

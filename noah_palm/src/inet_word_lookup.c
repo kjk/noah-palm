@@ -14,46 +14,8 @@
 #define randomWordRequestParam "get_random_word="
 #define recentLookupsRequestParam "recent_lookups="
 
-#define randomWordURL           "/palm.php?pv=^0&cv=^1&c=^2&get_random_word"
-
-#ifdef DEBUG
-
-static const char* deviceWordsListResponse = 
-    "WORDLIST\xd" "\xa" 
-    "word\xd" "\xa" 
-    "work\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\x0";
-  
-static const char* deviceMessageResponse = 
-    "MSG\xd" "\xa" 
-    "There's a new version of iNoah available.\xd" "\xa" 
-    "Please visit www.arslexis.com to get it.\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\xd" "\xa" 
-    "\x0";
-    
-/*
-void testParseResponse(char *txt)
-{
-    Err              err;
-    ConnectionData   connData;
-
-    ebufInitWithStr(&connData.response, txt);
-
-    err = ParseResponse(&connData);
-    Assert( errNone == err );
-}
-*/
-
-#endif
+//not used
+//#define randomWordURL           "/palm.php?pv=^0&cv=^1&c=^2&get_random_word"
 
 inline static Err WordLookupRenderStatusText(const char* word, ConnectionStage stage, UInt16 bytesReceived, const char* baseText, ExtensibleBuffer& statusText)
 {
