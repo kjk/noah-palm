@@ -47,6 +47,14 @@
     (dolist (one-test test-data)
       (assert-equal (third one-test) (mismatch (first one-test) (second one-test))))))
 
+(defun test-write-num (n)
+  (with-open-file
+      (ostream "test.bin" :direction :output :if-exists :supersede)
+    (write-int16 n ostream)))
+
+(defun test-write ()
+  (test-write-num 0))
+
 (defun run-utests ()
   (textui-test-run (get-suite utest)))
 

@@ -145,7 +145,7 @@ those chars that are not common"
 (defun write-multibyte-int (num no-bytes stream)
   "write an int as n-byte integer in big-endian (motorola)
 format to an output stream"
-  (mapc #'(lambda (x) (write-char (int->char x) stream))
+  (mapc #'(lambda (x) (write-byte x stream))
 	  (int->bytes num no-bytes)))
 
 (defun write-int32 (num stream)
@@ -158,7 +158,10 @@ format to an output stream"
   (write-multibyte-int num 2 stream))
 
 (defun write-int8 (num stream)
-  (write-char (int->char num) stream))
+  (write-byte num stream))
+
+(defun write-string-as-bytes (s ostream)
+  (map nil #'(lambda (c) (write-byte (char-code c) ostream)) s))
 
 ;; functions that operate on PDB structure
 (defconstant +days-in-a-month+ '(31 29 31 30 31 30 31 31 30 31 30 31))
@@ -590,7 +593,7 @@ build the actual data to do compression"
 
 (defmethod write-record ((record pdb-record) stream)
   (dolist (str (reverse (slot-value record 'str-list)))
-	  (write-string str stream)))
+	  (write-string-as-bytes str stream)))
 
 (defun pdb-set-dates (pdb)
   "set creation,modification,last backup dates on a pdb"
@@ -607,7 +610,7 @@ build the actual data to do compression"
   (push record (pdb-record-list pdb)))
 
 (defun write-pdb-header (pdb stream)
-  (write-string (make-const-len-string 32 (pdb-name pdb) (int->char 0)) stream)
+  (write-string-as-bytes (make-const-len-string 32 (pdb-name pdb) (int->char 0)) stream)
   (write-int16  (pdb-file-attributes pdb) stream)
   (write-int16  (pdb-version pdb) stream)
   (write-int32  (pdb-creation-date pdb) stream)
@@ -616,21 +619,21 @@ build the actual data to do compression"
   (write-int32  (pdb-modification-number pdb) stream)
   (write-int32  (pdb-app-info-area pdb) stream)
   (write-int32  (pdb-sort-info-area pdb) stream)
-  (write-string (pdb-db-type pdb) stream)
-  (write-string (pdb-creator-id pdb) stream)
+  (write-string-as-bytes (pdb-db-type pdb) stream)
+  (write-string-as-bytes (pdb-creator-id pdb) stream)
   (write-int32  0 stream) ; seed-id is always zero
   (write-int32  0 stream) ; next-record-list is always zero
   (format t "~% number of records: ~D~&" (length (pdb-record-list pdb)))
   (write-int16  (length (pdb-record-list pdb)) stream))
 
-(defun write-pdb-record (filename record)
-  (with-open-file
-   (ostream filename :direction :output :if-exists :supersede)
-   (write-record record ostream)))
+;;(defun write-pdb-record (filename record)
+;;   (with-open-file
+;;    (ostream filename :direction :output :if-exists :supersede :element-type 'unsigned-byte)
+;;    (write-record record ostream)))
 
 (defun write-pdb (pdb-name pdb)
   (with-open-file
-   (ostream pdb-name :direction :output :if-exists :supersede)
+   (ostream pdb-name :direction :output :if-exists :supersede :element-type 'unsigned-byte)
    (write-pdb-header pdb ostream)
   ;; for every pdb record we need to write record header,
   ;; which is record offset in the file + record attributes
@@ -903,8 +906,7 @@ in a record"
                 (format out-stream "~A~%" key)) hash)))
 
 (defun make-words-hash-from-file (file)
-  (let ((hash (make-hash-table :test 'equal :size 50000))
-	(word ""))
+  (let ((hash (make-hash-table :test 'equal :size 50000)))
     (with-open-file
      (in-stream file :direction :input)
      (do ((l (read-line in-stream) (read-line in-stream nil 'eof)))
@@ -1909,6 +1911,11 @@ in a record"
     (do-wordnet-full "WN full" "wn_full.pdb" 't)
     (do-wordnet-full "WN full lite" "wn_full_lite.pdb" nil))
     (do-wordnet-demo "WN demo" "wn_demo.pdb"))
+
+(defun do-wn_small ()
+  (let* ((hash (make-engpol-words-hash))
+	(accept-small (make-wn-accept-hook-small hash)))
+    (do-wordnet-limit accept-small "WN small" "wn_small.pdb")))
 
 ;;(defun do-special ()
 ;;  (let* ((hash (make-special-words-hash))
