@@ -289,6 +289,10 @@ void DisplayAbout(AppContext* appContext)
 
 static void MainFormReflow(AppContext* appContext, FormType* frm)
 {
+    // a hack. proper version: don't even get here if it's not os <3.5
+    if (GetOsVersion(appContext)<=35)
+        return;
+
     UpdateFrmBounds(frm);
 
     FrmSetObjectPosByID(frm, ctlArrowLeft, -1, appContext->screenHeight-12);
@@ -317,6 +321,7 @@ static void MainFormReflow(AppContext* appContext, FormType* frm)
 
 }
 
+// Handle winDisplayChangedEvent
 static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Assert( DIA_Supported(&appContext->diaSettings) );
@@ -325,11 +330,16 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
 
     MainFormReflow(appContext, frm);
 
+    // For some reason on 5.3 sim I also get it just by opening the menu
+    // which sucks (we re-get and re-display the word here) so I'm dispabling
+    // this. doesn't seem to have negative impact
+#if 0
     // TODO: optimize, only do when dx screen size has changed
     // HACK: we should have currentWord = -1 and check for that instead
     // (currently currentWord = 0 here)
     if (appContext->currDispInfo)
         SendNewWordSelected();
+#endif
 
     RedrawMainScreen(appContext);
     return true;

@@ -2368,12 +2368,12 @@ Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, 
 }
 
 // Open a database given its name, creator and type. Return NULL if database not found.
-DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type)
+DmOpenRef OpenDbByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator)
 {
     Err                 err;
     LocalID             dbId;
 
-    err = ErrFindDatabaseByNameTypeCreator(dbName, creator, type, &dbId);
+    err = ErrFindDatabaseByNameTypeCreator(dbName, type, creator, &dbId);
     if (err)
         return NULL;
 

@@ -545,7 +545,7 @@ extern AbstractFile* FindOpenDatabase(AppContext* appContext, const char* name);
 #endif // I_NOAH
 
 Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, LocalID *dbId);
-DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type);
+DmOpenRef OpenDbByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator);
 
 /**
  * Calculates the @c current to @c total ratio and 

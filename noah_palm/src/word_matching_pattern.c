@@ -40,7 +40,7 @@ Err OpenMatchingPatternDB(AppContext* appContext)
     if (appContext->wmpCacheDb)
         return errNone;
 
-    appContext->wmpCacheDb = OpenDbByNameCreatorType(WORD_MATCHING_PATTERN_DB, APP_CREATOR, WORD_MATCHING_PATTERN_TYPE);
+    appContext->wmpCacheDb = OpenDbByNameTypeCreator(WORD_MATCHING_PATTERN_DB, WORD_MATCHING_PATTERN_TYPE, APP_CREATOR);
     if (appContext->wmpCacheDb)
         return errNone;
 
@@ -48,7 +48,7 @@ Err OpenMatchingPatternDB(AppContext* appContext)
     if ( errNone != err)
         return err;
 
-    appContext->wmpCacheDb = OpenDbByNameCreatorType(WORD_MATCHING_PATTERN_DB, APP_CREATOR, WORD_MATCHING_PATTERN_TYPE);
+    appContext->wmpCacheDb = OpenDbByNameTypeCreator(WORD_MATCHING_PATTERN_DB, WORD_MATCHING_PATTERN_TYPE, APP_CREATOR);
     if (!appContext->wmpCacheDb)
         return dmErrCantOpen;
 

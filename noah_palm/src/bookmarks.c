@@ -62,7 +62,7 @@ static Err OpenBookmarksDB(AppContext* appContext, BookmarkSortType sortType)
 
     CloseBookmarksDB(appContext);
 
-    appContext->bookmarksDb = OpenDbByNameCreatorType(dbName, APP_CREATOR, BOOKMARKS_DB_TYPE);
+    appContext->bookmarksDb = OpenDbByNameTypeCreator(dbName, BOOKMARKS_DB_TYPE, APP_CREATOR);
 
     if (!appContext->bookmarksDb)
     {
@@ -70,7 +70,7 @@ static Err OpenBookmarksDB(AppContext* appContext, BookmarkSortType sortType)
         if ( errNone != err)
             return err;
 
-        appContext->bookmarksDb = OpenDbByNameCreatorType(dbName, APP_CREATOR, BOOKMARKS_DB_TYPE);
+        appContext->bookmarksDb = OpenDbByNameTypeCreator(dbName, BOOKMARKS_DB_TYPE, APP_CREATOR);
         if (!appContext->bookmarksDb)
             return dmErrCantOpen;
     }
