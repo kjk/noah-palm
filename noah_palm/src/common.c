@@ -2036,9 +2036,12 @@ Err AppNotifyFree(AppContext* appContext, Boolean beResident)
         error=SysCurAppDatabase(&cardNo, &localId);
         if (error) 
             goto OnError;
-        error=SysNotifyRegister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, NULL, sysNotifyNormalPriority, NULL);	
-        if (error) 
-            goto OnError;
+        if (40<=GetOsVersion(appContext))
+        {
+            error=SysNotifyRegister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, NULL, sysNotifyNormalPriority, NULL);	
+            if (error) 
+                goto OnError;
+        }                
     }
 OnError:
     if (!beResident)

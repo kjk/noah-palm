@@ -42,4 +42,11 @@ typedef enum AppEvent_
     lookupProgressEvent=firstUserEvent,
 } AppEvent;
 
+typedef enum MainFormContent_
+{
+    mainFormShowsAbout,
+    mainFormShowsDefinition,
+    mainFormShowsMessage,
+} MainFormContent;
+
 #endif

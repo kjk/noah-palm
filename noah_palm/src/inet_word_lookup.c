@@ -546,12 +546,12 @@ void PerformLookupTask(AppContext* appContext)
     }
     else
     {
+/*
         const Char* begin=deviceWordsListResponse;
         const Char* end=begin+StrLen(begin);
-/*
+*/        
         const Char* begin=ebufGetDataPointer(&connData->response);
         const Char* end=begin+ebufGetDataSize(&connData->response);
-*/        
         const Char* word=ebufGetDataPointer(&connData->wordToFind);
         ResponseParsingResult result=ProcessResponse(appContext, word, begin, end);
         AbortCurrentLookup(appContext, true, result);

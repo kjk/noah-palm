@@ -76,6 +76,18 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
     WinPopDrawState();
 }
 
+static void MainFormDisplayDefinition(AppContext* appContext)
+{
+    UInt16 top=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
+    UInt16 linesCount=(appContext->screenHeight-FRM_RSV_H-top)/FONT_DY;
+    WinPushDrawState();
+    SetBackColorWhite(appContext);
+    ClearRectangle(0, top, appContext->screenWidth, appContext->screenHeight - top - FRM_RSV_H);
+    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, 0, top, linesCount);
+    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+    WinPopDrawState();
+}
+
 static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCode=redrawAll)
 {
     switch (updateCode)
@@ -84,19 +96,23 @@ static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCo
             FrmDrawForm(form);
             WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
             WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
-            if (!appContext->currDispInfo)
-                MainFormDisplayAbout(appContext);
-            else 
+            switch (appContext->mainFormContent)
             {
-                UInt16 top=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
-                UInt16 linesCount=(appContext->screenHeight-FRM_RSV_H-top)/FONT_DY;
-                WinPushDrawState();
-                SetBackColorWhite(appContext);
-                ClearRectangle(0, top, appContext->screenWidth, appContext->screenHeight - top - FRM_RSV_H);
-                DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, 0, top, linesCount);
-                SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
-                WinPopDrawState();
-            } 
+                case mainFormShowsAbout:
+                    MainFormDisplayAbout(appContext);
+                    break;
+                
+                case mainFormShowsDefinition:
+                    MainFormDisplayDefinition(appContext);
+                    break;
+                    
+                case mainFormShowsMessage:
+                    Assert(false); //! @todo Implement MainFormDisplayMessage()
+                    break;
+                                        
+                default:
+                    Assert(false);
+            }
             if (!appContext->lookupStatusBarVisible) 
                 break; // fall through in case we should redraw status bar
                 
@@ -137,6 +153,7 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
             switch (data->result)
             {
                 case responseOneWord:
+                    appContext->mainFormContent=mainFormShowsDefinition;
                     appContext->firstDispLine=0;
                     index=FrmGetObjectIndex(form, fieldWordInput);
                     Assert(frmInvalidObjectId!=index);
@@ -146,6 +163,7 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
                     break;
                     
                 case responseMessage:
+                    appContext->mainFormContent=mainFormShowsMessage;
                     Assert(false); //! @todo Show received message.
                     break;
                     
@@ -189,7 +207,17 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
         Assert(field);
         newWord=FldGetTextPtr(field);
         if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
-            StartLookup(appContext, newWord);            
+            StartLookup(appContext, newWord);
+        else if (mainFormShowsDefinition!=appContext->mainFormContent)
+        {
+            cbNoSelection(appContext);
+            appContext->mainFormContent=mainFormShowsDefinition;
+            const Char* currentDefinition=ebufGetDataPointer(&appContext->currentDefinition);
+            Assert(currentDefinition!=NULL);
+            Assert(appContext->currDispInfo);
+            diSetRawTxt(appContext->currDispInfo, const_cast<Char*>(currentDefinition));
+            FrmUpdateForm(formDictMain, redrawAll);
+        } 
     }
 }
 
@@ -326,14 +354,9 @@ static Boolean MainFormScrollExit(AppContext* appContext, FormType* form, EventT
 
 inline static void MainFormHandleAbout(AppContext* appContext)
 {
-    if (appContext->currDispInfo)
-    {
-        diFree(appContext->currDispInfo);
-        appContext->currDispInfo=NULL;
-        cbNoSelection(appContext);
-        ebufFreeData(&appContext->currentWordBuf);
-        FrmUpdateForm(formDictMain, redrawAll);    
-    }
+    appContext->mainFormContent=mainFormShowsAbout;
+    cbNoSelection(appContext);
+    FrmUpdateForm(formDictMain, redrawAll);    
 }
 
 inline static void MainFormHandleCopy(AppContext* appContext)

@@ -91,15 +91,31 @@ static Boolean WordsListFormFieldChanged(AppContext* appContext, FormType* form,
     return true;
 }
 
-static void ScrollWordsList(const FormType* form, UInt16 listId, Int16 delta)
+static void ScrollBoundedList(const FormType* form, UInt16 listId, Int16 delta)
 {
     Assert(form);
     UInt16 index=FrmGetObjectIndex(form, listId);
     Assert(frmInvalidObjectId!=index);
     ListType* list=static_cast<ListType*>(FrmGetObjectPtr(form, index));
     Assert(list);
-    Int16 currentPos=LstGetSelection(list);
-    
+    Int16 position=LstGetSelection(list);
+    if (noListSelection==position)
+        position=LstGetTopItem(list);
+    position+=delta;
+    if (position<0) 
+        position=0;
+    else 
+    {
+        UInt16 itemsCount=LstGetNumberOfItems(list);
+        if (position>itemsCount)
+            position=itemsCount-1;
+    }
+    LstSetSelection(list, position);
+}
+
+inline static void WordsListFormScrollList(const FormType* form, Int16 delta)
+{
+    ScrollBoundedList(form, listProposals, delta);
 }
 
 static Boolean WordsListFormControlSelected(AppContext* appContext, FormType* form, const EventType* event)
@@ -110,12 +126,12 @@ static Boolean WordsListFormControlSelected(AppContext* appContext, FormType* fo
     switch (controlId)
     {
         case ctlArrowLeft:
-//            ScrollWordListByDx(appContext, form, -(appContext->dispLinesCount-1));
+            WordsListFormScrollList(form,  -(appContext->dispLinesCount-1));
             handled=true;
             break;                
         
         case ctlArrowRight:
-//            ScrollWordListByDx(appContext, form, (appContext->dispLinesCount-1));
+            WordsListFormScrollList(form, (appContext->dispLinesCount-1));
             handled=true;
             break;      
             
@@ -163,7 +179,7 @@ static Boolean WordsListFormKeyDown(AppContext* appContext, FormType* form, Even
         case pageUpChr:
             if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
             {
-//                ScrollWordListByDx( appContext, form, -(appContext->dispLinesCount-1) );
+                WordsListFormScrollList(form, -(appContext->dispLinesCount-1));
                 handled=true;
             }
             break;
@@ -171,7 +187,7 @@ static Boolean WordsListFormKeyDown(AppContext* appContext, FormType* form, Even
         case pageDownChr:
             if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
             {
-//                ScrollWordListByDx( appContext, form, (appContext->dispLinesCount-1) );
+                WordsListFormScrollList(form, (appContext->dispLinesCount-1));
                 handled=true;
             }
             break;
@@ -188,22 +204,22 @@ static Boolean WordsListFormKeyDown(AppContext* appContext, FormType* form, Even
             
                 if (FiveWayDirectionPressed(appContext, event, Left ))
                 {
-//                    ScrollWordListByDx(appContext, form, -(appContext->dispLinesCount-1));
+                    WordsListFormScrollList(form, -(appContext->dispLinesCount-1));
                     handled=true;
                 }
                 if (FiveWayDirectionPressed(appContext, event, Right ))
                 {
-//                    ScrollWordListByDx( appContext, form, (appContext->dispLinesCount-1) );
+                    WordsListFormScrollList(form, (appContext->dispLinesCount-1));
                     handled=true;
                 }
                 if (FiveWayDirectionPressed(appContext, event, Up ))
                 {
-//                    ScrollWordListByDx( appContext, form, -1 );
+                    WordsListFormScrollList(form, -1);
                     handled=true;
                 }
                 if (FiveWayDirectionPressed(appContext, event, Down ))
                 {
-//                    ScrollWordListByDx( appContext, form, 1 );
+                    WordsListFormScrollList(form, 1);
                     handled=true;
                 }
             }

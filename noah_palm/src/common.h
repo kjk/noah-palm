@@ -331,9 +331,11 @@ typedef struct _AppContext
     ExtensibleBuffer currentWordBuf;
     void* currentLookupData;
     Boolean lookupStatusBarVisible;
+    ExtensibleBuffer lastMessage;
     
     Char** wordsList;
     UInt16 wordsInListCount;
+    MainFormContent mainFormContent;
     
 #endif      
 
