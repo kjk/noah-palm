@@ -164,6 +164,8 @@ def SimpleDictEntriesGen(fileName):
                 dictEntry = SimpleDictEntry( [lemma,pos,defBody] )
                 yield dictEntry
             else:
+                if len(defBody) > 0:
+                    defBody += " "
                 defBody += string.strip(line)
 
 def SimpleDictEntriesSortedGen(fileName):
@@ -203,7 +205,7 @@ class WordCompressor:
         self.lastInCommon = prefixLen
         self.prevWord = word
         if prefixLen==0:
-            return word
+            return chr(0) + word
         else:
             #Undone: which one is faster?
             #return struct.pack("c%ds"%(len(w)-prefixLen),chr(prefixLen),w[prefixLen:])
@@ -223,31 +225,11 @@ class WordCompressor:
         self.prevWord = ''
         self.lastInCommon = 0
 
-class FreqTable:
-    def __init__(self,dx,dy):
-        self.freqTable = [0 for i in range(dx*dy)]
-        self.dx = dx
-        self.dy = dy
-    def inc(self,x,y):
-        self.freqTable[x+y*dy] += 1
-    def incStr(self,str):
-        x = ord(str[0])
-        for c in str[1:]:
-            y = ord(c)
-            self.inc(x,y)
-            x = y
-
-# Given a list of strings return the data representing those
-# strings as packed in the format of records for pdb file
-# i.e. a tuple of the following records:
-# - list of records with packed strings
-# - record with word cache
-# - record with data needed to uncompress strings
-def buildPdbDataForPackedStringsFromStrings(strs):
-    recsWithPackedStrings = []
-    recWithWordCache = palmdb.PDBRecordFromData(None)
-    recWithDecompressionData = palmdb.PDBRecordFromData(None)
-    return (recsWithPackedStrings,recWithWordCache,recWithDecompressionData)
+def testWordCompressor():
+    wc = WordCompressor()
+    for w in ["abasement", "abatis", "abdication"]:
+        wCompressed = wc.compress(w)
+        print wCompressed
 
 def compressedWordsGen(words):
     """Generate compressed words from a collection of words"""
@@ -371,11 +353,221 @@ def _buildDummyStringCompressor():
     comp = StringCompressor(packStrings)
     return comp
 
+def _getSmallestFreq( l ):
+    m = l[0] # min value
+    for el in l[1:]:
+        if el[0] < m:
+            m = el[0]
+    return m
+
+def _getPosOfThisFreq(l,freq):
+    n = 0
+    for el in l:
+        if el[0] == freq:
+            return n
+        n += 1
+    assert 0, "didn't find this freq in the list"
+
+def _freqSortFunc(x,y):
+    freqX = x[0]
+    freqY = y[0]
+    if freqX > freqY:
+        return -1
+    elif freqX < freqY:
+        return 1
+    else:
+        return 0
+
+def _freqSortFuncByCompression(x,y):
+    freqX = x[0]
+    strX = x[1]
+    valX = freqX*(len(strX)-1)
+    freqY = y[0]
+    strY = y[1]
+    valY = freqY*(len(strY)-1)
+    if valX > valY:
+        return -1
+    elif valX < valY:
+        return 1
+    else:
+        return 0 
+
+def _sortByLenFunc(x,y):
+    if len(x) > len(y):
+        return 1
+    elif len(x) < len(y):
+        return -1
+    else:
+        return 0
+
+def dumpListByFreq(l):
+    lCopy = copy.copy(l)
+    lCopy.sort( _freqSortFunc )
+    for el in lCopy:
+        freq = el[0]
+        s = el[1]
+        print "freq: %d, '%s'" % (freq,s)
+
+def sortStringsByLen(l):
+    l.sort(_sortByLenFunc )
+
+def sortFreqList(l):
+    """List l contains elements that are 2-element arrays, first element is a
+    number (frequency) and second is a string. Sort the list in-place by frequency"""
+    #l.sort( _freqSortFunc )
+    l.sort( _freqSortFuncByCompression )
+
+class CompInfoGen:
+    """Given a list of strings, generate compression info (packStrings)"""
+    def __init__(self):
+        self.table = {}
+        self.FREQ_IDX = 0
+        self.NEXT_TABLE_IDX = 1
+        self.FULL_STR_IDX = 2
+        self.STR_MAX_LEN = 5
+
+    def _incStr(self,s):
+        currTable = self.table
+        for c in s:
+            if not currTable.has_key(c):
+                currTable[c] = [0,{},""]
+            prevTable = currTable
+            currTable = currTable[c][self.NEXT_TABLE_IDX]
+        prevTable[c][self.FREQ_IDX] += 1
+        prevTable[c][self.FULL_STR_IDX] = s
+
+    def incStr(self,s):
+        for n in range(self.STR_MAX_LEN):
+            strLen = n+1
+            substringsCount = len(s)-strLen+1
+            if substringsCount > 0:
+                for i in range(substringsCount):
+                    currStr = s[i:i+strLen]
+                    self._incStr(currStr)
+
+    def _getFlattenedFreqList(self,result=[],table=None):
+        if table==None:
+            table = self.table
+        # first add all strings to result table
+        for c in table.keys():
+            if len(table[c][self.FULL_STR_IDX])>1:
+                result.append( [table[c][self.FREQ_IDX], table[c][self.FULL_STR_IDX]] )
+        for c in table.keys():
+            newTable = table[c][self.NEXT_TABLE_IDX]
+            # UNDONE: we could skip if new table has no keys in it, I think
+            self._getFlattenedFreqList(result,newTable)
+        return result
+
+    def buildPackStrings(self):
+        """Given frequency table filled in, generate packStrings for best
+        compression (except it probably isn't optimal)"""
+        # we need to reserve first 32
+        reservedCodes = 32
+        codesLeft = 256-reservedCodes
+        packStrings = [chr(n) for n in range(reservedCodes)]
+        # we need all one-letter ones
+        for c in self.table.keys():
+            packStrings.append(c)
+            codesLeft -= 1
+        assert codesLeft > 0
+        # now select multi-letter ones for best compression
+        freqList = self._getFlattenedFreqList()
+        #dumpListByFreq(freqList)
+        sortFreqList(freqList)
+        strsToAdd = []
+        for n in range(codesLeft):
+            strsToAdd.append( freqList[n][1] )
+            sortStringsByLen(strsToAdd)
+        for el in strsToAdd:
+            assert codesLeft > 0
+            packStrings.append(el)
+            codesLeft -= 1
+        print packStrings
+        return packStrings
+
+class CompInfoGenOld:
+    """Given a list of strings, generate compression info (packStrings)"""
+    def __init__(self,dx=256,dy=256):
+        self.freqTable = [0 for i in range(dx*dy)]
+        self.dx = dx
+        self.dy = dy
+    def inc(self,x,y):
+        self.freqTable[x+y*self.dy] += 1
+    def val(self,x,y):
+        return self.freqTable[x+y*self.dy]
+    def incStr(self,s):
+        x = ord(s[0])
+        for c in s[1:]:
+            y = ord(c)
+            self.inc(x,y)
+            x = y
+    def _getStrFromPos(self,pos):
+        x = pos % self.dy
+        y = pos / self.dy
+        s = chr(x)+chr(y)
+        return s
+    def _getMostFrequent(self,n):
+        result = []
+        currThresh = -1
+        elPos = -1
+        for freq in self.freqTable:
+            elPos += 1
+            if freq >= currThresh:
+                # need to insert or replace element from the list of most
+                # frequently used elements
+                if len(result) < n:
+                    # add to the list since we don't have n elements yet
+                    result.append( [freq, self._getStrFromPos(elPos)] )
+                    if len(result) == n:
+                        # when we finally found all elements, we need to
+                        # adjust threshold from permitting anything to the
+                        # real threshold
+                        currThresh = _getSmallestFreq(result)
+                else:
+                    if freq > currThresh: # we don't want to fill full table with existing freq's
+                        # need to replace element on the list
+                        pos = _getPosOfThisFreq(result,currThresh)
+                        result[pos] = [freq, self._getStrFromPos(elPos)]
+                        currThresh = _getSmallestFreq(result)
+        return result
+
+    def buildPackStrings(self):
+        reservedCodes = 32
+        #dumpListByFreq(flist)
+        packStrings = [chr(n) for n in range(reservedCodes)]
+        codesLeft = 256-reservedCodes
+        for x in range(256):
+            for y in range(256):
+                if self.val(x,y) > 0:
+                    #print "found for x=%d ('%s')" % (x,chr(x))
+                    packStrings.append(chr(x))
+                    codesLeft -= 1
+                    break
+        flist = self._getMostFrequent(codesLeft)
+        for el in flist:
+            packStrings.append( el[1] )
+        assert 256 == len(packStrings)
+        print packStrings
+        return packStrings
+
+def buildStringCompressorOld(strList):
+    """Given a list of strings, build compressor object optimal for compressing
+    those strings"""
+    # UNDONE: build even better compression
+    comp = StringCompressor(packStrings)
+    return comp
+
 def buildStringCompressor(strList):
     """Given a list of strings, build compressor object optimal for compressing
     those strings"""
-    # UNDONE: build real compression data from words, not a dummy
-    return _buildDummyStringCompressor()
+    #ft = CompInfoGenOld()
+    ft = CompInfoGen()
+    for s in strList:
+        ft.incStr(s)
+    packStrings = ft.buildPackStrings()
+    assert 256 == len(packStrings)
+    comp = StringCompressor(packStrings)
+    return comp
 
 def testCompress():
     wordsToTest = ["me", "him", "blah", "zipper", "groggle", "restful", "paranoia", "glam", "groblerz"]
@@ -449,6 +641,7 @@ def buildWordsRecs(words):
             wordCacheEntries.append( [wordNo,len(wordsRecsData),currRecDataLen] )
             print "New cache record, word=%s, wordNo=%d, recNo=%d, offsetInRec=%d" % (word,wordNo,len(wordsRecsData),currRecDataLen)
             wordComp.reset()
+            compWord = wordComp.compress(word)
             fForceWordCache = False
             wordsSinceLastCacheEntry = 0
         compWord = strComp.compress(compWord)
@@ -456,6 +649,11 @@ def buildWordsRecs(words):
         currRecDataLen += len(compWord)
         wordNo += 1
         wordsSinceLastCacheEntry += 1
+    # a hack to make decompression work: put a zero-byte (compressed) at the end
+    # so that decompression knows when to stop (UNDONE: is it really necessary)
+    zeroWordCompressed = strComp.compress("\x00")
+    currRecData.append(zeroWordCompressed)
+    currRecDataLen += len(zeroWordCompressed)
     if len(currRecData) > 0:
         assert currRecDataLen > 0
         recDataReal = string.join(currRecData,"")
@@ -463,7 +661,7 @@ def buildWordsRecs(words):
     wordCacheRecData = buildWordCacheRecData(wordCacheEntries)
     compressionRecData = strComp.getCompressionRecData()
     print "buildWordsRecs end"
-    return (compressionRecData, wordCacheEntries, wordsRecsData)
+    return (compressionRecData, wordCacheRecData, wordsRecsData)
     
 # Generates all the information needed for packed words:
 # - pdb records with packed words
@@ -525,7 +723,7 @@ def buildDefsRecs(defsList):
 
         dLen = len(dCompressed)
 
-        if dLen <= 255:
+        if dLen < 255:
             currDefLensRec.append(dLen)
         else:
             currDefLensRec.append(255)
@@ -565,6 +763,14 @@ NOAH_LITE_CREATOR       = "NoaH"
 THES_CREATOR            = "TheS"
 ROGET_TYPE              = "rget"
 
+class RecPrinter:
+    def __init__(self):
+        self.no = 0
+
+    def pr(self, msg):
+        print "rec no: %2d, %s" % (self.no,msg)
+        self.no += 1
+
 class SimplePdbBuilder:
     """Simplify building pdb out of records built. Usage: build and set
     records with required data, when done call buildPdb() to retrieve
@@ -576,7 +782,7 @@ class SimplePdbBuilder:
         self.maxWordLen = None
         self.maxDefLen = None
         self.wordsRecs = None
-        self.wordCacheRecs = None
+        self.wordCacheRec = None
         self.wordsCompressInfoRec = None
         self.defsCompressInfoRec = None
         self.defLensRecs = None
@@ -607,31 +813,42 @@ class SimplePdbBuilder:
         assert None != self.maxDefLen
         assert self.maxDefLen > 4
         assert None != self.wordsRecs
-        assert None != self.wordCacheRecs
+        assert None != self.wordCacheRec
         assert None != self.wordsCompressInfoRec
         assert None != self.defsCompressInfoRec
         assert None != self.defLensRecs
         assert None != self.defsRecs
         assert None != self.posInfoRecs
         recs = []
+        rp = RecPrinter()
         recs.append( palmdb.PDBRecordFromData(self._buildFirstRecBlob()) )
-        for rec in self.wordCacheRecs:
-            recs.append( palmdb.PDBRecordFromData(rec) )
+        rp.pr("first rec blob")
+        assert not isinstance(self.wordCacheRec,list)
+        recs.append( palmdb.PDBRecordFromData(self.wordCacheRec) )
+        rp.pr("wordCacheRec")
         recs.append( palmdb.PDBRecordFromData(self.wordsCompressInfoRec) )
+        rp.pr("wordsCompressInfoRec")
         recs.append( palmdb.PDBRecordFromData(self.defsCompressInfoRec) )
+        rp.pr("defsCompressInfoRec")
         for rec in self.wordsRecs:
             recs.append(palmdb.PDBRecordFromData(rec))
+            #print rec
+            rp.pr("wordsRecs")
         for rec in self.defLensRecs:
             recs.append(palmdb.PDBRecordFromData(rec))
+            rp.pr("defLensRecs")
         for rec in self.defsRecs:
             recs.append(palmdb.PDBRecordFromData(rec))
-        recs.append( palmdb.PDBRecordFromData(self.posInfoRecs) )
+            rp.pr("defsRecs")
+        for rec in self.posInfoRecs:
+            recs.append( palmdb.PDBRecordFromData(rec) )
+            rp.pr("posInfoRecs")
         pdb = palmdb.PDB()
         pdb.name = dictName
         pdb.creator = NOAH_PRO_CREATOR
         pdb.dbType = SIMPLE_TYPE
         pdb.records = recs
-        pdb.saveAs(fileName)
+        pdb.saveAs(fileName,True)
         print "consider pdb written"
         
 
@@ -670,9 +887,9 @@ def DoSimpleDict(sourceDataFileName, dictName, dictOutFileName):
     hasPosInfoP = 1
     posRecsCount = len(posRecs)
 
-    (wordsCompressDataRec, wordCacheEntries, wordsRecs) = buildWordsRecs(wordsList)
+    (wordsCompressDataRec, wordCacheEntriesRec, wordsRecs) = buildWordsRecs(wordsList)
     pdbBuilder.wordsRecs = wordsRecs
-    pdbBuilder.wordCacheRecs = wordCacheEntries
+    pdbBuilder.wordCacheRec = wordCacheEntriesRec
     pdbBuilder.wordsCompressInfoRec = wordsCompressDataRec
     
     (defsLensRecs,defsCompressDataRec,defsRecs) = buildDefsRecs(defsList)
@@ -690,7 +907,8 @@ def DoPlantDict():
     DoSimpleDict(r"c:\kjk\noah\dicts\plant_dictionary.txt", r"Plant dict", r"c:\plant.pdb")
 
 def DoDevilDict():
-    DoSimpleDict(r"c:\kjk\noah\dicts\devils_noah.txt", r"Devil dict", r"c:\devil.pdb")
+    #DoSimpleDict(r"c:\kjk\noah\dicts\devils_noah.txt", r"Devil dict", r"c:\devil.pdb")
+    DoSimpleDict(r"c:\kjk\noah\dicts\devils_noah.txt", r"Devil dict", r"devil.pdb")
 
 def DoAllSimpleDicts():
     for simpleDictDef in simpleDicts:
@@ -725,7 +943,8 @@ if __name__ == "__main__":
     if _isProfile():
         mainProf()
     elif _isTest():
-        testCompress()
+        testWordCompressor()
+        #testCompress()
     elif _isDumpProfile():
         dumpProfileStats()
     else:

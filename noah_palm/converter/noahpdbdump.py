@@ -3,7 +3,7 @@
 # Author: Krzysztof Kowalczyk# krzyszotfk@pobox.com
 
 from __future__ import generators
-import string,struct
+import string,struct,sys
 import palmdb,structhelper
 
 NoahProCreator = "NoAH"
@@ -328,28 +328,29 @@ class SimpleDictionaryData:
         defsDataList = self._constructDefsDataList()
         data = defsDataList[no]
         offset = data[0]
-        len = data[1]
+        l = data[1]
         (rec,offsetInRec) = self._convertOffsetToRecOffset(offset)
-        return (rec,offsetInRec,len)
+        return (rec,offsetInRec,l)
 
     def getDefLenOffsetByWord(self,word):
         no = self._getWordNo(word)
         defsDataList = self._constructDefsDataList()
         data = defsDataList[no]
         offset = data[0]
-        len = data[1]
-        return (offset,len)
+        l = data[1]
+        return (offset,l)
 
     def getDef(self,no):
-        (rec,offsetInRec,len) = self.getDefPosition(no)
+        (rec,offsetInRec,l) = self.getDefPosition(no)
         data = self.db.records[rec].data
-        compressedDef = data[offsetInRec:offsetInRec+len]
+        compressedDef = data[offsetInRec:offsetInRec+l]
         uncompressedDef = unpackData(compressedDef,self.getDefsPackStrings())
         return uncompressedDef
 
 def _dumpSimpleData(db):
-    fPrintWords = False
+    fPrintWords = True
     fPrintDefs = False
+    toDump = 999999 # -1 means infinity i.e all of them
     print "Record 0:"
     simpleDictData = SimpleDictionaryData(db)
     for name in structhelper.iterlist(simpleFirstRecDef,step=2):
@@ -362,17 +363,22 @@ def _dumpSimpleData(db):
     _dumpPackStrings(simpleDictData.getDefsPackStrings(),True)
     packedStrings = simpleDictData.getWordsPackStrings()
     wordsRecsCount = simpleDictData.getAttr("wordsRecsCount")
+    wordNo = 0
+    print "wordsRecsCount: %d" % wordsRecsCount
     for word in simpleDictData.getWordsList():
-        (offset,len) = simpleDictData.getDefLenOffsetByWord(word)
+        wordNo += 1
+        (offset,l) = simpleDictData.getDefLenOffsetByWord(word)
         if simpleDictData.fHasPosData():
             pos = simpleDictData.getPosByWord(word)
-            if fPrintWords:
-                #print "%s, %s (%d,%d)" % (word,pos,offset,len)
-                print "%s (%s)" % (word,pos)
+            if fPrintWords and toDump>0:
+                #print "%s, %s (%d,%d)" % (word,pos,offset,l)
+                print "! (%d) %s (%s)" % (wordNo,word,pos)
         else:
-            if fPrintWords:
-                print "%s" % (word)
-                #print "%s, (%d,%d)" % (word,offset,len)
+            if fPrintWords and toDump>0:
+                print "! %s" % (word)
+                #print "%s, (%d,%d)" % (word,offset,l)
+        if toDump>0:
+            toDump -= 1
         d = simpleDictData.getDefByWord(word)
         if fPrintDefs:
             print d
@@ -408,5 +414,10 @@ _fileMediumOld = "c:\\kjk\\src\\mine\\noah_dicts\\pdb\\originals\\wn_medium.pdb"
 _fileDevilOrig = r"C:\kjk\src\mine\dict_data\pdb\originals\devil.pdb"
 
 if __name__ == '__main__':
-    #dumpNoahPdb( _fileMediumOld )
-    dumpNoahPdb( _fileDevilOrig )
+    if len(sys.argv) != 2:
+        print "Usage: noahpdbdump filename.pdb"
+    else:
+        fileName = sys.argv[1]
+        dumpNoahPdb( fileName )
+        #dumpNoahPdb( _fileMediumOld )
+        #dumpNoahPdb( _fileDevilOrig )

@@ -144,9 +144,12 @@ class PDB(object):
         self._seedId = 0
         self._nextRecordList = 0
 
-    def _raiseInvalidFile(self):
+    def _raiseInvalidFile(self, msg = None):
         # TODO: better exception
-        raise ValueError( "%s is not a valid PDB file" % self.fileName )
+        if msg == None:
+            raise ValueError( "%s is not a valid PDB file" % self._fileName )
+        else:
+            raise ValueError("%s is not a valid PDB file.\nReason: %s" % (self._fileName,msg))
 
     def _readHeader(self):
         """Read the header of pdb/prc file and init class based on this data."""
@@ -201,6 +204,8 @@ class PDB(object):
          self._nextRecordList,_recordsCount) = struct.unpack(">32sHHLLLLLL4s4sLLH", headerData)
         self._name = self._name.strip("\x00")
 
+        print "recordsCount: %d" % _recordsCount
+
         # sanity checkig of the pdb file
         if fileSize < 78+8*_recordsCount:
             self._raiseInvalidFile()
@@ -230,12 +235,13 @@ class PDB(object):
                 self._raiseInvalidFile()
 
         for n in range(_recordsCount):
+            print "Offset of rec %d: %d" % (n+1,recHeaderList[n][_OFFSET])
             if n < _recordsCount-1:
                 recSize = recHeaderList[n+1][_OFFSET] - recHeaderList[n][_OFFSET];
             else:
                 recSize = fileSize - recHeaderList[n][_OFFSET]
             if recSize <= 0:
-                self._raiseInvalidFile()
+                self._raiseInvalidFile( "recSize of record %d is %d, must be >0" % (n+1,recSize) )
             self._records.append( PDBRecordFromDisk(self._fileName,
                                                     recHeaderList[n][_ATTR],
                                                     recHeaderList[n][_OFFSET],
@@ -326,24 +332,30 @@ class PDB(object):
 
     def _getRecsInfoBlob(self):
         recsCount = len(self.records)
+        print "recsCount=%d" % len(self.records)
         currOffset = 78 + recsCount * 8
         oneRecInfo = []
         for rec in self.records:
+            print "Record no %2d, offset: %6d, size: %5d" % (len(oneRecInfo)+1,currOffset,len(rec.data))
             oneRecInfo.append( struct.pack(">LB3s", currOffset, 0, "\x00\x00\x00") )
             currOffset += len(rec.data)
-        return string.join(oneRecInfo, "")
+        print "fileSize: %d" % currOffset
+        print "recs by oneRecInfo: %d" % len(oneRecInfo)
+        assert len(oneRecInfo) == len(self.records)
+        blob = string.join(oneRecInfo, "")
+        assert len(blob) == 8*len(self.records)
+        return blob
 
     def saveAs(self,fileName,fOverwrite=False):
         assert fileName != None
         if not fOverwrite:
             # bail out if file exists
             if os.path.exists(fileName):
-                # UNDONE: should I raise an exception?
-                return
+                raise ValueError("File %s already exists" % fileName)
         self._checkRecords()
         headerBlob = self._getPdbHeaderBlob()
         recsInfoBlob = self._getRecsInfoBlob()
-        fo = open(fileName,"w")
+        fo = open(fileName,"wb")
         fo.write(headerBlob)
         fo.write(recsInfoBlob)
         for rec in self.records:

@@ -136,7 +136,7 @@ def parseEntreeLangNode(node):
         
 def parseFile(file):
     #print "file: %s" % file
-    fo = open(file,"r")
+    fo = open(file,"rb")
     xmlstr = fo.read()
     fo.close()
     entitydir = { "ti" : "-",
