@@ -619,7 +619,7 @@ static Boolean FindFormHandleEventNoahLite(EventType * event)
                have been selected so we need to draw the
                description */
             Assert(appContext->currentWord < appContext->wordsCount);
-            SendNewWordSelected();
+            SendEvtWithType(evtNewWordSelected);
             handled = true;
             FrmReturnToForm(0);
             break;
@@ -635,7 +635,7 @@ static Boolean FindFormHandleEventNoahLite(EventType * event)
                     RememberLastWord(appContext, frm, fieldWord);
                     appContext->currentWord = appContext->selectedWord;
                     Assert(appContext->currentWord < appContext->wordsCount);
-                    SendNewWordSelected();
+                    SendEvtWithType(evtNewWordSelected);
                     FrmReturnToForm(0);
                     return true;
 
@@ -661,7 +661,7 @@ static Boolean FindFormHandleEventNoahLite(EventType * event)
                             RememberLastWord(appContext, frm, fieldWord);
                             appContext->currentWord = appContext->selectedWord;
                             Assert(appContext->currentWord < appContext->wordsCount);
-                            SendNewWordSelected();
+                            SendEvtWithType(evtNewWordSelected);
                             FrmReturnToForm(0);
                             return true;
                         }

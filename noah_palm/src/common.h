@@ -67,6 +67,9 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #define evtRegistrationOk        (firstUserEvent+6)
 #define evtConnectionFinished    (firstUserEvent+7)
 #define evtRefresh               (firstUserEvent+8)
+#ifdef I_NOAH
+#define evtReformatLastResponse  (firstUserEvent+9)
+#endif
 
 // information about the area for displaying definitions:
 // start x, start y, number of lines (dy).
@@ -474,7 +477,6 @@ void CtlHideControlEx( FormType *frm, UInt16 objID);
 void CtlShowControlEx( FormType *frm, UInt16 objID);
 void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
-void SendNewWordSelected(void);
 void SendEvtWithType(int eType);
 
 /* stores all the information about the stack of strings */

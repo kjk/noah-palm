@@ -733,9 +733,10 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     bfFreePTR(appContext);
 
 #ifdef I_NOAH                    
-                    ReformatLastResponse(appContext);
+                    SendEvtWithType(evtReformatLastResponse);
+
 #else
-                    SendNewWordSelected();
+                    SendEvtWithType(evtNewWordSelected);
 #endif
                     FrmReturnToForm(0);
 #ifdef I_NOAH

@@ -345,7 +345,7 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
     // HACK: we should have currentWord = -1 and check for that instead
     // (currently currentWord = 0 here)
     if (appContext->currDispInfo)
-        SendNewWordSelected();
+        SendEvtWithType(evtNewWordSelected);
 #endif
 
     RedrawMainScreen(appContext);
@@ -731,6 +731,13 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
             handled = true;
             break;
 
+#ifdef I_NOAH
+        case evtReformatLastResponse:
+            ReformatLastResponse(appContext);
+            handled = true;
+            break;
+#endif
+
         case evtNewWordSelected:
             word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
             FldClearInsert(frm, fieldWordMain, word);
@@ -962,7 +969,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
                have been selected so we need to draw the
                description */
             Assert(appContext->currentWord < appContext->wordsCount);
-            SendNewWordSelected();
+            SendEvtWithType(evtNewWordSelected);
             FrmReturnToForm(0);
             return true;
 
@@ -978,7 +985,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
                     RememberLastWord(appContext, frm, fieldWord);
                     appContext->currentWord = appContext->selectedWord;
                     Assert(appContext->currentWord < appContext->wordsCount);
-                    SendNewWordSelected();
+                    SendEvtWithType(evtNewWordSelected);
                     FrmReturnToForm(0);
                     return true;
 
@@ -1004,7 +1011,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
                             RememberLastWord(appContext, frm, fieldWord);
                             appContext->currentWord = appContext->selectedWord;
                             Assert(appContext->currentWord < appContext->wordsCount);
-                            SendNewWordSelected();
+                            SendEvtWithType(evtNewWordSelected);
                             FrmReturnToForm(0);
                             return true;
                         }

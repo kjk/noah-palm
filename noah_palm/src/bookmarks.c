@@ -264,7 +264,7 @@ Boolean BookmarksFormHandleEvent(EventType * event)
 #ifndef I_NOAH                
                 appContext->currentWord = dictGetFirstMatching(GetCurrentFile(appContext), word);
                 MemHandleUnlock(recHandle);
-                SendNewWordSelected();
+                SendEvtWithType(evtNewWordSelected);
 #else
                 FrmReturnToForm(0);
                 StartWordLookup(appContext, word);

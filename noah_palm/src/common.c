@@ -568,16 +568,6 @@ static void RedrawWordDefinition(AppContext* appContext)
 #endif
 }
 
-#pragma segment Segment2
-
-void SendNewWordSelected(void)
-{
-    EventType   newEvent;
-    MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = (eventsEnum) evtNewWordSelected;
-    EvtAddEventToQueue(&newEvent);
-}
-
 #pragma segment Segment1
 
 void RedrawMainScreen(AppContext* appContext)

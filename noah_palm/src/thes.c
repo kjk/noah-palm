@@ -656,7 +656,7 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
     // HACK: we should have currentWord = -1 and check for that instead
     // (currently currentWord = 0 here)
     if (appContext->currDispInfo)
-        SendNewWordSelected();
+        SendEvtWithType(evtNewWordSelected);
     RedrawMainScreen(appContext);
     return true;
 }
@@ -1250,7 +1250,7 @@ static Boolean FindFormHandleEventThes(EventType * event)
                have been selected so we need to draw the
                description */
             Assert(appContext->currentWord < appContext->wordsCount);
-            SendNewWordSelected();
+            SendEvtWithType(evtNewWordSelected);
             handled = true;
             FrmReturnToForm(0);
             break;
@@ -1266,7 +1266,7 @@ static Boolean FindFormHandleEventThes(EventType * event)
                     RememberLastWord(appContext, frm,fieldWord);
                     appContext->currentWord = appContext->selectedWord;
                     Assert(appContext->currentWord < appContext->wordsCount);
-                    SendNewWordSelected();
+                    SendEvtWithType(evtNewWordSelected);
                     FrmReturnToForm(0);
                     return true;
                     break;
@@ -1293,7 +1293,7 @@ static Boolean FindFormHandleEventThes(EventType * event)
                             RememberLastWord(appContext, frm,fieldWord);
                             appContext->currentWord = appContext->selectedWord;
                             Assert(appContext->currentWord < appContext->wordsCount);
-                            SendNewWordSelected();
+                            SendEvtWithType(evtNewWordSelected);
                             FrmReturnToForm(0);
                             return true;
                         }

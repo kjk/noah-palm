@@ -491,7 +491,7 @@ Boolean FindPatternFormHandleEvent(EventType* event)
         case lstSelectEvent:
             appContext->wmpLastWordPos = appContext->listItemOffset + (UInt32) event->data.lstSelect.selection;
             ReadMatchingPatternRecord(appContext, appContext->wmpLastWordPos, &appContext->currentWord);
-            SendNewWordSelected();
+            SendEvtWithType(evtNewWordSelected);
             FrmReturnToForm(0);
             return true;
 

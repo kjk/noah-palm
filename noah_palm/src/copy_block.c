@@ -134,7 +134,7 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
     if (0 == StrNCaselessCompare(txt, word, StrLen(word) <  StrLen(txt) ? StrLen(word) : StrLen(txt)))
     {
         appContext->currentWord = wordNo;
-        SendNewWordSelected();
+        SendEvtWithType(evtNewWordSelected);
         return true;
     }
     else

@@ -709,7 +709,7 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
     FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
 
     // TODO: optimize, only do when dx screen size has changed   
-    ReformatLastResponse(appContext);
+    SendEvtWithType(evtReformatLastResponse);
     FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
 
     return true;
