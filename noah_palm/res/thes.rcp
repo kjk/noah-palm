@@ -95,7 +95,7 @@ BEGIN
    BUTTON "\002"        ctlArrowLeft  AT (  0 148  8  11) FONT 4 NOFRAME
    BUTTON "\003"        ctlArrowRight AT (  8 148 10  11) FONT 4 NOFRAME
    POPUPTRIGGER ""   ID popupHistory  AT (128 147 17  13) FONT 0 LEFTANCHOR
-   LIST         ""   ID listHistory   AT ( 80 100 72 58) FONT 0 NONUSABLE
+   LIST "" ID           listHistory   AT (154-HISTORY_LIST_DX 156-(HISTORY_ITEMS*11) HISTORY_LIST_DX HISTORY_ITEMS*11) NONUSABLE FONT 0
    FORMBITMAP                         AT (147 147)        BITMAP bmpFind
    BUTTON       ""      buttonFind    AT (146 146 14  14) NOFRAME
    POPUPLIST         ID popupHistory listHistory

@@ -38,13 +38,12 @@ void HistoryListSetState(AppContext* appContext, FormType *frm)
     }
 }
 
-
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char *  str;
     AppContext* appContext=GetAppContext();
     /* max width of the string in the list selection window */
-    Int16   stringWidthP = 64;
+    Int16   stringWidthP = HISTORY_LIST_DX;
     Int16   stringLenP;
     Boolean truncatedP = false;
     Assert(appContext);
@@ -72,8 +71,18 @@ void strtolower(char *txt)
 void AddToHistory(AppContext* appContext, UInt32 wordNo)
 {
     char *  word;
+    int     i;
 
-    word = strdup(dictGetWord(GetCurrentFile(appContext), wordNo));
+    word = dictGetWord(GetCurrentFile(appContext), wordNo);
+
+    // don't add duplicates
+    for (i=0; i<appContext->historyCount; i++)
+    {
+        if ( 0 == StrCompare(word, appContext->wordHistory[i]) )
+            return;
+    }
+
+    word = strdup(word);
     if (!word)
         return;
 
@@ -968,7 +977,8 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
     {
 #ifdef THESAURUS
         case ROGET_TYPE:
-            return RogetGetDisplayInfo( file->dictData.roget, wordNo, dx, di );
+            err = RogetGetDisplayInfo( file->dictData.roget, wordNo, dx, di );
+            return err;
 #endif
 #ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:

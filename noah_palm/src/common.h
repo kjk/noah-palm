@@ -16,7 +16,6 @@
 #include "dynamic_input_area.h"
 
 #define WORD_MAX_LEN 40
-#define HISTORY_ITEMS 5
 
 #include "mem_leak.h"
 #include "display_info.h"
@@ -247,8 +246,8 @@ typedef struct _AppContext
 
     char               lastWord[WORD_MAX_LEN];
 
-#ifndef NOAH_LITE  
     long               ticksEventTimeout;
+#ifndef NOAH_LITE  
     int                historyCount;
     char*              wordHistory[HISTORY_ITEMS];
 

@@ -1,6 +1,11 @@
 //#define _ADD_FIND_WORD_PATTERN_ 1
 #define _ADD_BOOKMARKS_ 1
 
+/* number of words we keep in the history pop-up list */
+#define   HISTORY_ITEMS 12
+/* width, in pixels, of the history pop-up list */
+#define   HISTORY_LIST_DX 92
+
 #define   formDictMain        1001
 #define   formDictFind        1002
 #define   formDictFindPattern 1003
