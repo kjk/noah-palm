@@ -6,7 +6,7 @@
 #define   formSelectDict      1004
 #define   formPrefs           1005
 #define   formDisplayPrefs    1006
-#define	formResidentLookup	1007
+#define   formResidentLookup  1007
 
 #define   fieldWord           1200
 
@@ -28,7 +28,7 @@
 #define   alertGenericError   1114
 #define   alertDbFailed       1115
 #define   alertDbFailedGetAnother 1116
-#define	alertWordNotFound	1117
+#define   alertWordNotFound   1117
 
 #define   menuMain            2000
 #define   menuItemSelectDB    2002
@@ -52,12 +52,14 @@
 #define   buttonRescanDicts   3008
 #define   buttonOneChar       3009
 #define   buttonAnyChar       3010
-#define	buttonClose	3011
+#define   buttonClose         3011
 
 #define   scrollDef           4008
 
 #define   bmpFind             5001
 #define   bmpLogo             5011
+#define   bmpClose            5021
+#define   bmpMenuBarIcon      5031
 
 #define   popupHistory            6001
 #define   popupStartupAction      6002

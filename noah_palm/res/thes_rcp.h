@@ -5,7 +5,7 @@
 #define   formDictFindPattern 1003
 #define   formSelectDict      1004
 #define   formPrefs           1005
-#define	formResidentLookup	1006
+#define   formResidentLookup  1006
 
 #define   fieldWord           1200
 
@@ -24,7 +24,7 @@
 #define   alertNoDB           1109
 #define   alertDbFailed       1110
 #define   alertDbFailedGetAnother 1111
-#define	alertWordNotFound	1112
+#define   alertWordNotFound   1112
 
 #define   menuMain            2000
 #define   menuItemFind        2020
@@ -45,13 +45,14 @@
 #define   buttonOneChar       3009
 #define   buttonAnyChar       3010
 
-#define	buttonClose	3011
+#define   buttonClose         3011
 
 #define   scrollDef           4008
 
 #define   bmpFind             5001
-#define   bmpClose             5002
-#define   bmpMenuBarIcon     5003
+#define   bmpClose            5002
+#define   bmpMenuBarIcon      5003
+#define   bmpClose            5004
 
 #define   popupHistory            6001
 #define   popupStartupAction      6002

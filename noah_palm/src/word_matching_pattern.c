@@ -36,6 +36,8 @@ Err OpenMatchingPatternDB()
             if (!dbID) return dmErrCantOpen;
         }
         g_wmpDB = DmOpenDatabase(0, dbID, dmModeReadWrite);
+        if (NULL == g_wmpDB)
+            return dmErrCantOpen;
     }
     return errNone;
 }
