@@ -19,16 +19,20 @@
 
 #define strlen StrLen
 
-#define  SIMPLE_TYPE      		'simp'
+#define  SIMPLE_TYPE            'simp'
 
 #define  WORDNET_LITE_TYPE      'wnet'
 
 #ifndef DEMO
-#define  WORDNET_PRO_TYPE      	'wn20'
+#define  WORDNET_PRO_TYPE       'wn20'
 #else
-#define  WORDNET_PRO_TYPE      	'wnde'
+#define  WORDNET_PRO_TYPE       'wnde'
 #endif
 
+#define evtFieldChanged          (firstUserEvent+1)
+#define evtNewWordSelected       (firstUserEvent+2)
+#define evtNewDatabaseSelected   (firstUserEvent+3)
+#define evtRedisplayCurrentWord  (firstUserEvent+4)
 
 #define  DRAW_DI_X 0
 
@@ -140,6 +144,7 @@ char    *dictGetWord(long wordNo);
 Err     dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di);
 void    FreeDicts(void);
 
+void    RedrawMainScreen();
 void    DrawDescription(long wordNo);
 void    DisplayHelp(void);
 void    HideScrollbar(void);
@@ -167,6 +172,7 @@ void    CtlHideControlEx( FormType *frm, UInt16 objID);
 void    CtlShowControlEx( FormType *frm, UInt16 objID);
 void    ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void    ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
+void    SendNewWordSelected(void);
 
 /* stores all the information about the stack of strings */
 typedef struct

@@ -25,10 +25,6 @@
 #include "simple_support.h"
 #endif
 
-#define evtFieldChanged          (firstUserEvent+1)
-#define evtNewWordSelected       (firstUserEvent+2)
-#define evtNewDatabaseSelected   (firstUserEvent+3)
-
 char helpText[] = "Instructions:\n\255 to lookup a definition of a word \npress the find icon in the right \nlower corner and select the word \n\255 you can scroll the definition using \nhardware buttons, tapping on the \nscreen or using a scrollbar \n\255 left/right arrow moves to next \nor previous word\n";
 
 GlobalData gd;
@@ -371,14 +367,6 @@ void ScanForDictsNoahPro(void)
     LogV1( "ScanForDictsNoahPro(), found %d dicts", gd.dictsCount );
 }
 
-void SendNewWordSelected(void)
-{
-    EventType   newEvent;
-    MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = (eventsEnum) evtNewWordSelected;
-    EvtAddEventToQueue(&newEvent);
-}
-
 void SendFieldChanged(void)
 {
     EventType   newEvent;
@@ -660,6 +648,8 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
     {
         case frmUpdateEvent:
             LogG( "mainFrm - frmUpdateEvent" );
+            RedrawMainScreen();
+            handled = true;
             break;
 
         case frmOpenEvent:
@@ -894,9 +884,7 @@ ChooseDatabase:
                 }
             }
 
-            FrmDrawForm(frm);
-            WinDrawLine(0, 145, 160, 145);
-            WinDrawLine(0, 144, 160, 144);
+            RedrawMainScreen();
 
             if ( startupActionClipboard == gd.prefs.startupAction )
             {
@@ -1255,7 +1243,6 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         {
         case buttonCancel:
             RememberLastWord(FrmGetActiveForm());
-            SendNewWordSelected();
             handled = true;
             FrmReturnToForm(0);
             break;
@@ -1271,9 +1258,6 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
 }
 
 
-/*
-Event handler proc for the select dict form.
-*/
 Boolean SelectDictFormHandleEventNoahPro(EventType * event)
 {
     FormPtr frm;
@@ -1312,7 +1296,6 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
             return true;
         case buttonCancel:
             Assert( NULL != GetCurrentFile() );
-            SendNewWordSelected();
             FrmReturnToForm(0);
             return true;
         }
@@ -1396,7 +1379,6 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
             SavePreferencesNoahPro();
             // pass through
         case buttonCancel:
-            SendNewWordSelected();
             FrmReturnToForm(0);
             break;
         case checkDeleteVfs:
@@ -1432,7 +1414,6 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
                 case buttonOk:
                     SavePreferencesNoahPro();
                 case buttonCancel:
-                    SendNewWordSelected();
                     FrmReturnToForm(0);
                     break;
             }

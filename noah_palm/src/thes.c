@@ -8,11 +8,6 @@
 #include "display_info.h"
 #include "roget_support.h"
 
-#define evtFieldChanged          (firstUserEvent+1)
-#define evtNewWordSelected       (firstUserEvent+2)
-#define evtNewDatabaseSelected   (firstUserEvent+3)
-#define evtRedisplayCurrentWord  (firstUserEvent+4)
-
 #ifdef DEMO
 char helpText[] =
     " This is a demo version. It's fully\n functional but has only 10% of\n the thesaurus data.\n"
@@ -529,6 +524,11 @@ Boolean MainFormHandleEventThes(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+    case frmUpdateEvent:
+        LogG( "mainFrm - frmUpdateEvent" );
+        RedrawMainScreen();
+        handled = true;
+        break;
     case frmOpenEvent:
         FrmDrawForm(frm);
 
@@ -753,13 +753,6 @@ ChooseDatabase:
 /*           gd.start_seconds_count = TimGetSeconds();
            gd.current_timeout = 50; */
         }
-        handled = true;
-        break;
-
-    case evtRedisplayCurrentWord:
-        DrawDescription(gd.currentWord);
-        WinDrawLine(0, 145, 160, 145);
-        WinDrawLine(0, 144, 160, 144);
         handled = true;
         break;
 
@@ -1007,9 +1000,7 @@ Boolean FindFormHandleEventThes(EventType * event)
            have been selected so we need to draw the
            description */
         Assert(gd.currentWord < gd.wordsCount);
-        MemSet(&newEvent, sizeof(EventType), 0);
-        newEvent.eType = (eventsEnum) evtNewWordSelected;
-        EvtAddEventToQueue(&newEvent);
+        SendNewWordSelected();
         handled = true;
         FrmReturnToForm(0);
         break;
@@ -1028,9 +1019,7 @@ Boolean FindFormHandleEventThes(EventType * event)
             RememberLastWord(FrmGetActiveForm());
             gd.currentWord = gd.selectedWord;
             Assert(gd.currentWord < gd.wordsCount);
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewWordSelected;
-            EvtAddEventToQueue(&newEvent);
+            SendNewWordSelected();
             FrmReturnToForm(0);
             return true;
             break;
@@ -1088,9 +1077,6 @@ Boolean FindFormHandleEventThes(EventType * event)
         {
         case buttonCancel:
             RememberLastWord(FrmGetActiveForm());
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewWordSelected;
-            EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             handled = true;
             break;
@@ -1153,10 +1139,6 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
             return true;
         case buttonCancel:
             Assert( NULL != GetCurrentFile() );
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtRedisplayCurrentWord;
-            selectedDb = 0;
-            EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
         }
@@ -1185,7 +1167,6 @@ Boolean PrefFormHandleEventThes(EventType * event)
     FormType *frm = NULL;
     ListType *list = NULL;
     char *listTxt = NULL;
-    EventType newEvent;
 
     frm = FrmGetActiveForm();
     switch (event->eType)
@@ -1242,9 +1223,6 @@ Boolean PrefFormHandleEventThes(EventType * event)
             // pass through
         case buttonCancel:
             Assert( NULL != GetCurrentFile() );
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtRedisplayCurrentWord;
-            EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             handled = true;
             break;

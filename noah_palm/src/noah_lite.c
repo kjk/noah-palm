@@ -9,10 +9,6 @@
 
 #define MAX_WORD_LABEL_LEN 18
 
-#define evtFieldChanged          (firstUserEvent+1)
-#define evtNewWordSelected       (firstUserEvent+2)
-#define evtNewDatabaseSelected   (firstUserEvent+3)
-
 void ClearDisplayRectangle()
 {
     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X - 7,
@@ -214,6 +210,11 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
 
     switch (event->eType)
     {
+    case frmUpdateEvent:
+        LogG( "mainFrm - frmUpdateEvent" );
+        RedrawMainScreen();
+        handled = true;
+        break;
     case frmOpenEvent:
         frm = FrmGetActiveForm();
         FrmDrawForm(frm);
@@ -468,9 +469,7 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
            have been selected so we need to draw the
            description */
         Assert(gd.currentWord < gd.wordsCount);
-        MemSet(&newEvent, sizeof(EventType), 0);
-        newEvent.eType = (eventsEnum) evtNewWordSelected;
-        EvtAddEventToQueue(&newEvent);
+        SendNewWordSelected();
         handled = true;
         FrmReturnToForm(0);
         break;
@@ -488,9 +487,7 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
         case linefeedChr:
             gd.currentWord = gd.selectedWord;
             Assert(gd.currentWord < gd.wordsCount);
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewWordSelected;
-            EvtAddEventToQueue(&newEvent);
+            SendNewWordSelected();
             FrmReturnToForm(0);
             return true;
             break;

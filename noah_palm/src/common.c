@@ -292,13 +292,51 @@ void DisplayHelp(void)
     SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
 }
 
-
-void DrawDescription(long wordNo)
+void RedrawWordDefinition()
 {
-    char *word = NULL;
 #ifndef NOAH_LITE
     Int16 wordLen = 0;
 #endif
+    char *word = NULL;
+
+    /* we might be called if there is no word chosen yet, in which case we
+       have to gracefully do nothing */
+    if (NULL == gd.currDispInfo)
+        return;
+
+    /* write the word at the bottom */
+    word = dictGetWord(gd.currentWord);
+
+#ifndef NOAH_LITE
+    wordLen = StrLen(word);
+    MemSet(gd.prefs.lastWord, 32, 0);
+    MemMove(gd.prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
+#endif
+
+    DrawWord(word, 149);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
+    DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+
+}
+
+void SendNewWordSelected(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum) evtNewWordSelected;
+    EvtAddEventToQueue(&newEvent);
+}
+
+void RedrawMainScreen()
+{
+    FrmDrawForm(FrmGetActiveForm());
+    WinDrawLine(0, 145, 160, 145);
+    WinDrawLine(0, 144, 160, 144);
+    RedrawWordDefinition();
+}
+void DrawDescription(long wordNo)
+{
     Err err;
 
     Assert(wordNo < gd.wordsCount);
@@ -327,19 +365,7 @@ void DrawDescription(long wordNo)
     gd.currentWord = wordNo;
     gd.firstDispLine = 0;
 
-    /* write the word at the bottom */
-    word = dictGetWord(wordNo);
-
-#ifndef NOAH_LITE
-    wordLen = StrLen(word);
-    MemSet(gd.prefs.lastWord, 32, 0);
-    MemMove(gd.prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
-#endif
-
-    DrawWord(word, 149);
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
-    SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
-    DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+    RedrawWordDefinition();
 }
 
 void ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey)
