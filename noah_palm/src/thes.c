@@ -10,7 +10,7 @@
 
 #define PREF_REC_MIN_SIZE 4
 #define FONT_DY  11
-#define WORDS_IN_LIST 15
+#define WORDS_IN_LIST 12
 
 #ifdef NEVER
 char helpText[] =
@@ -1102,12 +1102,18 @@ Boolean FindFormHandleEventThes(EventType * event)
                     break;
 
                 case pageUpChr:
-                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
-                    return true;
+                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    {
+                        ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                        return true;
+                    }
                 
                 case pageDownChr:
-                    ScrollWordListByDx( frm, WORDS_IN_LIST );
-                    return true;
+                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    {
+                        ScrollWordListByDx( frm, WORDS_IN_LIST );
+                        return true;
+                    }
 
                 default:
                     if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
@@ -1124,10 +1130,20 @@ Boolean FindFormHandleEventThes(EventType * event)
                     
                         if (FiveWayDirectionPressed( event, Left ))
                         {
-                            ScrollWordListByDx( frm, -1 );
+                            ScrollWordListByDx( frm, -WORDS_IN_LIST );
                             return true;
                         }
                         if (FiveWayDirectionPressed( event, Right ))
+                        {
+                            ScrollWordListByDx( frm, WORDS_IN_LIST );
+                            return true;
+                        }
+                        if (FiveWayDirectionPressed( event, Up ))
+                        {
+                            ScrollWordListByDx( frm, -1 );
+                            return true;
+                        }
+                        if (FiveWayDirectionPressed( event, Down ))
                         {
                             ScrollWordListByDx( frm, 1 );
                             return true;

@@ -428,7 +428,7 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
     return handled;
 }
 
-#define WORDS_IN_LIST 15
+#define WORDS_IN_LIST 12
 
 Boolean FindFormHandleEventNoahLite(EventType * event)
 {
@@ -500,12 +500,18 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
                     return true;
 
                 case pageUpChr:
-                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
-                    return true;
+                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    {
+                        ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                        return true;
+                    }
                 
                 case pageDownChr:
-                    ScrollWordListByDx( frm, WORDS_IN_LIST );
-                    return true;
+                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    {
+                        ScrollWordListByDx( frm, WORDS_IN_LIST );
+                        return true;
+                    }
 
                 default:
                     if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
@@ -522,15 +528,24 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
                     
                         if (FiveWayDirectionPressed( event, Left ))
                         {
-                            ScrollWordListByDx( frm, -1 );
+                            ScrollWordListByDx( frm, -WORDS_IN_LIST );
                             return true;
                         }
                         if (FiveWayDirectionPressed( event, Right ))
                         {
-                            ScrollWordListByDx( frm, 1 );
+                            ScrollWordListByDx( frm, WORDS_IN_LIST );
                             return true;
                         }
-                        return false;
+                        if (FiveWayDirectionPressed( event, Up ))
+                        {
+                            ScrollWordListByDx( frm, -1 );
+                            return true;
+                        }
+                        if (FiveWayDirectionPressed( event, Down ))
+                        {
+                            ScrollWordListByDx( frm, 1 );
+                            return true;
+                        }                        return false;
                     }
                     break;
             }
