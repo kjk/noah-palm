@@ -15,7 +15,6 @@
 static void ResidentLookupFormFindPressed(AppContext* appContext) 
 {
     Err     error;
-    char *  word;
     long    currentWord=appContext->currentWord;
 
     RememberFieldWordMain(appContext, FrmGetActiveForm() );
@@ -24,11 +23,7 @@ static void ResidentLookupFormFindPressed(AppContext* appContext)
     if (!error) 
     {
         if (appContext->currentWord!=currentWord)
-        {
-            word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
-            FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
-            DrawDescription(appContext, appContext->currentWord);
-        }
+            RedisplayWord(appContext);
     }
     else 
         Assert(false);

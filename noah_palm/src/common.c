@@ -2666,6 +2666,15 @@ void GoToFindWordForm(AppContext *appContext, FormType *frm)
     RememberFieldWordMain(appContext, frm);
     FrmPopupForm(formDictFind);
 }
+
+void RedisplayWord(AppContext *appContext)
+{
+    char *  word;
+
+    word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
+    FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
+    DrawDescription(appContext, appContext->currentWord);
+}
 #endif
 
 /* Generates a random long in the range 0..range-1. SysRandom() returns value
@@ -2696,4 +2705,5 @@ long  GenRandomLong(long range)
 
     return (long)result;
 }
+
 

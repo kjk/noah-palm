@@ -481,18 +481,14 @@ ChooseDatabase:
                     if (appContext->currentWord > 0)
                     {
                         --appContext->currentWord;
-                        word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
-                        FldClearInsert(frm, fieldWordMain, word);
-                        DrawDescription(appContext, appContext->currentWord);
+                        RedisplayWord(appContext);
                     }
                     break;
                 case ctlArrowRight:
                     if (appContext->currentWord < appContext->wordsCount - 1)
                     {
                         ++appContext->currentWord;
-                        word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
-                        FldClearInsert(frm, fieldWordMain, word);
-                        DrawDescription(appContext, appContext->currentWord);
+                        RedisplayWord(appContext);
                     }
                     break;
                 case buttonFind:
@@ -615,12 +611,18 @@ ChooseDatabase:
                 if (FiveWayDirectionPressed(appContext, event, Left ))
                 {
                     if (appContext->currentWord > 0)
-                        DrawDescription(appContext, appContext->currentWord - 1);
+                    {
+                        --appContext->currentWord;
+                        RedisplayWord(appContext);
+                    }
                 }
                 if (FiveWayDirectionPressed(appContext, event, Right ))
                 {
                     if (appContext->currentWord < appContext->wordsCount - 1)
-                        DrawDescription(appContext, appContext->currentWord + 1);
+                    {
+                        ++appContext->currentWord;
+                        RedisplayWord(appContext);
+                    }
                 }
                 if (FiveWayDirectionPressed(appContext, event, Up ))
                 {

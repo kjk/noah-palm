@@ -643,6 +643,7 @@ void StopTiming(AppContext* appContext);
 void FldClearInsert(FormType *frm, int fldId, char *txt);
 void RememberFieldWordMain(AppContext *appContext, FormType *frm);
 void GoToFindWordForm(AppContext *appContext, FormType *frm);
+void RedisplayWord(AppContext *appContext);
 long GenRandomLong(long range);
 
 #endif

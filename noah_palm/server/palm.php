@@ -183,6 +183,8 @@ function serve_get_word($cookie,$word)
     }
 */
 
+    # TODO: capturing=>capture
+
     $orig_word = $word;
 
     log_get_word_request($cookie, $word);
