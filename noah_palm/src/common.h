@@ -504,6 +504,8 @@ extern UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSi
 extern AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name);
 #endif // I_NOAH
 
+DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type);
+
 /**
  * Calculates the <code>current</code> to <code>total</code> ratio and 
  * renders result as percents, optionally filling <code>buffer</code>

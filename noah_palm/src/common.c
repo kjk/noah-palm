@@ -1941,6 +1941,31 @@ AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
 
 #endif // I_NOAH
 
+/* Open a database given its name, creator and type. Return NULL if
+   database not found. */
+DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type)
+{
+    Err                 err;
+    DmSearchStateType   stateInfo;
+    UInt16              cardNo = 0;
+    LocalID             dbId;
+    char                dbNameBuf[dmDBNameLength];
+
+    Assert(StrLen(dbName) < dmDBNameLength);
+
+    err = DmGetNextDatabaseByTypeCreator(true, &stateInfo, type, creator, 0, &cardNo, &dbId);
+    while ( errNone == err )
+    {
+        MemSet(dbNameBuf, sizeof(dbName), 0);
+        DmDatabaseInfo(cardNo, dbId, dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
+
+        if ( 0==StrCompare(dbName,dbNameBuf) )
+            return DmOpenDatabase(cardNo, dbId, dmModeReadWrite);
+        err = DmGetNextDatabaseByTypeCreator(false, &stateInfo, type, creator, 0, &cardNo, &dbId);
+    }
+    return NULL;
+}
+
 UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total)
 {
     current*=100;

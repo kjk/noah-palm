@@ -555,7 +555,6 @@ static void RedrawExampleDefinition(AppContext* appContext)
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, 30+12, appContext->dispLinesCount);
 }
 
-/* Redraw form */
 static Boolean DisplPrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;

@@ -7,6 +7,15 @@
 
 #include "word_matching_pattern.h"
 #include "word_compress.h"
+#include "five_way_nav.h"
+
+// type and name of the database with cached results of matching the pattern
+#define WORD_MATCHING_PATTERN_TYPE  'womp'
+#define WORD_MATCHING_PATTERN_DB    "Noah_wmp_cache"
+
+// limit on the number of words matched. User has to scroll manually through
+// the list so it doesn't make sense giving him thousands of results
+#define MATCHED_WORDS_LIMIT 200
 
 static Boolean TappedInRect(RectangleType * rect)
 {
@@ -23,26 +32,23 @@ static Boolean TappedInRect(RectangleType * rect)
 
 Err OpenMatchingPatternDB(AppContext* appContext)
 {
-    Err err;
-    LocalID dbID;
-    char * wmpDBName = "Noah_wmp_cache";
+    Err     err;
 
-    Assert(StrLen(wmpDBName) < dmDBNameLength);
-    
-    if (appContext->wmpCacheDb == NULL)
-    {
-        dbID = DmFindDatabase(0, wmpDBName);
-        if (!dbID)
-        {
-            err = DmCreateDatabase(0, wmpDBName, 'NoAH', 'data', false);
-            if (err) return err;
-            dbID = DmFindDatabase(0, wmpDBName);
-            if (!dbID) return dmErrCantOpen;
-        }
-        appContext->wmpCacheDb = DmOpenDatabase(0, dbID, dmModeReadWrite);
-        if (NULL == appContext->wmpCacheDb)
-            return dmErrCantOpen;
-    }
+    if (appContext->wmpCacheDb)
+        return errNone;
+
+    appContext->wmpCacheDb = OpenDbByNameCreatorType(WORD_MATCHING_PATTERN_DB, APP_CREATOR, WORD_MATCHING_PATTERN_TYPE);
+    if (appContext->wmpCacheDb)
+        return errNone;
+
+    err = DmCreateDatabase(0, WORD_MATCHING_PATTERN_DB, APP_CREATOR,  WORD_MATCHING_PATTERN_TYPE, false);
+    if ( errNone != err)
+        return err;
+
+    appContext->wmpCacheDb = OpenDbByNameCreatorType(WORD_MATCHING_PATTERN_DB, APP_CREATOR, WORD_MATCHING_PATTERN_TYPE);
+    if (!appContext->wmpCacheDb)
+        return dmErrCantOpen;
+
     return errNone;
 }
 
@@ -63,7 +69,8 @@ Err ClearMatchingPatternDB(AppContext* appContext)
     while (DmNumRecords(appContext->wmpCacheDb))
     {
         err = DmRemoveRecord(appContext->wmpCacheDb, 0);
-        if (err) return err;
+        if (err) 
+            return err;
     }
     return errNone;
 }
@@ -74,7 +81,8 @@ Err ReadPattern(AppContext* appContext, char * pattern)
     char * rp;
 
     rh = DmQueryRecord(appContext->wmpCacheDb, 0);
-    if (!rh) {
+    if (!rh) 
+    {
         pattern[0] = 0;
         return dmErrCantFind;
     }
@@ -95,11 +103,13 @@ Err WritePattern(AppContext* appContext, char * pattern)
     num = DmNumRecords(appContext->wmpCacheDb);
     if (num > 0)
         rh = DmGetRecord(appContext->wmpCacheDb, 0);
-    else {
+    else 
+    {
         pos = dmMaxRecordIndex;
         rh = DmNewRecord(appContext->wmpCacheDb, &pos, len + 1);
     }
-    if (!rh) return DmGetLastErr();
+    if (!rh) 
+        return DmGetLastErr();
     rp = MemHandleLock(rh);
     err = DmWrite(rp, 0, pattern, len + 1);
     MemHandleUnlock(rh);
@@ -113,7 +123,8 @@ Err ReadMatchingPatternRecord(AppContext* appContext, long pos, long * elem)
     long *rp;
 
     rh = DmQueryRecord(appContext->wmpCacheDb, pos / WMP_REC_PACK_COUNT + 1);
-    if (!rh) return DmGetLastErr();
+    if (!rh) 
+        return DmGetLastErr();
     rp = MemHandleLock(rh);
     *elem = rp[pos % WMP_REC_PACK_COUNT];
     return MemHandleUnlock(rh);
@@ -212,22 +223,22 @@ int WordMatchesPattern(char * word, char * pattern)
 
 void FillMatchingPatternDB(AppContext* appContext, char * pattern)
 {
-    char tmp[5];
-    RectangleType rc;
-    RectangleType rcStop;
-    long i, num;
-    char * str;
-    AbstractFile* currFile=GetCurrentFile(appContext);
+    char            tmp[10];
+    RectangleType   rc, rcStop;
+    long            i, num;
+    long            matchedWords = 0;
+    char *          str;
+    AbstractFile *  currFile=GetCurrentFile(appContext);
 
     // prevents "global variable @212 is accessed using A5 register" warning
     rc.topLeft.x = 30;
     rc.topLeft.y = 40;
     rc.extent.x = 100;
-    rc.extent.x = 60;
+    rc.extent.y = 60;
     rcStop.topLeft.x = 60;
     rcStop.topLeft.y = 80;
     rcStop.extent.x = 40;
-    rcStop.extent.x = 12;
+    rcStop.extent.y = 12;
 
     num = dictGetWordsCount(currFile);
     WinEraseRectangle(&rc, 7);
@@ -239,10 +250,10 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
     {
         // special case: we can optimize the searching
 
-        UInt16 len, tmpLen;
-        char * tmpPattern;  // prefix of the pattern (beginning of the pattern until '*' or '?')
-        long pos;
-        long wordCount;
+        UInt16  len, tmpLen;
+        char *  tmpPattern;  // prefix of the pattern (beginning of the pattern until '*' or '?')
+        long    pos;
+        long    wordCount;
 
         len = StrLen(pattern);
         tmpPattern = (char *) new_malloc(len + 1);
@@ -258,16 +269,24 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
         pos = dictGetFirstMatching(currFile, tmpPattern);
         str = dictGetWord(currFile, pos);
         wordCount = dictGetWordsCount(currFile);
-        while (1)
+        while (true)
         {
             // word prefix has changed and is not fitting to pattern, we quit
-            if (StrNCaselessCompare(str, tmpPattern, tmpLen)) break;
+            if (StrNCaselessCompare(str, tmpPattern, tmpLen))
+                break;
             if (WordMatchesPattern(str, pattern))
+            {
+                ++matchedWords;
+                if (matchedWords > MATCHED_WORDS_LIMIT)
+                    break;
                 WriteMatchingPatternRecord(appContext, pos);
+            }
             StrPrintF(tmp, "%d%%", (int)((long)(pos * 100) / (long)num));
             DrawCenteredString(appContext, tmp, rc.topLeft.y + 20);
-            if (TappedInRect(&rcStop)) break;
-            if (++pos >= wordCount) break;
+            if (TappedInRect(&rcStop)) 
+                break;
+            if (++pos >= wordCount) 
+                break;
             str = dictGetWord(currFile, pos);
         }
         new_free(tmpPattern);
@@ -280,10 +299,16 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
         {
             str = dictGetWord(currFile, i);
             if (WordMatchesPattern(str, pattern))
+            {
+                ++matchedWords;
+                if (matchedWords > MATCHED_WORDS_LIMIT)
+                    break;
                 WriteMatchingPatternRecord(appContext, i);
+            }
             StrPrintF(tmp, "%d%%", (int)((long)(i * 100) / (long)num));
             DrawCenteredString(appContext, tmp, rc.topLeft.y + 20);
-            if (TappedInRect(&rcStop)) break;
+            if (TappedInRect(&rcStop))
+                break;
         }
     }
 }
@@ -309,6 +334,19 @@ void PatternListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     }
 }
 
+// Set topLeft.y coordinate of object objID on form frm to topLeftY.
+// Leave all aother coordinates unchanged
+static void SetObjectTopLeftY(FormType* frm, UInt16 objID, Coord topLeftY)
+{
+    RectangleType  newBounds;
+    UInt16         index=FrmGetObjectIndex(frm, objID);
+
+    Assert(index!=frmInvalidObjectId);
+    FrmGetObjectBounds(frm, index, &newBounds);
+    newBounds.topLeft.y= topLeftY;
+    FrmSetObjectBounds(frm, index, &newBounds);
+}
+
 static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
@@ -317,6 +355,9 @@ static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* f
         UInt16 index=0;
         ListType* list=0;
         RectangleType newBounds;
+
+        Coord screenHeightMinus14 = appContext->screenHeight-14;
+
         WinGetBounds(WinGetDisplayWindow(), &newBounds);
         WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
 
@@ -328,36 +369,12 @@ static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* f
         FrmGetObjectBounds(frm, index, &newBounds);
         newBounds.extent.x=appContext->screenWidth;
         FrmSetObjectBounds(frm, index, &newBounds);
-        
-        index=FrmGetObjectIndex(frm, fieldWord);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-14;
-        FrmSetObjectBounds(frm, index, &newBounds);
 
-        index=FrmGetObjectIndex(frm, buttonFind);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-14;
-        FrmSetObjectBounds(frm, index, &newBounds);
-
-        index=FrmGetObjectIndex(frm, buttonCancel);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-14;
-        FrmSetObjectBounds(frm, index, &newBounds);
-
-        index=FrmGetObjectIndex(frm, buttonOneChar);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-14;
-        FrmSetObjectBounds(frm, index, &newBounds);
-
-        index=FrmGetObjectIndex(frm, buttonAnyChar);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-14;
-        FrmSetObjectBounds(frm, index, &newBounds);
+        SetObjectTopLeftY(frm, fieldWord, screenHeightMinus14);
+        SetObjectTopLeftY(frm, buttonFind, screenHeightMinus14);
+        SetObjectTopLeftY(frm, buttonCancel, screenHeightMinus14);
+        SetObjectTopLeftY(frm, buttonOneChar, screenHeightMinus14);
+        SetObjectTopLeftY(frm, buttonAnyChar, screenHeightMinus14);
 
         FrmDrawForm(frm);
         handled=true;
@@ -365,6 +382,53 @@ static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* f
     return handled;
 }
 
+static void FindPatternFormFindButtonPressed(AppContext *appContext,FormType *frm)
+{
+    FieldPtr    fld;
+    ListPtr     list;
+    char *      pattern;
+
+    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
+    list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+    pattern = FldGetTextPtr(fld);
+    if (pattern != NULL)
+    {
+        ClearMatchingPatternDB(appContext);
+        WritePattern(appContext, pattern);
+        FillMatchingPatternDB(appContext, pattern);
+        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords(appContext));
+        LstSetDrawFunction(list, PatternListDrawFunc);
+        LstDrawList(list);
+    }
+}
+
+static Boolean FindPatternFormKeyDown(AppContext* appContext, FormType* frm, EventType* event)
+{
+    Boolean     handled = false;
+
+    // TODO: add scrolling of the list with 5-Way Navigator and page up/page down?
+    switch (event->data.keyDown.chr)
+    {
+        case returnChr:
+        case linefeedChr:
+            FindPatternFormFindButtonPressed(appContext, frm);
+            handled = true;
+            break;
+
+        default:
+            if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
+            {
+                if (FiveWayCenterPressed(appContext, event))
+                {
+                    FindPatternFormFindButtonPressed(appContext,frm);
+                    handled = true;
+                    break;
+                }
+            }
+            break;
+    }
+    return handled;
+}
 
 // Event handler proc for the find word using pattern form
 Boolean FindPatternFormHandleEvent(EventType* event)
@@ -373,8 +437,8 @@ Boolean FindPatternFormHandleEvent(EventType* event)
     FormPtr     frm = FrmGetActiveForm();
     FieldPtr    fld;
     ListPtr     list;
-    char *      pattern;
     long        prevMatchWordCount;
+    char *      pattern;
     AppContext* appContext=GetAppContext();
 
     switch (event->eType)
@@ -402,6 +466,10 @@ Boolean FindPatternFormHandleEvent(EventType* event)
             handled = true;
             break;
 
+        case keyDownEvent:
+            handled = FindPatternFormKeyDown(appContext, frm, event);
+            break;
+
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
@@ -412,17 +480,7 @@ Boolean FindPatternFormHandleEvent(EventType* event)
                     break;
 
                 case buttonFind:
-                    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
-                    list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
-                    pattern = FldGetTextPtr(fld);
-                    if (pattern != NULL) {
-                        ClearMatchingPatternDB(appContext);
-                        WritePattern(appContext, pattern);
-                        FillMatchingPatternDB(appContext, pattern);
-                        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords(appContext));
-                        LstSetDrawFunction(list, PatternListDrawFunc);
-                        LstDrawList(list);
-                    }
+                    FindPatternFormFindButtonPressed(appContext, frm);
                     handled = true;
                     break;
                 

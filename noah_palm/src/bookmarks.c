@@ -19,30 +19,6 @@
 
 #define BOOKMARKS_DB_TYPE 'bkmk'
 
-/* Open bookmarks database (whose type is BOOKMARKS_DB_TYPE and 
-   creator is APP_CREATOR) with a given dbName */
-static DmOpenRef OpenBookmarksDBByName(char *dbName)
-{
-    Boolean             fNewSearch;
-    DmSearchStateType   stateInfo;
-    UInt16              cardNo = 0;
-    LocalID             dbId;
-    char                dbNameBuf[dmDBNameLength];
-
-    fNewSearch = true;
-    while ( errNone == DmGetNextDatabaseByTypeCreator(fNewSearch, &stateInfo, BOOKMARKS_DB_TYPE, APP_CREATOR, 0, &cardNo, &dbId) )
-    {
-        fNewSearch = false;
-
-        MemSet(dbNameBuf, sizeof(dbName), 0);
-        DmDatabaseInfo(cardNo, dbId, dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
-
-        if ( 0==StrCompare(dbName,dbNameBuf) )
-            return DmOpenDatabase(cardNo, dbId, dmModeReadWrite);
-    }
-    return NULL;
-}
-
 /* Open one of the bookmark databases. If sortType is bkmSortByName
    use bookmarks sorted by name, if bkmSortByTime use bookmarks
    sorted by the bookmarking time */
@@ -70,11 +46,10 @@ Err OpenBookmarksDB(AppContext* appContext, BookmarkSortType sortType)
             Assert(false);
             break;
     }
-    Assert(StrLen(dbName) < dmDBNameLength);
 
     CloseBookmarksDB(appContext);
 
-    appContext->bookmarksDb = OpenBookmarksDBByName(dbName);
+    appContext->bookmarksDb = OpenDbByNameCreatorType(dbName, APP_CREATOR, BOOKMARKS_DB_TYPE);
 
     if (!appContext->bookmarksDb)
     {
@@ -82,7 +57,7 @@ Err OpenBookmarksDB(AppContext* appContext, BookmarkSortType sortType)
         if ( errNone != err)
             return err;
 
-        appContext->bookmarksDb = OpenBookmarksDBByName(dbName);
+        appContext->bookmarksDb = OpenDbByNameCreatorType(dbName, APP_CREATOR, BOOKMARKS_DB_TYPE);
         if (!appContext->bookmarksDb)
             return dmErrCantOpen;
     }
