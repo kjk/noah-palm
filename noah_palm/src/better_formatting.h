@@ -74,4 +74,6 @@ void bfStripBufferFromTags(ExtensibleBuffer *buf);
 Boolean IsTag(char a, char b);
 void SetOnlyFont(char type,DisplayPrefs *displayPrefs);
 
+extern Err DisplayPrefsFormLoad(struct _AppContext* appContext);
+
 #endif

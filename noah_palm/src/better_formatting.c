@@ -863,6 +863,27 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 
 #endif I_NOAH
 
+Err DisplayPrefsFormLoad(AppContext* appContext)
+{
+    Err error=errNone;
+    FormType* form=FrmInitForm(formDisplayPrefs);
+    if (!form)
+    {
+        error=memErrNotEnoughSpace;
+        goto OnError;
+    }
+    error=DefaultFormInit(appContext, form);
+    if (!error)
+    {
+        FrmSetActiveForm(form);
+        FrmSetEventHandler(form, DisplayPrefFormHandleEvent);
+    }
+    else 
+        FrmDeleteForm(form);
+OnError:
+    return error;    
+}
+
 // return true if a,b represents a tag
 Boolean IsTag(char a, char b)
 {
