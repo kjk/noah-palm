@@ -1147,6 +1147,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             pcReset(&wi->defPackContext, defData, 0);
             pcUnpack(&wi->defPackContext, defDataSize,
                       wi->curDefData, &unpackedLen);
+
             Assert((unpackedLen > 0) && (unpackedLen <= wi->maxDefLen));
             wi->curDefLen = unpackedLen;
             unpackedDef = wi->curDefData;
@@ -1157,7 +1158,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             while (unpackedLen > 0)
             {
                 len = 0;
-                while ((0 != unpackedDef[0]) && (1 != unpackedDef[0]))
+                while (unpackedDef[0] > 1)
                 {
                     ++len;
                     ++unpackedDef;
@@ -1213,6 +1214,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             DrawDisplayInfo(&wi->displayInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
             SetScrollbarState(&wi->displayInfo, appContext->dispLinesCount, 0);
             DrawWord(SEARCH_TXT, appContext->screenHeight-FRM_RSV_H+5);
+
 
             ++syn_found_count;
             if (syn_found_count == syn_count)
