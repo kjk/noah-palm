@@ -134,31 +134,32 @@ void StartCookieRequestWithWordLookup(AppContext* appContext, const char* word)
     ExtensibleBuffer request;
     ebufInit(&request, 0);
     Err error=CookieRequestPrepareRequest(request);
-    if (!error)
+    if (error)
     {
-        if (word)
+        FrmAlert(alertMemError);
+        goto Exit;
+    }
+
+    if (word)
+    {
+        ExtensibleBuffer* wordBuffer=ebufNew();
+        if (wordBuffer)
         {
-            ExtensibleBuffer* wordBuffer=ebufNew();
-            if (wordBuffer)
-            {
-                ebufInitWithStr(wordBuffer, const_cast<char*>(word));
-                ebufAddChar(wordBuffer, chrNull);
-                StartConnection(appContext, wordBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
-                    CookieRequestResponseProcessorWithLookup,  CookieRequestContextDestructor);
-            }
-            else
-                FrmAlert(alertMemError);
-        }
-        else
-        {
-            // this means GET_RANDOM_WORD in CookieRequestResponseProcessor
-            StartConnection(appContext, NULL, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
+            ebufInitWithStr(wordBuffer, const_cast<char*>(word));
+            ebufAddChar(wordBuffer, chrNull);
+            StartConnection(appContext, wordBuffer, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
                 CookieRequestResponseProcessorWithLookup,  CookieRequestContextDestructor);
         }
-            
+        else
+            FrmAlert(alertMemError);
     }
     else
-        FrmAlert(alertMemError);    
+    {
+        // this means GET_RANDOM_WORD in CookieRequestResponseProcessor
+        StartConnection(appContext, NULL, ebufGetDataPointer(&request), GeneralStatusTextRenderer, 
+            CookieRequestResponseProcessorWithLookup,  CookieRequestContextDestructor);
+    }
+Exit:
     ebufFreeData(&request);
 }
 

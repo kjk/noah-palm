@@ -44,8 +44,9 @@ static void MainFormDisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "ArsLexis iNoah", currentY);
     currentY+=16;
 
+
 #ifdef INTERNAL_BUILD
-DrawCenteredString(appContext, "Ver 1.1 (internal)", currentY);
+    DrawCenteredString(appContext, "Ver 1.1 (internal)", currentY);
 #else
  #ifdef DEBUG
     DrawCenteredString(appContext, "Ver 1.1 (debug)", currentY);
@@ -53,6 +54,7 @@ DrawCenteredString(appContext, "Ver 1.1 (internal)", currentY);
     DrawCenteredString(appContext, "Ver 1.1", currentY);
  #endif // DEBUG
 #endif // INTERNAL_BUILD
+
     currentY+=20;
     
     FntSetFont(boldFont);
@@ -64,6 +66,9 @@ DrawCenteredString(appContext, "Ver 1.1 (internal)", currentY);
     currentY+=24;
 
     FntSetFont(stdFont);
+#ifdef UNLOCKED
+    DrawCenteredString(appContext, "Registered PalmSource version", currentY);
+#else
     if (0==StrLen(appContext->prefs.regCode))
     {
         DrawCenteredString(appContext, "Unregistered", currentY);
@@ -84,7 +89,8 @@ DrawCenteredString(appContext, "Ver 1.1 (internal)", currentY);
     {
         DrawCenteredString(appContext, "Registered version", currentY);
     }
-    WinPopDrawState();    
+#endif  // UNLOCKED
+    WinPopDrawState();
 }
 
 static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
@@ -612,7 +618,11 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             break;
 
         case menuItemRegister:
+#ifdef UNLOCKED
+            FrmAlert(alreadyRegisteredAlert);
+#else
             MainFormHandleRegister(appContext,false);
+#endif
             FrmUpdateForm(formDictMain, redrawAll); 
             handled=true;
             break;

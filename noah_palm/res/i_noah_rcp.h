@@ -53,6 +53,7 @@
 #define alertNoWebBrowser                  2018
 #define alertRegistrationFailed            2020
 #define alertRegistrationOk                2022
+#define alreadyRegisteredAlert             2024
 
 #define bmpFind               3000
 #define forwardDisabledBitmap 3001

@@ -296,6 +296,14 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT ID alreadyRegisteredAlert
+INFORMATION
+BEGIN
+    TITLE "Already registered"
+    MESSAGE "This version is already registered."
+    BUTTONS "OK"
+END
+
 ICONFAMILYEX
 BEGIN
     BITMAP "icons/inoah_22_22_bw.bmp"  BPP 1 DENSITY 1

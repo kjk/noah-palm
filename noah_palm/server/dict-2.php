@@ -3,6 +3,8 @@
 # this file serves requests for protocol version 2 of the client.
 # This protocol is (currently) used by version 1 of Palm/SideKick/Smarthpone client
 
+$f_check_limits = true;
+
 define( 'ERR_NO_PV',             1);
 define( 'ERR_NO_CV',             2);
 define( 'ERR_INVALID_CV',        3);
@@ -265,7 +267,7 @@ function report_no_lookups_left()
 {
     $total_limit = TOTAL_REQUESTS_LIMIT;
     $daily_limit = DAILY_REQUESTS_LIMIT;
-    write_MSG("You've reached the lookup limit for the trial version. Please register iNoah at http://www.arslexis.com.");
+    write_MSG("You've reached the lookup limit for the trial version. Please register iNoah at http://www.arslexis.com.\n\nYou can still use random word lookup ('Main/Random word' menu).");
     exit;
 }
 
@@ -411,6 +413,7 @@ function get_today_requests_for_cookie($cookie)
 # if $reg_code is an empty string => unregistered lookup
 function serve_get_word($cookie,$word,$reg_code)
 {
+    global $f_check_limits;
 /*
     if ( $word=='wl' )
     {
@@ -426,7 +429,7 @@ function serve_get_word($cookie,$word,$reg_code)
 */
 
     $requests_left = -1;
-    if (!$reg_code)
+    if (!$reg_code && $f_check_limits)
     {
         $total_requests = get_total_requests_for_cookie($cookie);
         $requests_left = TOTAL_REQUESTS_LIMIT-$total_requests+DAILY_REQUESTS_LIMIT;
@@ -539,6 +542,14 @@ if ( isset( $HTTP_GET_VARS['get_cookie'] ) )
         report_error(ERR_NO_DI);
     validate_di($device_id);
     serve_get_cookie($device_id);
+}
+
+# this is basically a back-door disabling checking lookup limits, effectively
+# making an app unlocked. We need it sometimes e.g. to prepare a promotional
+# version that doesn't require entering registration code
+if ( isset($HTTP_GET_VARS['nl']) )
+{
+    $f_check_limits = false;
 }
 
 # all other requests require cookie to be present

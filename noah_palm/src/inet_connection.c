@@ -1,15 +1,24 @@
 #include "inet_connection.h"
 #include "http_response.h"
 
-#ifdef INTERNAL_BUILD
 // this is a test server running on my pc, accessible from internet
-#define serverAddress                "dict-pc.arslexis.com"
-#define serverPort                   4080
-#else
+#define SERVER_LOCAL                "dict-pc.arslexis.com"
+#define PORT_LOCAL                   4080
+
 // this is an official server running on arslexis.com
-#define serverAddress                "dict.arslexis.com"
-#define serverPort                   80
+#define SERVER_OFFICIAL             "dict.arslexis.com"
+#define PORT_OFFICIAL                80
+
+#ifdef INTERNAL_BUILD
+#define SERVER_TO_USE    SERVER_LOCAL
+#define PORT_TO_USE      PORT_LOCAL
+#else
+//#define SERVER_TO_USE    SERVER_LOCAL
+//#define PORT_TO_USE      PORT_LOCAL
+#define SERVER_TO_USE    SERVER_OFFICIAL
+#define PORT_TO_USE      PORT_OFFICIAL
 #endif
+
 
 #define maxResponseLength         8192           // reasonable limit so malicious response won't use all available memory
 #define responseBufferSize         256           // size of single chunk used to retrieve server response
@@ -153,7 +162,7 @@ inline static ConnectionData* CreateConnectionData(void* context, NetIPAddr* ser
         ebufInitWithStr(&connData->request, "GET ");
         ebufAddStr(&connData->request, const_cast<char*>(requestUrl));
         ebufAddStr(&connData->request, " HTTP/1.0\r\nHost: ");
-        ebufAddStr(&connData->request, serverAddress);
+        ebufAddStr(&connData->request, SERVER_TO_USE);
         ebufAddStr(&connData->request, "\r\nAccept-Encoding: identity\r\nAccept: text/plain\r\nConnection: close\r\n\r\n");
         
         ebufInit(&connData->response, 0);
@@ -196,7 +205,7 @@ static Err ResolveServerAddress(ConnectionData* connData)
         goto OnError;
     }      
     Assert(0==*connData->serverIpAddress);
-    infoPtr=NetLibGetHostByName(connData->netLibRefNum, serverAddress, infoBuf, MillisecondsToTicks(addressResolveTimeout), &error);
+    infoPtr=NetLibGetHostByName(connData->netLibRefNum, SERVER_TO_USE, infoBuf, MillisecondsToTicks(addressResolveTimeout), &error);
     if (infoPtr && !error)
     {
         Assert(netSocketAddrINET==infoPtr->addrType);
@@ -236,7 +245,7 @@ static Err OpenConnection(ConnectionData* connData)
         Int16 result;
         NetSocketAddrINType address;
         address.family=netSocketAddrINET;
-        address.port=NetHToNS(serverPort);
+        address.port=NetHToNS(PORT_TO_USE);
         address.addr=NetHToNL(*connData->serverIpAddress);
         timeout = MillisecondsToTicks(socketConnectTimeout);
         result=NetLibSocketConnect(connData->netLibRefNum, connData->socket, (NetSocketAddrType*)&address, sizeof(address), 

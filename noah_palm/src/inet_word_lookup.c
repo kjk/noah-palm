@@ -95,25 +95,31 @@ static void WordLookupContextDestructor(void* context)
 
 static Err WordLookupPrepareRequest(const char* cookie, const char* word, const char *regCode, ExtensibleBuffer& buffer)
 {
-    Err     error=errNone;
-    char *  url=NULL;
+    Err     error = errNone;
+    char *  url = NULL;
     Assert(word);
-    UInt16  wordLength=StrLen(word);
+    UInt16  wordLength = StrLen(word);
     char *  urlEncodedWord;
-    error=StrUrlEncode(word, word+wordLength+1, &urlEncodedWord, &wordLength);
+    error = StrUrlEncode(word, word+wordLength+1, &urlEncodedWord, &wordLength);
     if (error)
         goto OnError;
     
-    url=TxtParamString(wordLookupURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncodedWord);
+    url = TxtParamString(wordLookupURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncodedWord);
     new_free(urlEncodedWord);
     if (!url)
     {
-        error=memErrNotEnoughSpace;
+        error = memErrNotEnoughSpace;
         goto OnError;
     }
     ebufAddStr(&buffer, url);
     MemPtrFree(url);
 
+#ifdef UNLOCKED
+    // this is basically a back-door disabling checking lookup limits, effectively
+    // making an app unlocked. We need it sometimes e.g. to prepare a promotional
+    // version that doesn't require entering registration code
+    ebufAddStr(&buffer, "&nl=");
+#else
     if (regCode && StrLen(regCode)>0)
     {
         char *urlEncodedRegCode;
@@ -124,6 +130,7 @@ static Err WordLookupPrepareRequest(const char* cookie, const char* word, const 
         ebufAddStr(&buffer,urlEncodedRegCode);
         new_free(urlEncodedRegCode);
     }
+#endif
     ebufAddChar(&buffer, chrNull);
 OnError:        
     return error;    
@@ -172,30 +179,33 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
 void StartWordLookup(AppContext* appContext, const char* word)
 {
     if (!HasCookie(appContext->prefs))
-        StartCookieRequestWithWordLookup(appContext, word);
-    else
     {
-        ExtensibleBuffer urlBuffer;
-        ebufInit(&urlBuffer, 0);
-        Err error=WordLookupPrepareRequest(appContext->prefs.cookie, word, appContext->prefs.regCode, urlBuffer);
-        if (!error) 
-        {
-            const char* requestUrl=ebufGetDataPointer(&urlBuffer);
-            ExtensibleBuffer* context=ebufNew();
-            if (context)
-            {
-                ebufInitWithStr(context, const_cast<char*>(word));
-                ebufAddChar(context, chrNull);
-                StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
-                    WordLookupResponseProcessor, WordLookupContextDestructor);
-            }
-            else 
-                FrmAlert(alertMemError);            
-        }
-        else 
-            FrmAlert(alertMemError);
-        ebufFreeData(&urlBuffer);
+        StartCookieRequestWithWordLookup(appContext, word);
+        return;
     }
+
+    ExtensibleBuffer urlBuffer;
+    ebufInit(&urlBuffer, 0);
+    Err error = WordLookupPrepareRequest(appContext->prefs.cookie, word, appContext->prefs.regCode, urlBuffer);
+    if (error) 
+    {
+        FrmAlert(alertMemError);
+        goto Exit;
+    }
+
+    const char* requestUrl = ebufGetDataPointer(&urlBuffer);
+    ExtensibleBuffer* context = ebufNew();
+    if (context)
+    {
+        ebufInitWithStr(context, const_cast<char*>(word));
+        ebufAddChar(context, chrNull);
+        StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
+            WordLookupResponseProcessor, WordLookupContextDestructor);
+    }
+    else 
+        FrmAlert(alertMemError);            
+Exit:
+    ebufFreeData(&urlBuffer);
 }
 
 static Err PrepareGenericRequest(const char* cookie, const char* param, ExtensibleBuffer& buffer)

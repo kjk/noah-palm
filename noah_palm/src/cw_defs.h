@@ -96,6 +96,12 @@ to provide per-target defines. In gcc version they're set via Makefile.
 #define NDEBUG
 #endif
 
+#if __ide_target("iNoah Unlocked")
+#define I_NOAH  1
+#define NDEBUG
+#define UNLOCKED 1
+#endif
+
 #if __ide_target("iNoah palmgear")
 #define I_NOAH  1
 #define NDEBUG
