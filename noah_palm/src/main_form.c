@@ -1,6 +1,14 @@
+/*
+  Copyright (C) 2000-2003 Krzysztof Kowalczyk (krzysztofk@pobox.com)
+  Author: Andrzej Ciarkowski
+
+  Implements handling of the main form for iNoah.
+*/
+
 #include "main_form.h"
 #include "inet_word_lookup.h"
 #include "inet_definition_format.h"
+#include "five_way_nav.h"
 
 static void MainFormDisplayAbout(AppContext* appContext)
 {
@@ -14,18 +22,18 @@ static void MainFormDisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "ArsLexis iNoah", currentY);
     currentY+=16;
 #ifdef DEMO
-    DrawCenteredString(appContext, "Ver 1.0 (demo)", currentY);
+    DrawCenteredString(appContext, "Ver 0.5 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 1.0 (Debug)", currentY);
+    DrawCenteredString(appContext, "Ver 0.5 (debug)", currentY);
   #else
-    DrawCenteredString(appContext, "Ver 1.0", currentY);
+    DrawCenteredString(appContext, "Ver 0.5", currentY);
   #endif
 #endif
     currentY+=20;
     
     FntSetFont(boldFont);
-    DrawCenteredString(appContext, "(C) 2000-2003 ArsLexis", currentY);
+    DrawCenteredString(appContext, "(C) 2003-2004 ArsLexis", currentY);
     currentY+=24;
 
     FntSetFont(largeFont);
@@ -65,8 +73,7 @@ static void MainFormDraw(AppContext* appContext, FormType* form)
     else 
     {
         WinPushDrawState();
-        if (mainFormShowingWord==appContext->mainFormMode)
-            DrawWord(ebufGetDataPointer(&appContext->currentWord), appContext->screenHeight-FONT_DY);
+
         SetBackColorWhite(appContext);
         ClearDisplayRectangle(appContext);
         DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
@@ -75,33 +82,38 @@ static void MainFormDraw(AppContext* appContext, FormType* form)
     }        
 }
 
+/* Select all text in a given Field */
+static void FldSelectAllText(FormType *form, const FieldType* field)
+{
+    // TODO: obviously.
+    UInt16 index;
+
+    index=FrmGetObjectIndex(form, fieldWordInput);
+    FrmShowObject(form, index);
+    FrmSetFocus(form, index);
+}
+
 static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
 {
+    const Char* newWord=NULL;
     UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
+
     Assert(frmInvalidObjectId!=index);
-    if (mainFormShowingWord==appContext->mainFormMode)
-    {
-        appContext->mainFormMode=mainFormShowingField;
-        DrawWord("", appContext->screenHeight-FONT_DY);
-        FrmShowObject(form, index);
-        FrmSetFocus(form, index);
-    }
-    else
+
     {
         const FieldType* field=(const FieldType*)FrmGetObjectPtr(form, index);
-        const Char* newWord=NULL;
         const Char* prevWord=ebufGetDataPointer(&appContext->currentWord);
         Assert(field);
         newWord=FldGetTextPtr(field);
-        FrmHideObject(form, index);
         appContext->mainFormMode=mainFormShowingWord;
-        if (newWord && (!prevWord || 0!=StrCompare(newWord, prevWord)))
+        if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
         {
             Err error=LookupWord(appContext, newWord);
+            FldSelectAllText(form, field);
             if (!error)
                 FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
         }
-    }        
+    }
 }
 
 static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, EventType* event)
@@ -113,7 +125,7 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
             MainFormFindButtonPressed(appContext, form);
             handled=true;
             break;
-            
+
         default:
             Assert(false);
     }
@@ -122,12 +134,87 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
 
 static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* event)
 {
-//    Err error=errNone;
+    UInt16 index;
+    //    Err error=errNone;
     MainFormDraw(appContext, form);
+
+    appContext->mainFormMode=mainFormShowingField;
+    index=FrmGetObjectIndex(form, fieldWordInput);
+    FrmShowObject(form, index);
+    FrmSetFocus(form, index);
+
 //    error=LookupWord(appContext, "art");
 //    if (!error)
 //        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
     return true;
+}
+
+static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType* event)
+{
+    Boolean handled = false;
+
+    switch (event->data.keyDown.chr)
+    {
+        case returnChr:
+        case linefeedChr:
+            MainFormFindButtonPressed(appContext,form);
+            handled = true;
+            break;
+/*
+        case pageUpChr:
+            if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
+            {
+                ScrollWordListByDx(appContext, frm, -(appContext->dispLinesCount-1) );
+                handled = true;
+                break;
+            }
+
+        case pageDownChr:
+            if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
+            {
+                ScrollWordListByDx(appContext, frm, (appContext->dispLinesCount-1) );
+                handled = true;
+                break;
+            }*/
+
+        default:
+            if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
+            {
+                if (FiveWayCenterPressed(appContext, event))
+                {
+                    MainFormFindButtonPressed(appContext,form);
+                    handled = true;
+                    break;
+                }
+            
+/*                if (FiveWayDirectionPressed(appContext, event, Left ))
+                {
+                    ScrollWordListByDx(appContext, frm, -(appContext->dispLinesCount-1) );
+                    handled = true;
+                    break;
+                }
+                if (FiveWayDirectionPressed(appContext, event, Right ))
+                {
+                    ScrollWordListByDx(appContext, frm, (appContext->dispLinesCount-1) );
+                    handled = true;
+                    break;
+                }
+                if (FiveWayDirectionPressed(appContext, event, Up ))
+                {
+                    ScrollWordListByDx(appContext, frm, -1 );
+                    handled = true;
+                    break;
+                }
+                if (FiveWayDirectionPressed(appContext, event, Down ))
+                {
+                    ScrollWordListByDx(appContext, frm, 1 );
+                    handled = true;
+                    break;
+                }*/
+            }
+            break;
+    }
+    return handled;
 }
 
 static Boolean MainFormHandleEvent(EventType* event)
@@ -148,6 +235,10 @@ static Boolean MainFormHandleEvent(EventType* event)
             
         case ctlSelectEvent:
             handled=MainFormControlSelected(appContext, form, event);
+            break;
+
+        case keyDownEvent:
+            handled = MainFormKeyDown(appContext, form, event);
             break;
 
 /*            
