@@ -32,17 +32,258 @@ char helpText[] = "Instructions:\n\255 to lookup a definition of a word \npress 
 
 GlobalData gd;
 
-void SavePreferences()
+void serByte(unsigned char val, char *prefsBlob, long *pCurrBlobSize)
 {
-#if 0    
-    DmOpenRef      db = NULL;
+    Assert( pCurrBlobSize );
+    if ( prefsBlob )
+        prefsBlob[*pCurrBlobSize] = val;
+    *pCurrBlobSize += 1;
+}
+
+void serInt(int val, char *prefsBlob, long *pCurrBlobSize)
+{
+    int high, low;
+
+    high = val / 256;
+    low = val % 256;
+    serByte( high, prefsBlob, pCurrBlobSize );
+    serByte( low, prefsBlob, pCurrBlobSize );
+}
+
+void serLong(long val, char *prefsBlob, long *pCurrBlobSize)
+{
+    unsigned char * valPtr;
+
+    valPtr = (unsigned char*) &val;
+    serByte( valPtr[0], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[1], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[2], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[3], prefsBlob, pCurrBlobSize );
+}
+
+unsigned char deserByte( unsigned char **data, long *pBlobSizeLeft )
+{
+    unsigned char val;
+    unsigned char *d = *data;
+
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=1) );
+    val = *d++;
+    *data = d;
+    *pBlobSizeLeft -= 1;
+    return val;
+}
+
+int getInt( unsigned char *data)
+{
+    int val;
+    val = data[0]*256+data[1];
+    return val;
+}
+
+int deserInt( unsigned char **data, long *pBlobSizeLeft )
+{
+    int val;
+    unsigned char *d = *data;
+
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=2) );
+    val = getInt( d );
+    *data = d+2;
+    *pBlobSizeLeft -= 2;
+    return val;
+}
+
+long deserLong( unsigned char **data, long *pBlobSizeLeft)
+{
+    long val;
+    unsigned char * valPtr;
+    unsigned char *d = *data;
+
+    valPtr = (unsigned char*) &val;
+    valPtr[0] = d[0];
+    valPtr[1] = d[1];
+    valPtr[2] = d[2];
+    valPtr[3] = d[3];
+    *data = d+4;
+    *pBlobSizeLeft -= 4;
+    return val;
+}
+
+void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
+{
+    long i;
+    for ( i=0; i<dataSize; i++)
+        serByte(data[i],prefsBlob,pCurrBlobSize);
+}
+
+void deserData( unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft )
+{
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=len) );
+    MemMove( valOut, *data, len );
+    *data = *data+len;
+    *pBlobSizeLeft -= len;
+}
+
+Boolean FIsPrefRecord(void *recData)
+{
+    long    sig;
+    Assert( recData );
+    sig = ((long*)recData)[0];
+    return (Noah21Pref == sig) ? true : false;
+}
+
+/* Create a blob containing 
+caller needs to free memory returned
+*/
+void *GetSerializedPreferences(long *pBlobSize)
+{
+    void *      prefsBlob;
+    long        blobSize;
+    long        blobSizePhaseOne;
+    int         phase;
+    NoahPrefs   *prefs;
+    UInt32      prefRecordId = Noah21Pref;
+    AbstractFile *currFile;
+    int         dbNameLen;
+    int         wordLen;
+    int         i;
+
+    Assert( pBlobSize );
+
+    LogG( "GetSerializedPreferences()" );
+
+    prefs = &gd.prefs;
+    /* phase one: calculate the size of the blob */
+    /* phase two: create the blob */
+    prefsBlob = NULL;
+    for( phase=1; phase<3; phase++)
+    {
+        blobSize = 0;
+        Assert( 4 == sizeof(prefRecordId) );
+        serData( (char*)&prefRecordId, sizeof(prefRecordId), prefsBlob, &blobSize );
+        serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
+        serByte( prefs->startupAction, prefsBlob, &blobSize );
+        serByte( prefs->tapScrollType, prefsBlob, &blobSize );
+        serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
+        serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
+        currFile = GetCurrentFile();
+        if ( NULL != currFile )
+        {
+            serByte( currFile->fsType, prefsBlob, &blobSize );
+            dbNameLen = strlen(currFile->fileName)+1;
+            serInt( dbNameLen, prefsBlob, &blobSize );
+            serData( currFile->fileName, dbNameLen, prefsBlob, &blobSize );
+        }
+        else
+        {
+            /* so that we can tell in deserializer */
+            LogG( "GetSerializedPreferences(), currFile == NULL" );
+            serByte( eFS_NONE, prefsBlob, &blobSize );
+        }
+        wordLen = strlen(gd.prefs.lastWord)+1;
+        Assert( wordLen <= WORD_MAX_LEN );
+        serInt( wordLen, prefsBlob, &blobSize );
+        serData( gd.prefs.lastWord, wordLen, prefsBlob, &blobSize );
+        LogV1( "GetSerializedPreferences(), lastWord=%s", gd.prefs.lastWord );
+
+        serInt( gd.historyCount, prefsBlob, &blobSize );
+        for (i=0; i<gd.historyCount; i++)
+        {
+            serLong( gd.wordHistory[i], prefsBlob, &blobSize );
+        }
+        if ( 1 == phase )
+        {
+            Assert( blobSize > 0 );
+            blobSizePhaseOne = blobSize;
+            prefsBlob = new_malloc( blobSize );
+            if (NULL == prefsBlob)
+            {
+                LogG("GetSerializedPreferences(): prefsBlob==NULL");
+                return NULL;
+            }
+        }
+    }
+    Assert( blobSize == blobSizePhaseOne );
+    Assert( blobSize > 8 );
+
+    *pBlobSize = blobSize;
+    Assert( prefsBlob );
+    return prefsBlob;
+}
+
+/* Given a blob containing serialized prefrences deserilize the blob
+and set the preferences accordingly.
+*/
+void DeserilizePreferences(unsigned char *prefsBlob, long blobSize)
+{
+    NoahPrefs *     prefs;
+    eFsType         fsType;
+    int             dbNameLen;
+    unsigned char * dbName;
+    int             wordLen;
+    int             i;
+
+    Assert( prefsBlob );
+    Assert( blobSize > 8 );
+
+    LogG( "DeserilizePreferences()" );
+
+    prefs = &gd.prefs;
+    /* skip the 4-byte signature of the preferences record */
+    Assert( FIsPrefRecord( prefsBlob ) );
+    prefsBlob += 4;
+    blobSize -= 4;
+
+    prefs->fDelVfsCacheOnExit = (Boolean) deserByte( &prefsBlob, &blobSize );
+    prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
+    prefs->tapScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
+    prefs->hwButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
+    prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
+
+    Assert( blobSize > 0);
+    fsType = (eFsType) deserByte( &prefsBlob, &blobSize );
+    if ( fsType != eFS_NONE )
+    {
+        Assert( (eFS_MEM==fsType) || (eFS_VFS==fsType) );
+        dbNameLen = deserInt( &prefsBlob, &blobSize );
+        Assert( 0 == prefsBlob[dbNameLen-1] );
+        dbName = new_malloc( dbNameLen );
+        deserData( dbName, dbNameLen, &prefsBlob, &blobSize );
+        LogV1( "DeserilizePreferences(), dbName=%s", dbName );
+        prefs->lastDbUsedName = dbName;
+    }
+    else
+    {
+        LogG( "DeserilizePreferences(), fsType==eFS_NONE" );
+    }
+    wordLen = deserInt( &prefsBlob, &blobSize );
+    Assert( wordLen <= WORD_MAX_LEN );
+    Assert( 0 == prefsBlob[wordLen-1] );
+    deserData( gd.prefs.lastWord, wordLen, &prefsBlob, &blobSize );
+    LogV1( "DeserilizePreferences(), lastWord=%s", gd.prefs.lastWord );
+
+    gd.historyCount = deserInt( &prefsBlob, &blobSize );
+    for (i=0; i<gd.historyCount; i++)
+    {
+        gd.wordHistory[i] = deserLong( &prefsBlob, &blobSize );
+    }
+}
+
+void SavePreferencesNoahPro()
+{
+    DmOpenRef      db;
     UInt           recNo;
     UInt           recsCount;
-    Boolean        recFoundP = false;
+    Boolean        fRecFound = false;
     Err            err;
-    NoahDBPrefs    *pref = NULL;
-    long           recSize = 0;
-    MemHandle      recHandle = 0;
+    void *         recData;
+    long           recSize;
+    MemHandle      recHandle;
+    void *         prefsBlob;
+    long           blobSize;
+    Boolean        fRecordBusy = false;
+
+    prefsBlob = GetSerializedPreferences( &blobSize );
+    if ( NULL == prefsBlob ) return;
 
     db = DmOpenDatabaseByTypeCreator(NOAH_PREF_TYPE, NOAH_PRO_CREATOR, dmModeReadWrite);
     if (!db)
@@ -62,86 +303,83 @@ void SavePreferences()
         }
     }
     recNo = 0;
-    recFoundP = 0;
     recsCount = DmNumRecords(db);
     while (recNo < recsCount)
     {
         recHandle = DmGetRecord(db, recNo);
-        pref = (NoahDBPrefs *) MemHandleLock(recHandle);
+        fRecordBusy = true;
+        recData = MemHandleLock(recHandle);
         recSize = MemHandleSize(recHandle);
-        /* records must have matching id and size */
-        if ((pref->recordId == data->recordId) && (dataLen == recSize))
+        if ( FIsPrefRecord(recData) )
         {
-            /* and for per-db preferences, the name has to match the name
-               of the database */
-            recFoundP = true;
-            if (NoahDB10Pref == pref->recordId)
-            {
-                if (0 == StrCompare((char *) pref->dbName, (char *) data->dbName))
-                    recFoundP = true;
-                else
-                    recFoundP = false;
-            }
-        }
-        if (recFoundP)
+            fRecFound = true;
             break;
-
-        MemPtrUnlock(pref);
+        }
+        MemPtrUnlock(recData);
         DmReleaseRecord(db, recNo, true);
+        fRecordBusy = false;
         ++recNo;
     }
 
-    if (!recFoundP)
+    if (fRecFound && blobSize>recSize)
+    {
+        /* need to resize the record */
+        MemPtrUnlock(recData);
+        DmReleaseRecord(db,recNo,true);
+        fRecordBusy = false;
+        recHandle = DmResizeRecord(db, recNo, blobSize);
+        if ( NULL == recHandle )
+            return;
+        recData = MemHandleLock(recHandle);
+        Assert( MemHandleSize(recHandle) == blobSize );        
+    }
+
+    if (!fRecFound)
     {
         recNo = 0;
-        recHandle = DmNewRecord(db, &recNo, dataLen);
-        pref = (NoahDBPrefs *) MemHandleLock(recHandle);
-        /* ErrFatalDisplayIf(!pref, "M"); */
+        recHandle = DmNewRecord(db, &recNo, blobSize);
+        if (!recHandle)
+            goto CloseDbExit;
+        recData = MemHandleLock(recHandle);
+        fRecordBusy = true;
     }
-    DmWrite(pref, 0, data, dataLen);
-    MemPtrUnlock(pref);
-    DmReleaseRecord(db, recNo, true);
+
+    DmWrite(recData, 0, prefsBlob, blobSize);
+    MemPtrUnlock(recData);
+    if (fRecordBusy)
+        DmReleaseRecord(db, recNo, true);
+CloseDbExit:
     DmCloseDatabase(db);
-#endif    
+    new_free( prefsBlob );
 }
 
-void LoadPreferences()
+#define PREF_REC_MIN_SIZE 4+5
+
+void LoadPreferencesNoahPro()
 {
-#if 0
-    DmOpenRef       db = NULL;
-    UInt            recNo;
-    Boolean         recFoundP = false;
-    NoahDBPrefs     *pref;
-    MemHandle       recHandle;
-    long            recSize = 0;
-    UInt            recsCount;
+    DmOpenRef    db;
+    UInt         recNo;
+    void *       recData;
+    MemHandle    recHandle;
+    UInt         recsCount;
+    Boolean      fRecFound = false;
 
     db = DmOpenDatabaseByTypeCreator(NOAH_PREF_TYPE, NOAH_PRO_CREATOR, dmModeReadWrite);
-    if (!db)
-        return;
+    if (!db) return;
     recsCount = DmNumRecords(db);
-    for (recNo = 0; (recNo < recsCount) && !recFoundP; recNo++)
+    for (recNo = 0; (recNo < recsCount) && !fRecFound; recNo++)
     {
         recHandle = DmQueryRecord(db, recNo);
-        pref = (NoahDBPrefs *) MemHandleLock(recHandle);
-        recSize = MemHandleSize(recHandle);
-        if ((pref->recordId == data->recordId) && (dataLen == recSize))
+        recData = MemHandleLock(recHandle);
+        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && FIsPrefRecord( recData ) )
         {
-            recFoundP = true;
-            if (NoahDB10Pref == pref->recordId)
-            {
-                if (0 == StrCompare((char *) pref->dbName, (char *) data->dbName)) 
-                    recFoundP = true;
-                else
-                    recFoundP = false;
-            }
-            if (recFoundP)
-                MemMove(data, pref, dataLen);
+            LogG( "LoadPreferencesNoahPro(), found prefs record" );
+            fRecFound = true;
+            DeserilizePreferences((unsigned char*)recData, MemHandleSize(recHandle) );
         }
-        MemPtrUnlock(pref);
+        MemPtrUnlock(recData);
     }
     DmCloseDatabase(db);
-#endif
 }
 
 void DictFoundCBNoahPro( AbstractFile *file )
@@ -191,6 +429,32 @@ void ScanForDictsNoahPro(void)
 
     /* TODO: show a progress dialog with a number of files processed so far */
     FsVfsFindDb( &VfsFindCbNoahPro );
+    LogV1( "ScanForDictsNoahPro(), found %d dicts", gd.dictsCount );
+}
+
+void SendNewWordSelected(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum) evtNewWordSelected;
+    EvtAddEventToQueue(&newEvent);
+}
+
+void SendFieldChanged(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum)evtFieldChanged;
+    EvtAddEventToQueue(&newEvent);
+}
+
+void SendNewDatabaseSelected(int db)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
+    EvtSetInt( &newEvent, db );
+    EvtAddEventToQueue(&newEvent);
 }
 
 Err InitNoahPro(void)
@@ -209,15 +473,16 @@ Err InitNoahPro(void)
 
     /* fill out the default values for Noah preferences
        and try to load them from pref database */
-    gd.prefs.fDelVfsCacheOnExit = 1;
+    gd.prefs.fDelVfsCacheOnExit = true;
     gd.prefs.startupAction = startupActionNone;
     gd.prefs.tapScrollType = scrollLine;
     gd.prefs.hwButtonScrollType = scrollPage;
     gd.prefs.dbStartupAction = dbStartupActionAsk;
+    gd.prefs.lastDbUsedName = NULL;
 
     FsInit();
 
-/*    LoadPreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs)); */
+    LoadPreferencesNoahPro();
 
     if (!CreateInfoData())
     {
@@ -228,7 +493,6 @@ Err InitNoahPro(void)
 
 void DictCurrentFree(void)
 {
-    SavePreferences();
     dictDelete();
     if ( NULL != GetCurrentFile() ) FsFileClose( GetCurrentFile() );
 }
@@ -257,14 +521,17 @@ Boolean DictInit(AbstractFile *file)
 
 void StopNoahPro(void)
 {
-    // TODO: SavePreferences()
+    SavePreferencesNoahPro();
     DictCurrentFree();
     FreeDicts();
     FreeInfoData();
+
     if ( gd.prefs.fDelVfsCacheOnExit)
-    {
         dcDelCacheDb();
-    }
+
+    if ( NULL != gd.prefs.lastDbUsedName )
+        new_free( gd.prefs.lastDbUsedName );
+
     FrmSaveAllForms();
     FrmCloseAllForms();
     FsDeinit();
@@ -303,21 +570,17 @@ void SetWordAsLastWord( char *txt, int wordLen )
 {
     MemSet((void *) &(gd.lastWord[0]), WORD_MAX_LEN, 0);
     if ( -1 == wordLen )
-    {
         wordLen = StrLen( txt );
-    }
     if (wordLen >= (WORD_MAX_LEN - 1))
-    {
         wordLen = WORD_MAX_LEN - 1;
-    }
     MemMove((void *) &(gd.lastWord[0]), txt, wordLen);
 }
 
-/* return 0 if didn't find anything in clipboard, 1 if 
+/* return false if didn't find anything in clipboard, true if 
    got word from clipboard */
-int TryClipboard(void)
+Boolean FTryClipboard(void)
 {
-    MemHandle   clipItemHandle = 0;
+    MemHandle   clipItemHandle;
     char        txt[30];
     char        *clipTxt;
     char        *word;
@@ -325,18 +588,18 @@ int TryClipboard(void)
     int         idx;
     UInt16      itemLen;
 
-    if ( 0 == clipItemHandle )
-        return 0;
+    Assert( GetCurrentFile() );
 
     clipItemHandle = ClipboardGetItem(clipboardText, &itemLen);
     if (!clipItemHandle || (0==itemLen))
-            return 0;
+            return false;
+
     clipTxt = (char *) MemHandleLock(clipItemHandle);
 
     if (!clipTxt)
     {
         MemHandleUnlock( clipItemHandle );
-        return 0;
+        return false;
     }
 
     MemSet(txt, 30, 0);
@@ -347,9 +610,7 @@ int TryClipboard(void)
     RemoveWhiteSpaces( txt );
     idx = 0;
     while (txt[idx] && (txt[idx] == ' '))
-    {
         ++idx;
-    }
 
     if (clipItemHandle)
         MemHandleUnlock(clipItemHandle);
@@ -360,41 +621,19 @@ int TryClipboard(void)
     if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
     {
         DrawDescription(wordNo);
-        return 1;
+        return true;
     }
-    return 0;
-#if 0
-    /* if found the word exactly equal to the word in the clipboard - just
-    display it. If not, switch to find word dialog positioned at the closest
-    matching word */
-    if (0 == p_istrcmp(txt, word ) )
-    {
-        DrawDescription(wordNo);
-        return 1;
-    }
-    else
-    {
-        SetWordAsLastWord( txt, -1 );
-        FrmPopupForm(formDictFind);
-    }
-    return 0;
-#endif
+    return false;
 }
 
-int LastUsedDatabase(void)
+void DoWord(char *word)
 {
-/* TODO:
-    int i;
+    long wordNo;
 
-    for (i = 0; i < gd.dictsCount; i++)
-    {
-        if (0 == StrCompare((char *) gd.prefs.lastDbName,  (char *) gd.foundDbs[i].dbName))
-        {
-            return i;
-        }
-    }
-*/
-    return -1;
+    LogV1( "DoWord(%s)", word );
+    Assert( word );
+    wordNo = dictGetFirstMatching(word);
+    DrawDescription(wordNo);
 }
 
 #define FONT_DY  11
@@ -431,11 +670,21 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
 
 #define WORDS_IN_LIST 15
 
+void FixWordHistory(void)
+{
+    int i;
+    for( i=0; i<gd.historyCount; i++)
+    {
+        if (gd.wordHistory[i]>=dictGetWordsCount())
+            gd.wordHistory[i] = 1;
+    }
+}
+
 void RememberLastWord(FormType * frm)
 {
-    char        *word = NULL;
+    char *      word = NULL;
     int         wordLen;
-    FieldType   *fld;
+    FieldType * fld;
 
     Assert(frm);
 
@@ -450,24 +699,24 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
 {
     static ExtensibleBuffer clipboard_buf = { 0 };
     Boolean         handled = false;
-    FormType        *frm;
+    FormType *      frm;
     Short           newValue;
-    ListType        *list;
-#if 0
+    ListType *      list;
     long            wordNo;
-#endif
     EventType       newEvent;
-    char            *defTxt = NULL;
+    char *          defTxt = NULL;
     int             defTxtLen = 0;
     int             i;
     int             linesCount;
     int             selectedDb;
-    AbstractFile    *fileToOpen;
+    AbstractFile *  fileToOpen;
+    char *          lastDbUsedName;
 
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
     case frmOpenEvent:
+        LogG( "MainFormHandleEventNoahPro" );
         FrmDrawForm(frm);
 
         ScanForDictsNoahPro();
@@ -484,27 +733,49 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
 ChooseDatabase:
         fileToOpen = NULL;
         if (1 == gd.dictsCount )
-        {
             fileToOpen = gd.dicts[0];
-        }
         else
         {
-            if (dbStartupActionLast == gd.prefs.dbStartupAction)
+            lastDbUsedName = gd.prefs.lastDbUsedName;
+            if ( NULL != lastDbUsedName )
             {
-#if 0
-                // TODO: use last used database
-                fileToOpen = LastUsedDatabase();
-#endif
-                fileToOpen = NULL;
+                LogV1( "db name from prefs: %s", lastDbUsedName );
+            }
+            else
+            {
+                LogG( "no db name from prefs" );
+            }
+
+            if ( (NULL != lastDbUsedName) &&
+                (dbStartupActionLast == gd.prefs.dbStartupAction) )
+            {
+                for( i=0; i<gd.dictsCount; i++)
+                {
+                    if (0==StrCompare( lastDbUsedName, gd.dicts[i]->fileName ) )
+                    {
+                        fileToOpen = gd.dicts[i];
+                        LogV1( "found db=%s", fileToOpen->fileName );
+                        break;
+                    }
+                }
             }
         }
+
+        if (fileToOpen)
+        {
+            LogV1( "found db2=%s", fileToOpen->fileName );
+        }
+
         if (NULL == fileToOpen)
         {
+            LogG( "no file, please choose" );
             /* ask user which database to use */
             FrmPopupForm(formSelectDict);
+            return true;
         }
         else
         {
+            LogG( "there is file, try to init" );
             if ( !DictInit(fileToOpen) )
             {
                 // failed to initialize dictionary. If we have more - retry,
@@ -539,14 +810,20 @@ ChooseDatabase:
         }
         WinDrawLine(0, 145, 160, 145);
         WinDrawLine(0, 144, 160, 144);
-        if (!TryClipboard())
+        if ( startupActionClipboard == gd.prefs.startupAction )
+        {
+            if (!FTryClipboard())
+                DisplayAboutNoahPro();
+        }
+        else
             DisplayAboutNoahPro();
-#if 0
-        /* start the timer, so we'll switch to info
-           text after a few seconds */
-        gd.start_seconds_count = TimGetSeconds();
-        gd.current_timeout = 50; */
-#endif
+
+        if ( (startupActionLast == gd.prefs.startupAction) &&
+            gd.prefs.lastWord[0] )
+        {
+            DoWord( gd.prefs.lastWord );
+        }
+        FixWordHistory();
         handled = true;
         break;
 
@@ -554,16 +831,13 @@ ChooseDatabase:
         switch (event->data.popSelect.listID)
         {
         case listHistory:
-#if 0
-            wordNo = gd.dbPrefs.wordHistory[event->data.popSelect.selection];
+            wordNo = gd.wordHistory[event->data.popSelect.selection];
             if (wordNo != gd.currentWord)
             {
-                gd.currentWord = wordNo;
                 Assert(wordNo < gd.wordsCount);
-                DrawDescription(gd.currentWord);
+                DrawDescription(wordNo);
                 gd.penUpsToConsume = 1;
             }
-#endif
             break;
         default:
             Assert(0);
@@ -603,20 +877,18 @@ ChooseDatabase:
 
     case evtNewWordSelected:
         AddToHistory(gd.currentWord);
-#if 0
-        if (1 == gd.dbPrefs.historyCount)
+        if (1 == gd.historyCount)
         {
             CtlShowControlEx(frm, popupHistory);
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-            LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
+            LstSetListChoices(list, NULL, gd.historyCount);
             LstSetDrawFunction(list, HistoryListDrawFunc);
         }
-        if (gd.dbPrefs.historyCount < 6)
+        if (gd.historyCount < 6)
         {
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listHistory));
-            LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
+            LstSetListChoices(list, NULL, gd.historyCount);
         }
-#endif
         WinDrawLine(0, 145, 160, 145);
         WinDrawLine(0, 144, 160, 144);
         DrawDescription(gd.currentWord);
@@ -659,10 +931,7 @@ ChooseDatabase:
                     {
                         /* only one dictionary left - try this one */
                         FrmAlert( alertDbFailed );
-                        MemSet(&newEvent, sizeof(EventType), 0);
-                        newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
-                        EvtSetInt( &newEvent, 0 );
-                        EvtAddEventToQueue(&newEvent);
+                        SendNewDatabaseSelected( 0 );
                     }
                     return true;
                 }
@@ -681,53 +950,32 @@ ChooseDatabase:
         WinDrawLine(0, 145, 160, 145);
         WinDrawLine(0, 144, 160, 144);
 
-        if (!TryClipboard())
-        {
-            DisplayAboutNoahPro();
-            /* start the timer, so we'll switch to info
-               text after a few seconds */
-/*           gd.start_seconds_count = TimGetSeconds();
-           gd.current_timeout = 50; */
-        }
-        handled = true;
-
-#if 0
-        // old code
-        if (!DictInit())
-        {
-            // TODO: should probably do something more intelligent here
-            gd.err = ERR_DICT_INIT;
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = appStopEvent;
-            EvtAddEventToQueue(&newEvent);
-            return true;
-        }
-        // TODO: needs to trigger showing find word dialog
-#if 0
-        if ((startupActionLast == gd.prefs.startupAction)
-            && gd.prefs.lastWord[0])
-        {
-        }
-#endif
         if ( startupActionClipboard == gd.prefs.startupAction )
         {
-            TryClipboard();
+            if (!FTryClipboard())
+                DisplayAboutNoahPro();
+        }
+        else
+            DisplayAboutNoahPro();
+
+        if ( (startupActionLast == gd.prefs.startupAction) &&
+            gd.prefs.lastWord[0] )
+        {
+            DoWord( gd.prefs.lastWord );
         }
 
-#if 0
-        if (gd.dbPrefs.historyCount > 0)
+        FixWordHistory();
+        if (gd.historyCount > 0)
         {
             CtlShowControlEx(frm, popupHistory);
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-            LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
+            LstSetListChoices(list, NULL, gd.historyCount);
             LstSetDrawFunction(list, HistoryListDrawFunc);
         }
         else
-#endif
         {
             CtlHideControlEx(frm, popupHistory);
         }
-#endif
         handled = true;
         break;
 
@@ -869,7 +1117,7 @@ ChooseDatabase:
             }
             break;
         case menuItemTranslate:
-            TryClipboard();
+            FTryClipboard();
             break;
 #ifdef DEBUG
         case menuItemStress:
@@ -954,7 +1202,6 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
     FormPtr     frm;
     FieldPtr    fld;
     ListPtr     list;
-    EventType   newEvent;
 
     if (event->eType == nilEvent)
         return true;
@@ -976,10 +1223,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         if (word[0])
         {
             FldInsert(fld, word, StrLen(word));
-            // DoFieldChanged();
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum)evtFieldChanged;
-            EvtAddEventToQueue(&newEvent);
+            SendFieldChanged();
         }
         else
         {
@@ -1002,9 +1246,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
            have been selected so we need to draw the
            description */
         Assert(gd.currentWord < gd.wordsCount);
-        MemSet(&newEvent, sizeof(EventType), 0);
-        newEvent.eType = (eventsEnum) evtNewWordSelected;
-        EvtAddEventToQueue(&newEvent);
+        SendNewWordSelected();
         handled = true;
         FrmReturnToForm(0);
         break;
@@ -1023,9 +1265,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
             RememberLastWord(FrmGetActiveForm());
             gd.currentWord = gd.selectedWord;
             Assert(gd.currentWord < gd.wordsCount);
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewWordSelected;
-            EvtAddEventToQueue(&newEvent);
+            SendNewWordSelected();
             FrmReturnToForm(0);
             return true;
             break;
@@ -1054,15 +1294,12 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         default:
             break;
         }
-        MemSet(&newEvent, sizeof(EventType), 0);
-        newEvent.eType = (eventsEnum)evtFieldChanged;
-        EvtAddEventToQueue(&newEvent);
+        SendFieldChanged();
         handled = false;
         break;
     case fldChangedEvent:
     case evtFieldChanged:
         DoFieldChanged();
-
         handled = true;
         break;
     case ctlSelectEvent:
@@ -1070,9 +1307,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         {
         case buttonCancel:
             RememberLastWord(FrmGetActiveForm());
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewWordSelected;
-            EvtAddEventToQueue(&newEvent);
+            SendNewWordSelected();
             handled = true;
             FrmReturnToForm(0);
             break;
@@ -1096,7 +1331,6 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
     FormPtr frm;
     ListPtr list;
     static long selectedDb = 0;
-    EventType newEvent;
 
     switch (event->eType)
     {
@@ -1108,13 +1342,9 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
         LstSetSelection(list, selectedDb);
         LstMakeItemVisible(list, selectedDb);
         if (NULL == GetCurrentFile())
-        {
             FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
-        }
         else
-        {
             FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
-        }
         FrmDrawForm(frm);
         return true;
         break;
@@ -1128,15 +1358,13 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
         switch (event->data.ctlSelect.controlID)
         {
         case buttonSelect:
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
-            EvtSetInt( &newEvent, selectedDb );
+            SendNewDatabaseSelected( selectedDb );
             selectedDb = 0;
-            EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
         case buttonCancel:
             Assert( NULL != GetCurrentFile() );
+            SendNewWordSelected();
             FrmReturnToForm(0);
             return true;
         }
@@ -1217,9 +1445,9 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
             handled = false; /* why ??? */
             break;
         case buttonOk:
-            // SavePreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs),0);
-            SavePreferences();
+            SavePreferencesNoahPro();
         case buttonCancel:
+            SendNewWordSelected();
             FrmReturnToForm(0);
             break;
         case checkDeleteVfs:
@@ -1253,8 +1481,9 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonOk:
-                    /*SavePreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs),0);*/
+                    SavePreferencesNoahPro();
                 case buttonCancel:
+                    SendNewWordSelected();
                     FrmReturnToForm(0);
                     break;
             }

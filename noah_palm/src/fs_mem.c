@@ -147,7 +147,7 @@ void *memLockRecord(struct MemData *memData,UInt16 recNo)
 {
     MemHandle recHandle;
 
-    LogV1("memLockRecord(%d)", recNo );
+    /* LogV1("memLockRecord(%d)", recNo ); */
 
     if (0 == memData->recsInfo[recNo].lockCount)
     {
@@ -164,7 +164,7 @@ void memUnlockRecord(struct MemData *memData, UInt16 recNo)
     MemHandle recHandle;
     Assert(memData->recsInfo[recNo].lockCount >= 0);
 
-    LogV1("memUnlockRecord(%d)", recNo );
+    /* LogV1("memUnlockRecord(%d)", recNo ); */
 
     --memData->recsInfo[recNo].lockCount;
     if (0 == memData->recsInfo[recNo].lockCount)

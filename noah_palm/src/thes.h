@@ -54,19 +54,9 @@ typedef struct
     DatabaseStartupAction   dbStartupAction;
     char                    lastDbName[dmDBNameLength];
     char                    lastWord[dmDBNameLength];
-} NoahPrefs;
+} ThesPrefs;
 
 #define HISTORY_ITEMS 5
-
-/* For every database we keep per-database settings */
-typedef struct
-{
-    UInt32          recordId;
-    char            dbName[dmDBNameLength];
-    int             historyCount;
-    long            wordHistory[HISTORY_ITEMS];
-    char            lastWord[WORD_MAX_LEN];
-} NoahDBPrefs;
 
 typedef struct
 {
@@ -84,8 +74,10 @@ typedef struct
     int                penUpsToConsume;
     long               prevSelectedWord;
     long               selectedWord;
-    NoahPrefs          prefs;
-    NoahDBPrefs        dbPrefs;
+    char               lastWord[WORD_MAX_LEN];
+    int                historyCount;
+    long               wordHistory[HISTORY_ITEMS];
+    ThesPrefs          prefs;
 } GlobalData;
 
 #endif

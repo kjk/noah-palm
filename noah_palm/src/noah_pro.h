@@ -34,8 +34,8 @@
 /* id for Noah Pro >v2.0 preferences */
 #define Noah21Pref      0x43212206
 
-/* if for Noah Pro v 1.0 per-database preferences */
-#define NoahDB10Pref    0x43212213
+/* id for Noah Pro v 1.0 per-database preferences, no longer used */
+/* #define NoahDB10Pref    0x43212213 */
 
 
 #define MAX_DBS  8
@@ -53,14 +53,13 @@
 /* structure of the general preferences record */
 typedef struct
 {
-    int                      fDelVfsCacheOnExit;
-    StartupAction            startupAction;
-    ScrollType               tapScrollType;
-    ScrollType               hwButtonScrollType;
-    DatabaseStartupAction    dbStartupAction;
-    /* type and name of the database used most recently */
-    unsigned char            lastDbName[DB_NAME_SIZE];
-    unsigned char            lastWord[WORD_MAX_LEN];
+    Boolean                 fDelVfsCacheOnExit;
+    StartupAction           startupAction;
+    ScrollType              tapScrollType;
+    ScrollType              hwButtonScrollType;
+    DatabaseStartupAction   dbStartupAction;
+    unsigned char           lastWord[WORD_MAX_LEN];
+    unsigned char *         lastDbUsedName;
 } NoahPrefs;
 
 /*
@@ -68,11 +67,11 @@ typedef struct
   */
 typedef struct
 {
-    AbstractFile        *dicts[MAX_DICTS];
+    AbstractFile *      dicts[MAX_DICTS];
     int                 dictsCount;
     NoahErrors          err;
-    DisplayInfo         *currDispInfo;
-    ExtensibleBuffer    *helpDipsBuf;
+    DisplayInfo *       currDispInfo;
+    ExtensibleBuffer *  helpDipsBuf;
     long                currentWord;
     long                wordsCount;
     int                 firstDispLine;
@@ -84,6 +83,8 @@ typedef struct
     long                selectedWord;
     Boolean             prefsPresentP;
     char                lastWord[WORD_MAX_LEN];
+    int                 historyCount;
+    long                wordHistory[HISTORY_ITEMS];
     NoahPrefs           prefs;
 } GlobalData;
 

@@ -1,3 +1,4 @@
+#!/cygdrive/c/Python22/./python
 #!/cygdrive/c/Progra~1/Python22/./python
 
 # Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
@@ -21,7 +22,7 @@
 import string, sys, os
 
 # should we do a clean build?
-fDoClean = 0
+fDoClean = 1
 # should we do a debug build? It's debug by default unless "rel"
 # is given on command line
 fDoDebug = 1
@@ -170,7 +171,7 @@ def PrintUsageAndQuit():
     sys.exit(0)
 
 args = sys.argv
-fDoClean = 0
+fDoClean = 1
 fDoNoahPro = 0
 fDoNoahLite = 0
 fDoThes = 0

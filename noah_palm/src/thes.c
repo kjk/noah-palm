@@ -25,65 +25,117 @@ char helpText[] =
 
 GlobalData gd;
 
-void SavePreferences(NoahDBPrefs * data, UInt32 dataLen, int recursionDepth)
+void SavePreferencesThes()
 {
-    DmOpenRef db = NULL;
-    UInt recNo;
-    Boolean recFoundP = false;
-    Err err;
-    NoahDBPrefs *pref = NULL;
-    UInt32 recSize = 0;
-    VoidHand recHandle = 0;
+    DmOpenRef      db;
+    UInt           recNo;
+    UInt           recsCount;
+    Boolean        fRecFound = false;
+    Err            err;
+    void *         recData;
+    long           recSize;
+    MemHandle      recHandle;
+    void *         prefsBlob;
+    long           blobSize;
+    Boolean        fRecordBusy = false;
+
+    prefsBlob = GetSerializedPreferences( &blobSize );
+    if ( NULL == prefsBlob ) return;
 
     db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
     if (!db)
     {
-        err = DmCreateDatabase(0, "Thes Prefs", THES_CREATOR, THES_PREF_TYPE, false);
-        if ( (errNone==err) && (0==recursionDepth) )
+        err = DmCreateDatabase(0, "Thes Prefs", THES_CREATOR,  THES_PREF_TYPE, false);
+        if ( errNone != err)
         {
-            SavePreferences(data, dataLen, recursionDepth+1);
+            gd.err = ERR_NO_PREF_DB_CREATE;
+            return;
         }
-        return;
+
+        db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
+        if (!db)
+        {
+            gd.err = ERR_NO_PREF_DB_OPEN;
+            return;
+        }
     }
     recNo = 0;
-    recFoundP = 0;
-    while (recNo < DmNumRecords(db))
+    recsCount = DmNumRecords(db);
+    while (recNo < recsCount)
     {
         recHandle = DmGetRecord(db, recNo);
-        pref = (NoahDBPrefs *) MemHandleLock(recHandle);
+        fRecordBusy = true;
+        recData = MemHandleLock(recHandle);
         recSize = MemHandleSize(recHandle);
-        /* records must have matching id and size */
-        if ((pref->recordId == data->recordId) && (dataLen == recSize))
+        if ( FIsPrefRecord(recData) )
         {
-            /* and for per-db preferences, the name has to match the name
-               of the database */
-            recFoundP = true;
-            if (ThesDB10Pref == pref->recordId)
-            {
-                if (0 == StrCompare(pref->dbName, data->dbName))
-                    recFoundP = true;
-                else
-                    recFoundP = false;
-            }
-        }
-        if (recFoundP)
+            fRecFound = true;
             break;
-
-        MemPtrUnlock(pref);
+        }
+        MemPtrUnlock(recData);
         DmReleaseRecord(db, recNo, true);
+        fRecordBusy = false;
         ++recNo;
     }
 
-    if (!recFoundP)
+    if (fRecFound && blobSize>recSize)
+    {
+        /* need to resize the record */
+        MemPtrUnlock(recData);
+        DmReleaseRecord(db,recNo,true);
+        fRecordBusy = false;
+        recHandle = DmResizeRecord(db, recNo, blobSize);
+        if ( NULL == recHandle )
+            return;
+        recData = MemHandleLock(recHandle);
+        Assert( MemHandleSize(recHandle) == blobSize );        
+    }
+
+    if (!fRecFound)
     {
         recNo = 0;
-        recHandle = DmNewRecord(db, &recNo, dataLen);
-        pref = (NoahDBPrefs *) MemHandleLock(recHandle);
-        ErrFatalDisplayIf(!pref, "M");
+        recHandle = DmNewRecord(db, &recNo, blobSize);
+        if (!recHandle)
+            goto CloseDbExit;
+        recData = MemHandleLock(recHandle);
+        fRecordBusy = true;
     }
-    DmWrite(pref, 0, data, dataLen);
-    MemPtrUnlock(pref);
-    DmReleaseRecord(db, recNo, true);
+
+    DmWrite(recData, 0, prefsBlob, blobSize);
+    MemPtrUnlock(recData);
+    if (fRecordBusy)
+        DmReleaseRecord(db, recNo, true);
+CloseDbExit:
+    DmCloseDatabase(db);
+    new_free( prefsBlob );
+}
+
+#define PREF_REC_MIN_SIZE 4
+
+void LoadPreferencesThes()
+{
+    DmOpenRef    db;
+    UInt         recNo;
+    void *       recData;
+    MemHandle    recHandle;
+    UInt         recsCount;
+    Boolean      fRecFound = false;
+
+    db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
+    if (!db) return;
+    recsCount = DmNumRecords(db);
+    for (recNo = 0; (recNo < recsCount) && !fRecFound; recNo++)
+    {
+        recHandle = DmQueryRecord(db, recNo);
+        recData = MemHandleLock(recHandle);
+        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && FIsPrefRecord( recData ) )
+        {
+            LogG( "LoadPreferencesNoahPro(), found prefs record" );
+            fRecFound = true;
+            DeserilizePreferences((unsigned char*)recData, MemHandleSize(recHandle) );
+        }
+        MemPtrUnlock(recData);
+    }
     DmCloseDatabase(db);
 }
 
@@ -216,7 +268,7 @@ void DictCurrentFree(void)
 {
     if ( NULL == GetCurrentFile() ) return;
 
-#ifdef NEVER
+#if 0
     int i;
     // TODO: need to fix that to be dictionary-specific instead of global
     for (i = 0; i < gd.recordsCount; i++)
@@ -227,8 +279,6 @@ void DictCurrentFree(void)
         }
     }
 #endif
-
-    // SavePreferences(&gd.dbPrefs, sizeof(NoahDBPrefs),0);
 
     dictDelete();
     FsFileClose( GetCurrentFile() );
@@ -482,9 +532,9 @@ ChooseDatabase:
         }
 
         list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listHistory));
-        LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
+        LstSetListChoices(list, NULL, gd.historyCount);
         LstSetDrawFunction(list, HistoryListDrawFunc);
-        if (0 == gd.dbPrefs.historyCount)
+        if (0 == gd.historyCount)
         {
             CtlHideControlEx(frm,popupHistory);
         }
@@ -499,7 +549,7 @@ ChooseDatabase:
         switch (event->data.popSelect.listID)
         {
         case listHistory:
-            wordNo = gd.dbPrefs.wordHistory[event->data.popSelect.selection];
+            wordNo = gd.wordHistory[event->data.popSelect.selection];
             if (wordNo != gd.currentWord)
             {
                 gd.currentWord = wordNo;
@@ -543,17 +593,17 @@ ChooseDatabase:
 
     case evtNewWordSelected:
         AddToHistory(gd.currentWord);
-        if (1 == gd.dbPrefs.historyCount)
+        if (1 == gd.historyCount)
         {
             CtlShowControlEx(frm,popupHistory);
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-            LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
+            LstSetListChoices(list, NULL, gd.historyCount);
             LstSetDrawFunction(list, HistoryListDrawFunc);
         }
-        if (gd.dbPrefs.historyCount < 6)
+        if (gd.historyCount < 6)
         {
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-            LstSetListChoices(list, NULL, gd.dbPrefs.historyCount);
+            LstSetListChoices(list, NULL, gd.historyCount);
         }
         DrawDescription(gd.currentWord);
         WinDrawLine(0, 145, 160, 145);
@@ -645,8 +695,8 @@ ChooseDatabase:
         else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
                  || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z')))
         {
-            gd.dbPrefs.lastWord[0] = event->data.keyDown.chr;
-            gd.dbPrefs.lastWord[1] = 0;
+            gd.lastWord[0] = event->data.keyDown.chr;
+            gd.lastWord[1] = 0;
             FrmPopupForm(formDictFind);
         }
         handled = true;
@@ -810,7 +860,7 @@ void RememberLastWord(FormType * frm)
 
     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
 #if 0
-    MemSet((void *) &(gd.dbPrefs.lastWord[0]), wordHistory, 0);
+    MemSet((void *) &(gd.prefs.lastWord[0]), wordHistory, 0);
 #endif
     word = FldGetTextPtr(fld);
     wordLen = FldGetTextLength(fld);
@@ -820,7 +870,7 @@ void RememberLastWord(FormType * frm)
         wordLen = wordHistory - 1;
     }
 #endif
-    MemMove((void *) &(gd.dbPrefs.lastWord[0]), word, wordLen);
+    MemMove((void *) &(gd.lastWord[0]), word, wordLen);
     FldDelete(fld, 0, wordLen - 1);
 }
 
@@ -849,7 +899,7 @@ Boolean FindFormHandleEventThes(EventType * event)
         gd.prevTopItem = 0;
         gd.selectedWord = 0;
         Assert(gd.selectedWord < gd.wordsCount);
-        word = &(gd.dbPrefs.lastWord[0]);
+        word = &(gd.lastWord[0]);
         /* force updating the field */
         if (word[0])
         {

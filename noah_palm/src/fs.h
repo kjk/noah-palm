@@ -15,7 +15,8 @@
 #define DB_NAME_SIZE 280
 
 typedef enum  {
-    eFS_MEM = 4,
+    eFS_NONE,
+    eFS_MEM = 5,
     eFS_VFS
 } eFsType;
 

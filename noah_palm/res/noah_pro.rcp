@@ -35,7 +35,7 @@ BEGIN
     MENUITEM "Copy to clipboard"       ID menuItemCopy "C"
     MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
     MENUITEM "Preferences"             ID menuItemPrefs "P"
-    MENUITEM "Display Prefs"           ID menuItemDispPrefs "D"
+/*    MENUITEM "Display Prefs"           ID menuItemDispPrefs "D" */
     MENUITEM "Help"                    ID menuItemHelp "I"
     MENUITEM "About"                   ID menuItemAbout "A"
     MENUITEM "Stress"                  ID menuItemStress "T"
@@ -51,7 +51,7 @@ BEGIN
     MENUITEM "Copy to clipboard"       ID menuItemCopy "C"
     MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
     MENUITEM "Preferences"             ID menuItemPrefs "P"
-    MENUITEM "Display Prefs"           ID menuItemDispPrefs "D"
+/*    MENUITEM "Display Prefs"           ID menuItemDispPrefs "D" */
     MENUITEM "Help"                    ID menuItemHelp "I"
     MENUITEM "About"                   ID menuItemAbout "A"
   END

@@ -71,21 +71,19 @@ char *strdup( char *str )
 
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
-#if 0
     char *str;
     /* max width of the string in the list selection window */
     Int16 stringWidthP = 64;
     Int16 stringLenP;
     Boolean truncatedP = false;
 
-    Assert((itemNum >= 0) && (itemNum <= gd.dbPrefs.historyCount));
+    Assert((itemNum >= 0) && (itemNum <= gd.historyCount));
 
-    str = dictGetWord(gd.dbPrefs.wordHistory[itemNum]);
+    str = dictGetWord(gd.wordHistory[itemNum]);
     stringLenP = StrLen(str);
 
     FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
     WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
-#endif
 }
 
 void strtolower(char *txt)
@@ -102,15 +100,11 @@ void strtolower(char *txt)
 
 void AddToHistory(UInt32 wordNo)
 {
-#if 0
-    MemMove(&(gd.dbPrefs.wordHistory[1]), &(gd.dbPrefs.wordHistory[0]), ((HISTORY_ITEMS - 1) * sizeof(gd.dbPrefs.wordHistory[0])));
-    gd.dbPrefs.wordHistory[0] = wordNo;
+    MemMove(&(gd.wordHistory[1]), &(gd.wordHistory[0]), ((HISTORY_ITEMS - 1) * sizeof(gd.wordHistory[0])));
+    gd.wordHistory[0] = wordNo;
 
-    if (gd.dbPrefs.historyCount < HISTORY_ITEMS)
-    {
-        ++gd.dbPrefs.historyCount;
-    }
-#endif
+    if (gd.historyCount < HISTORY_ITEMS)
+        ++gd.historyCount;
 }
 
 void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, char *txtBuf)

@@ -139,13 +139,15 @@ BEGIN
 	BUTTONS "OK"
 END
 
-ICONFAMILY
+/*ICONFAMILY
     "thes.bmp"
     "thes-4bpp.bmp"
     TRANSPARENCY 0 255 0
 
 SMALLICONFAMILY
     "thessm.bmp"
-    TRANSPARENCY 255 255 255
+    TRANSPARENCY 255 255 255*/
+    
+ICON "thes.pbitm"
 
 BITMAP ID bmpFind "find.pbitm"
