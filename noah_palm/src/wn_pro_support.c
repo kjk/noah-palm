@@ -1027,7 +1027,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             }
 
             ebufReset(&g_buf_tmp);
-            ebufAddStr(&g_buf_tmp, ebufGetDataPointer(&g_buf));
+            ebufAddStrN(&g_buf_tmp, ebufGetDataPointer(&g_buf), ebufGetDataSize(&g_buf));
             ebufAddChar(&g_buf_tmp, '\0');
 
             ebufWrapBigLines(&g_buf_tmp);

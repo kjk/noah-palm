@@ -495,7 +495,8 @@ void StopThesaurus()
     FreeInfoData();
     FreeHistory();
 
-    if ( gd.prefs.fDelVfsCacheOnExit)
+//  decided to make it always true
+//    if ( gd.prefs.fDelVfsCacheOnExit)
         dcDelCacheDb();
 
     if ( NULL != gd.prefs.lastDbUsedName )
@@ -1243,7 +1244,7 @@ void PrefsToGUI(FormType * frm)
     SetPopupLabel(frm, listStartupDB, popupStartupDB, gd.prefs.dbStartupAction, (char *) sdb_txt);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, gd.prefs.hwButtonScrollType, (char *) but_txt);
     SetPopupLabel(frm, listTapAction, popupTapAction, gd.prefs.tapScrollType, (char *) tap_txt);
-    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.fDelVfsCacheOnExit );
+//    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.fDelVfsCacheOnExit );
 }
 
 Boolean PrefFormHandleEventThes(EventType * event)
@@ -1311,9 +1312,11 @@ Boolean PrefFormHandleEventThes(EventType * event)
                     FrmReturnToForm(0);
                     handled = true;
                     break;
+#if 0
                 case checkDeleteVfs:
                     gd.prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
                     break;
+#endif
                 default:
                     Assert(0);
                     break;

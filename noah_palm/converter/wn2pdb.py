@@ -603,6 +603,11 @@ class CompInfoGenOrig:
         y = pos / self.dy
         s = chr(x)+chr(y)
         return s
+
+    def _buildFreqInfo(self,strList):
+        for s in strList:
+            self.incStr(s)
+
     def _getMostFrequent(self,n):
         result = []
         currThresh = -1
@@ -1049,3 +1054,57 @@ if __name__ == "__main__":
         #main()
         DoDevilDict()
 
+def freq_el_make(i,j,freq):
+    return (i,j,freq)
+
+def freq_el_freq(freq):
+    return freq[2]
+def freq_el_i(freq):
+    return freq[0]
+def freq_el_j(freq):
+    return freq[1]
+
+def _sortFreqFunc(f1,f2):
+    if freq_el_freq(f1) > freq_el_freq(f2):
+        return 1
+    elif freq_el_freq(f1) < freq_el_freq(f2):
+        return -1
+    else:
+        return 0
+
+def freq_el_conflicts_p(f1,f2):
+    if freq_el_i(f1) == freq_el_j(f2) or freq_el_j(f1) == freq_el_i(f2):
+        return True
+    else
+        return False
+
+def freq_conflicts_p(freq_list,freq_el):
+    for f_el in freq_list:
+        if freq_el_conflicts_p(f_el,freq_el)
+            return True
+    return False
+
+def freq_sort(freq_array,n):
+    # gather all frequencies in a list
+    l = []
+    for i in range(256):
+        for j in range(256):
+            freq = freq_array[i][j]
+            if freq != 0:
+                l.append(freq_el_make(i,j,freq))
+    l.sort(_sortFreqFunc)
+    res = []
+    for f_el in l:
+        if not freq_conflicts_p(res,f_el):
+            res.append(f_el)
+            if len(res) >= n:
+                res.reverse()
+                return res
+    res.reverse()
+    return res
+
+class pack_info:
+    def __init__(self):
+        self.str-list = []
+        self.str-to-code = [0 for t in range(256)]
+        
