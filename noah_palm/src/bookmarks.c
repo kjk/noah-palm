@@ -145,10 +145,11 @@ Boolean BookmarksFormHandleEvent(EventType * event)
         case frmOpenEvent:
             OpenBookmarksDB(appContext, appContext->prefs.bookmarksSortType);
             bkmList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listBookmarks));
-            LstSetDrawFunction(bkmList, BookmarksListDrawFunc);
             bookmarksCount = BookmarksWordCount(appContext);
-            if (0!=bookmarksCount)
-                LstSetListChoices(bkmList, NULL, bookmarksCount);
+            Assert( 0 != bookmarksCount );
+
+            LstSetDrawFunction(bkmList, BookmarksListDrawFunc);
+            LstSetListChoices(bkmList, NULL, bookmarksCount);
 
             sortTypeList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listSortBy));
             // list position matches enums for simplicity
@@ -158,10 +159,7 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
 
             FrmDrawForm(frm);
-            if (0==bookmarksCount)
-            {
-                DrawCenteredString(appContext, "No bookmarks !", 60);
-            }
+
             handled = true;
             break;
 

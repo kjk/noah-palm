@@ -454,11 +454,11 @@ Boolean FindPatternFormHandleEvent(EventType* event)
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
             prevMatchWordCount = NumMatchingPatternRecords(appContext);
-            LstSetListChoicesEx(list, NULL, prevMatchWordCount);
+            LstSetListChoices(list, NULL, prevMatchWordCount);
             LstSetDrawFunction(list, PatternListDrawFunc);
             FrmDrawForm(frm);
             if (prevMatchWordCount>0)
-                LstSetSelectionEx(appContext, list, appContext->wmpLastWordPos);
+                LstSetSelection(list, appContext->wmpLastWordPos);
             pattern = (char *) new_malloc(WORDS_CACHE_SIZE);
             ReadPattern(appContext, pattern);
             if (StrLen(pattern) > 0)

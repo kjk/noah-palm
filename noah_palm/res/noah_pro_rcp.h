@@ -39,6 +39,7 @@
 #define   alertDbFailed             1115
 #define   alertDbFailedGetAnother   1116
 #define   alertWordNotFound         1117
+#define   alertNoBookmarks          1119
 
 #define   menuMain                  2000
 #define   menuItemSelectDB          2002
@@ -96,4 +97,6 @@
 #define   listListStyle           9043
 #define   listActTag              9044
 
-#define   buttonGlobalBGcol       9050  
+#define   buttonGlobalBGcol       9050
+
+#define   labelBkmSortBy          6500

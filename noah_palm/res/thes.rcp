@@ -28,7 +28,7 @@ BEGIN
 #endif
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Translate clipboard"     ID menuItemTranslate     "T"
+    MENUITEM "Lookup clipboard"        ID menuItemTranslate     "L"
     MENUITEM "Stress"                  ID menuItemStress        "E"
   END
 
@@ -62,7 +62,7 @@ BEGIN
 #endif
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Translate clipboard"     ID menuItemTranslate     "T"
+    MENUITEM "Lookup clipboard"        ID menuItemTranslate     "L"
   END
 
   PULLDOWN "Bookmarks"
@@ -166,7 +166,7 @@ FRAME
 MODAL
 USABLE
 BEGIN
-   LABEL "Sort by:" AUTOID AT (1 147)
+   LABEL "Sort by:" labelBkmSortBy AT (1 147)
    POPUPTRIGGER "name" popupSortBy  AT (PREVRIGHT+2 PREVTOP AUTO AUTO) LEFTANCHOR
    LIST    "name" "time" ID listSortBy    AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2 
    POPUPLIST popupSortBy  listSortBy
@@ -273,6 +273,14 @@ INFORMATION
 BEGIN
     TITLE "Word not found"
     MESSAGE "The selected word was not found in the current database."
+    BUTTONS "OK"
+END
+
+ALERT alertNoBookmarks
+INFORMATION
+BEGIN
+    TITLE "No bookmarks"
+    MESSAGE "No words have been bookmarked."
     BUTTONS "OK"
 END
 

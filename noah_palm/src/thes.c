@@ -1099,7 +1099,10 @@ ChooseDatabase:
                     break;
                     
                 case menuItemBookmarkView:
-                    FrmPopupForm(formBookmarks);
+                    if ( GetBookmarksCount(appContext)>0 )
+                        FrmPopupForm(formBookmarks);
+                    else
+                        FrmAlert(alertNoBookmarks);
                     break;
 
                 case menuItemBookmarkWord:
