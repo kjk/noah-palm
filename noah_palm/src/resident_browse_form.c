@@ -121,11 +121,12 @@ static Boolean ResidentBrowseFormWinEnter(AppContext* appContext, FormType* form
 
 static Boolean ResidentBrowseFormFieldChanged(AppContext* appContext, FormType* form, EventType* event)
 {
-    Char* word=NULL;
-    UInt32 newSelectedWord=0;
-    FieldType* field=NULL;
-    ListType* list=NULL;
-    UInt16 index=FrmGetObjectIndex(form, fieldWord);
+    char *      word;
+    UInt32      newSelectedWord=0;
+    FieldType * field;
+    ListType *  list;
+    UInt16      index=FrmGetObjectIndex(form, fieldWord);
+
     Assert(index!=frmInvalidObjectId);
     field=(FieldType*)FrmGetObjectPtr(form, index);
     Assert(field);

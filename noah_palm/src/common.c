@@ -1928,7 +1928,7 @@ void RememberLastWord(AppContext* appContext, FormType * frm, int objId)
     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, objId));
     word = FldGetTextPtr(fld);
     wordLen = FldGetTextLength(fld);
-    SetWordAsLastWord( appContext, FldGetTextPtr(fld), FldGetTextLength(fld) );
+    SetWordAsLastWord( appContext, word, wordLen );
 }
 
 #pragma segment Segment2
@@ -1948,7 +1948,7 @@ void DoFieldChanged(AppContext* appContext)
     frm = FrmGetActiveForm();
     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
     wordInField = FldGetTextPtr(fld);
-    if ( 0 == StrCompare(prevWord, wordInField) )
+    if ( (NULL!=wordInField) && (0 == StrCompare(prevWord, wordInField)) )
         return;
 
     newSelectedWord = 0;
@@ -1963,7 +1963,8 @@ void DoFieldChanged(AppContext* appContext)
         Assert(appContext->selectedWord < appContext->wordsCount);
         LstSetSelectionMakeVisibleEx(appContext, list, appContext->selectedWord);
     }
-    SetWordAsLastWord(appContext, wordInField, -1);
+    if (wordInField)
+        SetWordAsLastWord(appContext, wordInField, -1);
 }
 
 void SendFieldChanged(void)
@@ -2310,7 +2311,8 @@ UInt16 FldGetSelectedText(FieldType* field, char* buffer, UInt16 bufferSize)
         return len;
 
     text = FldGetTextPtr(field);
-    SafeStrNCopy(buffer, bufferSize, text+start, len);
+    if (NULL!=text)
+        SafeStrNCopy(buffer, bufferSize, text+start, len);
 
     return len;      
 }
@@ -2616,7 +2618,7 @@ static void CreateNewMemoRec(DmOpenRef dbMemo, char *header, char *body, int bod
     MemHandle   newRecHandle;
     void *      newRecData;
     UInt32      newRecSize;
-    Char        null = '\0';
+    char        null = '\0';
 
     if (-1 == bodySize)
        bodySize = StrLen(body);
@@ -2702,8 +2704,9 @@ void LogErrorToMemo_(const Char* message, Err error)
 
 Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
 {
-    UInt16 index;
-    ListType* list=NULL;
+    UInt16      index;
+    ListType *  list;
+
     Assert(form);
     index=FrmGetObjectIndex(form, listID);
     Assert(frmInvalidObjectId!=index);
@@ -2719,8 +2722,12 @@ void FldClearInsert(FormType *frm, int fldId, char *txt)
 
     FldDelete(fld, 0, len);
 
-    if ( StrLen(txt) > 0 )
-        FldInsert(fld, txt, StrLen(txt));
+    len = FldGetTextAllocatedSize(fld);
+
+    if ( len > StrLen(txt) )
+        len = StrLen(txt);
+
+    FldInsert(fld, txt, len);
 }
 
 #ifndef I_NOAH
