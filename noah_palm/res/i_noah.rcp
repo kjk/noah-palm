@@ -169,8 +169,9 @@ BEGIN
   BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
     MENUITEM "Display prefs"           ID menuItemDispPrefs     "D" 
-    MENUITEM SEPARATOR
-    MENUITEM "Register"                ID menuItemRegister      "G"
+
+/*    MENUITEM SEPARATOR
+    MENUITEM "Register"                ID menuItemRegister      "G" */
     MENUITEM SEPARATOR
     MENUITEM "About"                   ID menuItemAbout         "A"
   END

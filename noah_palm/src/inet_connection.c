@@ -1,7 +1,7 @@
 #include "inet_connection.h"
 #include "http_response.h"
 
-#define USE_TEST_SERVER 1
+// #define USE_TEST_SERVER 1
 
 #ifdef USE_TEST_SERVER
 #define serverAddress                "dict-pc.arslexis.com"

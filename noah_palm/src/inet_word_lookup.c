@@ -11,8 +11,8 @@
 #define wordLookupURL           "/palm.php?pv=^0&cv=^1&c=^2&get_word=^3"
 
 #define genericURL                  "/palm.php?pv=^0&cv=^1&c=^2&^3"
-#define randomWordRequestParam "get_random_word"
-#define recentLookupsRequestParam "recent_lookups"
+#define randomWordRequestParam "get_random_word="
+#define recentLookupsRequestParam "recent_lookups="
 
 #define randomWordURL           "/palm.php?pv=^0&cv=^1&c=^2&get_random_word"
 
@@ -226,10 +226,13 @@ static Err PrepareGenericRequest(const char* cookie, const char* param, Extensib
     Assert(param);
     char* urlEncParam=NULL;
     UInt16 paramLength=StrLen(param);
-    Err error=StrUrlEncode(param, param+paramLength+1, &urlEncParam, &paramLength);
+    // total hack to make this damn thing work on the server
+    // Err error=StrUrlEncode(param, param+paramLength+1, &urlEncParam, &paramLength);
+    Err error = errNone;
     if (!error)
     {    
-        char* url=TxtParamString(genericURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncParam);
+        // char* url=TxtParamString(genericURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, urlEncParam);
+        char* url=TxtParamString(genericURL, PROTOCOL_VERSION, CLIENT_VERSION, cookie, param);
         if (url)
         {
             ebufAddStr(&buffer, url);
@@ -238,7 +241,7 @@ static Err PrepareGenericRequest(const char* cookie, const char* param, Extensib
         }
         else
             error=memErrNotEnoughSpace;
-        new_free(urlEncParam);
+        // new_free(urlEncParam);
     }
     return error;
 }

@@ -16,7 +16,7 @@
 /**
  * URL that forms cookie request.
  */
-#define cookieRequestUrl "/palm.php?pv=^0&cv=^1&get_cookie&di=^2"
+#define cookieRequestUrl "/palm.php?pv=^0&cv=^1&get_cookie=&di=^2"
 
 static Err CookieRequestResponseProcessorCommon(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd, const char*& wordOut)
 {

@@ -1,8 +1,5 @@
 <?php
 
-# Some testing urls:
-# http://dict-pc.arslexis.com:3000/palm.php?pv=1&cv=0.5&c=any_cookie_is_good&get_random_word
-
 define( 'ERR_NO_PV',             1);
 define( 'ERR_NO_CV',             2);
 define( 'ERR_INVALID_CV',        3);
@@ -242,7 +239,7 @@ function serve_get_word($cookie,$word)
     }
 
     # didnt find the word
-    write_MSG("Definition of word $orig_word not found");
+    write_MSG("Definition of word '$orig_word' has not been found");
     exit;
 }
 
