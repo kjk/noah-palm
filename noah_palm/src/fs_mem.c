@@ -40,6 +40,12 @@ void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB)
         Assert( typeFound = type );
         Assert( creatorFound = creator );
 
+        // "PPrs" is (supposedly) name of a db created by Palm Reader Pro 2.2.2
+        // that has matching creator/type of Noah's database. We need to filter
+        // those out
+        if ( 0==StrCompare(dbName,"PPrs") )
+            continue;
+
         file = AbstractFileNewFull( eFS_MEM, creatorFound, typeFound, dbName );
         if (NULL==file) return;
         file->cardNo = cardNo;

@@ -457,23 +457,17 @@ UInt32 wcGetFirstMatching(WcInfo * wci, char *word)
     {
         return 0;
     }
-    cacheNo = -1;
-    do
-    {
-        ++cacheNo;
-        wc_get_firstWord_from_cache(wci, cache, cacheNo + 1, wci->buf);
-        compRes = p_istrcmp(word, wci->buf);
-/*        compRes = StrCaselessCompare(word, wci->buf); */
-    } while ((cacheNo < (wci->cacheEntriesCount - 2)) && (compRes >= 0));
 
-    /* if we finished with compRes>=0 means that word is greater or equal
-       the first word in cacheNo+1, so it must be there, since it's the
-       last cache entry */
-    if (compRes >= 0)
+    for (cacheNo=0;cacheNo<=wci->cacheEntriesCount-2;cacheNo++)
     {
-        ++cacheNo;
-        /* does it really point at the last cache? */
-        Assert(cacheNo == wci->cacheEntriesCount - 1);
+        wc_get_firstWord_from_cache(wci,cache,cacheNo+1,wci->buf);
+        compRes = p_istrcmp(word, wci->buf);
+        if (compRes<0)
+        {
+            // the word we're looking for is greater than the first word
+            // in cacheNo+1, so it must be in cacheNo
+            break;
+        }
     }
 
     /* we know that word must be in cacheNo, just find it */

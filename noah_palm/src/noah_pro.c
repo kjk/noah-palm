@@ -353,6 +353,12 @@ void VfsFindCbNoahPro( AbstractFile *file )
         return;
     }
 
+    // "PPrs" is (supposedly) name of a db created by Palm Reader Pro 2.2.2
+    // that has matching creator/type of Noah's database. We need to filter
+    // those out
+    if ( 0==StrCompare(file->fileName,"PPrs") )
+        return;
+
     fileCopy = AbstractFileNewFull( file->fsType, file->creator, file->type, file->fileName );
     if ( NULL == fileCopy ) return;
     fileCopy->volRef = file->volRef;
