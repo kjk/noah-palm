@@ -6,7 +6,6 @@
 #define _MEM_LEAK_H_
 
 #include <PalmOS.h>
-#include "cw_defs.h"
 
 #ifdef MEM_LEAKS
 

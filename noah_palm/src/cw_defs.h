@@ -79,6 +79,16 @@ to provide per-target defines. In gcc version they're set via Makefile.
 #define DEMO_PALMGEAR 1
 #endif
 
+#if __ide_target("iNoah Debug")
+#define DEBUG 1
+#define MEM_LEAKS 1
+#define I_NOAH
+#endif
+
+#if __ide_target("iNoah Release")
+#define I_NOAH
+#endif
+
 #endif /* __MWERKS__ */
 
 #endif /* _CW_DEFS_H_ */

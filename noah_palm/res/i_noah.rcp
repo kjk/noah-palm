@@ -1,0 +1,55 @@
+#include "i_noah_rcp.h"
+
+VERSION ID 1 "1.0"
+
+FORM formDictMain AT (0 0 160 160)
+USABLE
+NOFRAME
+// MENUID menuMain
+BEGIN
+END
+
+ALERT alertMemError
+INFORMATION
+BEGIN
+    TITLE "Fatal Error"
+    MESSAGE "Not enough dynamic memory."
+    BUTTONS "OK"
+END
+
+ALERT ID alertRomIncompatible
+    DEFAULTBUTTON 0
+    ERROR
+BEGIN
+    TITLE "System Incompatible"
+    MESSAGE "System Version 3.0 or greater is required to run this application."
+    BUTTONS "OK"
+END
+
+ALERT ID alertNoWirelessInternetLibrary
+    DEFAULTBUTTON 0
+    ERROR
+BEGIN
+    TITLE "System Incompatible"
+    MESSAGE "Your system doesn't support Wireless Internet library that is required to run this application."
+    BUTTONS "OK"
+END
+
+ICONFAMILYEX
+BEGIN
+    BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1
+    BITMAP "icons/no22x4.bmp"   BPP 2 DENSITY 1
+    BITMAP "icons/no22x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
+    BITMAP "icons/no44x2.bmp"   BPP 1 DENSITY 2
+    BITMAP "icons/no44x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
+
+END
+
+SMALLICONFAMILYEX
+BEGIN
+    BITMAP "icons/no15x2.bmp"   BPP 1 DENSITY 1
+    BITMAP "icons/no15x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
+    BITMAP "icons/no30x2.bmp"   BPP 1 DENSITY 2
+    BITMAP "icons/no30x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
+END
+

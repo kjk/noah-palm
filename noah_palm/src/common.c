@@ -9,6 +9,8 @@
 #include "five_way_nav.h"
 #include "menu_support_database.h"
 
+#ifndef I_NOAH
+
 /* those functions are not available for Noah Lite */
 #ifndef NOAH_LITE
 
@@ -1986,3 +1988,4 @@ AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
     return foundFile;
 }
 
+#endif // I_NOAH

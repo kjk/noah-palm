@@ -8,6 +8,8 @@
 #pragma warn_a5_access on 
 
 #include <PalmOS.h>
+#include "cw_defs.h"
+
 
 #include "dynamic_input_area.h"
 
@@ -25,6 +27,7 @@
 #define    Assert(c)          {}
 #endif
 
+#ifndef I_NOAH
 
 #define strlen StrLen
 
@@ -38,9 +41,14 @@
 #define  WORDNET_PRO_TYPE       'wn20'
 #endif
 
+
 #define evtFieldChanged          (firstUserEvent+1)
 #define evtNewWordSelected       (firstUserEvent+2)
 #define evtNewDatabaseSelected   (firstUserEvent+3)
+#define MAX_DICTS 10
+
+
+#endif //I_NOAH
 
 // information about the area for displaying definitions:
 // start x, start y, number of lines (dy).
@@ -48,8 +56,6 @@
 #define DRAW_DI_X 0
 #define DRAW_DI_Y 0
 #define FONT_DY  11
-
-#define MAX_DICTS 10
 
 #define FRM_RSV_H 16
 #define FRM_RSV_W 10
@@ -106,6 +112,8 @@ typedef enum
     startupActionLast
 } StartupAction;
 
+#ifndef I_NOAH
+
 /* What we should do at startup when there are more than one database:
    - ask users to select a database
    - go to the last used database
@@ -127,6 +135,8 @@ typedef struct
 #include "fs.h"
 #include "fs_ex.h"
 
+#endif // I_NOAH
+
 
 #ifdef NOAH_PRO
 #include "noah_pro.h"
@@ -141,9 +151,6 @@ typedef struct
 #ifdef THESAURUS
 #include "thes.h"
 #include "thes_rcp.h"
-#endif
-
-#ifdef THESAURUS
 #include "roget_support.h"
 #endif
 
@@ -161,6 +168,11 @@ typedef struct
 
 #ifdef EP_DICT
 #include "ep_support.h"
+#endif
+
+#ifdef I_NOAH
+#include "i_noah.h"
+#include "i_noah_rcp.h"
 #endif
 
 typedef enum _AppFeature
@@ -188,10 +200,15 @@ typedef struct
 
 typedef struct _AppContext
 {
+#ifndef I_NOAH
     AbstractFile*     dicts[MAX_DICTS];
     int                dictsCount;
     AppError         err;
+#endif // I_NOAH    
+
     DisplayInfo *      currDispInfo;
+
+#ifndef I_NOAH    
     ExtensibleBuffer * helpDispBuf;
     long               currentWord;
     long               wordsCount;
@@ -205,17 +222,29 @@ typedef struct _AppContext
 #ifdef NOAH_PRO  
     Boolean            prefsPresent;
 #endif  
+
+#endif // I_NOAH
+
     char               lastWord[WORD_MAX_LEN];
     long               ticksEventTimeout;
 #ifndef NOAH_LITE  
     int                historyCount;
     char*             wordHistory[HISTORY_ITEMS];
+
+#ifndef I_NOAH
+
     Boolean            fFirstRun; // is this first run or not 
+    
+#endif // I_NOAH
+    
 #endif    
     AppPrefs          prefs;
+    
+#ifndef I_NOAH    
 #ifdef DEBUG
     long               currentStressWord;
 #endif
+#endif // I_NOAH
 
     /**
      * Number of displayed lines. Replaces DRAW_DI_LINES from common.h to accomodate DynamicInputArea.
@@ -246,8 +275,10 @@ typedef struct _AppContext
      */
     DIA_Settings diaSettings;
       
+#ifndef I_NOAH      
     FS_Settings fsSettings;
     AbstractFile* currentFile;
+#endif // I_NOAH
     
     int osVersion;
     int maxScreenDepth;
@@ -257,8 +288,10 @@ typedef struct _AppContext
     char logBuffer[512];
 #endif
 
+#ifndef I_NOAH
     DmOpenRef wmpCacheDb;
     long wmpLastWordPos;
+#endif // I_NOAH    
                   
 } AppContext;
 
@@ -272,15 +305,12 @@ extern AppContext* GetAppContext();
 
 long GetMaxListItems();
 
+#ifndef I_NOAH
+
 extern Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out);
 extern Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs, SynsetDef * synsets);
 
-/*
-void    dh_save_font(void);
-void    dh_restore_font(void);
-void    dh_set_current_y(int y);
-void    dh_display_string(const char *str, int font, int dy);
-*/
+#endif // I_NOAH
 
 void    ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey);
 void ClearDisplayRectangle(AppContext* appContext);
@@ -307,6 +337,8 @@ Boolean FTryClipboard(AppContext* appContext);
 #endif
 void    SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx);
 
+#ifndef I_NOAH
+
 Boolean dictNew(AbstractFile* file);
 void dictDelete(AbstractFile* file);
 long dictGetWordsCount(AbstractFile* file);
@@ -314,6 +346,8 @@ long dictGetFirstMatching(AbstractFile* file, char *word);
 char* dictGetWord(AbstractFile* file, long wordNo);
 Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di);
 void FreeDicts(AppContext* appContext);
+
+#endif // I_NOAH
 
 void RedrawMainScreen(AppContext* appContext);
 void DrawDescription(AppContext* appContext, long wordNo);
@@ -439,9 +473,8 @@ extern AppContext* GetAppContext();
 
 extern UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize);
 
+#ifndef I_NOAH
 extern AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name);
-
-extern Err PrepareWordDefinition(AppContext* appContext, Char* term);
-extern Err PrepareWordDefinitionByWordNumber(AppContext* appContext, long wordNo);
+#endif // I_NOAH
 
 #endif
