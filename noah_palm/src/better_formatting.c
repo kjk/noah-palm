@@ -322,7 +322,7 @@ static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *display
 {
     RGBColorType  rgb;
 
-    GetRGBForTag(displayPrefs, back, actTag, &rgb);
+    GetRGBForTag(displayPrefs, actTag, back, &rgb);
     SetTextColor(appContext, &rgb);
 }
 

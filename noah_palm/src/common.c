@@ -363,6 +363,9 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     SetBackColorWhite(appContext); 
 }
 
+/* max width of the word displayed at the bottom */
+#define MAX_WORD_DX        100
+
 #ifndef I_NOAH
 
 #pragma segment Segment2
@@ -399,9 +402,6 @@ void DisplayHelp(AppContext* appContext)
 #pragma segment Segment1
 
 extern void DisplayAbout(AppContext* appContext);
-
-/* max width of the word displayed at the bottom */
-#define MAX_WORD_DX        100
 
 static void FldRedrawSelectAllText(FormType *frm, int objId)
 {
@@ -2652,6 +2652,7 @@ void FldClearInsert(FormType *frm, int fldId, char *txt)
         FldInsert(fld, txt, StrLen(txt));
 }
 
+#ifndef I_NOAH
 void RememberFieldWordMain(AppContext *appContext, FormType *frm)
 {
     FieldType *fld;
@@ -2665,6 +2666,7 @@ void GoToFindWordForm(AppContext *appContext, FormType *frm)
     RememberFieldWordMain(appContext, frm);
     FrmPopupForm(formDictFind);
 }
+#endif
 
 /* Generates a random long in the range 0..range-1. SysRandom() returns value
    between 0..sysRandomMax which is 0x7FFF. We have to construct a long out of

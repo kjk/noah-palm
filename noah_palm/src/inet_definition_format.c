@@ -359,20 +359,20 @@ static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBe
     return error;
 }
 
-static Err ProcessCookieResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
+static Err ProcessCookieResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
 {
-    Err error=errNone;
-    const Char* cookieBegin=responseBegin+cookieResponseLen;
+    Err         error=errNone;
+    const char* cookieBegin=responseBegin+cookieResponseLen;
 
     Assert(cookieBegin<=responseEnd);
     
     if (cookieBegin<responseEnd)
     {
-        const Char* cookieEnd=StrFind(cookieBegin, responseEnd, "\n");
-        UInt16 cookieLength=cookieEnd-cookieBegin;
+        const char* cookieEnd=StrFind(cookieBegin, responseEnd, "\n");
+        int cookieLength=cookieEnd-cookieBegin;
         if (cookieLength>0 && cookieLength<sizeof(appContext->prefs.cookie))
         {
-            SafeStrNCopy(appContext->prefs.cookie, sizeof(appContext->prefs.cookie), cookieBegin, cookieLength);
+            SafeStrNCopy( (char*)appContext->prefs.cookie, sizeof(appContext->prefs.cookie), (char*)cookieBegin, cookieLength);
             appContext->prefs.cookie[cookieLength]=chrNull;
         }
         else 
