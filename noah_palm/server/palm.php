@@ -103,6 +103,7 @@ function serve_get_cookie($di)
     print "COOKIE\n";
     print $cookie;
 
+    $cookie = $dict_db->escape($cookie);
     $query = "INSERT INTO cookies (cookie,dev_info,reg_code,when_created, disabled_p) VALUES ('$cookie', '$di', NULL, CURRENT_TIMESTAMP(),'f');";
     $dict_db->query($query);
     exit;
@@ -111,6 +112,7 @@ function serve_get_cookie($di)
 function user_registered_p($cookie)
 {
     global $dict_db;
+    $cookie = $dict_db->escape($cookie);
     $query = ("SELECT reg_code FROM cookies WHERE cookie='$cookie';");
     $reg_code = $dict_db->get_var($query);
     if ($reg_code)
@@ -123,6 +125,7 @@ function serve_register($reg_code)
 {
     global $dict_db;
 
+    $reg_code = $dict_db->escape($reg_code);
     $query = "SELECT reg_code FROM reg_codes WHERE reg_code='$reg_code';";
     $reg_code = $dict_db->get_var($query);
     if ( $reg_code )
@@ -160,6 +163,7 @@ function serve_get_random_word()
 function get_word_row($word)
 {
     global $dict_db;
+    $word = $dict_db->escape($word);
     $query = "SELECT def,pron FROM words WHERE word='$word';";
     $word_row = $dict_db->get_row($query); 
     return $word_row;
@@ -168,6 +172,8 @@ function get_word_row($word)
 function log_get_word_request($cookie,$word)
 {
     global $dict_db;
+    $cookie = $dict_db->escape($cookie);
+    $word = $dict_db->escape($word);
     $query = "INSERT INTO request_log (cookie,word,query_time) VALUES ('$cookie','$word',CURRENT_TIMESTAMP());";
     $dict_db->query( $query );
 }
