@@ -419,7 +419,9 @@ def sortFreqList(l):
 
 class CompInfoGen:
     """Given a list of strings, generate compression info (packStrings)"""
-    def __init__(self):
+    def __init__(self,strList):
+        self.strList = strList
+        self.fCompressionInfoBuilt = False
         self.table = {}
         self.FREQ_IDX = 0
         self.NEXT_TABLE_IDX = 1
@@ -445,6 +447,12 @@ class CompInfoGen:
                     currStr = s[i:i+strLen]
                     self._incStr(currStr)
 
+    def _buildCompressionInfo(self):
+        if not self.fCompressionInfoBuilt:
+            for s in self.strList:
+                self.incStr(s)
+            self.fCompressionInfoBuilt = True
+
     def _getFlattenedFreqList(self,result=[],table=None):
         if table==None:
             table = self.table
@@ -461,6 +469,7 @@ class CompInfoGen:
     def buildPackStrings(self):
         """Given frequency table filled in, generate packStrings for best
         compression (except it probably isn't optimal)"""
+        self._buildCompressionInfo()
         # we need to reserve first 32
         reservedCodes = 32
         codesLeft = 256-reservedCodes
@@ -487,8 +496,10 @@ class CompInfoGen:
 
 class CompInfoGenOld:
     """Given a list of strings, generate compression info (packStrings)"""
-    def __init__(self,dx=256,dy=256):
+    def __init__(self,strList,dx=256,dy=256):
         self.freqTable = [0 for i in range(dx*dy)]
+        self.strList = strList
+        self.fCompressionInfoBuilt = False
         self.dx = dx
         self.dy = dy
     def inc(self,x,y):
@@ -499,7 +510,7 @@ class CompInfoGenOld:
         x = ord(s[0])
         for c in s[1:]:
             y = ord(c)
-            self.inc(x,y)
+            self.freqTable[x+y*self.dy] += 1 # self.inc(x,y) but faster
             x = y
     def _getStrFromPos(self,pos):
         x = pos % self.dy
@@ -531,7 +542,94 @@ class CompInfoGenOld:
                         currThresh = _getSmallestFreq(result)
         return result
 
+    def _buildCompressionInfo(self):
+        if not self.fCompressionInfoBuilt:
+            for s in self.strList:
+                self.incStr(s)
+            self.fCompressionInfoBuilt = True
+
     def buildPackStrings(self):
+        self._buildCompressionInfo()
+        reservedCodes = 32
+        #dumpListByFreq(flist)
+        packStrings = [chr(n) for n in range(reservedCodes)]
+        codesLeft = 256-reservedCodes
+        for x in range(256):
+            for y in range(256):
+                if self.val(x,y) > 0:
+                    #print "found for x=%d ('%s')" % (x,chr(x))
+                    packStrings.append(chr(x))
+                    codesLeft -= 1
+                    break
+        flist = self._getMostFrequent(codesLeft)
+        for el in flist:
+            packStrings.append( el[1] )
+        assert 256 == len(packStrings)
+        print packStrings
+        return packStrings
+
+class CompInfoGenOrig:
+    """Given a list of strings, generate compression info (packStrings). This
+    should be identical to the way original lisp version works"""
+    def __init__(self,strList,dx=256,dy=256):
+        self.strList = strList
+        self.compressedStrList = None
+        self.fCompressionInfoBuilt = False
+        self.dx = dx
+        self.dy = dy
+        self._clearFreqInfo()
+
+    def _clearFreqInfo(self):
+        # would it be better to do:
+        # for i in range(self.dx*self.dy): self.freqTable[i] = 0
+        # this version might create a lot of garbage
+        self.freqTable = [0 for i in range(self.dx*self.dy)]
+
+    def inc(self,x,y):
+        self.freqTable[x+y*self.dy] += 1
+
+    def val(self,x,y):
+        return self.freqTable[x+y*self.dy]
+
+    def incStr(self,s):
+        x = ord(s[0])
+        for c in s[1:]:
+            y = ord(c)
+            self.freqTable[x+y*self.dy] += 1 # self.inc(x,y) but faster
+            x = y
+
+    def _getStrFromPos(self,pos):
+        x = pos % self.dy
+        y = pos / self.dy
+        s = chr(x)+chr(y)
+        return s
+    def _getMostFrequent(self,n):
+        result = []
+        currThresh = -1
+        elPos = -1
+        for freq in self.freqTable:
+            elPos += 1
+            if freq >= currThresh:
+                # need to insert or replace element from the list of most
+                # frequently used elements
+                if len(result) < n:
+                    # add to the list since we don't have n elements yet
+                    result.append( [freq, self._getStrFromPos(elPos)] )
+                    if len(result) == n:
+                        # when we finally found all elements, we need to
+                        # adjust threshold from permitting anything to the
+                        # real threshold
+                        currThresh = _getSmallestFreq(result)
+                else:
+                    if freq > currThresh: # we don't want to fill full table with existing freq's
+                        # need to replace element on the list
+                        pos = _getPosOfThisFreq(result,currThresh)
+                        result[pos] = [freq, self._getStrFromPos(elPos)]
+                        currThresh = _getSmallestFreq(result)
+        return result
+
+    def buildPackStrings(self):
+        self._buildCompressionInfo()
         reservedCodes = 32
         #dumpListByFreq(flist)
         packStrings = [chr(n) for n in range(reservedCodes)]
@@ -561,9 +659,7 @@ def buildStringCompressor(strList):
     """Given a list of strings, build compressor object optimal for compressing
     those strings"""
     #ft = CompInfoGenOld()
-    ft = CompInfoGen()
-    for s in strList:
-        ft.incStr(s)
+    ft = CompInfoGen(strList)
     packStrings = ft.buildPackStrings()
     assert 256 == len(packStrings)
     comp = StringCompressor(packStrings)
