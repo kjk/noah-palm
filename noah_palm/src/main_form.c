@@ -31,12 +31,13 @@ void MainFormPressFindButton(const FormType* form)
 
 static void MainFormDisplayAbout(AppContext* appContext)
 {
-    UInt16 currentY=0;
+    UInt16 currentY=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
     WinPushDrawState();
-    ClearDisplayRectangle(appContext);
+    SetGlobalBackColor(appContext);
+    ClearRectangle(0, currentY, appContext->screenWidth, appContext->screenHeight - currentY - FRM_RSV_H);
     HideScrollbar();
     
-    currentY=7;
+    currentY+=7;
     FntSetFont(largeFont);
     DrawCenteredString(appContext, "ArsLexis iNoah", currentY);
     currentY+=16;
@@ -64,7 +65,6 @@ static void MainFormDisplayAbout(AppContext* appContext)
 
 static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
 {
-    Assert(LookupInProgress(appContext));
     WinPushDrawState();
     SetGlobalBackColor(appContext);
     ClearRectangle(0, 0, appContext->screenWidth, lookupStatusBarHeight);
@@ -88,14 +88,16 @@ static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCo
                 MainFormDisplayAbout(appContext);
             else 
             {
+                UInt16 top=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
+                UInt16 linesCount=(appContext->screenHeight-FRM_RSV_H-top)/FONT_DY;
                 WinPushDrawState();
                 SetBackColorWhite(appContext);
-                ClearDisplayRectangle(appContext);
-                DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+                ClearRectangle(0, top, appContext->screenWidth, appContext->screenHeight - top - FRM_RSV_H);
+                DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, 0, top, linesCount);
                 SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
                 WinPopDrawState();
             } 
-            if (!LookupInProgress(appContext)) 
+            if (!appContext->lookupStatusBarVisible) 
                 break; // fall through in case we should redraw status bar
                 
         case redrawLookupStatusBar:
@@ -113,15 +115,37 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
     LookupProgressEventData* data=reinterpret_cast<LookupProgressEventData*>(&event->data);
     if (lookupProgress==data->flag) 
         FrmUpdateForm(formDictMain, redrawLookupStatusBar);
-    else        //! @todo Prepare some more sophisticated handling (shrinking/stretching current definition etc.)
+    else
     {
+        UInt16 index=FrmGetObjectIndex(form, scrollDef);
+        Assert(frmInvalidObjectId!=index);
+        RectangleType bounds;
+        FrmGetObjectBounds(form, index, &bounds);
+        
         if (lookupFinished==data->flag)
         {
+            appContext->lookupStatusBarVisible=false;
+            
+            bounds.topLeft.y-=lookupStatusBarHeight;
+            bounds.extent.y+=lookupStatusBarHeight;
+            FrmSetObjectBounds(form, index, &bounds);
+
             if (!data->error) 
                 appContext->firstDispLine=0;
-            UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
+            index=FrmGetObjectIndex(form, fieldWordInput);
+            Assert(frmInvalidObjectId!=index);
             FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+            Assert(field);
             FldSelectAllText(field);
+        }
+        else 
+        {
+            Assert(lookupStarted==data->flag);
+            appContext->lookupStatusBarVisible=true;
+            
+            bounds.topLeft.y+=lookupStatusBarHeight;
+            bounds.extent.y-=lookupStatusBarHeight;
+            FrmSetObjectBounds(form, index, &bounds);
         }
         FrmUpdateForm(formDictMain, redrawAll); 
     }        
@@ -173,17 +197,11 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
     if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
     {
         if (FiveWayCenterPressed(appContext, event))
-        {
             MainFormPressFindButton(form);
-        }
         if (FiveWayDirectionPressed(appContext, event, Up ))
-        {
-            DefScrollUp(appContext, scrollLine );
-        }
+            DefScrollUp(appContext, appContext->prefs.navButtonScrollType );
         if (FiveWayDirectionPressed(appContext, event, Down ))
-        {
-            DefScrollDown(appContext, scrollLine );
-        }
+            DefScrollDown(appContext, appContext->prefs.navButtonScrollType );
         return true;
     }
 
@@ -198,9 +216,7 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
         case pageUpChr:
             if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
             {
-                //enable after implementing prefs
-                //DefScrollUp(appContext, appContext->prefs.hwButtonScrollType);
-                DefScrollUp(appContext, scrollLine);
+                DefScrollUp(appContext, appContext->prefs.hwButtonScrollType);
                 handled = true;
                 break;
             }
@@ -208,9 +224,7 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
         case pageDownChr:
             if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
             {
-                //enable after implementing prefs
-                //DefScrollUp(appContext, appContext->prefs.hwButtonScrollType);
-                DefScrollDown(appContext,scrollLine);
+                DefScrollUp(appContext, appContext->prefs.hwButtonScrollType);
                 handled = true;
                 break;
             }
@@ -345,6 +359,8 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
         FrmGetObjectBounds(form, index, &bounds);
         bounds.topLeft.x=appContext->screenWidth-8;
         bounds.extent.y=appContext->screenHeight-18;
+        if (appContext->lookupStatusBarVisible)
+            bounds.extent.y-=lookupStatusBarHeight;
         FrmSetObjectBounds(form, index, &bounds);
 
         FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        

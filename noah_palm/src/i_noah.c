@@ -27,7 +27,8 @@ static void LoadPreferences(AppContext* appContext)
     {
         if (appPreferencesVersion==version && sizeof(appContext->prefs)==size)
         {
-            version=PrefGetAppPreferences(APP_CREATOR, appPreferencesId, &appContext->prefs, &size, true);            Assert(appPreferencesVersion==version);
+            version=PrefGetAppPreferences(APP_CREATOR, appPreferencesId, &appContext->prefs, &size, true);
+            Assert(appPreferencesVersion==version);
             Assert(size==sizeof(appContext->prefs));
         }            
         else

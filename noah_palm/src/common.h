@@ -321,6 +321,7 @@ typedef struct _AppContext
     ExtensibleBuffer currentDefinition;
     ExtensibleBuffer currentWordBuf;
     void* currentLookupData;
+    Boolean lookupStatusBarVisible;
 #endif      
 
 #ifdef _RECORD_SPEED_
