@@ -19,6 +19,7 @@
 
 #define menuItemPrefs           1112
 #define menuItemDispPrefs       1115
+#define menuItemRegister        1118
 #define menuItemAbout           1121
 
 #define alertMemError                      2000

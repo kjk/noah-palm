@@ -101,7 +101,7 @@ function validate_client_version( $cv )
 
 function report_error( $err )
 {
-    print "ERROR";
+    print "ERROR\n";
     print "Error number $err occured on the server.";
     exit;
 }
@@ -109,21 +109,23 @@ function report_error( $err )
 # write MSG response to returning stream
 function write_MSG( $msg )
 {
-    print "MESSAGE";
+    print "MESSAGE\n";
     print $msg;
 }
 
 
 # write DEF response to returning stream
-function write_DEF( $def )
+function write_DEF( $def, $word )
 {
-    print "DEF";
+    print "DEF\n";
+    print $word;
+    print "\n";
     print $def;
 }
 
 function write_WORDLIST( $list )
 {
-    print "WORDLIST";
+    print "WORDLIST\n";
     print $list;
 }
 
@@ -133,7 +135,7 @@ function serve_get_cookie($di)
     # generate a new random, unique cookie
     # insert cookie and $di into cookies table
     # return the cookie to the client
-    print "COOKIE";
+    print "COOKIE\n";
     $magic_cookie = "berake";
     print $magic_cookie;
     exit;
@@ -150,13 +152,13 @@ function serve_register($reg_code)
 
 function serve_get_random_word()
 {
-    global $sample_def;
+    global $sample_def, $sample_word;
 
     // word_no = rand( 1, get_words_count()-1);
 
     // TODO: get the word as select def from words where word_no=$word_no
 
-    write_DEF($sample_def);
+    write_DEF($sample_def, $sample_word);
     exit;
 }
 
@@ -180,7 +182,7 @@ function serve_get_word($word)
     if ( $def == "" )
         write_MSG("Definition of word $word not found");
     else
-        write_DEF($def);
+        write_DEF($def,$word);
     exit;
 }
 

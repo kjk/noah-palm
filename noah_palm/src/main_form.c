@@ -366,6 +366,11 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             FrmPopupForm(formDisplayPrefs);
             handled=true;
             break;        
+
+        case menuItemRegister:
+            FrmAlert(alertNotImplemented);
+            handled=true;
+            break;
             
         case menuItemBookmarkView:
             if (GetBookmarksCount(appContext)>0)

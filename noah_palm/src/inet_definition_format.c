@@ -1,12 +1,16 @@
 #include "inet_definition_format.h"
 #include "blowfish.h"
 
-#define noDefnitionResponse "NO DEFINITION"
-#define wordsListResponse    "WORDLIST"
-#define messageResponse     "MESSAGE"
-#define errorMessageResponse "ERROR"
-#define cookieResponse "COOKIE"
-#define definitionResponse "DEF"
+#define wordsListResponse       "WORDLIST"
+#define wordsListResponseLen    8
+#define messageResponse         "MESSAGE"
+#define messageResponseLen      7
+#define errorMessageResponse    "ERROR"
+#define errorMessageResponseLen 6
+#define cookieResponse          "COOKIE\n"
+#define cookieResponseLen       7
+#define definitionResponse      "DEF\n"
+#define definitionResponseLen   4
 
 static Err ExpandPartOfSpeechSymbol(Char symbol, const Char** partOfSpeech)
 {
@@ -195,11 +199,10 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     return error;
 }
 
-Err ProcessDefinitionResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd)
+Err ProcessDefinitionResponse(AppContext* appContext, const char* word, const char* responseBegin, const char* responseEnd)
 {
     Err error=errNone;
-//    responseBegin=StrFind(responseBegin, responseEnd, "\n")+1;
-    responseBegin+=3;
+    responseBegin+=definitionResponseLen;
     if (responseBegin<responseEnd)
     {
         ExtensibleBuffer buffer;
@@ -312,8 +315,10 @@ static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBe
 static Err ProcessCookieResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
-    const Char* cookieBegin=responseBegin+6;
-//    const Char* cookieBegin=StrFind(responseBegin, responseEnd, "\n")+1;
+    const Char* cookieBegin=responseBegin+cookieResponseLen;
+
+    Assert(cookieBegin<=responseEnd);
+    
     if (cookieBegin<responseEnd)
     {
         const Char* cookieEnd=StrFind(cookieBegin, responseEnd, "\n");
@@ -342,10 +347,6 @@ Err ProcessResponse(AppContext* appContext, const Char* word, const Char* begin,
         error=ProcessCookieResponse(appContext, begin, end);
         if (!error)
             result=responseCookie;
-    }
-    else if (StrStartsWith(begin, end, noDefnitionResponse))
-    {
-        result=responseWordNotFound;
     }
     else if (StrStartsWith(begin, end, wordsListResponse))
     {
