@@ -9,8 +9,7 @@
 #include "roget_support.h"
 
 #define PREF_REC_MIN_SIZE 4
-#define FONT_DY  11
-#define WORDS_IN_LIST 12
+//#define (gd.dispLinesCount-1) 12
 
 #ifdef NEVER
 char helpText[] =
@@ -415,6 +414,9 @@ void ScanForDictsThes(Boolean fAlwaysScanExternal)
 
 Err InitThesaurus(void)
 {
+    Err error=errNone;
+    UInt32 value=0;
+    
     MemSet((void *) &gd, sizeof(GlobalData), 0);
     LogInit( &g_Log, "c:\\thes_log.txt" );
 
@@ -440,6 +442,14 @@ Err InitThesaurus(void)
     gd.prefs.hwButtonScrollType = scrollPage;
     gd.prefs.dbStartupAction = dbStartupActionAsk;
     gd.prefs.lastDbUsedName = NULL;
+    
+// 2003-11-25 andrzejc DynamicInputArea
+    SyncScreenSize();
+// define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
+#ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
+    error=DIA_Init(&gd.diaSettings);
+    if (error) return error;
+#endif  
 
     FsInit();
 
@@ -491,6 +501,7 @@ void DictCurrentFree(void)
 
 void StopThesaurus()
 {
+    Err error=errNone;
     SavePreferencesThes();
     DictCurrentFree();
     FreeDicts();
@@ -506,6 +517,11 @@ void StopThesaurus()
 
     FrmSaveAllForms();
     FrmCloseAllForms();
+
+// 2003-11-28 andrzejc DynamicInputArea
+    error=DIA_Free(&gd.diaSettings);
+    Assert(!error);
+
     FsDeinit();
 }
 
@@ -570,13 +586,45 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     lineOnScreen = y / FONT_DY;    /* should be font height */
     r->topLeft.x = 0;
     r->topLeft.y = lineOnScreen * FONT_DY;
-    r->extent.x = 120;
+// 2003-11-26 andrzejc DynamicInputArea    
+//    r->extent.x = 120;
+    r->extent.x = gd.screenWidth-40;
     r->extent.y = FONT_DY;
 
     *line = lineOnScreen;
     *charPos = 0;
 
     return true;
+}
+
+static Boolean MainFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        UInt16 index=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
+        FrmSetObjectBoundsByID(frm, scrollDef, gd.screenWidth-8, 1, 7, gd.screenHeight-18);
+        FrmSetObjectBoundsByID(frm, bmpFind, gd.screenWidth-13, gd.screenHeight-13, 13, 13);
+        FrmSetObjectBoundsByID(frm, buttonFind, gd.screenWidth-14, gd.screenHeight-14, 14, 14);
+        FrmSetObjectBoundsByID(frm, popupHistory, gd.screenWidth-32, gd.screenHeight-13, 17, 13);
+
+        index=FrmGetObjectIndex(frm, listHistory);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.x=gd.screenWidth-80;
+        newBounds.topLeft.y=gd.screenHeight-60;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        RedrawMainScreen();
+        handled=true;
+    }
+    return handled;
 }
 
 Boolean MainFormHandleEventThes(EventType * event)
@@ -595,6 +643,16 @@ Boolean MainFormHandleEventThes(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+        case winEnterEvent:
+            // workaround for probable Sony CLIE's bug that causes only part of screen to be repainted on return from PopUps
+            if (DIA_HasSonySilkLib(&gd.diaSettings) && frm==(void*)((SysEventType*)event)->data.winEnter.enterWindow)
+                RedrawMainScreen();
+            break;
+
+        case winDisplayChangedEvent:
+            handled= MainFormDisplayChanged(frm);
+            break;
+            
         case frmUpdateEvent:
             LogG( "mainFrm - frmUpdateEvent" );
             RedrawMainScreen();
@@ -684,8 +742,11 @@ ChooseDatabase:
                     }
                 }
             }
-            WinDrawLine(0, 145, 160, 145);
-            WinDrawLine(0, 144, 160, 144);
+// 2003-11-25 andrzejc DynamicInputArea  
+//            WinDrawLine(0, 145, 160, 145);
+//            WinDrawLine(0, 144, 160, 144);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
 
             if ( startupActionClipboard == gd.prefs.startupAction )
             {
@@ -755,8 +816,11 @@ ChooseDatabase:
             AddToHistory(gd.currentWord);
             HistoryListSetState(frm);
 
-            WinDrawLine(0, 145, 160, 145);
-            WinDrawLine(0, 144, 160, 144);
+// 2003-11-25 andrzejc DynamicInputArea  
+//            WinDrawLine(0, 145, 160, 145);
+//            WinDrawLine(0, 144, 160, 144);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
             DrawDescription(gd.currentWord);
             gd.penUpsToConsume = 1;
             handled = true;
@@ -880,15 +944,21 @@ ChooseDatabase:
             newValue = event->data.sclRepeat.newValue;
             if (newValue != gd.firstDispLine)
             {
-                ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+// 2003-11-25 andrzejc DynamicInputArea
+//               ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+               ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth-FRM_RSV_W+2, gd.screenHeight-FRM_RSV_H);
                 gd.firstDispLine = newValue;
-                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+// 2003-11-25 andrzejc DynamicInputArea
+//                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
             }
             handled = true;
             break;
 
         case penDownEvent:
-            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+// 2003-11-25 andrzejc DynamicInputArea
+//            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+            if ((NULL == gd.currDispInfo) || (event->screenX > gd.screenWidth-FRM_RSV_W) || (event->screenY > gd.screenHeight-FRM_RSV_H))
             {
                 handled = false;
                 break;
@@ -914,7 +984,9 @@ ChooseDatabase:
             break;
 
         case penUpEvent:
-            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+// 2003-11-25 andrzejc DynamicInputArea
+//            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+            if ((NULL == gd.currDispInfo) || (event->screenX > gd.screenWidth-FRM_RSV_W) || (event->screenY > gd.screenHeight-FRM_RSV_H))
             {
                 handled = false;
                 break;
@@ -944,7 +1016,9 @@ ChooseDatabase:
                 break;
             }
 
-            if (event->screenY > (144 / 2))
+// 2003-11-25 andrzejc DynamicInputArea
+//            if (event->screenY > (144 / 2))
+            if (event->screenY > ((gd.screenHeight-FRM_RSV_H) / 2))
             {
                 DefScrollDown(gd.prefs.tapScrollType);
             }
@@ -1052,6 +1126,48 @@ ChooseDatabase:
     return handled;
 }
 
+static Boolean FindFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        UInt16 index=0;
+        ListType* list=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+        
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
+        
+        index=FrmGetObjectIndex(frm, listMatching);
+        Assert(index!=frmInvalidObjectId);
+        list=(ListType*)FrmGetObjectPtr(frm, index);
+        Assert(list);
+        LstSetHeight(list, gd.dispLinesCount);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.extent.x=gd.screenWidth;
+        FrmSetObjectBounds(frm, index, &newBounds);
+        
+        index=FrmGetObjectIndex(frm, fieldWord);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-13;
+        newBounds.extent.x=gd.screenWidth-66;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonCancel);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.x=gd.screenWidth-40;
+        newBounds.topLeft.y=gd.screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        FrmDrawForm(frm);
+        handled=true; 
+    }
+    return handled;
+}
 
 Boolean FindFormHandleEventThes(EventType * event)
 {
@@ -1068,6 +1184,10 @@ Boolean FindFormHandleEventThes(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+        case winDisplayChangedEvent:
+            handled= FindFormDisplayChanged(frm);
+            break;
+            
         case frmOpenEvent:
             fld =(FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
             list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
@@ -1130,14 +1250,14 @@ Boolean FindFormHandleEventThes(EventType * event)
                 case pageUpChr:
                     if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
                     {
-                        ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                        ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
                         return true;
                     }
                 
                 case pageDownChr:
                     if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
                     {
-                        ScrollWordListByDx( frm, WORDS_IN_LIST );
+                        ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
                         return true;
                     }
 
@@ -1156,12 +1276,12 @@ Boolean FindFormHandleEventThes(EventType * event)
                     
                         if (FiveWayDirectionPressed( event, Left ))
                         {
-                            ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                            ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
                             return true;
                         }
                         if (FiveWayDirectionPressed( event, Right ))
                         {
-                            ScrollWordListByDx( frm, WORDS_IN_LIST );
+                            ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
                             return true;
                         }
                         if (FiveWayDirectionPressed( event, Up ))
@@ -1208,10 +1328,10 @@ Boolean FindFormHandleEventThes(EventType * event)
                     FrmReturnToForm(0);
                     break;
                 case ctlArrowLeft:
-                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                    ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
                     break;
                 case ctlArrowRight:
-                    ScrollWordListByDx( frm, WORDS_IN_LIST );
+                    ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
                     break;
                 default:
                     Assert(0);
@@ -1225,6 +1345,20 @@ Boolean FindFormHandleEventThes(EventType * event)
     return handled;
 }
 
+static Boolean SelectDictFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+        FrmDrawForm(frm);
+        handled=true;
+    }
+    return handled;
+}
+
 Boolean SelectDictFormHandleEventThes(EventType * event)
 {
     FormPtr     frm;
@@ -1233,6 +1367,10 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
 
     switch (event->eType)
     {
+        case winDisplayChangedEvent:
+            return SelectDictFormDisplayChanged(frm=FrmGetActiveForm());
+            break;
+
         case frmOpenEvent:
             selectedDb = FindCurrentDbIndex();
             frm = FrmGetActiveForm();
@@ -1316,6 +1454,34 @@ void PrefsToGUI(FormType * frm)
 #endif
 }
 
+static Boolean PrefFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        UInt16 index=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+        
+        index=FrmGetObjectIndex(frm, buttonOk);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-13-newBounds.extent.y;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonCancel);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-13-newBounds.extent.y;
+        FrmSetObjectBounds(frm, index, &newBounds);
+        
+        FrmDrawForm(frm);
+        handled=true;
+    }
+    return handled;
+}
+
 Boolean PrefFormHandleEventThes(EventType * event)
 {
     Boolean     handled = false;
@@ -1326,6 +1492,10 @@ Boolean PrefFormHandleEventThes(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+        case winDisplayChangedEvent:
+            handled=PrefFormDisplayChanged(frm);
+            break;
+
         case frmOpenEvent:
             PrefsToGUI(frm);
             FrmDrawForm(frm);
@@ -1402,6 +1572,7 @@ Boolean HandleEventThes(EventType * event)
 {
     FormPtr frm;
     UInt16 formId;
+    Err error=errNone;
     Boolean handled = false;
 
     if (event->eType == frmLoadEvent)
@@ -1409,6 +1580,7 @@ Boolean HandleEventThes(EventType * event)
         formId = event->data.frmLoad.formID;
         frm = FrmInitForm(formId);
         FrmSetActiveForm(frm);
+        error=DefaultFormInit(frm);
 
         switch (formId)
         {
@@ -1434,6 +1606,7 @@ Boolean HandleEventThes(EventType * event)
             break;
         }
     }
+    Assert(!error); // so that we get breakpoint if something unexpected happens
     return handled;
 }
 
@@ -1470,6 +1643,12 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
         EventLoopThes();
         StopThesaurus();
         break;
+        
+// 2003-11-25 andrzejc DynamicInputArea     
+    case sysAppLaunchCmdNotify:
+        AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
+        break;
+        
     default:
         break;
     }

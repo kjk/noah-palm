@@ -7,6 +7,7 @@
 #include "wn_pro_support.h"
 #include "extensible_buffer.h"
 #include "common.h"
+#include "noah_pro.h"
 
 static SynsetsInfo *si_new(long synsetsCount, int firstWordsNumRec,
                            int firstSynsetInfoRec,
@@ -1039,10 +1040,10 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             {
                 ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
             }
-            DrawDisplayInfo(&g_di_tmp, 0, DRAW_DI_X, DRAW_DI_Y,
-                            DRAW_DI_LINES);
-            SetScrollbarState(&g_di_tmp, DRAW_DI_LINES, 0);
-            DrawWord("Searching...", 149);
+            DrawDisplayInfo(&g_di_tmp, 0, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
+            SetScrollbarState(&g_di_tmp, gd.dispLinesCount, 0);
+//            DrawWord("Searching...", gd.screenHeight-FRM_RSV_H+5);
+            DrawWord(SEARCH_TXT, gd.screenHeight-FRM_RSV_H+5);
             ++syn_found_count;
             if (syn_found_count == syn_count)
                 break;
@@ -1078,6 +1079,6 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     ebufWrapBigLines(&g_buf);
     rawTxt = ebufGetDataPointer(&g_buf);
     diSetRawTxt(di, rawTxt);
-    SetScrollbarState(di, DRAW_DI_LINES, 0);
+    SetScrollbarState(di, gd.dispLinesCount, 0);
     return 0;
 }

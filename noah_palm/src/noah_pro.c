@@ -27,8 +27,8 @@
 #endif
 
 #define PREF_REC_MIN_SIZE 4+5
-#define FONT_DY  11
-#define WORDS_IN_LIST 12
+//#define FONT_DY  11
+//#define WORDS_IN_LIST 12
 
 static char sa_txt[20];
 static char sdb_txt[10];
@@ -454,6 +454,8 @@ void ScanForDictsNoahPro(Boolean fAlwaysScanExternal)
 
 Err InitNoahPro(void)
 {
+    Err error=errNone;
+    UInt32 value=0;
     MemSet((void *) &gd, sizeof(GlobalData), 0);
     LogInit( &g_Log, "c:\\noah_pro_log.txt" );
 
@@ -480,6 +482,14 @@ Err InitNoahPro(void)
     gd.prefs.hwButtonScrollType = scrollPage;
     gd.prefs.dbStartupAction = dbStartupActionAsk;
     gd.prefs.lastDbUsedName = NULL;
+
+// 2003-11-26 andrzejc DynamicInputArea
+    SyncScreenSize();
+// define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
+#ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
+    error=DIA_Init(&gd.diaSettings);
+    if (error) return error;
+#endif  
 
     FsInit();
 
@@ -524,6 +534,7 @@ Boolean DictInit(AbstractFile *file)
 
 void StopNoahPro(void)
 {
+    Err error=errNone;
     SavePreferencesNoahPro();
     DictCurrentFree();
     FreeDicts();
@@ -537,6 +548,10 @@ void StopNoahPro(void)
     if ( NULL != gd.prefs.lastDbUsedName )
         new_free( gd.prefs.lastDbUsedName );
 
+// 2003-11-26 andrzejc DynamicInputArea
+    error=DIA_Free(&gd.diaSettings);
+    Assert(!error);
+    
     FrmSaveAllForms();
     FrmCloseAllForms();
     FsDeinit();
@@ -603,7 +618,9 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     lineOnScreen = y / FONT_DY;    /* should be font height */
     r->topLeft.x = 0;
     r->topLeft.y = lineOnScreen * FONT_DY;
-    r->extent.x = 120;
+// 2003-11-26 andrzejc DynamicInputArea    
+//    r->extent.x = 120;
+    r->extent.x = gd.screenWidth-40;
     r->extent.y = FONT_DY;
 
     *line = lineOnScreen;
@@ -611,6 +628,37 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
 
     return true;
 }
+
+static Boolean MainFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        UInt16 index=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
+        FrmSetObjectBoundsByID(frm, scrollDef, gd.screenWidth-8, 1, 7, gd.screenHeight-18);
+        FrmSetObjectBoundsByID(frm, bmpFind, gd.screenWidth-13, gd.screenHeight-13, 13, 13);
+        FrmSetObjectBoundsByID(frm, buttonFind, gd.screenWidth-14, gd.screenHeight-14, 14, 14);
+        FrmSetObjectBoundsByID(frm, popupHistory, gd.screenWidth-32, gd.screenHeight-13, 17, 13);
+
+        index=FrmGetObjectIndex(frm, listHistory);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.x=gd.screenWidth-80;
+        newBounds.topLeft.y=gd.screenHeight-60;
+        FrmSetObjectBounds(frm, index, &newBounds);
+        
+        RedrawMainScreen();
+        handled=true;
+    }
+    return handled;
+}
+
 
 Boolean MainFormHandleEventNoahPro(EventType * event)
 {
@@ -628,6 +676,16 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+        case winEnterEvent:
+            // workaround for probable Sony CLIE's bug that causes only part of screen to be repainted on return from PopUps
+            if (DIA_HasSonySilkLib(&gd.diaSettings) && frm==(void*)((SysEventType*)event)->data.winEnter.enterWindow)
+                RedrawMainScreen();
+            break;
+            
+        case winDisplayChangedEvent:
+            handled= MainFormDisplayChanged(frm);
+            break;
+            
         case frmUpdateEvent:
             LogG( "mainFrm - frmUpdateEvent" );
             RedrawMainScreen();
@@ -717,8 +775,11 @@ ChooseDatabase:
                     }
                 }
             }
-            WinDrawLine(0, 145, 160, 145);
-            WinDrawLine(0, 144, 160, 144);
+// 2003-11-26 andrzejc DynamicInputArea  
+//            WinDrawLine(0, 145, 160, 145);
+//            WinDrawLine(0, 144, 160, 144);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
             if ( startupActionClipboard == gd.prefs.startupAction )
             {
                 if (!FTryClipboard())
@@ -788,8 +849,11 @@ ChooseDatabase:
             AddToHistory(gd.currentWord);
             HistoryListSetState(frm);
 
-            WinDrawLine(0, 145, 160, 145);
-            WinDrawLine(0, 144, 160, 144);
+// 2003-11-26 andrzejc DynamicInputArea  
+//            WinDrawLine(0, 145, 160, 145);
+//            WinDrawLine(0, 144, 160, 144);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
             DrawDescription(gd.currentWord);
             gd.penUpsToConsume = 1;
             handled = true;
@@ -925,15 +989,21 @@ ChooseDatabase:
             newValue = event->data.sclRepeat.newValue;
             if (newValue != gd.firstDispLine)
             {
-                ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+// 2003-11-26 andrzejc DynamicInputArea
+//               ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+               ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth-FRM_RSV_W+2, gd.screenHeight-FRM_RSV_H);
                 gd.firstDispLine = newValue;
-                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+// 2003-11-26 andrzejc DynamicInputArea
+//                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
             }
             handled = true;
             break;
 
         case penDownEvent:
-            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+// 2003-11-26 andrzejc DynamicInputArea
+//            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+            if ((NULL == gd.currDispInfo) || (event->screenX > gd.screenWidth-FRM_RSV_W) || (event->screenY > gd.screenHeight-FRM_RSV_H))
             {
                 handled = false;
                 break;
@@ -960,7 +1030,9 @@ ChooseDatabase:
             break;
 
         case penUpEvent:
-            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+// 2003-11-26 andrzejc DynamicInputArea
+//            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+            if ((NULL == gd.currDispInfo) || (event->screenX > gd.screenWidth-FRM_RSV_W) || (event->screenY > gd.screenHeight-FRM_RSV_H))
             {
                 handled = false;
                 break;
@@ -992,7 +1064,9 @@ ChooseDatabase:
                 break;
             }
 
-            if (event->screenY > (144 / 2))
+// 2003-11-26 andrzejc DynamicInputArea
+//            if (event->screenY > (144 / 2))
+            if (event->screenY > ((gd.screenHeight-FRM_RSV_H) / 2))
             {
                 DefScrollDown(gd.prefs.tapScrollType);
             }
@@ -1103,6 +1177,49 @@ ChooseDatabase:
     return handled;
 }
 
+static Boolean FindFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        UInt16 index=0;
+        ListType* list=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
+        
+        index=FrmGetObjectIndex(frm, listMatching);
+        Assert(index!=frmInvalidObjectId);
+        list=(ListType*)FrmGetObjectPtr(frm, index);
+        Assert(list);
+        LstSetHeight(list, gd.dispLinesCount);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.extent.x=gd.screenWidth;
+        FrmSetObjectBounds(frm, index, &newBounds);
+        
+        index=FrmGetObjectIndex(frm, fieldWord);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-13;
+        newBounds.extent.x=gd.screenWidth-66;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonCancel);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.x=gd.screenWidth-40;
+        newBounds.topLeft.y=gd.screenHeight-14;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        FrmDrawForm(frm);
+        handled=true;
+    }
+    return handled;
+}
+
 // Event handler proc for the find word dialog
 Boolean FindFormHandleEventNoahPro(EventType * event)
 {
@@ -1118,6 +1235,10 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+        case winDisplayChangedEvent:
+            handled= FindFormDisplayChanged(frm);
+            break;
+                        
         case frmOpenEvent:
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
@@ -1178,14 +1299,14 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                 case pageUpChr:
                     if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
                     {
-                        ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                        ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
                         return true;
                     }
 
                 case pageDownChr:
                     if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
                     {
-                        ScrollWordListByDx( frm, WORDS_IN_LIST );
+                        ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
                         return true;
                     }
 
@@ -1204,12 +1325,12 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                     
                         if (FiveWayDirectionPressed( event, Left ))
                         {
-                            ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                            ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
                             return true;
                         }
                         if (FiveWayDirectionPressed( event, Right ))
                         {
-                            ScrollWordListByDx( frm, WORDS_IN_LIST );
+                            ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
                             return true;
                         }
                         if (FiveWayDirectionPressed( event, Up ))
@@ -1242,10 +1363,10 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                     FrmReturnToForm(0);
                     break;
                 case ctlArrowLeft:
-                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                    ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
                     break;
                 case ctlArrowRight:
-                    ScrollWordListByDx( frm, WORDS_IN_LIST );
+                    ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
                     break;
                 default:
                     Assert(0);
@@ -1259,6 +1380,20 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
     return handled;
 }
 
+static Boolean SelectDictFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+        FrmDrawForm(frm);
+        handled=true;
+    }
+    return handled;
+}
+
 Boolean SelectDictFormHandleEventNoahPro(EventType * event)
 {
     FormPtr frm;
@@ -1268,6 +1403,10 @@ Boolean SelectDictFormHandleEventNoahPro(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+        case winDisplayChangedEvent:
+            return SelectDictFormDisplayChanged(frm);
+            break;
+
         case frmOpenEvent:
             selectedDb = FindCurrentDbIndex();
             list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
@@ -1347,6 +1486,34 @@ void PrefsToGUI(FormType * frm)
 #endif
 }
 
+static Boolean PrefFormDisplayChanged(FormType* frm) 
+{
+    Boolean handled=false;
+    if (DIA_Supported(&gd.diaSettings))
+    {
+        UInt16 index=0;
+        RectangleType newBounds;
+        WinGetBounds(WinGetDisplayWindow(), &newBounds);
+        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+        
+        index=FrmGetObjectIndex(frm, buttonOk);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-13-newBounds.extent.y;
+        FrmSetObjectBounds(frm, index, &newBounds);
+
+        index=FrmGetObjectIndex(frm, buttonCancel);
+        Assert(index!=frmInvalidObjectId);
+        FrmGetObjectBounds(frm, index, &newBounds);
+        newBounds.topLeft.y=gd.screenHeight-13-newBounds.extent.y;
+        FrmSetObjectBounds(frm, index, &newBounds);
+        
+        FrmDrawForm(frm);
+        handled=true;
+    }
+    return handled;
+}
+
 Boolean PrefFormHandleEventNoahPro(EventType * event)
 {
     Boolean     handled = true;
@@ -1357,6 +1524,10 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
+        case winDisplayChangedEvent:
+            handled=PrefFormDisplayChanged(frm);
+            break;
+
         case frmOpenEvent:
             FrmDrawForm(frm);
             PrefsToGUI(frm);
@@ -1458,13 +1629,14 @@ Boolean HandleEventNoahPro(EventType * event)
 {
     FormType *  frm;
     UInt16      formId;
-
+    Err error=errNone;
+    
     if (event->eType == frmLoadEvent)
     {
         formId = event->data.frmLoad.formID;
         frm = FrmInitForm(formId);
         FrmSetActiveForm(frm);
-
+        error=DefaultFormInit(frm);    
         switch (formId)
         {
             case formDictMain:
@@ -1491,6 +1663,7 @@ Boolean HandleEventNoahPro(EventType * event)
                 Assert(0);
                 break;
         }
+        Assert(!error);
     }
     return false;
 }
@@ -1543,6 +1716,12 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
             EventLoopNoahPro();
             StopNoahPro();
             break;
+            
+// 2003-11-25 andrzejc DynamicInputArea     
+        case sysAppLaunchCmdNotify:
+            AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
+            break;
+        
         default:
             break;
     }

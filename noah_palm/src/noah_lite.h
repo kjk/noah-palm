@@ -43,6 +43,9 @@ typedef struct
 #ifdef DEBUG
     long                currentStressWord;
 #endif
+
+#include "common_global_data.h"
+
 } GlobalData;
 
 #endif

@@ -373,8 +373,8 @@ void DisplayHelp(void)
 
     gd.firstDispLine = 0;
     ClearDisplayRectangle();
-    DrawDisplayInfo(gd.currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
-    SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
+    DrawDisplayInfo(gd.currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
+    SetScrollbarState(gd.currDispInfo, gd.dispLinesCount, gd.firstDispLine);
 }
 
 extern void DisplayAbout(void);
@@ -407,10 +407,10 @@ void RedrawWordDefinition()
     MemSet(gd.prefs.lastWord, 32, 0);
     MemMove(gd.prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
 
-    DrawWord(word, 149);
+    DrawWord(word, gd.screenHeight-FONT_DY);
     ClearDisplayRectangle();
-    DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
-    SetScrollbarState(gd.currDispInfo, DRAW_DI_LINES, gd.firstDispLine);
+    DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
+    SetScrollbarState(gd.currDispInfo, gd.dispLinesCount, gd.firstDispLine);
 
 }
 
@@ -425,8 +425,11 @@ void SendNewWordSelected(void)
 void RedrawMainScreen()
 {
     FrmDrawForm(FrmGetActiveForm());
-    WinDrawLine(0, 145, 160, 145);
-    WinDrawLine(0, 144, 160, 144);
+// 2003-11-25 andrzejc DynamicInputArea  
+//  WinDrawLine(0, 145, 160, 145);
+//  WinDrawLine(0, 144, 160, 144);
+    WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
+    WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
     RedrawWordDefinition();
 }
 
@@ -465,8 +468,10 @@ void DrawDescription(long wordNo)
 
 void ClearDisplayRectangle()
 {
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X,
-                    160 - DRAW_DI_Y - 16);
+// 2003-11-25 andrzejc DynamicInputArea
+//    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X,
+//                    160 - DRAW_DI_Y - 16);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth - DRAW_DI_X, gd.screenHeight - DRAW_DI_Y - FRM_RSV_H);
 }
 
 void ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey)
@@ -486,7 +491,7 @@ void DrawCentered(char *txt)
     ClearDisplayRectangle();
     prev_font = FntGetFont();
     FntSetFont((FontID) 1);
-    WinDrawChars(txt, StrLen(txt), 46, (160 - 20) / 2);
+    WinDrawChars(txt, StrLen(txt), 46, (gd.screenHeight - 20) / 2);
     FntSetFont(prev_font);
 }
 
@@ -498,7 +503,7 @@ void DrawCenteredString(const char *str, int dy)
     Assert(str);
     strLen = StrLen(str);
     strDx = FntCharsWidth(str, strLen);
-    WinDrawChars(str, strLen, 80 - strDx / 2, dy);
+    WinDrawChars(str, strLen, (gd.screenWidth - strDx) / 2, dy);
 }
 
 #define WAIT_CACHE_TXT "Caching rec:  "
@@ -508,7 +513,9 @@ void DrawCacheRec(int recNum)
     char buf[30];
     StrCopy(buf, WAIT_CACHE_TXT);
     StrIToA(buf + sizeof(WAIT_CACHE_TXT) - 2, recNum);
-    DrawWord(buf, 149 );
+// 2003-11-26 andrzejc DynamicInputArea    
+//    DrawWord(buf, 149 );
+    DrawWord(buf, gd.screenHeight - FRM_RSV_H + 5);
     /*DrawCentered(buf);*/
 }
 
@@ -758,9 +765,19 @@ char *GetNthTxt(int n, char *txt)
     return txt;
 }
 
-char * GetWnPosTxt(int pos)
+static const Char* const wnPosTexts[]={
+    "(noun) ",
+    "(verb) ",
+    "(adj.) ",
+    "(adv.) "
+};
+
+char* GetWnPosTxt(int pos)
 {
-    return GetNthTxt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
+//    return GetNthTxt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
+
+    Assert(pos< sizeof(wnPosTexts)/sizeof(const Char*));
+    return (char*)wnPosTexts[pos];
 }
 
 /* return the dictionary type for the current file */
@@ -1114,10 +1131,10 @@ void DefScrollUp(ScrollType scroll_type)
         to_scroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = DRAW_DI_LINES / 2;
+        to_scroll = gd.dispLinesCount / 2;
         break;
     case scrollPage:
-        to_scroll = DRAW_DI_LINES;
+        to_scroll = gd.dispLinesCount;
         break;
     default:
         Assert(0);
@@ -1129,9 +1146,11 @@ void DefScrollUp(ScrollType scroll_type)
     else
         gd.firstDispLine = 0;
 
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
-    DrawDisplayInfo(di, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
-    SetScrollbarState(di, DRAW_DI_LINES, gd.firstDispLine);
+// 2003-11-25 andrzejc DynamicInputArea   
+//    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth-FRM_RSV_W+2, gd.screenHeight-FRM_RSV_H);
+    DrawDisplayInfo(di, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
+    SetScrollbarState(di, gd.dispLinesCount, gd.firstDispLine);
 }
 
 void DefScrollDown(ScrollType scroll_type)
@@ -1145,7 +1164,7 @@ void DefScrollDown(ScrollType scroll_type)
     if ((scrollNone == scroll_type) || (NULL == di))
         return;
 
-    invisible_lines = diGetLinesCount(di) - gd.firstDispLine - DRAW_DI_LINES;
+    invisible_lines = diGetLinesCount(di) - gd.firstDispLine - gd.dispLinesCount;
     if (invisible_lines <= 0)
         return;
 
@@ -1155,10 +1174,10 @@ void DefScrollDown(ScrollType scroll_type)
         to_scroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = DRAW_DI_LINES / 2;
+        to_scroll = gd.dispLinesCount / 2;
         break;
     case scrollPage:
-        to_scroll = DRAW_DI_LINES;
+        to_scroll = gd.dispLinesCount;
         break;
     default:
         Assert(0);
@@ -1169,9 +1188,11 @@ void DefScrollDown(ScrollType scroll_type)
         gd.firstDispLine += to_scroll;
     else
         gd.firstDispLine += invisible_lines;
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
-    DrawDisplayInfo(di, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
-    SetScrollbarState(di, DRAW_DI_LINES, gd.firstDispLine);
+// 2003-11-25 andrzejc DynamicInputArea   
+//    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth-FRM_RSV_W+2, gd.screenHeight-FRM_RSV_H);
+    DrawDisplayInfo(di, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
+    SetScrollbarState(di, gd.dispLinesCount, gd.firstDispLine);
 }
 
 
@@ -1304,7 +1325,7 @@ void CtlHideControlEx( FormType *frm, UInt16 objID)
 void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char        *str;
-    Int16       stringWidthP = 160; /* max width of the string in the list selection window */
+    Int16       stringWidthP = gd.screenWidth; /* max width of the string in the list selection window */
     Int16       stringLenP;
     Boolean     truncatedP = false;
     long        realItemNo;
@@ -1781,4 +1802,50 @@ Boolean HaveHsNav( void )
 {
     return haveHsNav;
 }
+
+
+void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey) {
+    UInt16 index;
+    RectangleType objBounds;
+    Assert(frm);
+    index=FrmGetObjectIndex(frm, objId);
+    Assert(index!=frmInvalidObjectId);
+    FrmGetObjectBounds(frm, index, &objBounds);
+    objBounds.topLeft.x=x,
+    objBounds.topLeft.y=y;
+    objBounds.extent.x=ex;
+    objBounds.extent.y=ey;
+    FrmSetObjectBounds(frm, index, &objBounds);
+}
+
+void SyncScreenSize() 
+{
+    RectangleType screenBounds;
+    WinGetBounds(WinGetDisplayWindow(), &screenBounds);
+    gd.screenWidth=screenBounds.extent.x;
+    gd.screenHeight=screenBounds.extent.y;
+    gd.dispLinesCount=(gd.screenHeight-FRM_RSV_H)/FONT_DY;
+}
+
+Err DefaultFormInit(FormType* frm)
+{
+    return DIA_FrmEnableDIA(&gd.diaSettings, frm, FRM_MIN_H, FRM_PREF_H, FRM_MAX_H, FRM_MIN_W, FRM_PREF_W, FRM_MAX_W);
+}
+
+void AppHandleSysNotify(SysNotifyParamType* param) 
+{
+    Assert(param);
+    switch (param->notifyType) {
+    
+        case sysNotifyDisplayChangeEvent:
+        case sysNotifyDisplayResizedEvent:
+            SyncScreenSize();
+            DIA_HandleResizeEvent();
+            break;
+            
+         default:
+            Assert(false); 
+    }
+}
+
 

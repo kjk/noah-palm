@@ -10,6 +10,8 @@
 #include <68K/Hs.h>
 #include <Chars.h>
 
+#include "dynamic_input_area.h"
+
 #include "mem_leak.h"
 #include "display_info.h"
 #include "extensible_buffer.h"
@@ -43,7 +45,28 @@
 // assume that width is full screen (160)
 #define DRAW_DI_X 0
 #define DRAW_DI_Y 0
-#define DRAW_DI_LINES 13
+#define FONT_DY  11
+
+// 2003-11-25 andrzejc  - replaced by gd.dispLinesCount to accomodate DynamicInputArea
+//#define DRAW_DI_LINES 13
+#define FRM_RSV_H 16
+#define FRM_RSV_W 10
+#define FRM_MIN_H 160
+#define FRM_PREF_H FRM_MIN_H
+#define FRM_MAX_H 225
+#define FRM_MIN_W 160
+#define FRM_PREF_W FRM_MIN_W
+#define FRM_MAX_W FRM_PREF_W
+
+typedef enum 
+{
+    appHasNotifyMgr
+} AppFlags;   
+
+#define AppTestFlag(flag) ((gd.flags & (1<<(flag)))!=0)
+#define AppSetFlag(flag) (gd.flags|=(1<<(flag)))
+#define AppResetFlag(flag) (gd.flags&= ~(1<<(flag)))
+#define AppHasNotifyMgr() AppTestFlag(appHasNotifyMgr)
 
 #define SEARCH_TXT   "Searching..."
 
@@ -327,5 +350,25 @@ Boolean         HaveHsNav( void );
 ( \
   HaveHsNav() ? IsHsFiveWayNavEvent(eventP) : IsFiveWayNavEvent(eventP) \
 )
+
+/**
+ * Resizes object on form given object's id.
+ * @param frm form containing object.
+ * @param objId object's id.
+ * @param x new topLext.x coordinate.
+ * @param y new topLeft.y coordinate.
+ * @param ex new extent.x (width).
+ * @param ey new extent.y (height).
+ */
+extern void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey);
+
+/**
+ * Synchronizes screen resolution cached in <code>gd</code> with actual screen resolution.
+ */
+extern void SyncScreenSize();
+
+
+extern Err DefaultFormInit(FormType* frm);
+extern void AppHandleSysNotify(SysNotifyParamType* param);
 
 #endif
