@@ -372,6 +372,7 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
 
 #pragma segment Segment2
 
+#ifndef I_NOAH
 void DisplayHelp(AppContext* appContext)
 {
     char *rawTxt;
@@ -394,6 +395,7 @@ void DisplayHelp(AppContext* appContext)
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
 }
+#endif
 
 #pragma segment Segment1
 

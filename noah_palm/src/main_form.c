@@ -219,6 +219,13 @@ static void MainFormLookupClipboard(AppContext* appContext)
     ebufFreeData(&buffer);
 }
 
+
+/* Send query dict.php?get_random_word to the server */
+static void LookupRandomWord(AppContext* appContext)
+{
+    FrmAlert(alertNotImplemented);
+}
+
 static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* event)
 {
 
@@ -335,7 +342,12 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             MainFormLookupClipboard(appContext);
             handled=true;
             break;
-            
+
+        case menuItemRandomWord:
+            LookupRandomWord(appContext);
+            handled=true;
+            break;
+
         case menuItemPrefs:
             FrmPopupForm(formPrefs);
             handled=true;
@@ -365,13 +377,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
                 DeleteBookmark(appContext, ebufGetDataPointer(&appContext->currentWordBuf));
             handled=true;
             break;
-            
-        case menuItemHelp:
-            ebufFreeData(&appContext->currentWordBuf);
-            DisplayHelp(appContext);
-            handled=true;
-            break;
-            
+           
         default:
             Assert(false);
     }

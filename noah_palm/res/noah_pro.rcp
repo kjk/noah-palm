@@ -27,7 +27,7 @@ BEGIN
 #endif
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard     "L"
+    MENUITEM "Lookup clipboard"        ID menuItemLookupClipboard  "L"
     MENUITEM "Stress"                  ID menuItemStress        "E"
   END
 

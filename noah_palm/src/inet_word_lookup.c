@@ -79,18 +79,18 @@ static void RenderStatusText(ConnectionData* connData, const Char* baseText)
         MemPtrFree(text);
         if (stageReceivingResponse==connData->connectionStage)
         {
-            static const UInt16 bytesBufferSize=8; // it will be placed in code segment, so no worry about globals
+            static const UInt16 bytesBufferSize=28; // it will be placed in code segment, so no worry about globals
             UInt16 bytesReceived=ebufGetDataSize(&connData->response);
             Char buffer[bytesBufferSize];
             Int16 bytesLen=0;
             if (bytesReceived<1024)
-                bytesLen=StrPrintF(buffer, " %dB", bytesReceived);
+                bytesLen=StrPrintF(buffer, " %d bytes", bytesReceived);
             else
             {
                 UInt16 bri=bytesReceived/1024;
                 UInt16 brf=((bytesReceived%1024)+51)/102; // round to 1/10
                 Char formatString[9];
-                StrCopy(formatString, " %d.%dkB");
+                StrCopy(formatString, " %d.%d kB");
                 NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
                 Char dontCare;                LocGetNumberSeparators(numFormat, &dontCare, formatString+3); // change decimal separator in place
                 bytesLen=StrPrintF(buffer, formatString, bri, brf);                

@@ -73,6 +73,14 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT alertNotImplemented
+INFORMATION
+BEGIN
+    TITLE "Feature not implemented"
+    MESSAGE "This feature has not been implemented yet."
+    BUTTONS "OK"
+END
+
 ALERT alertNoBookmarks
 INFORMATION
 BEGIN
@@ -109,8 +117,9 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard     "T"
+    MENUITEM "Random word"          ID menuItemRandomWord        "R"
+    MENUITEM "Copy to clipboard"    ID menuItemCopy              "C"
+    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard   "T"
   END
 
   PULLDOWN "Bookmarks"
@@ -125,7 +134,6 @@ BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
     MENUITEM "Display Prefs"           ID menuItemDispPrefs     "D" 
     MENUITEM SEPARATOR
-    MENUITEM "Help"                    ID menuItemHelp          "H"
     MENUITEM "About"                   ID menuItemAbout         "A"
   END
 
