@@ -213,17 +213,17 @@ void ebufAddStr(ExtensibleBuffer * buf, char *str)
 void ebufAddStr(ExtensibleBuffer * buf, char *str)
 {
     char *data;
-    int  i,j;
+    int  used,allocated;
 
-    j = buf->allocated-1;
-    i = buf->used;
+    allocated = buf->allocated-1;
+    used = buf->used;
     data = buf->data;
     
-    while(str[0] && i < j)
+    while(str[0] && used < allocated)
     {
-        data[i++] = (str++)[0];
+        data[used++] = (str++)[0];
     }
-    buf->used = i;
+    buf->used = used;
     
     if(str[0])
         ebufAddStrN(buf, str, StrLen(str));
