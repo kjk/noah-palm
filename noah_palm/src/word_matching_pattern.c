@@ -2,19 +2,19 @@
 #include "word_compress.h"
 #include <ctype.h>
 
-DmOpenRef g_wmpDB;
+DmOpenRef g_wmpDB = NULL;
 
 Boolean TappedInRect(RectangleType * rect)
 {
-	EventType ev;
+    EventType ev;
 
-	if (EvtEventAvail())
-	{
-		EvtGetEvent(&ev, 1);
-		if (ev.eType == penDownEvent && RctPtInRectangle(ev.screenX, ev.screenY ,rect))
-			return true;
-	}
-	return false;
+    if (EvtEventAvail())
+    {
+        EvtGetEvent(&ev, 1);
+        if (ev.eType == penDownEvent && RctPtInRectangle(ev.screenX, ev.screenY ,rect))
+            return true;
+    }
+    return false;
 }
 
 Err OpenMatchingPatternDB()

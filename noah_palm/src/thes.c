@@ -522,6 +522,8 @@ void StopThesaurus()
     error=DIA_Free(&gd.diaSettings);
     Assert(!error);
 
+    CloseMatchingPatternDB();
+
     FsDeinit();
 }
 

@@ -59,7 +59,9 @@ void StopNoahLite()
 // 2003-11-28 andrzejc DynamicInputArea
     error=DIA_Free(&gd.diaSettings);
     Assert(!error);
-    
+
+    CloseMatchingPatternDB();
+
     FrmSaveAllForms();
     FrmCloseAllForms();
     FsDeinit();

@@ -551,6 +551,8 @@ void StopNoahPro(void)
 // 2003-11-26 andrzejc DynamicInputArea
     error=DIA_Free(&gd.diaSettings);
     Assert(!error);
+
+    CloseMatchingPatternDB();
     
     FrmSaveAllForms();
     FrmCloseAllForms();

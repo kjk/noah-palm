@@ -26,3 +26,8 @@
      * Settings used by DynamicInputArea implementation.
      */
     DIA_Settings diaSettings;
+    
+    /**
+     * Word Matching Pattern cache database.
+     */
+    DmOpenRef g_wmpDB;
