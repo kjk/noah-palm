@@ -15,6 +15,7 @@
 #include "word_matching_pattern.h"
 #include "bookmarks.h"
 #include "better_formatting.h"
+#include "PrefsStore.hpp"
 
 // Create a blob containing serialized preferences.
 // Devnote: caller needs to free memory returned.
@@ -254,12 +255,12 @@ void DisplayAbout(AppContext* appContext)
     currentY+=16;
 
 #ifdef DEMO
-    DrawCenteredString(appContext, "Ver 3.1 (demo)", currentY);
+    DrawCenteredString(appContext, "Ver 3.5 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 3.1 (debug)", currentY);
+    DrawCenteredString(appContext, "Ver 3.5 (debug)", currentY);
   #else
-    DrawCenteredString(appContext, "Ver 3.1", currentY);
+    DrawCenteredString(appContext, "Ver 3.5", currentY);
   #endif
 #endif
     currentY+=20;
@@ -1106,7 +1107,7 @@ static void PrefsToGUI(AppPrefs *prefs, FormType * frm)
     SetPopupLabel(frm, listStartupDB, popupStartupDB, prefs->dbStartupAction);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, prefs->hwButtonScrollType);
     SetPopupLabel(frm, listNavButtonsAction, popupNavButtonsAction, prefs->navButtonScrollType);
-    CtlSetValue( FrmGetObjectPtr( frm, FrmGetObjectIndex(frm, checkResidentMode) ), prefs->fResidentModeEnabled );
+    CtlSetValue( (ControlType*)FrmGetObjectPtr( frm, FrmGetObjectIndex(frm, checkResidentMode) ),(Int16) prefs->fResidentModeEnabled );
 }
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 

@@ -376,7 +376,7 @@ static void RedrawFormElements( AppContext *appContext, ActualTag actTag, Displa
         FrmSetObjectBounds(frm, index, &r);
         FrmShowObject(frm, index);
         index=FrmGetObjectIndex(frm, checkEnablePron);
-        FrmSetControlValue (frm, index, appContext->prefs.displayPrefs.enablePronunciation);
+        FrmSetControlValue (frm, index, appContext->prefs.displayPrefs.fEnablePronunciation);
         FrmShowObject(frm, index);
     }
     else    
@@ -422,7 +422,7 @@ static void RedrawExampleDefinition(AppContext* appContext)
         ebufAddStr(Buf, synonym); 
         ebufAddStr(Buf, "word\n"); 
 #ifdef NOAH_PRO
-        if(appContext->prefs.displayPrefs.enablePronunciation)
+        if(appContext->prefs.displayPrefs.fEnablePronunciation)
         if(appContext->pronData.isPronInUsedDictionary)
         {
             ebufAddChar(Buf, FORMAT_TAG); 

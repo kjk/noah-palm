@@ -49,10 +49,7 @@ static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelo
 
 static void GetDisplayElementPrefs(PrefsStoreReader *store, DisplayElementPrefs *dep, int uniqueIdStart)
 {
-    UInt16 tmpUInt16 = dep->font;
-    Err err = store->ErrGetUInt16(uniqueIdStart+depFont_off, &tmpUInt16);
-    dep->font = (FontID)tmpUInt16;
-
+    Err err = store->ErrGetInt(uniqueIdStart+depFont_off, (int*)&dep->font);
     err = store->ErrGetUInt32(uniqueIdStart+depColor_off, &dep->color);
     err = store->ErrGetUInt32(uniqueIdStart+depBgCol_off, &dep->bgCol);
 }
@@ -64,28 +61,24 @@ static void LoadPreferencesInoah(AppContext* appContext)
     Err               err;
     AppPrefs *        prefs = &(appContext->prefs);
     PrefsStoreReader  store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
-    UInt16            tmpUInt16;
     char *            tmpStr;
 
     // general pattern: set a given setting, try to read it from the database
     // ignore errors (they could be due to database not being there (first run)
     // or a given setting not being there (pref settings changed between program
     // versions)
-    tmpUInt16 = startupActionNone;
-    err = store.ErrGetUInt16(startupAction_id, &tmpUInt16);
-    prefs->startupAction = (StartupAction)tmpUInt16;
 
-    tmpUInt16 = scrollPage;
-    err = store.ErrGetUInt16(hwButtonScrolType_id, &tmpUInt16);
-    prefs->hwButtonScrollType = (ScrollType)tmpUInt16;
+    prefs->startupAction = startupActionNone;
+    err = store.ErrGetInt(startupAction_id, (int*)&prefs->startupAction);
 
-    tmpUInt16 = scrollPage;
-    err = store.ErrGetUInt16(navButtonScrollType_id, &tmpUInt16);
-    prefs->navButtonScrollType = (ScrollType)tmpUInt16;
+    prefs->hwButtonScrollType = scrollPage;
+    err = store.ErrGetInt(hwButtonScrolType_id, (int*)&prefs->hwButtonScrollType);
 
-    tmpUInt16 = bkmSortByTime;
-    err = store.ErrGetUInt16(bookmarksSortType_id, &tmpUInt16);
-    prefs->bookmarksSortType  = (BookmarkSortType)bkmSortByTime;
+    prefs->navButtonScrollType = scrollPage;
+    err = store.ErrGetInt(navButtonScrollType_id, (int*)&prefs->navButtonScrollType);
+
+    prefs->bookmarksSortType = bkmSortByTime;
+    err = store.ErrGetInt(bookmarksSortType_id, (int*)&prefs->bookmarksSortType);
 
     MemSet(prefs->lastWord, sizeof(prefs->lastWord), 0);
     err = store.ErrGetStr(lastWord_id, &tmpStr);
@@ -109,7 +102,7 @@ static void LoadPreferencesInoah(AppContext* appContext)
     DisplayPrefs *dp=&(prefs->displayPrefs);
 
     dp->listStyle = 2;
-    err = store.ErrGetUInt16(dpListStyle_id, (UInt16*)&dp->listStyle);
+    err = store.ErrGetInt(dpListStyle_id, &dp->listStyle);
 
     SetDefaultDisplayParam(dp, false, false);
 
@@ -124,7 +117,6 @@ static void LoadPreferencesInoah(AppContext* appContext)
     GetDisplayElementPrefs(&store, &dp->defList, depDefList_id);
     GetDisplayElementPrefs(&store, &dp->posList, depPosList_id);
     GetDisplayElementPrefs(&store, &dp->pronunciation, depPron_id);
-  
 }
 
 // devnote: uniqueIdStart is the first unique id for storing given DisplayElementPrefs
@@ -132,7 +124,7 @@ static void LoadPreferencesInoah(AppContext* appContext)
 // be at least 0x10 id apart
 static void SetDisplayElementPrefs(PrefsStoreWriter *store, DisplayElementPrefs *dep, int uniqueIdStart)
 {
-    Err err = store->ErrSetUInt16(uniqueIdStart+depFont_off, dep->font);
+    Err err = store->ErrSetInt(uniqueIdStart+depFont_off, (int)dep->font);
     Assert(!err);
     err = store->ErrSetUInt32(uniqueIdStart+depColor_off, dep->color);
     Assert(!err);
@@ -146,13 +138,13 @@ static void SavePreferencesInoah(AppContext* appContext)
     PrefsStoreWriter    store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
 
     // ignore all errors, we can't do much about them anyway
-    Err err = store.ErrSetUInt16(startupAction_id, (UInt16)prefs->startupAction );
+    Err err = store.ErrSetInt(startupAction_id, prefs->startupAction );
     Assert(!err);
-    err = store.ErrSetUInt16(hwButtonScrolType_id, (UInt16)prefs->hwButtonScrollType);
+    err = store.ErrSetInt(hwButtonScrolType_id, (int)prefs->hwButtonScrollType);
     Assert(!err);
-    err = store.ErrSetUInt16(navButtonScrollType_id, (UInt16)prefs->navButtonScrollType);
+    err = store.ErrSetInt(navButtonScrollType_id, (int)prefs->navButtonScrollType);
     Assert(!err);
-    err = store.ErrSetUInt16(bookmarksSortType_id, (UInt16)prefs->bookmarksSortType);
+    err = store.ErrSetInt(bookmarksSortType_id, (int)prefs->bookmarksSortType);
     Assert(!err);
     err = store.ErrSetStr(lastWord_id,(char*)prefs->lastWord);
     Assert(!err);
@@ -162,7 +154,7 @@ static void SavePreferencesInoah(AppContext* appContext)
     Assert(!err);
 
     DisplayPrefs *dp=&(prefs->displayPrefs);
-    err = store.ErrSetUInt16(dpListStyle_id,(UInt16)dp->listStyle);
+    err = store.ErrSetInt(dpListStyle_id,(int)dp->listStyle);
     Assert(!err);
     err = store.ErrSetUInt32(dpBgCol_id,dp->bgCol);
     Assert(!err);

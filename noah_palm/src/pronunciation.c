@@ -99,7 +99,7 @@ static char* pronTranslateDecompresedVer1(struct _AppContext *appContext, unsign
             // position of the pronunciation data in PRON_DATA string
             pos = (pos-1)*2;
             Assert( pos <= sizeof(PRON_DATA)-2 );
-            tmp = &PRON_DATA[pos];
+            tmp = (char*)&PRON_DATA[pos];
             if ( ' ' == tmp[1])
                 ebufAddStrN(buf,tmp,1);
             else
@@ -125,7 +125,7 @@ char* pronTranslateDecompresed(struct _AppContext *appContext, unsigned char *de
     return NULL;    
 #endif    
 
-    if(!appContext->prefs.displayPrefs.enablePronunciationSpecialFonts)
+    if(!appContext->prefs.displayPrefs.fEnablePronunciationSpecialFonts)
         return pronTranslateDecompresedVer1(appContext, decompresed);
     else
     /*In future... maybe we will have special fonts to display pronunciation*/

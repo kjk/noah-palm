@@ -250,7 +250,9 @@ static Err SendRequest(ConnectionData* connData)
     const char* request=ebufGetDataPointer(&connData->request)+connData->bytesSent;
     UInt16 requestLeft=totalSize-connData->bytesSent;
 
+#ifdef DEBUG
     Log(GetAppContext(),request);
+#endif
 
     Int16 result=NetLibSend(connData->netLibRefNum, connData->socket, const_cast<char*>(request), requestLeft, 0, NULL, 0, 
         MillisecondsToTicks(transmitTimeout), &error);

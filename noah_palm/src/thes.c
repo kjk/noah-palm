@@ -8,6 +8,7 @@
 #include "resident_browse_form.h"
 #include "word_matching_pattern.h"
 #include "bookmarks.h"
+#include "PrefsStore.hpp"
 
 #ifdef NEVER
 static const char helpText[] =
@@ -582,12 +583,12 @@ void DisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "ArsLexis Thesaurus", currentY);
     currentY+=16;
 #ifdef DEMO
-    DrawCenteredString(appContext, "Ver 1.2 (demo)", currentY);
+    DrawCenteredString(appContext, "Ver 1.4 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 1.2 (debug)", currentY);
+    DrawCenteredString(appContext, "Ver 1.4 (debug)", currentY);
   #else
-    DrawCenteredString(appContext, "Ver 1.2", currentY);
+    DrawCenteredString(appContext, "Ver 1.4", currentY);
   #endif
 #endif
     currentY+=20;
@@ -1437,7 +1438,7 @@ static void PrefsToGUI(AppPrefs* prefs, FormType * frm)
     SetPopupLabel(frm, listStartupDB, popupStartupDB, prefs->dbStartupAction);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, prefs->hwButtonScrollType);
     SetPopupLabel(frm, listNavButtonsAction, popupNavButtonsAction, prefs->navButtonScrollType);
-    CtlSetValue( FrmGetObjectPtr( frm, FrmGetObjectIndex(frm, checkResidentMode) ), prefs->fResidentModeEnabled );
+    CtlSetValue( (ControlType*)FrmGetObjectPtr( frm, FrmGetObjectIndex(frm, checkResidentMode) ), (Int16)prefs->fResidentModeEnabled );
 }
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -1488,8 +1489,8 @@ static Boolean PrefFormHandleEventThes(EventType * event)
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm, popupStartupAction)), listTxt);
                     break;
                 case listStartupDB:
-                    appContext->tmpPrefs.dbStartupAction = event->data.popSelect.selection;
-                    CtlSetLabel(FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupDB)), listTxt);
+                    appContext->tmpPrefs.dbStartupAction = (DatabaseStartupAction)event->data.popSelect.selection;
+                    CtlSetLabel( (ControlType*)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupDB)), listTxt);
                     break;
                 case listhwButtonsAction:
                     appContext->tmpPrefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
@@ -1703,7 +1704,7 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     switch (cmd)
     {
     case sysAppLaunchCmdNormalLaunch:
-        err=AppLaunch(cmdPBP);
+        err=AppLaunch((char*)cmdPBP);
         break;
         
     case sysAppLaunchCmdNotify:

@@ -10,6 +10,7 @@
 #include "resident_browse_form.h"
 #include "word_matching_pattern.h"
 #include "bookmarks.h"
+#include "PrefsStore.hpp"
 
 static void DictFoundCBNoahPro(void* context, AbstractFile *file)
 {
@@ -421,7 +422,7 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     switch (cmd)
     {
         case sysAppLaunchCmdNormalLaunch:
-            err=AppLaunch(cmdPBP);
+            err=AppLaunch((char*)cmdPBP);
             break;
             
         case sysAppLaunchCmdNotify:

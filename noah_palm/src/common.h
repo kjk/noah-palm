@@ -488,18 +488,6 @@ void Log(AppContext* appContext, const char* txt);
 void            EvtSetInt(EventType *event, int i);
 int             EvtGetInt(EventType *event);
 
-void            serByte    (unsigned char val, char *prefsBlob, long *pCurrBlobSize);
-void            serInt     (int val, char *prefsBlob, long *pCurrBlobSize);
-void            serLong    (long val, char *prefsBlob, long *pCurrBlobSize);
-unsigned char   deserByte  (unsigned char **data, long *pBlobSizeLeft);
-int             deserInt   (unsigned char **data, long *pBlobSizeLeft);
-long            deserLong  (unsigned char **data, long *pBlobSizeLeft);
-void            serData    (char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize);
-void            deserData  (unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft);
-void            serString  (char *str, char *prefsBlob, long *pCurrBlobSize);
-char *          deserString(unsigned char **data, long *pCurrBlobSize);
-void            deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize);
-
 void            RememberLastWord(AppContext* appContext, FormType * frm, int objId);
 
 void            DoFieldChanged(AppContext* appContext);

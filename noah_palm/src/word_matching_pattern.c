@@ -94,7 +94,7 @@ Err ReadPattern(AppContext* appContext, char * pattern)
         pattern[0] = 0;
         return dmErrCantFind;
     }
-    rp = MemHandleLock(rh);
+    rp = (char*)MemHandleLock(rh);
     StrCopy(pattern, rp);
     return MemHandleUnlock(rh);
 }
@@ -118,7 +118,7 @@ Err WritePattern(AppContext* appContext, char * pattern)
     }
     if (!rh) 
         return DmGetLastErr();
-    rp = MemHandleLock(rh);
+    rp = (char*)MemHandleLock(rh);
     err = DmWrite(rp, 0, pattern, len + 1);
     MemHandleUnlock(rh);
     DmReleaseRecord(appContext->wmpCacheDb, 0, true);
@@ -133,7 +133,7 @@ Err ReadMatchingPatternRecord(AppContext* appContext, long pos, long * elem)
     rh = DmQueryRecord(appContext->wmpCacheDb, pos / WMP_REC_PACK_COUNT + 1);
     if (!rh) 
         return DmGetLastErr();
-    rp = MemHandleLock(rh);
+    rp = (long*)MemHandleLock(rh);
     *elem = rp[pos % WMP_REC_PACK_COUNT];
     return MemHandleUnlock(rh);
 }
@@ -169,7 +169,7 @@ Err WriteMatchingPatternRecord(AppContext* appContext, long elem)
     }
     if (!rh) return DmGetLastErr();
         
-    rp = MemHandleLock(rh);
+    rp = (long*)MemHandleLock(rh);
     err = DmWrite(rp, offset, &elem, WMP_REC_SIZE);
     MemHandleUnlock(rh);
     DmReleaseRecord(appContext->wmpCacheDb, pos, true);

@@ -44,6 +44,192 @@ Serialization of an item:
   by string characters (also including terminating 0)
 */
 
+void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
+{
+    long i;
+    for ( i=0; i<dataSize; i++)
+        serByte(data[i],prefsBlob,pCurrBlobSize);
+}
+
+void serByte(unsigned char val, char *prefsBlob, long *pCurrBlobSize)
+{
+    Assert( pCurrBlobSize );
+    if ( prefsBlob )
+        prefsBlob[*pCurrBlobSize] = val;
+    *pCurrBlobSize += 1;
+}
+
+static void serBool(Boolean val, char *prefsBlob, long *pCurrBlobSize)
+{
+    if (val)
+        serByte(1,prefsBlob,pCurrBlobSize);
+    else
+        serByte(0,prefsBlob,pCurrBlobSize);
+}
+
+void serInt(int val, char *prefsBlob, long *pCurrBlobSize)
+{
+    int high, low;
+
+    high = val / 256;
+    low = val % 256;
+    serByte( high, prefsBlob, pCurrBlobSize );
+    serByte( low, prefsBlob, pCurrBlobSize );
+}
+
+static void serUInt16(UInt16 val, char *prefsBlob, long *pCurrBlobSize)
+{
+    Assert(sizeof(val)==2);
+    serData( (char*) &val, sizeof(val), prefsBlob, pCurrBlobSize);
+}
+
+static UInt16 deserUInt16(unsigned char **data, long *pBlobSizeLeft)
+{
+    UInt16   val;
+    Assert(sizeof(val)==2);
+    deserData( (unsigned char*) &val, sizeof(val), data, pBlobSizeLeft);
+    return val;
+}
+
+static void serUInt32(UInt32 val, char *prefsBlob, long *pCurrBlobSize)
+{
+    Assert(sizeof(val)==4);
+    serData( (char*) &val, sizeof(val), prefsBlob, pCurrBlobSize);
+}
+
+static UInt32 deserUInt32(unsigned char **data, long *pBlobSizeLeft)
+{
+    UInt32   val;
+    Assert(sizeof(val)==4);
+    deserData( (unsigned char*) &val, sizeof(val), data, pBlobSizeLeft);
+    return val;
+}
+
+void serLong(long val, char *prefsBlob, long *pCurrBlobSize)
+{
+    unsigned char * valPtr;
+
+    valPtr = (unsigned char*) &val;
+    serByte( valPtr[0], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[1], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[2], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[3], prefsBlob, pCurrBlobSize );
+}
+
+static Boolean deserBool(unsigned char **data, long *pBlobSizeLeft)
+{
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=1));
+    unsigned char *d = *data;
+    unsigned char val = *d++;
+    Assert( (1==val) || (0==val) );
+    *pBlobSizeLeft -= 1;
+    if (1==val)
+        return true;
+    else
+        return false;
+}
+
+unsigned char deserByte(unsigned char **data, long *pBlobSizeLeft)
+{
+    unsigned char val;
+    unsigned char *d = *data;
+
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=1) );
+    val = *d++;
+    *data = d;
+    *pBlobSizeLeft -= 1;
+    return val;
+}
+
+static int getInt(unsigned char *data)
+{
+    int val;
+    val = data[0]*256+data[1];
+    return val;
+}
+
+int deserInt(unsigned char **data, long *pBlobSizeLeft)
+{
+    int val;
+    unsigned char *d = *data;
+
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=2) );
+    val = getInt( d );
+    *data = d+2;
+    *pBlobSizeLeft -= 2;
+    return val;
+}
+
+long deserLong(unsigned char **data, long *pBlobSizeLeft)
+{
+    long val;
+    unsigned char * valPtr;
+    unsigned char *d = *data;
+
+    valPtr = (unsigned char*) &val;
+    valPtr[0] = d[0];
+    valPtr[1] = d[1];
+    valPtr[2] = d[2];
+    valPtr[3] = d[3];
+    *data = d+4;
+    *pBlobSizeLeft -= 4;
+    return val;
+}
+
+void deserData(unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft)
+{
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=len) );
+    MemMove( valOut, *data, len );
+    *data = *data+len;
+    *pBlobSizeLeft -= len;
+}
+
+void serString(char *str, char *prefsBlob, long *pCurrBlobSize)
+{
+    int len = StrLen(str)+1;
+    serInt(len, prefsBlob, pCurrBlobSize);
+    serData(str, len, prefsBlob, pCurrBlobSize);
+}
+
+char *deserString(unsigned char **data, long *pCurrBlobSize)
+{
+    char *  str;
+    int     strLen;
+
+    strLen = deserInt( data, pCurrBlobSize );
+    Assert( 0 == (*data)[strLen-1] );
+    str = (char*)new_malloc( strLen );
+    if (NULL==str)
+        return NULL;
+    deserData( (unsigned char*)str, strLen, data, pCurrBlobSize );
+    return str;
+}
+
+void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize)
+{
+    int     strLen;
+
+    strLen = deserInt( data, pCurrBlobSize );
+    Assert( 0 == (*data)[strLen-1] );
+    Assert( bufSize >= strLen );
+    deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
+}
+
+static char *deserStringInPlace(unsigned char **data, long *pCurrBlobSize)
+{
+    Assert(*pCurrBlobSize>=2);
+    if (*pCurrBlobSize<2)
+        return NULL;
+    int strLen = deserInt( data, pCurrBlobSize );
+    Assert(0 == (*data)[strLen-1]);
+    if (0!=(*data)[strLen-1])
+        return NULL;
+    char * str = (char*)*data;
+    *data += strLen;
+    *pCurrBlobSize -= strLen;
+    return str;
+}
+
 PrefsStoreReader::PrefsStoreReader(char *dbName, UInt32 dbCreator, UInt32 dbType)
     : _dbName(dbName), _dbCreator(dbCreator), _dbType(dbType), _db(0),
       _recHandle(NULL), _recData(NULL), _fDbNotFound(false)
@@ -122,21 +308,6 @@ ExitAndMarkNotFound:
     return err;
 }
 
-static char *deserStringInPlace(unsigned char **data, long *pCurrBlobSize)
-{
-    Assert(*pCurrBlobSize>=2);
-    if (*pCurrBlobSize<2)
-        return NULL;
-    int strLen = deserInt( data, pCurrBlobSize );
-    Assert(0 == (*data)[strLen-1]);
-    if (0!=(*data)[strLen-1])
-        return NULL;
-    char * str = (char*)*data;
-    *data += strLen;
-    *pCurrBlobSize -= strLen;
-    return str;
-}
-
 Err PrefsStoreReader::ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem)
 {
     Assert(prefItem);
@@ -180,29 +351,36 @@ Err PrefsStoreReader::ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem)
                 Assert(recSizeLeft>=1);
                 if (recSizeLeft<1)
                     return psErrDatabaseCorrupted;
-                unsigned char boolVal = deserByte(&currData,&recSizeLeft);
-                if (0==boolVal)
-                    prefItem->value.boolVal=false;
-                if (1==boolVal)
-                    prefItem->value.boolVal=true;
-                return psErrDatabaseCorrupted;
+                prefItem->value.boolVal = deserBool(&currData,&recSizeLeft);
+                break;
+            case pitInt:
+                Assert(recSizeLeft>=sizeof(int));
+                if (recSizeLeft<sizeof(int))
+                    return psErrDatabaseCorrupted;
+                prefItem->value.intVal = deserInt(&currData, &recSizeLeft);
+                break;
+            case pitLong:
+                Assert(recSizeLeft>=sizeof(long));
+                if (recSizeLeft<sizeof(long))
+                    return psErrDatabaseCorrupted;
+                prefItem->value.longVal = deserInt(&currData, &recSizeLeft);
                 break;
             case pitUInt16:
-                Assert(recSizeLeft>=2);
-                if (recSizeLeft<2)
+                Assert(recSizeLeft>=sizeof(UInt16));
+                if (recSizeLeft<sizeof(UInt16))
                     return psErrDatabaseCorrupted;
-                prefItem->value.uint16Val = (UInt16)deserInt(&currData, &recSizeLeft);
+                prefItem->value.uint16Val = deserUInt16(&currData, &recSizeLeft);
                 break;
             case pitUInt32:
-                Assert(recSizeLeft>=4);
-                if (recSizeLeft<4)
+                Assert(recSizeLeft>=sizeof(UInt32));
+                if (recSizeLeft<sizeof(UInt32))
                     return psErrDatabaseCorrupted;
-                prefItem->value.uint32Val = (UInt32)deserLong(&currData, &recSizeLeft);
+                prefItem->value.uint32Val = deserUInt32(&currData, &recSizeLeft);
                 break;
             case pitStr:
                 prefItem->value.strVal = deserStringInPlace(&currData, &recSizeLeft);
                 if(NULL==prefItem->value.strVal)
-                    return psErrDatabaseCorrupted;\
+                    return psErrDatabaseCorrupted;
                 break;
             default:
                 Assert(0);
@@ -228,6 +406,32 @@ Err PrefsStoreReader::ErrGetBool(int uniqueId, Boolean *value)
     if (prefItem.type != pitBool)
         return psErrItemTypeMismatch;
     *value = prefItem.value.boolVal;
+    return errNone;
+}
+
+Err PrefsStoreReader::ErrGetInt(int uniqueId, int *value)
+{
+    PrefItem    prefItem;
+    Err err = ErrGetPrefItemWithId(uniqueId, &prefItem);
+    if (err)
+        return err;
+    Assert(prefItem.uniqueId == uniqueId);
+    if (prefItem.type != pitInt)
+        return psErrItemTypeMismatch;
+    *value = prefItem.value.intVal;
+    return errNone;
+}
+
+Err PrefsStoreReader::ErrGetLong(int uniqueId, long *value)
+{
+    PrefItem    prefItem;
+    Err err = ErrGetPrefItemWithId(uniqueId, &prefItem);
+    if (err)
+        return err;
+    Assert(prefItem.uniqueId == uniqueId);
+    if (prefItem.type != pitLong)
+        return psErrItemTypeMismatch;
+    *value = prefItem.value.longVal;
     return errNone;
 }
 
@@ -321,6 +525,28 @@ Err PrefsStoreWriter::ErrSetBool(int uniqueId, Boolean value)
     return ErrSetItem( &prefItem );
 }
 
+Err PrefsStoreWriter::ErrSetInt(int uniqueId, int value)
+{
+    PrefItem    prefItem;
+
+    prefItem.type = pitInt;
+    prefItem.uniqueId = uniqueId;
+    prefItem.value.intVal = value;
+
+    return ErrSetItem( &prefItem );
+}
+
+Err PrefsStoreWriter::ErrSetLong(int uniqueId, long value)
+{
+    PrefItem    prefItem;
+
+    prefItem.type = pitLong;
+    prefItem.uniqueId = uniqueId;
+    prefItem.value.longVal = value;
+
+    return ErrSetItem( &prefItem );
+}
+
 Err PrefsStoreWriter::ErrSetUInt16(int uniqueId, UInt16 value)
 {
     PrefItem    prefItem;
@@ -383,19 +609,22 @@ static void* SerializeItems(PrefItem *items, int itemsCount, long *pBlobSize)
             switch( items[item].type )
             {
                 case pitBool:
-                    if (true==items[item].value.boolVal)
-                        serByte(1, prefsBlob, &blobSize);
-                    else
-                        serByte(0, prefsBlob, &blobSize);
+                    serBool(items[item].value.boolVal, prefsBlob, &blobSize);
+                    break;
+                case pitInt:
+                    serInt(items[item].value.intVal, prefsBlob, &blobSize);
+                    break;
+                case pitLong:
+                    serLong(items[item].value.longVal, prefsBlob, &blobSize);
                     break;
                 case pitUInt16:
-                    serInt( (int)items[item].value.uint16Val, prefsBlob, &blobSize);
+                    serUInt16(items[item].value.uint16Val, prefsBlob, &blobSize);
                     break;
                 case pitUInt32:
-                    serLong( (long)items[item].value.uint32Val, prefsBlob, &blobSize);
+                    serUInt32(items[item].value.uint32Val, prefsBlob, &blobSize);
                     break;
                 case pitStr:
-                    serString( items[item].value.strVal, prefsBlob, &blobSize);
+                    serString(items[item].value.strVal, prefsBlob, &blobSize);
                     break;
                 default:
                     Assert(0);
