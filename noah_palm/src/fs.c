@@ -43,13 +43,6 @@ AbstractFile *GetCurrentFile(void)
     return currFile;
 }
 
-Boolean FvalidFsType( eFsType fsType)
-{
-    if (eFS_MEM == fsType) return true;
-    if (eFS_VFS == fsType) return true;
-    return false;
-}
-
 /* Initialize all file systems i.e. VFS at present. */
 void FsInit()
 {
@@ -104,7 +97,7 @@ allocated here, caller has to free. Can be deserialized using AbstractFileDeseri
 char *AbstractFileSerialize( AbstractFile *file, int *pSizeOut )
 {
     int size = sizeof(int) + sizeof(eFsType) + 2*sizeof(UInt32)+ strlen(file->fileName);
-    char *blob = new_malloc( size );
+    char *blob = (char*)new_malloc( size );
     int *pSize = (int*)blob;
     eFsType *pFsType;
     UInt32  *pUInt32;
@@ -170,7 +163,7 @@ AbstractFile *AbstractFileDeserialize( char *blob )
 
     /* file name */
     fileNameLen = size-sizeof(int)-sizeof(eFsType)-2*sizeof(UInt32);
-    file->fileName = new_malloc(fileNameLen+1);
+    file->fileName = (char *)new_malloc(fileNameLen+1);
     if ( NULL == file->fileName )
     {
         new_free( file );
@@ -365,7 +358,7 @@ void *CurrFileLockRegion(UInt16 recNo, UInt16 offset, UInt16 size)
 }
 
 /* unlock a region of a record */
-void CurrFileUnlockRegion(void *data)
+void CurrFileUnlockRegion(char *data)
 {
     fsUnlockRegion(currFile,data);
 }

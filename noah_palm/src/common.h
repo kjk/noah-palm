@@ -118,8 +118,8 @@ void    DrawCenteredString(const char *str, int dy);
 void    DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x,
                      Int16 y, int maxLines);
 void    DrawWord(char *word, int pos_y);
-char    *GetNthTxt(int n, char *txt);
-char    *GetWnPosTxt(int partOfSpeech);
+char *  GetNthTxt(int n, char *txt);
+char *  GetWnPosTxt(int partOfSpeech);
 
 void    DrawCentered(char *txt);
 void    DrawCacheRec(int recNum);
@@ -141,7 +141,7 @@ Boolean dictNew(void);
 void    dictDelete(void);
 long    dictGetWordsCount(void);
 long    dictGetFirstMatching(char *word);
-char    *dictGetWord(long wordNo);
+char *  dictGetWord(long wordNo);
 Err     dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di);
 void    FreeDicts(void);
 
@@ -164,7 +164,7 @@ long    CalcListOffset(long itemsCount, long itemNo);
 void    RemoveWhiteSpaces( char *src );
 void    DefScrollUp(ScrollType scroll_type);
 void    DefScrollDown(ScrollType scroll_type);
-char    *GetDatabaseName(int dictNo);
+char *  GetDatabaseName(int dictNo);
 void    LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount);
 void    LstSetSelectionEx(ListType * list, long itemNo);
 void    LstMakeItemVisibleEx(ListType * list, long itemNo);
@@ -179,7 +179,7 @@ void    SendNewWordSelected(void);
 typedef struct
 {
     int     stackedCount;
-    char    **strings;
+    char ** strings;
     int     freeSlots;
 } StringStack;
 

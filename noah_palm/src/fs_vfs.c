@@ -139,12 +139,12 @@ static Boolean fIsDir(UInt32 fileAttr)
 static char *BuildFullFileName(char *dir, char *file)
 {
     int     strLen;
-    char    *fullFileName;
+    char *  fullFileName;
 
     /* full name is a sum of lenghts of dir and file plus one for a separator
     and one for trailing zero */
     strLen = StrLen(dir) + StrLen(file) + 2;    
-    fullFileName = new_malloc_zero(strLen);
+    fullFileName = (char*)new_malloc_zero(strLen);
     if (NULL==fullFileName) return NULL;
 
     StrCopy( fullFileName, dir );
@@ -208,16 +208,16 @@ void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
 {
     Err             err;
     FileRef         dirRef;
-    char            *currDir = NULL;
-    char            *newDir;
-    char            *fileName;
+    char *          currDir = NULL;
+    char *          newDir;
+    char *          fileName;
     UInt16          currVolRef;
     UInt32          dirIter;
     FileInfoType    fileInfo;
     StringStack     dirsToVisit;
     Boolean         fRecursive = true;
     PdbHeader       hdr;
-    AbstractFile    *file;
+    AbstractFile *  file;
     int             currVolume;
 
     if (!FFsVfsPresent())
@@ -228,7 +228,7 @@ void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
 
     MemSet( &fileInfo, 0, sizeof(fileInfo) );
     fileInfo.nameBufLen = VFS_MAX_PATH_SIZE;
-    fileInfo.nameP = new_malloc_zero(fileInfo.nameBufLen);
+    fileInfo.nameP = (char*)new_malloc_zero(fileInfo.nameBufLen);
     if ( NULL == fileInfo.nameP ) return;
 
     currVolume = 0;

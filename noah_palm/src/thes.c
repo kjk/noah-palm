@@ -26,7 +26,7 @@ char helpText[] =
 
 GlobalData gd;
 
-Boolean FIsThesPrefRecord(void *recData)
+inline Boolean FIsThesPrefRecord(void *recData)
 {
     long    sig;
     Assert( recData );
@@ -40,11 +40,11 @@ caller needs to free memory returned
 */
 void *GetSerializedPreferencesThes(long *pBlobSize)
 {
-    void *      prefsBlob;
+    char *      prefsBlob;
     long        blobSize;
     long        blobSizePhaseOne;
     int         phase;
-    ThesPrefs   *prefs;
+    ThesPrefs * prefs;
     UInt32      prefRecordId = Thes11Pref;
     int         wordLen;
     int         i;
@@ -61,7 +61,7 @@ void *GetSerializedPreferencesThes(long *pBlobSize)
     {
         blobSize = 0;
         Assert( 4 == sizeof(prefRecordId) );
-        serData( (char*)&prefRecordId, sizeof(prefRecordId), prefsBlob, &blobSize );
+        serData( (char*)&prefRecordId, (long)sizeof(prefRecordId), prefsBlob, &blobSize );
         serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
         serByte( prefs->tapScrollType, prefsBlob, &blobSize );
@@ -82,7 +82,7 @@ void *GetSerializedPreferencesThes(long *pBlobSize)
         {
             Assert( blobSize > 0 );
             blobSizePhaseOne = blobSize;
-            prefsBlob = new_malloc( blobSize );
+            prefsBlob = (char*)new_malloc( blobSize );
             if (NULL == prefsBlob)
             {
                 LogG("GetSerializedPreferencesThes(): prefsBlob==NULL");
@@ -984,7 +984,7 @@ Boolean FindFormHandleEventThes(EventType * event)
         {
             FldInsert(fld, word, StrLen(word));
             MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = evtFieldChanged;
+            newEvent.eType = (eventsEnum) evtFieldChanged;
             EvtAddEventToQueue(&newEvent);
         }
         else
@@ -1055,7 +1055,7 @@ Boolean FindFormHandleEventThes(EventType * event)
             break;
         }
         MemSet(&newEvent, sizeof(EventType), 0);
-        newEvent.eType = evtFieldChanged;
+        newEvent.eType = (eventsEnum)evtFieldChanged;
         EvtAddEventToQueue(&newEvent);
         handled = false;
         break;

@@ -14,16 +14,16 @@ static char *GetPosTxt(int pos, int type)
     return GetNthTxt(type * 4 + pos, "(noun)\0(verb)\0(adj.)\0(adv.)\0N.\0V.\0Adj.\0Adv.\0Noun\0Verb\0Adjective\0Adverb\0");
 }
 
-struct RogetInfo *RogetNew(void)
+struct _RogetInfo *RogetNew(void)
 {
-    struct RogetInfo *info = NULL;
+    struct _RogetInfo *info = NULL;
     RogetFirstRecord *firstRecord;
 #ifdef DEBUG
     long recSize;
 #endif
     Assert( GetCurrentFile() );
 
-    info = (struct RogetInfo *) new_malloc_zero(sizeof(struct RogetInfo));
+    info = (RogetInfo *) new_malloc_zero(sizeof(RogetInfo));
     if (NULL == info) goto Error;
 
     info->recordsCount = CurrFileGetRecordsCount();
@@ -77,7 +77,7 @@ Error:
 }
 
 
-void RogetDelete(struct RogetInfo *info)
+void RogetDelete(struct _RogetInfo *info)
 {
     ebufFreeData(&g_buf);
 
@@ -89,17 +89,17 @@ void RogetDelete(struct RogetInfo *info)
     }
 }
 
-long RogetGetWordsCount(struct RogetInfo *info)
+long RogetGetWordsCount(struct _RogetInfo *info)
 {
     return info->wordsCount;
 }
 
-long RogetGetFirstMatching(struct RogetInfo *info, char *word)
+long RogetGetFirstMatching(struct _RogetInfo *info, char *word)
 {
     return wcGetFirstMatching(info->wci, word);
 }
 
-char *RogetGetWord(struct RogetInfo *info, long wordNo)
+char *RogetGetWord(struct _RogetInfo *info, long wordNo)
 {
     Assert(wordNo < info->wordsCount);
 
@@ -108,17 +108,17 @@ char *RogetGetWord(struct RogetInfo *info, long wordNo)
     return wcGetWord(info->wci, wordNo);
 }
 
-Err RogetGetDisplayInfo(struct RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
+Err RogetGetDisplayInfo(struct _RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
 {
-    long wordCount = 0;
-    unsigned char *posRecData;
-    UInt16 *wordNums;
-    long i, j;
-    long thisWordNo;
-    char *word;
-    char *posTxt;
-    char *rawTxt;
-    int pos;
+    long            wordCount = 0;
+    unsigned char * posRecData;
+    UInt16 *        wordNums;
+    long            i, j;
+    long            thisWordNo;
+    char *          word;
+    char *          posTxt;
+    char *          rawTxt;
+    int             pos;
 
     unsigned char *words_in_syn_count_data = NULL;
     long words_left;

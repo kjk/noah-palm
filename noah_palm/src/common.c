@@ -95,7 +95,7 @@ char *StrDup(char *s)
 
     if (!s) return NULL;
     len = StrLen(s);
-    newStr = new_malloc_zero(len+1);
+    newStr = (char*)new_malloc_zero(len+1);
     if (newStr)
         StrCopy(newStr,s);
     return newStr;
@@ -724,7 +724,7 @@ Boolean dictNew(void)
 #endif
 #ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            file->dictData.wn = (struct WnInfo*) wn_new();
+            file->dictData.wn = (struct _WnInfo*) wn_new();
             if (NULL == file->dictData.wn)
             {
                 LogG( "dictNew(): wn_new() failed" );
@@ -734,7 +734,7 @@ Boolean dictNew(void)
 #endif
 #ifdef WNLEX_DICT
         case WORDNET_LITE_TYPE:
-            file->dictData.wnLite = (struct WnLiteInfo*) wnlex_new();
+            file->dictData.wnLite = (struct _WnLiteInfo*) wnlex_new();
             if (NULL == file->dictData.wnLite)
             {
                 LogG( "dictNew(): wnlex_new() failed" );
@@ -744,7 +744,7 @@ Boolean dictNew(void)
 #endif
 #ifdef SIMPLE_DICT
         case SIMPLE_TYPE:
-            file->dictData.simple = simple_new();
+            file->dictData.simple = (struct _SimpleInfo*)simple_new();
             if ( NULL == file->dictData.simple )
             {
                 LogG( "dictNew(): simple_new() failed" );
@@ -754,7 +754,7 @@ Boolean dictNew(void)
 #endif
 #ifdef EP_DICT
         case ENGPOL_TYPE:
-            file->dictData.engpol = epNew();
+            file->dictData.engpol = (EngPolInfo*)epNew();
             if ( NULL == file->dictData.engpol )
             {
                 LogG( "dictNew(): epNew() failed" );
@@ -1251,7 +1251,7 @@ char *FilePathDisplayFriendly(char *filePath)
     newPathLen = StrLen(filePath)  + 3 /* for " ()" */ 
                                    - 1 /* take "/" out */;
 
-    newPath = new_malloc( newPathLen + 1 ); /* for NULL-termination */
+    newPath = (char*)new_malloc( newPathLen + 1 ); /* for NULL-termination */
     if ( !newPath )
         return NULL;
 
@@ -1326,14 +1326,14 @@ void ssDeinit( StringStack *ss )
 Boolean ssPush( StringStack *ss, char *str )
 {
     int     newSlots;
-    char    **newStrings;
+    char ** newStrings;
 
     // increase the "stack size" if necessary
     if ( 0 == ss->freeSlots )
     {
         // increase of 40 should serve our domain well
         newSlots = ss->stackedCount + 40;
-        newStrings = new_malloc( newSlots * sizeof(char*) );
+        newStrings = (char**)new_malloc( newSlots * sizeof(char*) );
         if ( NULL == newStrings )
         {
             gd.err = ERR_NO_MEM;
@@ -1501,7 +1501,7 @@ long deserLong(unsigned char **data, long *pBlobSizeLeft)
     *pBlobSizeLeft -= 4;
     return val;
 }
-    
+
 void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
 {
     long i;
@@ -1531,7 +1531,7 @@ char *deserString(unsigned char **data, long *pCurrBlobSize)
 
     strLen = deserInt( data, pCurrBlobSize );
     Assert( 0 == (*data)[strLen-1] );
-    str = new_malloc( strLen );
+    str = (char*)new_malloc( strLen );
     if (NULL==str)
         return NULL;
     deserData( (unsigned char*)str, strLen, data, pCurrBlobSize );

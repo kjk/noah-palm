@@ -25,7 +25,7 @@ typedef struct
 
 #define MAX_WORDS_IN_SYNSET 40
 
-struct RogetInfo
+typedef struct _RogetInfo
 {
     int     recordsCount;
     long    wordsCount;
@@ -41,14 +41,14 @@ struct RogetInfo
     int     curDefLen;
     int     synPosRec;
 
-    WcInfo      *wci;
+    WcInfo *    wci;
     PackContext defPackContext;
-};
+} RogetInfo;
 
-struct RogetInfo *RogetNew(void);
-void        RogetDelete(struct RogetInfo *info);
-long        RogetGetWordsCount(struct RogetInfo *info);
-long        RogetGetFirstMatching(struct RogetInfo *info, char *word);
-char *      RogetGetWord(struct RogetInfo *info, long wordNo);
-Err         RogetGetDisplayInfo(struct RogetInfo *info, long wordNo, int dx, DisplayInfo * di);
+RogetInfo * RogetNew(void);
+void        RogetDelete(struct _RogetInfo *info);
+long        RogetGetWordsCount(struct _RogetInfo *info);
+long        RogetGetFirstMatching(struct _RogetInfo *info, char *word);
+char *      RogetGetWord(struct _RogetInfo *info, long wordNo);
+Err         RogetGetDisplayInfo(struct _RogetInfo *info, long wordNo, int dx, DisplayInfo * di);
 #endif

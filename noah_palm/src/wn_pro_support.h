@@ -23,9 +23,9 @@ typedef struct
     int             curWordsNumRec;
     int             firstSynsetInfoRec;
     int             curSynsetInfoRec;
-    unsigned char   *wordsNumData;
-    unsigned char   *synsetData;
-    unsigned char   *synsetDataStart;
+    unsigned char * wordsNumData;
+    unsigned char * synsetData;
+    unsigned char * synsetDataStart;
     long            synsetDataLeft;
     long            wordsNumDataLeft;
     int             bytesPerWordNum;
@@ -52,7 +52,7 @@ typedef struct
     int     maxWordsPerSynset;
 } WnFirstRecord;
 
-typedef struct
+typedef struct _WnInfo
 {
     int     recordsCount;
     long    wordsCount;
@@ -70,20 +70,20 @@ typedef struct
     Boolean fastP;
     int     cacheEntries;
     int     curDefLen;
-    WcInfo  *wci;
+    WcInfo *wci;
 
-    SynsetDef       *synsets;
-    unsigned char   *curDefData;
+    SynsetDef *     synsets;
+    unsigned char * curDefData;
 
     PackContext     defPackContext;
-    SynsetsInfo     *si;
+    SynsetsInfo *   si;
 }WnInfo;
 
-void    *wn_new(void);
+void *  wn_new(void);
 void    wn_delete(void *data);
 long    wn_get_words_count(void *data);
 long    wn_get_first_matching(void *data, char *word);
-char    *wn_get_word(void *data, long wordNo);
+char *  wn_get_word(void *data, long wordNo);
 Err     wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di);
 
 #endif

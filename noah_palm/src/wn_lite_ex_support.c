@@ -58,8 +58,8 @@ void wnlex_delete(void *data)
 
 void *wnlex_new(void)
 {
-    WnLiteInfo          *wi = NULL;
-    WnLiteFirstRecord   *firstRecord = NULL;
+    WnLiteInfo *        wi = NULL;
+    WnLiteFirstRecord * firstRecord = NULL;
     int                 recWithComprData;
     int                 recWithWordCache;
     int                 firstRecWithWords;
@@ -428,7 +428,7 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         unpackedDef = wi->curDefData;
         Assert((1 == unpackedDef[unpackedLen - 1]) || (0 == unpackedDef[unpackedLen - 1]));
 /*          CurrFileUnlockRecord(wi->synsets[currentSynset].record); */
-        CurrFileUnlockRegion(defDataCopy);
+        CurrFileUnlockRegion((char*)defDataCopy);
 
         while (unpackedLen > 0)
         {

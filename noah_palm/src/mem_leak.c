@@ -69,7 +69,7 @@ void new_free_fn(MemPtr addr, char *file, long line)
 #else
 MemPtr new_malloc_zero(long size)
 {
-    MemPtr *addr = new_malloc(size);
+    MemPtr addr = new_malloc(size);
     if (addr) MemSet( addr, size, 0);
     return addr;
 }

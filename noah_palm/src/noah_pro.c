@@ -38,7 +38,7 @@ static char tap_txt[20];
 
 GlobalData gd;
 
-Boolean FIsPrefRecord(void *recData)
+inline Boolean FIsPrefRecord(void *recData)
 {
     long    sig;
     Assert( recData );
@@ -51,9 +51,9 @@ Boolean FIsPrefRecord(void *recData)
 
 // Create a blob containing serialized prefernces.
 // Devnote: caller needs to free memory returned.
-void *GetSerializedPreferencesNoahPro(long *pBlobSize)
+void *SerializePreferencesNoahPro(long *pBlobSize)
 {
-    void *          prefsBlob;
+    char *          prefsBlob;
     long            blobSize;
     long            blobSizePhaseOne;
     int             phase;
@@ -65,7 +65,7 @@ void *GetSerializedPreferencesNoahPro(long *pBlobSize)
 
     Assert( pBlobSize );
 
-    LogG( "GetSerializedPreferencesNoahPro()" );
+    LogG( "SerializePreferencesNoahPro()" );
 
     prefs = &gd.prefs;
     /* phase one: calculate the size of the blob */
@@ -76,7 +76,7 @@ void *GetSerializedPreferencesNoahPro(long *pBlobSize)
         blobSize = 0;
         Assert( 4 == sizeof(prefRecordId) );
         /* 1. preferences */
-        serData( (char*)&prefRecordId, sizeof(prefRecordId), prefsBlob, &blobSize );
+        serData( (char*)&prefRecordId, (long)sizeof(prefRecordId), prefsBlob, &blobSize );
         serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
         serByte( prefs->tapScrollType, prefsBlob, &blobSize );
@@ -123,10 +123,10 @@ void *GetSerializedPreferencesNoahPro(long *pBlobSize)
         {
             Assert( blobSize > 0 );
             blobSizePhaseOne = blobSize;
-            prefsBlob = new_malloc( blobSize );
+            prefsBlob = (char*)new_malloc( blobSize );
             if (NULL == prefsBlob)
             {
-                LogG("GetSerializedPreferencesNoahPro(): prefsBlob==NULL");
+                LogG("SerializePreferencesNoahPro(): prefsBlob==NULL");
                 return NULL;
             }
         }
@@ -219,7 +219,7 @@ void SavePreferencesNoahPro()
     long           blobSize;
     Boolean        fRecordBusy = false;
 
-    prefsBlob = GetSerializedPreferencesNoahPro( &blobSize );
+    prefsBlob = SerializePreferencesNoahPro( &blobSize );
     if ( NULL == prefsBlob ) return;
 
     db = DmOpenDatabaseByTypeCreator(NOAH_PREF_TYPE, NOAH_PRO_CREATOR, dmModeReadWrite);
@@ -446,7 +446,6 @@ Boolean DictInit(AbstractFile *file)
         return false;
     }
 
-    // TODO: save last used database in preferences
     gd.wordsCount = dictGetWordsCount();
     gd.currentWord = 0;
     gd.listItemOffset = 0;

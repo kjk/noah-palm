@@ -13,7 +13,7 @@
 
 typedef struct
 {
-    char    *data;
+    char *  data;
     int     defLen;
 } EngPolDef;
 
@@ -28,21 +28,21 @@ typedef struct
     int     maxComprDefLen;
 } FirstRecord;
 
-typedef struct
+typedef struct _EngPolInfo
 {
-    int     recordsCount;
-    long    wordsCount;
-    int     defLenRecordsCount;
-    int     wordRecordsCount;
-    int     defRecordsCount;
-    int     maxWordLen;
-    int     maxDefLen;
-    int     maxComprDefLen;
-    int     posNamesRecord;
-    WcInfo  *wci;
-    int     curDefLen;
+    int         recordsCount;
+    long        wordsCount;
+    int         defLenRecordsCount;
+    int         wordRecordsCount;
+    int         defRecordsCount;
+    int         maxWordLen;
+    int         maxDefLen;
+    int         maxComprDefLen;
+    int         posNamesRecord;
+    WcInfo *    wci;
+    int         curDefLen;
     PackContext     packContext;
-    unsigned char   *curDefData;
+    unsigned char * curDefData;
 } EngPolInfo;
 
 /* PROTOTYPES for private interface */
@@ -52,11 +52,11 @@ enum EP_RENDER_TYPE
     eprt_multiline 
 };
 
-void    *epNew(void);
+void *  epNew(void);
 void    epDelete(void *data);
 long    epGetWordsCount(void *data);
 long    epGetFirstMatching(void *data, char *word);
-char    *epGetWord(void *data, long wordNo);
+char *  epGetWord(void *data, long wordNo);
 Err     epGetDisplayInfo(void *data, long wordNo, Int16 dx, DisplayInfo * di);
 
 #endif
