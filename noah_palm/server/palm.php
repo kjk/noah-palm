@@ -63,7 +63,7 @@ function write_DEF( $word, $pron, $def )
 function write_WORDLIST( $list )
 {
     print "WORDLIST\n";
-    print $list;
+    print "$list\n";
 }
 
 define( 'COOKIE_LEN', 12);
