@@ -1,14 +1,23 @@
 #include "inet_connection.h"
 #include "http_response.h"
 
-#define serverAddress                "www.arslexis.com"
-#define serverPort                      80
-#define maxResponseLength        8192               // reasonable limit so malicious response won't use all available memory
-#define responseBufferSize          256                 // size of single chunk used to retrieve server response
-#define addressResolveTimeout   20000              // timeouts in milliseconds
+#define USE_TEST_SERVER 1
+
+#ifdef USE_TEST_SERVER
+#define serverAddress                "dict-pc.arslexis.com"
+#define serverPort                   3000
+#else
+#define serverAddress                "dict.arslexis.com"
+//#define serverAddress                "www.arslexis.com"
+#define serverPort                   80
+#endif
+
+#define maxResponseLength         8192               // reasonable limit so malicious response won't use all available memory
+#define responseBufferSize         256               // size of single chunk used to retrieve server response
+#define addressResolveTimeout    20000               // timeouts in milliseconds
 #define socketOpenTimeout         1000
 #define socketConnectTimeout     20000
-#define transmitTimeout              5000
+#define transmitTimeout           5000
 
 #define netLibName "Net.lib"
 
