@@ -59,8 +59,14 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='hspr' && $od=='H101' )
         $name = "Treo 600";
 
+    if ( $oc=='hspr' && $od=='H102' )
+        $name = "Treo 650 (?)";
+
     if ( $oc=='hspr' && $od=='H201' )
         $name = "Treo 600 Simulator";
+
+    if ( $oc=='hspr' && $od=='H202' )
+        $name = "Treo 650 Simulator";
 
     # SONY devices
 
@@ -103,6 +109,9 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='sony' && $od=='rdwd' )
         $name = "PEG-NR70, NR70V";
 
+    if ( $oc=='sony' && $od=='leia' )
+        $name = "PEG-TJ27";
+
     # MISC devices
 
     if ( $oc=='psys' )
@@ -132,6 +141,9 @@ function get_device_name_by_oc_od($oc, $od)
     if ( $oc=='Tpwv' && $od=='Rdog' )
         $name = "Tapwave Zodiac 1/2";
 
+    if ( $oc=='gsRl' && $od=='zicn' )
+        $name = "XploreG18";
+
     # PALM devices 
 
     if ( $oc=='palm' && $od=='hbbs' )
@@ -147,7 +159,13 @@ function get_device_name_by_oc_od($oc, $od)
         $name = "Zire 71";
 
     if ( $oc=='Palm' && $od=='Zi72' )
-        $name = "Zire 71";
+        $name = "Zire 72";
+
+    if ( $oc=='Palm' && $od=='Zi21' )
+        $name = "Zire 21";
+
+    if ( $oc=='Palm' && $od=='Zi22' )
+        $name = "Zire 31";
 
     if ( $oc=='palm' && $od=='MT64' )
         $name = "Tungsten C";
@@ -166,6 +184,9 @@ function get_device_name_by_oc_od($oc, $od)
 
     if ( $oc=='Palm' && $od=='Arz1' )
         $name = "Tungsten T3";
+
+    if ( $oc=='Palm' && $od=='TnT5' )
+        $name = "Tungsten T5";
 
     return $name;
 }
