@@ -201,12 +201,14 @@ void FsVfsFindDb( FS_Settings* fsSettings, FIND_DB_CB *cbCheckFile, void* contex
 
     currVolume = 0;
 ScanNextVolume:
-    if (currVolume >= fsSettings->vfsVolumeCount) goto NoMoreFiles;
+    if (currVolume >= fsSettings->vfsVolumeCount) 
+        goto NoMoreFiles;
     currVolRef = fsSettings->vfsVolumeRef[currVolume++];
 
     /* restart iterating over directories */
     currDir = strdup( "/" );
-    if ( NULL == currDir ) goto NoMoreFiles;
+    if ( NULL == currDir ) 
+        goto NoMoreFiles;
 
     ssInit(&dirsToVisit);
     ssPush(&dirsToVisit, currDir );
@@ -214,7 +216,8 @@ ScanNextVolume:
 ScanNextDir:
     currDir = ssPop(&dirsToVisit);
 
-    if ( NULL == currDir) goto NoMoreFiles;
+    if ( NULL == currDir) 
+        goto NoMoreFiles;
     LogV1("FsVfsFindDb(), currDir=%s", currDir );
     err = VFSFileOpen(currVolRef, currDir, vfsModeRead, &dirRef);
     if (err != errNone)
@@ -234,7 +237,8 @@ ScanNextDir:
         if (fIsDir(fileInfo.attributes) && fRecursive )
         {
             newDir = BuildFullFileName( currDir, fileInfo.nameP );
-            if ( NULL == newDir ) goto NoMoreFiles;
+            if ( NULL == newDir ) 
+                goto NoMoreFiles;
             if ( !ssPush( &dirsToVisit, newDir ) )
             {
                 new_free(newDir);
@@ -244,8 +248,9 @@ ScanNextDir:
         else if (fIsFile(fileInfo.attributes))
         {
             fileName = BuildFullFileName( currDir, fileInfo.nameP );
-            if ( NULL == fileName ) goto NoMoreFiles;
-            LogV1("FsVfsFindDb(): file %s", fileName );
+            if ( NULL == fileName ) 
+                goto NoMoreFiles;
+            // LogV1("FsVfsFindDb(): file %s", fileName );
             file = NULL;
             if ( ReadPdbHeader(currVolRef, fileName, &hdr ) )
             {
@@ -268,6 +273,14 @@ FailedDirEnum:
     currDir = NULL;
     VFSFileClose(dirRef);
     dirRef = 0;
+
+    if (0==ssCount(&dirsToVisit))
+    {
+        // there are no more directories to visit on this volume, so go
+        // to the next volume
+        goto ScanNextVolume;
+    }
+
     if (fRecursive)
         goto ScanNextDir;
 
@@ -280,15 +293,17 @@ NoMoreFiles:
     if ( NULL != currDir )
         new_free(currDir);
 
-    while(true)
+    while (true)
     {
         currDir = ssPop(&dirsToVisit);
-        if (NULL==currDir) break;
+        if (NULL==currDir) 
+            break;
         new_free(currDir);
     }
 
     if ( fileInfo.nameP )
         new_free(fileInfo.nameP);
+
     ssDeinit(&dirsToVisit);
 }
 

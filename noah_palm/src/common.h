@@ -489,6 +489,7 @@ void    ssInit  ( StringStack *ss );
 void    ssDeinit( StringStack *ss );
 Boolean ssPush  ( StringStack *ss, char *str );
 char *  ssPop   ( StringStack *ss );
+int     ssCount(StringStack *ss);
 
 #ifdef DEBUG
 

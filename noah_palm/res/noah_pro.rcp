@@ -62,8 +62,8 @@ BEGIN
   BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
     MENUITEM "Display Prefs"           ID menuItemDispPrefs     "D" 
-    MENUITEM SEPARATOR
-    MENUITEM "Show pronunciation"      ID menuItemShowPronunciation "U"
+/*    MENUITEM SEPARATOR
+    MENUITEM "Show pronunciation"      ID menuItemShowPronunciation "U" */
     MENUITEM SEPARATOR
     MENUITEM "About"                   ID menuItemAbout         "A"
   END

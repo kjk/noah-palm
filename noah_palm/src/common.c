@@ -1965,6 +1965,11 @@ char *ssPop( StringStack *ss )
     return toReturn;
 }
 
+int ssCount(StringStack *ss)
+{
+    return ss->stackedCount;
+}
+
 #endif // I_NOAH
 
 #ifdef DEBUG
