@@ -40,14 +40,16 @@
  */
 
 /* id for Thes v 1.0 preferences */
-#define Thes10Pref      0x43212206
+/* #define Thes10Pref      0x43212206 */
 /* id for Thes v 1.0 per-database preferences */
-#define ThesDB10Pref    0x43212214
+/* #define ThesDB10Pref    0x43212214 */
+
+#define Thes11Pref      0x43212216
 
 /* structure of the general preferences record */
 typedef struct
 {
-    UInt32                  recordId;            /* should be Thes10Pref */
+    Boolean                 fDelVfsCacheOnExit;
     StartupAction           startupAction;
     ScrollType              tapScrollType;
     ScrollType              hwButtonScrollType;

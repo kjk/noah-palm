@@ -1,5 +1,6 @@
 * restore/add word history to Thesaurus
 * register with PDA Green http://www.pdagreen.com/dev_apply.asp
+* bug np: VFS for wn pro doesn't work when we no longer have mem for cache
 * bug nl: no screen refresh when going back from word search
 * add high-res icon for word search
 * test caching in low memory scenario

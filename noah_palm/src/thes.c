@@ -2,6 +2,8 @@
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
+#include "cw_defs.h"
+
 #include "thes.h"
 #include "display_info.h"
 #include "roget_support.h"
@@ -25,6 +27,119 @@ char helpText[] =
 
 GlobalData gd;
 
+Boolean FIsThesPrefRecord(void *recData)
+{
+    long    sig;
+    Assert( recData );
+    sig = ((long*)recData)[0];
+    return (Thes11Pref == sig) ? true : false;
+}
+
+
+/* Create a blob containing 
+caller needs to free memory returned
+*/
+void *GetSerializedPreferencesThes(long *pBlobSize)
+{
+    void *      prefsBlob;
+    long        blobSize;
+    long        blobSizePhaseOne;
+    int         phase;
+    ThesPrefs   *prefs;
+    UInt32      prefRecordId = Thes11Pref;
+    int         wordLen;
+    int         i;
+
+    Assert( pBlobSize );
+
+    LogG( "GetSerializedPreferencesThes()" );
+
+    prefs = &gd.prefs;
+    /* phase one: calculate the size of the blob */
+    /* phase two: create the blob */
+    prefsBlob = NULL;
+    for( phase=1; phase<=2; phase++)
+    {
+        blobSize = 0;
+        Assert( 4 == sizeof(prefRecordId) );
+        serData( (char*)&prefRecordId, sizeof(prefRecordId), prefsBlob, &blobSize );
+        serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
+        serByte( prefs->startupAction, prefsBlob, &blobSize );
+        serByte( prefs->tapScrollType, prefsBlob, &blobSize );
+        serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
+        serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
+        wordLen = strlen( (const char*) gd.prefs.lastWord)+1;
+        Assert( wordLen <= WORD_MAX_LEN );
+        serInt( wordLen, prefsBlob, &blobSize );
+        serData( (char*)gd.prefs.lastWord, wordLen, prefsBlob, &blobSize );
+        LogV1( "GetSerializedPreferencesThes(), lastWord=%s", gd.prefs.lastWord );
+
+        serInt( gd.historyCount, prefsBlob, &blobSize );
+        for (i=0; i<gd.historyCount; i++)
+        {
+            serLong( gd.wordHistory[i], prefsBlob, &blobSize );
+        }
+        if ( 1 == phase )
+        {
+            Assert( blobSize > 0 );
+            blobSizePhaseOne = blobSize;
+            prefsBlob = new_malloc( blobSize );
+            if (NULL == prefsBlob)
+            {
+                LogG("GetSerializedPreferencesThes(): prefsBlob==NULL");
+                return NULL;
+            }
+        }
+    }
+    Assert( blobSize == blobSizePhaseOne );
+    Assert( blobSize > 8 );
+
+    *pBlobSize = blobSize;
+    Assert( prefsBlob );
+    return prefsBlob;
+}
+
+
+/* Given a blob containing serialized prefrences deserilize the blob
+and set the preferences accordingly.
+*/
+void DeserilizePreferencesThes(unsigned char *prefsBlob, long blobSize)
+{
+    ThesPrefs *     prefs;
+    int             wordLen;
+    int             i;
+
+    Assert( prefsBlob );
+    Assert( blobSize > 8 );
+
+    LogG( "DeserilizePreferencesThes()" );
+
+    prefs = &gd.prefs;
+    /* skip the 4-byte signature of the preferences record */
+    Assert( FIsThesPrefRecord( prefsBlob ) );
+    prefsBlob += 4;
+    blobSize -= 4;
+
+    prefs->fDelVfsCacheOnExit = (Boolean) deserByte( &prefsBlob, &blobSize );
+    prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
+    prefs->tapScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
+    prefs->hwButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
+    prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
+
+    Assert( blobSize > 0);
+    wordLen = deserInt( &prefsBlob, &blobSize );
+    Assert( wordLen <= WORD_MAX_LEN );
+    Assert( 0 == prefsBlob[wordLen-1] );
+    deserData( (unsigned char*)gd.prefs.lastWord, wordLen, &prefsBlob, &blobSize );
+    LogV1( "DeserilizePreferencesThes(), lastWord=%s", gd.prefs.lastWord );
+
+    gd.historyCount = deserInt( &prefsBlob, &blobSize );
+    for (i=0; i<gd.historyCount; i++)
+    {
+        gd.wordHistory[i] = deserLong( &prefsBlob, &blobSize );
+    }
+}
+
 void SavePreferencesThes()
 {
     DmOpenRef      db;
@@ -39,7 +154,7 @@ void SavePreferencesThes()
     long           blobSize;
     Boolean        fRecordBusy = false;
 
-    prefsBlob = GetSerializedPreferences( &blobSize );
+    prefsBlob = GetSerializedPreferencesThes( &blobSize );
     if ( NULL == prefsBlob ) return;
 
     db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
@@ -67,7 +182,7 @@ void SavePreferencesThes()
         fRecordBusy = true;
         recData = MemHandleLock(recHandle);
         recSize = MemHandleSize(recHandle);
-        if ( FIsPrefRecord(recData) )
+        if ( FIsThesPrefRecord(recData) )
         {
             fRecFound = true;
             break;
@@ -128,49 +243,13 @@ void LoadPreferencesThes()
     {
         recHandle = DmQueryRecord(db, recNo);
         recData = MemHandleLock(recHandle);
-        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && FIsPrefRecord( recData ) )
+        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && FIsThesPrefRecord( recData ) )
         {
-            LogG( "LoadPreferencesNoahPro(), found prefs record" );
+            LogG( "LoadPreferencesThes(), found prefs record" );
             fRecFound = true;
-            DeserilizePreferences((unsigned char*)recData, MemHandleSize(recHandle) );
+            DeserilizePreferencesThes((unsigned char*)recData, MemHandleSize(recHandle) );
         }
         MemPtrUnlock(recData);
-    }
-    DmCloseDatabase(db);
-}
-
-void LoadPreferences(NoahDBPrefs * data, UInt32 dataLen)
-{
-    DmOpenRef db = NULL;
-    UInt recNo;
-    Boolean recFoundP = false;
-    NoahDBPrefs *pref;
-    VoidHand recHandle;
-    UInt32 recSize = 0;
-
-    db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
-    if (!db)
-        return;
-
-    for (recNo = 0; (recNo < DmNumRecords(db)) && !recFoundP; recNo++)
-    {
-        recHandle = DmQueryRecord(db, recNo);
-        pref = (NoahDBPrefs *) MemHandleLock(recHandle);
-        recSize = MemHandleSize(recHandle);
-        if ((pref->recordId == data->recordId) && (dataLen == recSize))
-        {
-            recFoundP = true;
-            if (ThesDB10Pref == pref->recordId)
-            {
-                if (0 == StrCompare(pref->dbName, data->dbName))
-                    recFoundP = true;
-                else
-                    recFoundP = false;
-            }
-            if (recFoundP)
-                MemMove(data, pref, dataLen);
-        }
-        MemPtrUnlock(pref);
     }
     DmCloseDatabase(db);
 }
@@ -230,7 +309,6 @@ Err InitThesaurus(void)
 
     /* fill out the default values for Noah preferences
        and try to load them from pref database */
-    gd.prefs.recordId = Thes10Pref;
     gd.prefs.startupAction = startupActionClipboard;
     gd.prefs.tapScrollType = scrollLine;
     gd.prefs.hwButtonScrollType = scrollPage;
@@ -238,7 +316,7 @@ Err InitThesaurus(void)
 
     FsInit();
 
-    LoadPreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs));
+    LoadPreferencesThes();
 
     if (!CreateInfoData())
         return !errNone;
@@ -292,7 +370,7 @@ void DictCurrentFree(void)
 
 void StopThesaurus()
 {
-    SavePreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs), 0);
+    SavePreferencesThes();
     DictCurrentFree();
     FreeDicts();
     FreeInfoData();
@@ -314,9 +392,9 @@ void DisplayAboutThes(void)
     DrawCenteredString( "DEMO", 28 + 12 - 17 );
 #else
   #ifdef DEBUG
-    DrawCenteredString("Ver 1.1 BETA DEBUG", 28 + 12 - 17);
+    DrawCenteredString("Ver 1.1 DEBUG", 28 + 12 - 17);
   #else
-    DrawCenteredString("Ver 1.1 BETA", 28 + 12 - 17);
+    DrawCenteredString("Ver 1.1", 28 + 12 - 17);
   #endif
 #endif
     FntSetFont((FontID) 1);
@@ -680,6 +758,8 @@ ChooseDatabase:
 
     case evtRedisplayCurrentWord:
         DrawDescription(gd.currentWord);
+        WinDrawLine(0, 145, 160, 145);
+        WinDrawLine(0, 144, 160, 144);
         handled = true;
         break;
 
@@ -1158,7 +1238,7 @@ Boolean PrefFormHandleEventThes(EventType * event)
             handled = false;
             break;
         case buttonOk:
-            SavePreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs),0);
+            SavePreferencesThes();
             // pass through
         case buttonCancel:
             Assert( NULL != GetCurrentFile() );

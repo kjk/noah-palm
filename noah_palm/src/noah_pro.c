@@ -35,97 +35,6 @@ char helpText[] = "Instructions:\n\255 to lookup a definition of a word \npress 
 
 GlobalData gd;
 
-void serByte(unsigned char val, char *prefsBlob, long *pCurrBlobSize)
-{
-    Assert( pCurrBlobSize );
-    if ( prefsBlob )
-        prefsBlob[*pCurrBlobSize] = val;
-    *pCurrBlobSize += 1;
-}
-
-void serInt(int val, char *prefsBlob, long *pCurrBlobSize)
-{
-    int high, low;
-
-    high = val / 256;
-    low = val % 256;
-    serByte( high, prefsBlob, pCurrBlobSize );
-    serByte( low, prefsBlob, pCurrBlobSize );
-}
-
-void serLong(long val, char *prefsBlob, long *pCurrBlobSize)
-{
-    unsigned char * valPtr;
-
-    valPtr = (unsigned char*) &val;
-    serByte( valPtr[0], prefsBlob, pCurrBlobSize );
-    serByte( valPtr[1], prefsBlob, pCurrBlobSize );
-    serByte( valPtr[2], prefsBlob, pCurrBlobSize );
-    serByte( valPtr[3], prefsBlob, pCurrBlobSize );
-}
-
-unsigned char deserByte( unsigned char **data, long *pBlobSizeLeft )
-{
-    unsigned char val;
-    unsigned char *d = *data;
-
-    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=1) );
-    val = *d++;
-    *data = d;
-    *pBlobSizeLeft -= 1;
-    return val;
-}
-
-int getInt( unsigned char *data)
-{
-    int val;
-    val = data[0]*256+data[1];
-    return val;
-}
-
-int deserInt( unsigned char **data, long *pBlobSizeLeft )
-{
-    int val;
-    unsigned char *d = *data;
-
-    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=2) );
-    val = getInt( d );
-    *data = d+2;
-    *pBlobSizeLeft -= 2;
-    return val;
-}
-
-long deserLong( unsigned char **data, long *pBlobSizeLeft)
-{
-    long val;
-    unsigned char * valPtr;
-    unsigned char *d = *data;
-
-    valPtr = (unsigned char*) &val;
-    valPtr[0] = d[0];
-    valPtr[1] = d[1];
-    valPtr[2] = d[2];
-    valPtr[3] = d[3];
-    *data = d+4;
-    *pBlobSizeLeft -= 4;
-    return val;
-}
-
-void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
-{
-    long i;
-    for ( i=0; i<dataSize; i++)
-        serByte(data[i],prefsBlob,pCurrBlobSize);
-}
-
-void deserData( unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft )
-{
-    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=len) );
-    MemMove( valOut, *data, len );
-    *data = *data+len;
-    *pBlobSizeLeft -= len;
-}
-
 Boolean FIsPrefRecord(void *recData)
 {
     long    sig;
@@ -137,7 +46,7 @@ Boolean FIsPrefRecord(void *recData)
 /* Create a blob containing 
 caller needs to free memory returned
 */
-void *GetSerializedPreferences(long *pBlobSize)
+void *GetSerializedPreferencesNoahPro(long *pBlobSize)
 {
     void *      prefsBlob;
     long        blobSize;
@@ -152,13 +61,13 @@ void *GetSerializedPreferences(long *pBlobSize)
 
     Assert( pBlobSize );
 
-    LogG( "GetSerializedPreferences()" );
+    LogG( "GetSerializedPreferencesNoahPro()" );
 
     prefs = &gd.prefs;
     /* phase one: calculate the size of the blob */
     /* phase two: create the blob */
     prefsBlob = NULL;
-    for( phase=1; phase<3; phase++)
+    for( phase=1; phase<=2; phase++)
     {
         blobSize = 0;
         Assert( 4 == sizeof(prefRecordId) );
@@ -179,14 +88,14 @@ void *GetSerializedPreferences(long *pBlobSize)
         else
         {
             /* so that we can tell in deserializer */
-            LogG( "GetSerializedPreferences(), currFile == NULL" );
+            LogG( "GetSerializedPreferencesNoahPro(), currFile == NULL" );
             serByte( eFS_NONE, prefsBlob, &blobSize );
         }
         wordLen = strlen( (const char*) gd.prefs.lastWord)+1;
         Assert( wordLen <= WORD_MAX_LEN );
         serInt( wordLen, prefsBlob, &blobSize );
         serData( (char*)gd.prefs.lastWord, wordLen, prefsBlob, &blobSize );
-        LogV1( "GetSerializedPreferences(), lastWord=%s", gd.prefs.lastWord );
+        LogV1( "GetSerializedPreferencesNoahPro(), lastWord=%s", gd.prefs.lastWord );
 
         serInt( gd.historyCount, prefsBlob, &blobSize );
         for (i=0; i<gd.historyCount; i++)
@@ -200,7 +109,7 @@ void *GetSerializedPreferences(long *pBlobSize)
             prefsBlob = new_malloc( blobSize );
             if (NULL == prefsBlob)
             {
-                LogG("GetSerializedPreferences(): prefsBlob==NULL");
+                LogG("GetSerializedPreferencesNoahPro(): prefsBlob==NULL");
                 return NULL;
             }
         }
@@ -216,7 +125,7 @@ void *GetSerializedPreferences(long *pBlobSize)
 /* Given a blob containing serialized prefrences deserilize the blob
 and set the preferences accordingly.
 */
-void DeserilizePreferences(unsigned char *prefsBlob, long blobSize)
+void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
 {
     NoahPrefs *     prefs;
     eFsType         fsType;
@@ -228,7 +137,7 @@ void DeserilizePreferences(unsigned char *prefsBlob, long blobSize)
     Assert( prefsBlob );
     Assert( blobSize > 8 );
 
-    LogG( "DeserilizePreferences()" );
+    LogG( "DeserilizePreferencesNoahPro()" );
 
     prefs = &gd.prefs;
     /* skip the 4-byte signature of the preferences record */
@@ -251,18 +160,18 @@ void DeserilizePreferences(unsigned char *prefsBlob, long blobSize)
         Assert( 0 == prefsBlob[dbNameLen-1] );
         dbName = new_malloc( dbNameLen );
         deserData( dbName, dbNameLen, &prefsBlob, &blobSize );
-        LogV1( "DeserilizePreferences(), dbName=%s", dbName );
+        LogV1( "DeserilizePreferencesNoahPro(), dbName=%s", dbName );
         prefs->lastDbUsedName = dbName;
     }
     else
     {
-        LogG( "DeserilizePreferences(), fsType==eFS_NONE" );
+        LogG( "DeserilizePreferencesNoahPro(), fsType==eFS_NONE" );
     }
     wordLen = deserInt( &prefsBlob, &blobSize );
     Assert( wordLen <= WORD_MAX_LEN );
     Assert( 0 == prefsBlob[wordLen-1] );
     deserData( gd.prefs.lastWord, wordLen, &prefsBlob, &blobSize );
-    LogV1( "DeserilizePreferences(), lastWord=%s", gd.prefs.lastWord );
+    LogV1( "DeserilizePreferencesNoahPro(), lastWord=%s", gd.prefs.lastWord );
 
     gd.historyCount = deserInt( &prefsBlob, &blobSize );
     for (i=0; i<gd.historyCount; i++)
@@ -285,7 +194,7 @@ void SavePreferencesNoahPro()
     long           blobSize;
     Boolean        fRecordBusy = false;
 
-    prefsBlob = GetSerializedPreferences( &blobSize );
+    prefsBlob = GetSerializedPreferencesNoahPro( &blobSize );
     if ( NULL == prefsBlob ) return;
 
     db = DmOpenDatabaseByTypeCreator(NOAH_PREF_TYPE, NOAH_PRO_CREATOR, dmModeReadWrite);
@@ -378,7 +287,7 @@ void LoadPreferencesNoahPro()
         {
             LogG( "LoadPreferencesNoahPro(), found prefs record" );
             fRecFound = true;
-            DeserilizePreferences((unsigned char*)recData, MemHandleSize(recHandle) );
+            DeserilizePreferencesNoahPro((unsigned char*)recData, MemHandleSize(recHandle) );
         }
         MemPtrUnlock(recData);
     }
@@ -1454,6 +1363,7 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
             break;
         case buttonOk:
             SavePreferencesNoahPro();
+            // pass through
         case buttonCancel:
             SendNewWordSelected();
             FrmReturnToForm(0);

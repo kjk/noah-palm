@@ -140,7 +140,7 @@ char    *dictGetWord(long wordNo);
 Err     dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di);
 void    FreeDicts(void);
 
-void    DrawDescription(UInt32 wordNo);
+void    DrawDescription(long wordNo);
 void    DisplayHelp(void);
 void    HideScrollbar(void);
 void    SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine);
@@ -212,5 +212,15 @@ void Log(LogInfo *logInfo, char *txt);
 
 void EvtSetInt( EventType *event, int i);
 int EvtGetInt( EventType *event );
+
+void serByte(unsigned char val, char *prefsBlob, long *pCurrBlobSize);
+void serInt(int val, char *prefsBlob, long *pCurrBlobSize);
+void serLong(long val, char *prefsBlob, long *pCurrBlobSize);
+unsigned char deserByte( unsigned char **data, long *pBlobSizeLeft );
+int getInt( unsigned char *data);
+int deserInt( unsigned char **data, long *pBlobSizeLeft );
+long deserLong( unsigned char **data, long *pBlobSizeLeft);
+void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize);
+void deserData( unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft );
 
 #endif

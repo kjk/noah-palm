@@ -61,7 +61,7 @@ char *strdup( char *str )
 
     Assert(str);
     strLen = strlen( str );
-    newStr = new_malloc_zero( strLen+1 );
+    newStr = (char*)new_malloc_zero( strLen+1 );
     if (newStr)
         MemMove( newStr, str, strLen );
     return newStr;
@@ -293,7 +293,7 @@ void DisplayHelp(void)
 }
 
 
-void DrawDescription(UInt32 wordNo)
+void DrawDescription(long wordNo)
 {
     char *word = NULL;
 #ifndef NOAH_LITE
@@ -1308,4 +1308,97 @@ int EvtGetInt( EventType *event )
     int *pInt = (int*) (&event->data.generic);
     return *pInt;
 }
+
+void serByte(unsigned char val, char *prefsBlob, long *pCurrBlobSize)
+{
+    Assert( pCurrBlobSize );
+    if ( prefsBlob )
+        prefsBlob[*pCurrBlobSize] = val;
+    *pCurrBlobSize += 1;
+}
+
+void serInt(int val, char *prefsBlob, long *pCurrBlobSize)
+{
+    int high, low;
+
+    high = val / 256;
+    low = val % 256;
+    serByte( high, prefsBlob, pCurrBlobSize );
+    serByte( low, prefsBlob, pCurrBlobSize );
+}
+
+void serLong(long val, char *prefsBlob, long *pCurrBlobSize)
+{
+    unsigned char * valPtr;
+
+    valPtr = (unsigned char*) &val;
+    serByte( valPtr[0], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[1], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[2], prefsBlob, pCurrBlobSize );
+    serByte( valPtr[3], prefsBlob, pCurrBlobSize );
+}
+
+unsigned char deserByte( unsigned char **data, long *pBlobSizeLeft )
+{
+    unsigned char val;
+    unsigned char *d = *data;
+
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=1) );
+    val = *d++;
+    *data = d;
+    *pBlobSizeLeft -= 1;
+    return val;
+}
+
+int getInt( unsigned char *data)
+{
+    int val;
+    val = data[0]*256+data[1];
+    return val;
+}
+
+int deserInt( unsigned char **data, long *pBlobSizeLeft )
+{
+    int val;
+    unsigned char *d = *data;
+
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=2) );
+    val = getInt( d );
+    *data = d+2;
+    *pBlobSizeLeft -= 2;
+    return val;
+}
+
+long deserLong( unsigned char **data, long *pBlobSizeLeft)
+{
+    long val;
+    unsigned char * valPtr;
+    unsigned char *d = *data;
+
+    valPtr = (unsigned char*) &val;
+    valPtr[0] = d[0];
+    valPtr[1] = d[1];
+    valPtr[2] = d[2];
+    valPtr[3] = d[3];
+    *data = d+4;
+    *pBlobSizeLeft -= 4;
+    return val;
+}
+    
+void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
+{
+    long i;
+    for ( i=0; i<dataSize; i++)
+        serByte(data[i],prefsBlob,pCurrBlobSize);
+}
+
+void deserData( unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft )
+{
+    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=len) );
+    MemMove( valOut, *data, len );
+    *data = *data+len;
+    *pBlobSizeLeft -= len;
+}
+
+
 
