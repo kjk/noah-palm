@@ -133,16 +133,33 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
             index=FrmGetObjectIndex(form, buttonAbortLookup);
             Assert(frmInvalidObjectId!=index);
             FrmHideObject(form, index);
-
-            if (responseOneWord==data->result) 
+            
+            switch (data->result)
             {
-                appContext->firstDispLine=0;
-                index=FrmGetObjectIndex(form, fieldWordInput);
-                Assert(frmInvalidObjectId!=index);
-                FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
-                Assert(field);
-                FldSelectAllText(field);
-            }                
+                case responseOneWord:
+                    appContext->firstDispLine=0;
+                    index=FrmGetObjectIndex(form, fieldWordInput);
+                    Assert(frmInvalidObjectId!=index);
+                    FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+                    Assert(field);
+                    FldSelectAllText(field);
+                    break;
+                    
+                case responseMessage:
+                    Assert(false); //! @todo Show received message.
+                    break;
+                    
+                case responseWordsList:
+                    FrmPopupForm(formWordsList);
+                    
+                case responseError:
+                case responseWordNotFound:
+                    break;
+                    
+                default:
+                    Assert(false);
+            }
+            
         }
         else 
         {

@@ -7,9 +7,22 @@
 #include "inet_definition_format.h"
 #include "http_response.h"
 
-#define netLibName "Net.lib"
+#ifdef DEBUG
 
-static const Int16 percentsNotSupported=-1;
+static const char* deviceWordsListResponse = 
+    "WORD_LIST\xd" "\xa" 
+    "word\xd" "\xa" 
+    "work\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\xd" "\xa" 
+    "\x0";
+    
+#endif
+
+#define netLibName "Net.lib"
 
 typedef enum ConnectionStage_ {
     stageResolvingAddress,
@@ -281,8 +294,14 @@ static Err PrepareRequest(ConnectionData* connData)
     Err error=errNone;
     Char* url=NULL;
     ExtensibleBuffer* buffer=&connData->request;
+    Char* word=ebufGetDataPointer(&connData->wordToFind);
+    UInt16 wordLength=ebufGetDataSize(&connData->wordToFind);
+    error=StrUrlEncode(word, word+wordLength, &word, &wordLength);
+    if (error)
+        goto OnError;
     ebufResetWithStr(buffer, "GET ");
-    url=TxtParamString(serverRelativeURL, ebufGetDataPointer(&connData->wordToFind), NULL, NULL, NULL);
+    url=TxtParamString(serverRelativeURL, word, NULL, NULL, NULL);
+    new_free(word);
     if (!url)
     {
         error=memErrNotEnoughSpace;
@@ -527,8 +546,12 @@ void PerformLookupTask(AppContext* appContext)
     }
     else
     {
+        const Char* begin=deviceWordsListResponse;
+        const Char* end=begin+StrLen(begin);
+/*
         const Char* begin=ebufGetDataPointer(&connData->response);
         const Char* end=begin+ebufGetDataSize(&connData->response);
+*/        
         const Char* word=ebufGetDataPointer(&connData->wordToFind);
         ResponseParsingResult result=ProcessResponse(appContext, word, begin, end);
         AbortCurrentLookup(appContext, true, result);

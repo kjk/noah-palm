@@ -332,7 +332,7 @@ typedef struct _AppContext
     void* currentLookupData;
     Boolean lookupStatusBarVisible;
     
-    WordStorageType* wordsList;
+    Char** wordsList;
     UInt16 wordsInListCount;
     
 #endif      
@@ -505,7 +505,7 @@ long            FindCurrentDbIndex(AppContext* appContext);
 extern void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey);
 
 /**
- * Synchronizes screen resolution cached in <code>gd</code> with actual screen resolution.
+ * Synchronizes screen resolution cached in @c appContext with actual screen resolution.
  */
 extern void SyncScreenSize(AppContext* appContext);
 
@@ -550,7 +550,14 @@ extern UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total);
  */
 extern const Char* StrFind(const Char* begin, const Char* end, const Char* subStr);
 
-extern Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length);
+/**
+ * Tests if sequence starts with subsequence.
+ * @param begin pointer to first character of sequence to test.
+ * @param end pointer to one-past-last character of sequence to test.
+ * @param subStr string to look for (null-terminated).
+ * @return @c true, if sequence [<code>begin</code>, <code>end</code>) starts with @c subStr.
+ */
+extern Boolean StrStartsWith(const Char* begin, const Char* end, const Char* subStr);
 
 /**
  * Converts character sequence to it's numeric representation.
@@ -587,7 +594,7 @@ extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* 
  * @param encoded on successful return contains pointer to encoded sequence (not null-terminated).
  * @param encodedLength on successful return contains length of encoded sequence.
  * @return error code, @c errNone on success.
- * @see RFC2396
+ * @see RFC2396 Chapter 2
  */
 extern Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt16* encodedLength);
 

@@ -4,7 +4,8 @@
 #define formDictMain        1000
 #define formDisplayPrefs    1001
 #define formPrefs           1002
-#define	formBookmarks       1003
+#define formBookmarks       1003
+#define formWordsList       1004
 
 #define menuMain                1100
 
@@ -61,5 +62,9 @@
 #define listhwButtonsAction     4213
 #define popupNavButtonsAction   4214
 #define listNavButtonsAction    4215
+
+#define ctlArrowLeft        4300
+#define ctlArrowRight      4301
+#define listProposals        4302
 
 #define helpPrefs   5000

@@ -44,7 +44,7 @@ static Err ConvertSynonymsBlock(AppContext* appContext, const Char* word, const 
             if (synBegin<synEnd)
             {
                 UInt16 synLen=synEnd-synBegin;
-                if (!FormatWantsWord(appContext) || !(wordLen==synLen && 0==StrNCmp(synBegin, word, synLen)))
+                if (!FormatWantsWord(appContext) || !(wordLen==synLen && StrStartsWith(synBegin, synEnd, word)))
                 {
                     if (synsCount++) 
                         ebufAddChar(out, ',');
@@ -86,7 +86,7 @@ static Err ConvertDefinitionBlock(const Char* begin, const Char* end, Extensible
             const Char* defEnd=StrFindOneOf(defBegin, end, "@#");
             while (defEnd<end)
             {
-                if (0==StrNCmp(defEnd-2, "\r\n", 2))
+                if (StrStartsWith(defEnd-2, defEnd, "\r\n"))
                     break;
                 else                    
                     defEnd=StrFindOneOf(defEnd+1, end, "@#");
@@ -155,7 +155,7 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
                         const Char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
                         while (defBlock<end)
                         {
-                            if (0==StrNCmp(defBlock-2, "\r\n", 2))
+                            if (StrStartsWith(defBlock-2, defBlock, "\r\n"))
                                 break;
                             else                    
                                 defBlock=StrFindOneOf(defBlock+1, end, "@#");
@@ -221,7 +221,7 @@ Err ProcessOneWordResponse(AppContext* appContext, const Char* word, const Char*
     return error;
 }
 
-static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEnd, WordStorageType* targetList=NULL)
+static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEnd, Char** targetList=NULL)
 {
     UInt16 wordsCount=0;
     const Char* wordBegin=StrFind(responseBegin, responseEnd, "\r\n")+2;
@@ -232,19 +232,21 @@ static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEn
         {
             if (targetList)
             {
-                UInt16 charsToCopy=wordEnd-wordBegin;
-                WordStorageType& wordBuffer=targetList[wordsCount];
-                if (charsToCopy>=WORD_MAX_LEN) 
-                    charsToCopy=WORD_MAX_LEN-1;
-                StrNCopy(wordBuffer, wordBegin, charsToCopy);
-                wordBuffer[charsToCopy]=chrNull;
+                UInt16 wordLength=wordEnd-wordBegin;
+                Char*& targetWord=targetList[wordsCount];
+                targetWord=static_cast<Char*>(new_malloc_zero(sizeof(Char)*(wordLength+1)));
+                if (targetWord) 
+                {
+                    StrNCopy(targetWord, wordBegin, wordLength);
+                    targetWord[wordLength]=chrNull;
+                }
             }
             wordsCount++;
         }
-        if (wordEnd==responseEnd)
+        if (wordEnd>=responseEnd)
             wordBegin=responseEnd;
         else
-            wordBegin=StrFind(wordEnd+2, responseEnd, "\r\n")+2;
+            wordBegin=wordEnd+2;
     }
     return wordsCount;
 }
@@ -256,7 +258,7 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
     UInt16 wordsCount=IterateWordsList(responseBegin, responseEnd);
     if (wordsCount)
     {
-        WordStorageType* wordsStorage=static_cast<WordStorageType*>(new_malloc(sizeof(WordStorageType)*wordsCount));
+        Char** wordsStorage=static_cast<Char**>(new_malloc_zero(sizeof(Char*)*wordsCount));
         if (wordsStorage)
         {
             IterateWordsList(responseBegin, responseEnd, wordsStorage);
@@ -278,17 +280,17 @@ ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, 
     Assert(end);
     ResponseParsingResult result=responseError;
 
-    if (0==StrNCmp(begin, noDefnitionResponse, end-begin))
+    if (StrStartsWith(begin, end, noDefnitionResponse))
     {
         FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
         result=responseWordNotFound;
     }
-    else if (0==StrNCmp(begin, wordsListResponse, end-begin))
+    else if (StrStartsWith(begin, end, wordsListResponse))
     {
         Err error=ProcessWordsListResponse(appContext, begin, end);
         result=error?responseMalformed:responseWordsList;
     }
-    else if (0==StrNCmp(begin, messageResponse, end-begin))
+    else if (StrStartsWith(begin, end, messageResponse))
     {
         Assert(false);
     }

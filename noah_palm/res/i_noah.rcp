@@ -212,5 +212,15 @@ BEGIN
    BUTTON "Cancel"  buttonCancel    AT (121 146 AUTO AUTO) FONT 0
 END
 
+FORM formWordsList AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+   BUTTON "\002"            ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
+   BUTTON "\003"            ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
+   LIST ""                  listProposals    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   FIELD                    fieldWordInput       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   BUTTON "Cancel"          buttonCancel    AT (120 146 AUTO AUTO) FONT 0
+END
 
 

@@ -1837,10 +1837,17 @@ static Err AppHandleResidentLookup()
 {
     UInt16 cardNo=0;
     LocalID localId=0;
-    FieldType* field=FrmGetActiveField(NULL);
+    FormType* form=FrmGetActiveForm();
+    FieldType* field=NULL;
     Err error=SysCurAppDatabase(&cardNo, &localId);
     Char* buffer=NULL;
     UInt16 length=0;
+    UInt16 fieldIndex=noFocus;
+    Assert(form);
+    fieldIndex=FrmGetFocus(form);
+    if (noFocus!=fieldIndex)
+        field=(FieldType*)FrmGetObjectPtr(form, fieldIndex);
+        
     if (error) 
         goto Exit;
     error=SysNotifyUnregister(cardNo, localId, appNotifyResidentLookupEvent, sysNotifyNormalPriority);
@@ -2091,20 +2098,19 @@ UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total)
     return current;
 }
 
-Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length)
+Boolean StrStartsWith(const Char* begin, const Char* end, const Char* subStr)
 {
-    while (length-- && *str1 && *str2) 
+    while (*subStr && begin<end)
     {
-        if (*str1<*str2) return -1;
-        else if (*str1>*str2) return 1;
-        else 
-        {
-            str1++;
-            str2++;
-        }        
+        if (*(subStr++)!=*(begin++))
+            return false;
     }
-    return 0;
+    if (begin==end && chrNull!=*subStr)
+        return false;
+    else
+        return true;        
 }
+
 
 const Char* StrFind(const Char* begin, const Char* end, const Char* subStr)
 {
@@ -2112,7 +2118,7 @@ const Char* StrFind(const Char* begin, const Char* end, const Char* subStr)
     const Char* result=NULL;
     while (end-begin>=subLen)
     {
-        if (0!=StrNCmp(begin, subStr, subLen))
+        if (!StrStartsWith(begin, end, subStr))
             begin++;
         else
         {
@@ -2190,6 +2196,45 @@ void StrTrimTail(const Char* begin, const Char** end)
     while (*end>begin && *end!=StrFindOneOf((*end)-1, *end, " \r\n\t"))
         --(*end);
 }
+
+#define uriUnreservedCharacters "-_.!~*'()"
+
+inline static void CharToHexString(Char* buffer, Char chr)
+{
+    const Char* numbers="0123456789ABCDEF";
+    buffer[0]=numbers[chr/16];
+    buffer[1]=numbers[chr%16];
+}
+
+Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt16* encodedLength)
+{
+    Err error=errNone;
+    if (encoded && encodedLength)
+    {
+        ExtensibleBuffer result;
+        ebufInit(&result, 0);
+        while (begin<end)
+        {
+            Char chr=*begin;
+            if (chrNull==chr || (chr>='a' && chr<='z') || (chr>='A' && chr<='Z') || (chr>='0' && chr<='9') || StrFindOneOf(begin, begin+1, uriUnreservedCharacters)==begin)
+                ebufAddChar(&result, chr);
+            else
+            {
+                Char buffer[3];
+                *buffer='%';
+                CharToHexString(buffer+1, chr);
+                ebufAddStrN(&result, buffer, 3);
+            }
+            begin++;
+        }
+        *encodedLength=ebufGetDataSize(&result);
+        *encoded=ebufGetTxtOwnership(&result);
+    }
+    else
+        error=memErrInvalidParam;
+    return error;
+}
+
 
 /* Create new MemoPad record with a given header and body of the memo.
    header can be NULL, if bodySize is -1 => calc it from body via StrLen */
