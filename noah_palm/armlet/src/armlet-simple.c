@@ -56,49 +56,38 @@ unsigned long NativeFunction(const void *emulStateP, void *userData68KP, Call68K
 #include "utils68k.h"
 
 
-/*FROM THIS POINT YOU CAN ADD YOUR OWN FUNCTIONS*/
+/* FROM THIS POINT YOU CAN ADD YOUR OWN FUNCTIONS */
 void Function1(void *funData)
 {            
 }
 
-/*Mem allocations*/
+/* Mem allocations */
 #define sysTrapMemPtrNew	0xA013 // we need this in order to call into MemPtrNew
 #define sysTrapMemPtrFree	0xA012 // we need this in order to call into MemPtrFree
-//const void *emulStatePGLOBAL;
-//Call68KFuncType *call68KFuncPGLOBAL;
 
 void new_free(void * ptr,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
-	void* ptrSwaped;  // array of Byte
-	ptrSwaped = (void *)EndianSwap32(ptr);   
+    void* ptrSwaped;  // array of Byte
+    ptrSwaped = (void *)EndianSwap32(ptr);   
     ((call68KFuncP)(emulStateP, PceNativeTrapNo(sysTrapMemPtrFree), &ptrSwaped, 4 | kPceNativeWantA0));
 }
 
 void * new_malloc(unsigned long setSize,const void *emulStateP,Call68KFuncType *call68KFuncP)
 {
-	unsigned long  size;     // UInt32, must be stack based
-	unsigned char* bufferP;  // array of Byte
-	// set the size to setSize bytes, byte swapped so it's in big-endian format
-	// This will be the argument to MemPtrNew().
-	size = EndianSwap32(setSize);   
-	// call MemPtrNew, using the 4 bytes of size directly from the stack
-	// The 4 specifies the size of the arguments, and we need to OR the size
-	// with kPceNativeWantA0 because the return value is a pointer type.
-	bufferP = (unsigned char *)((call68KFuncP)(emulStateP, PceNativeTrapNo(sysTrapMemPtrNew), &size, 4 | kPceNativeWantA0));
-
-/*    //we dont need to do it
-    setSize--;
-    while(setSize >= 0)
-    {
-        bufferP[setSize--] = 0;
-        
-    }*/
+    unsigned long  size;     // UInt32, must be stack based
+    unsigned char* bufferP;  // array of Byte
+    // set the size to setSize bytes, byte swapped so it's in big-endian format
+    // This will be the argument to MemPtrNew().
+    size = EndianSwap32(setSize);   
+    // call MemPtrNew, using the 4 bytes of size directly from the stack
+    // The 4 specifies the size of the arguments, and we need to OR the size
+    // with kPceNativeWantA0 because the return value is a pointer type.
+    bufferP = (unsigned char *)((call68KFuncP)(emulStateP, PceNativeTrapNo(sysTrapMemPtrNew), &size, 4 | kPceNativeWantA0));
 
     return (void *)bufferP;  // return a pointer to the buffer
 }
 
 #ifndef WIN32
-/*memmove function*/
 void memmove(char *dst, char *src, int len)
 {
     int i;
@@ -115,7 +104,8 @@ void memmove(char *dst, char *src, int len)
     }
 }
 
-/*strlen function*/
+#define memcpy memmove
+
 unsigned long strlen(char *str)
 {
     unsigned long i = 0;
@@ -136,6 +126,7 @@ void strprintstr(char *dst, char *src)
     }
     dst[i] = 0;
 }
+
 /*straddstr function - add src to the end of dst*/
 /*void straddstr(char *dst, char *src)
 {
