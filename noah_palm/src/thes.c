@@ -1221,7 +1221,6 @@ static Boolean FindFormHandleEventThes(EventType * event)
             if (0 == StrLen(word) )
             {
                 LstSetSelectionEx(appContext, list, appContext->selectedWord);
-                FrmDrawForm(frm);
             }
             else
             {
@@ -1231,6 +1230,7 @@ static Boolean FindFormHandleEventThes(EventType * event)
                 appContext->lastWord[0]='\0';
                 SendFieldChanged();
             }
+            FrmDrawForm(frm);
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
             handled = true;
             break;

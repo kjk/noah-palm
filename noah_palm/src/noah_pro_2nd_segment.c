@@ -873,7 +873,6 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
             {
                 // no word so focus on first word
                 LstSetSelectionEx(appContext, list, appContext->selectedWord);
-                FrmDrawForm(frm);
             }
             else
             {
@@ -883,6 +882,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
                 appContext->lastWord[0]='\0';
                 SendFieldChanged();
             }
+            FrmDrawForm(frm);
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
             return true;
 
