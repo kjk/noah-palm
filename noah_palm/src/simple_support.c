@@ -285,7 +285,7 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     ebufAddStr(&si->buffer, "\n    Noah Pro without definitions. To");
     ebufAddStr(&si->buffer, "\n    find out how to get full version");
     ebufAddStr(&si->buffer, "\n    go to:");
-    ebufAddStr(&si->buffer, "\n                WWW.ARSLEXIS.COM\n");
+    ebufAddStr(&si->buffer, "\n                www.arslexis.com\n");
 
     ebufAddChar(&si->buffer, '\0');
     ebufWrapBigLines(&si->buffer);
