@@ -41,11 +41,11 @@ Err OpenMatchingPatternDB(AppContext* appContext)
 
 Err CloseMatchingPatternDB(AppContext* appContext)
 {
-	if (appContext->wmpCacheDb != NULL)
-	{
-		DmCloseDatabase(appContext->wmpCacheDb);
-		appContext->wmpCacheDb = NULL;
-	}
+    if (appContext->wmpCacheDb != NULL)
+    {
+        DmCloseDatabase(appContext->wmpCacheDb);
+        appContext->wmpCacheDb = NULL;
+    }
     return errNone;
 }
 

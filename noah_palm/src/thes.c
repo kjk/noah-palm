@@ -1784,7 +1784,7 @@ static Boolean HandleEventThes(AppContext* appContext, EventType * event)
             handled = true;
             break;
         case formDisplayPrefs:
-            FrmSetEventHandler(frm, DisplayPrefFormHandleEventNoahPro);
+            FrmSetEventHandler(frm, DisplayPrefFormHandleEvent);
             handled = true;
             break;
         case formDictFindPattern:

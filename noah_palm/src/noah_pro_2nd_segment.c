@@ -1440,7 +1440,7 @@ static Boolean HandleEventNoahPro(AppContext* appContext, EventType * event)
                 return true;
 
             case formDisplayPrefs:
-                FrmSetEventHandler(frm, DisplayPrefFormHandleEventNoahPro);
+                FrmSetEventHandler(frm, DisplayPrefFormHandleEvent);
                 return true;
 
             case formBookmarks:

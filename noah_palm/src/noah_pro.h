@@ -42,7 +42,7 @@ typedef struct
     DatabaseStartupAction   dbStartupAction;
     char                    lastWord[WORD_MAX_LEN];
     char *                  lastDbUsedName;
-    DisplayPrefs			displayPrefs;
+    DisplayPrefs            displayPrefs;
 } NoahPrefs;
 
 typedef NoahPrefs AppPrefs;

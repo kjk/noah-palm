@@ -18,32 +18,33 @@
 #include "noah_pro_2nd_segment.h"
 #endif
 
-/*When we change global background we need to change all backgrounds to global background color*/
+/* When we change global background we need to change all backgrounds to global background color */
 static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
 {
-    displayPrefs -> pos.bgcolR = displayPrefs -> bgcolR;
-    displayPrefs -> pos.bgcolG = displayPrefs -> bgcolG;
-    displayPrefs -> pos.bgcolB = displayPrefs -> bgcolB;
-    displayPrefs -> word.bgcolR = displayPrefs -> bgcolR;
-    displayPrefs -> word.bgcolG = displayPrefs -> bgcolG;
-    displayPrefs -> word.bgcolB = displayPrefs -> bgcolB;
-    displayPrefs -> definition.bgcolR = displayPrefs -> bgcolR;
-    displayPrefs -> definition.bgcolG = displayPrefs -> bgcolG;
-    displayPrefs -> definition.bgcolB = displayPrefs -> bgcolB;
-    displayPrefs -> example.bgcolR = displayPrefs -> bgcolR;
-    displayPrefs -> example.bgcolG = displayPrefs -> bgcolG;
-    displayPrefs -> example.bgcolB = displayPrefs -> bgcolB;
-    displayPrefs -> synonym.bgcolR = displayPrefs -> bgcolR;
-    displayPrefs -> synonym.bgcolG = displayPrefs -> bgcolG;
-    displayPrefs -> synonym.bgcolB = displayPrefs -> bgcolB;
-    displayPrefs -> list.bgcolR = displayPrefs -> bgcolR;
-    displayPrefs -> list.bgcolG = displayPrefs -> bgcolG;
-    displayPrefs -> list.bgcolB = displayPrefs -> bgcolB;
-    displayPrefs -> bigList.bgcolR = displayPrefs -> bgcolR;
-    displayPrefs -> bigList.bgcolG = displayPrefs -> bgcolG;
-    displayPrefs -> bigList.bgcolB = displayPrefs -> bgcolB;
+    displayPrefs->pos.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->pos.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->pos.bgcolB = displayPrefs->bgcolB;
+    displayPrefs->word.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->word.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->word.bgcolB = displayPrefs->bgcolB;
+    displayPrefs->definition.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->definition.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->definition.bgcolB = displayPrefs->bgcolB;
+    displayPrefs->example.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->example.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->example.bgcolB = displayPrefs->bgcolB;
+    displayPrefs->synonym.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->synonym.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->synonym.bgcolB = displayPrefs->bgcolB;
+    displayPrefs->defList.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->defList.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->defList.bgcolB = displayPrefs->bgcolB;
+    displayPrefs->posList.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->posList.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->posList.bgcolB = displayPrefs->bgcolB;
 }
-/*   sets &prefs (only used by SetDefaultDisplayParam)*/
+
+/* Sets &prefs (only used by SetDefaultDisplayParam) */
 static void SetPrefsAs(DisplayElementPrefs *prefs,FontID font, int colR, int colG, int colB, int bgR, int bgG, int bgB)
 {
     prefs->font = font;
@@ -54,30 +55,31 @@ static void SetPrefsAs(DisplayElementPrefs *prefs,FontID font, int colR, int col
     prefs->bgcolG = bgG;
     prefs->bgcolB = bgB;
 }
-/*   Sets rest of display params to actual listStyle   */
+
+/* Sets rest of display params to actual listStyle */
 void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolean onlyColor)
 {
     DisplayElementPrefs prefs[15];
     DisplayElementPrefs *prefsToSet;
 
     //format 3(0): (old)
-    SetPrefsAs(&prefs[ 0], 0x00,   0,  0,  0, 255,255,255 );      // black & small 
+    SetPrefsAs(&prefs[ 0], 0x00,   0,  0,  0, 255,255,255 );    // color is black, font is small
     //format 1:
     SetPrefsAs(&prefs[ 1], 0x07,  63,127, 63, 255,255,255 );    //word
-    SetPrefsAs(&prefs[ 2], 0x07,   0,100,100, 255,255,255 );    //pos
+    SetPrefsAs(&prefs[ 2], 0x01,   0,100,100, 255,255,255 );    //pos
     SetPrefsAs(&prefs[ 3], 0x00,   0,  0,  0, 255,255,255 );    //definition
     SetPrefsAs(&prefs[ 4], 0x00, 128,128,  0, 255,255,255 );    //example
     SetPrefsAs(&prefs[ 5], 0x01,   0,  0, 68, 255,255,255 );    //synonyms
-    SetPrefsAs(&prefs[ 6], 0x01,  60, 60,  0, 255,255,255 );    //small list
-    SetPrefsAs(&prefs[ 7], 0x07,  60, 60,  0, 255,255,255 );    //big list
+    SetPrefsAs(&prefs[ 6], 0x00,   0,  0,  0, 255,255,255 );    //definition list
+    SetPrefsAs(&prefs[ 7], 0x01,   0,100,100, 255,255,255 );    //pos list
     //format 2: (default)
-    SetPrefsAs(&prefs[ 8], 0x07,  63,168, 63, 255,255,255 );    //word
-    SetPrefsAs(&prefs[ 9], 0x07,  80, 80,  0, 255,255,255 );    //pos
+    SetPrefsAs(&prefs[ 8], 0x07,   0,  0,255, 255,255,255 );    //word
+    SetPrefsAs(&prefs[ 9], 0x01,   0, 99,  0, 255,255,255 );    //pos
     SetPrefsAs(&prefs[10], 0x00,   0,  0,  0, 255,255,255 );    //definition
     SetPrefsAs(&prefs[11], 0x00, 127,127,  0, 255,255,255 );    //example
     SetPrefsAs(&prefs[12], 0x01,   0, 68, 68, 255,255,255 );    //synonyms
-    SetPrefsAs(&prefs[13], 0x01,  60, 60,  0, 255,255,255 );    //small list
-    SetPrefsAs(&prefs[14], 0x07,  60, 60,  0, 255,255,255 );    //big list
+    SetPrefsAs(&prefs[13], 0x00,   0,  0,  0, 255,255,255 );    //definition list
+    SetPrefsAs(&prefs[14], 0x01,   0, 99,  0, 255,255,255 );    //pos list
 
     prefsToSet = &prefs[0];
 
@@ -86,25 +88,25 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
             switch(displayPrefs->listStyle)
             {
                 case 1:
-                    displayPrefs->pos        = prefsToSet[1];
-                    displayPrefs->word       = prefsToSet[2];
+                    displayPrefs->word       = prefsToSet[1];
+                    displayPrefs->pos        = prefsToSet[2];
                     displayPrefs->definition = prefsToSet[3];
                     displayPrefs->example    = prefsToSet[4];
                     displayPrefs->synonym    = prefsToSet[5];
-                    displayPrefs->list       = prefsToSet[6];
-                    displayPrefs->bigList    = prefsToSet[7];
+                    displayPrefs->defList    = prefsToSet[6];
+                    displayPrefs->posList    = prefsToSet[7];
                     displayPrefs->bgcolR     = 255;
                     displayPrefs->bgcolG     = 255;
                     displayPrefs->bgcolB     = 255;
                     break;
                 case 2:
-                    displayPrefs->pos        = prefsToSet[8];
-                    displayPrefs->word       = prefsToSet[9];
+                    displayPrefs->word       = prefsToSet[8];
+                    displayPrefs->pos        = prefsToSet[9];
                     displayPrefs->definition = prefsToSet[10];
                     displayPrefs->example    = prefsToSet[11];
                     displayPrefs->synonym    = prefsToSet[12];
-                    displayPrefs->list       = prefsToSet[13];
-                    displayPrefs->bigList    = prefsToSet[14];
+                    displayPrefs->defList    = prefsToSet[13];
+                    displayPrefs->posList    = prefsToSet[14];
                     displayPrefs->bgcolR     = 255;
                     displayPrefs->bgcolG     = 255;
                     displayPrefs->bgcolB     = 255;
@@ -116,14 +118,14 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->definition = prefsToSet[0];
                     displayPrefs->example    = prefsToSet[0];
                     displayPrefs->synonym    = prefsToSet[0];
-                    displayPrefs->list       = prefsToSet[0];
-                    displayPrefs->bigList    = prefsToSet[0];
+                    displayPrefs->defList       = prefsToSet[0];
+                    displayPrefs->posList    = prefsToSet[0];
                     displayPrefs->bgcolR     = 255;
                     displayPrefs->bgcolG     = 255;
                     displayPrefs->bgcolB     = 255;
                 break;
             }
-        
+
             if(!IsColorSupported(GetAppContext())) //we need to set all colors to black&white
             {   
                     displayPrefs->bgcolR     = 255;
@@ -145,17 +147,17 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->synonym.colorR    = 0;
                     displayPrefs->synonym.colorG    = 0;
                     displayPrefs->synonym.colorB    = 0;
-                    displayPrefs->list.colorR       = 0;
-                    displayPrefs->list.colorG       = 0;
-                    displayPrefs->list.colorB       = 0;
-                    displayPrefs->bigList.colorR    = 0;
-                    displayPrefs->bigList.colorG    = 0;
-                    displayPrefs->bigList.colorB    = 0;
+                    displayPrefs->defList.colorR    = 0;
+                    displayPrefs->defList.colorG    = 0;
+                    displayPrefs->defList.colorB    = 0;
+                    displayPrefs->posList.colorR    = 0;
+                    displayPrefs->posList.colorG    = 0;
+                    displayPrefs->posList.colorB    = 0;
             }
     }   
 }
 
-/*sets fonts (used in ebufWrapLine*/
+/* sets fonts (used in ebufWrapLine */
 static void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
 {
      // I use "case (char) FORMAT_POS:" instead of "case FORMAT_POS:" because
@@ -179,10 +181,10 @@ static void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
              FntSetFont(displayPrefs->synonym.font);
              break;
          case (char) FORMAT_LIST : 
-             FntSetFont(displayPrefs->list.font);
+             FntSetFont(displayPrefs->defList.font);
              break;
          case (char) FORMAT_BIG_LIST : 
-             FntSetFont(displayPrefs->bigList.font);
+             FntSetFont(displayPrefs->posList.font);
              break;
          default:
              FntSetFont((FontID) 0x00);
@@ -190,7 +192,7 @@ static void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
      }
 }
 
-/*used in display*/
+/* used in display */
 void SetDrawParam(char type, DisplayPrefs *displayPrefs, AppContext * appContext)
 {
      // I use "case (char) FORMAT_POS:" instead of "case FORMAT_POS:" because
@@ -254,25 +256,25 @@ void SetDrawParam(char type, DisplayPrefs *displayPrefs, AppContext * appContext
                              appContext);
              break;
          case (char) FORMAT_LIST : 
-             FntSetFont(displayPrefs->list.font);
-             SetTextColorRGB(displayPrefs->list.colorR,
-                             displayPrefs->list.colorG,
-                             displayPrefs->list.colorB,
+             FntSetFont(displayPrefs->defList.font);
+             SetTextColorRGB(displayPrefs->defList.colorR,
+                             displayPrefs->defList.colorG,
+                             displayPrefs->defList.colorB,
                              appContext);
-             SetBackColorRGB(displayPrefs->list.bgcolR,
-                             displayPrefs->list.bgcolG,
-                             displayPrefs->list.bgcolB,
+             SetBackColorRGB(displayPrefs->defList.bgcolR,
+                             displayPrefs->defList.bgcolG,
+                             displayPrefs->defList.bgcolB,
                              appContext);
              break;
          case (char) FORMAT_BIG_LIST : 
-             FntSetFont(displayPrefs->bigList.font);
-             SetTextColorRGB(displayPrefs->bigList.colorR,
-                             displayPrefs->bigList.colorG,
-                             displayPrefs->bigList.colorB,
+             FntSetFont(displayPrefs->posList.font);
+             SetTextColorRGB(displayPrefs->posList.colorR,
+                             displayPrefs->posList.colorG,
+                             displayPrefs->posList.colorB,
                              appContext);
-             SetBackColorRGB(displayPrefs->bigList.bgcolR,
-                             displayPrefs->bigList.bgcolG,
-                             displayPrefs->bigList.bgcolB,
+             SetBackColorRGB(displayPrefs->posList.bgcolR,
+                             displayPrefs->posList.bgcolG,
+                             displayPrefs->posList.bgcolB,
                              appContext);
              break;
          default:
@@ -283,7 +285,6 @@ void SetDrawParam(char type, DisplayPrefs *displayPrefs, AppContext * appContext
      }
 }
 
-/**/
 static void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
 {
     RGBColorType rgb_color;
@@ -301,7 +302,7 @@ static void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
     *Binout = rgb_color.b;
 }
 
-/*Set color to draw buttons*/
+/* Set color to draw buttons */
 static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *displayPrefs,AppContext * appContext)
 {
     if(!back)
@@ -338,15 +339,15 @@ static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *display
                           appContext);
              break;                    
          case actTagList:
-             SetTextColorRGB(displayPrefs->list.colorR,
-                          displayPrefs->list.colorG,
-                          displayPrefs->list.colorB,
+             SetTextColorRGB(displayPrefs->defList.colorR,
+                          displayPrefs->defList.colorG,
+                          displayPrefs->defList.colorB,
                           appContext);
              break;                    
          case actTagBigList:
-             SetTextColorRGB(displayPrefs->bigList.colorR,
-                          displayPrefs->bigList.colorG,
-                          displayPrefs->bigList.colorB,
+             SetTextColorRGB(displayPrefs->posList.colorR,
+                          displayPrefs->posList.colorG,
+                          displayPrefs->posList.colorB,
                           appContext);
              break;                    
     }
@@ -384,21 +385,22 @@ static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *display
                           appContext);
              break;                    
          case actTagList:
-             SetTextColorRGB(displayPrefs->list.bgcolR,
-                          displayPrefs->list.bgcolG,
-                          displayPrefs->list.bgcolB,
+             SetTextColorRGB(displayPrefs->defList.bgcolR,
+                          displayPrefs->defList.bgcolG,
+                          displayPrefs->defList.bgcolB,
                           appContext);
              break;                    
          case actTagBigList:
-             SetTextColorRGB(displayPrefs->bigList.bgcolR,
-                          displayPrefs->bigList.bgcolG,
-                          displayPrefs->bigList.bgcolB,
+             SetTextColorRGB(displayPrefs->posList.bgcolR,
+                          displayPrefs->posList.bgcolG,
+                          displayPrefs->posList.bgcolB,
                           appContext);
              break;                    
     }
     
 }
-/*Draw color rectangles over the buttons */
+
+/* Draw color rectangles over the buttons */
 static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, AppContext *appContext)
 {
 /* Now we dont use Font button draw in current font... but we can do it here!*/
@@ -435,7 +437,7 @@ static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, App
 //    FntSetFont(prev_font);
 }
 
-/*Makes definition and draw it!*/
+/* Makes definition and draw it! */
 static void RedrawExampleDefinition(AppContext* appContext)
 {
     ExtensibleBuffer *Buf;
@@ -537,9 +539,9 @@ static void RedrawExampleDefinition(AppContext* appContext)
     ClearRectangle(DRAW_DI_X, 42, appContext->screenWidth, appContext->screenHeight-42-15);
     SetBackColorWhite(appContext);
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, 30+12, appContext->dispLinesCount);
-/**/
 }
-/*REDRAW FORM*/
+
+/* Redraw form */
 static Boolean DisplPrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
@@ -574,8 +576,8 @@ static Boolean DisplPrefFormDisplayChanged(AppContext* appContext, FormType* frm
     }
     return handled;
 }
-/*It has "NoahPro" in function name, but Thes also use it!!!*/
-Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
+
+Boolean DisplayPrefFormHandleEvent(EventType * event)
 {
     int  setColor = 0;
     ActualTag  actTag = 0;
@@ -665,10 +667,10 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
                             appContext->prefs.displayPrefs.synonym.font = FontSelect (appContext->prefs.displayPrefs.synonym.font);
                             break;                    
                         case actTagList:
-                            appContext->prefs.displayPrefs.list.font = FontSelect (appContext->prefs.displayPrefs.list.font);
+                            appContext->prefs.displayPrefs.defList.font = FontSelect (appContext->prefs.displayPrefs.defList.font);
                             break;                    
                         case actTagBigList:
-                            appContext->prefs.displayPrefs.bigList.font = FontSelect (appContext->prefs.displayPrefs.bigList.font);
+                            appContext->prefs.displayPrefs.posList.font = FontSelect (appContext->prefs.displayPrefs.posList.font);
                             break;                    
                     }
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
@@ -704,14 +706,14 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
                                             &appContext->prefs.displayPrefs.synonym.colorB);
                             break;                    
                         case actTagList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.list.colorR,
-                                            &appContext->prefs.displayPrefs.list.colorG,
-                                            &appContext->prefs.displayPrefs.list.colorB);
+                            RunColorSetForm(&appContext->prefs.displayPrefs.defList.colorR,
+                                            &appContext->prefs.displayPrefs.defList.colorG,
+                                            &appContext->prefs.displayPrefs.defList.colorB);
                             break;                    
                         case actTagBigList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.bigList.colorR,
-                                            &appContext->prefs.displayPrefs.bigList.colorG,
-                                            &appContext->prefs.displayPrefs.bigList.colorB);
+                            RunColorSetForm(&appContext->prefs.displayPrefs.posList.colorR,
+                                            &appContext->prefs.displayPrefs.posList.colorG,
+                                            &appContext->prefs.displayPrefs.posList.colorB);
                             break;                    
                     }
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
@@ -748,14 +750,14 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
                                             &appContext->prefs.displayPrefs.synonym.bgcolB);
                             break;                    
                         case actTagList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.list.bgcolR,
-                                            &appContext->prefs.displayPrefs.list.bgcolG,
-                                            &appContext->prefs.displayPrefs.list.bgcolB);
+                            RunColorSetForm(&appContext->prefs.displayPrefs.defList.bgcolR,
+                                            &appContext->prefs.displayPrefs.defList.bgcolG,
+                                            &appContext->prefs.displayPrefs.defList.bgcolB);
                             break;                    
                         case actTagBigList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.bigList.bgcolR,
-                                            &appContext->prefs.displayPrefs.bigList.bgcolG,
-                                            &appContext->prefs.displayPrefs.bigList.bgcolB);
+                            RunColorSetForm(&appContext->prefs.displayPrefs.posList.bgcolR,
+                                            &appContext->prefs.displayPrefs.posList.bgcolG,
+                                            &appContext->prefs.displayPrefs.posList.bgcolB);
                             break;                    
                     }
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
@@ -868,6 +870,7 @@ static int  CmpPos(char *pos1, char *pos2)
     }
     return(len1 - len2);
 }
+
 /*  Xchg AbcdEef -> EefAbcd   return updated offset2 */
 /*            |off1   |off2       |end2              */
 /*  before: abCdefghijKlmnopqrstuwXyz                */
@@ -904,6 +907,7 @@ static int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
     }
     return offset2;
 }
+
 /*  Sort buffer by text after 'FORMAT_TAG''FORMAT_POS'
     sort method - shake sort                            */
 Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
@@ -987,6 +991,7 @@ static void ebufDeletePos(ExtensibleBuffer *buf, int pos)
     while( IsTag(buf->data[pos],buf->data[pos+1])==0 && pos < buf->used)
         ebufDeleteChar(buf, pos);
 }
+
 //word is marked as synonym! and synonyms are marked as words!
 //we need to change it... and sort synonyms after definition and examples
 //also add "synonyms:" text (but not in thes.).
@@ -1033,6 +1038,7 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
         i = k+2;        
     }
 }
+
 //return true if format wants leading "word" before first "pos"
 Boolean FormatWantsWord(AppContext* appContext)
 {
@@ -1046,6 +1052,7 @@ Boolean FormatWantsWord(AppContext* appContext)
             return false;
     }
 }
+
 //format 1
 void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 {
@@ -1159,6 +1166,7 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     ebufInsertChar(buf, ':', j + 2);
     ebufInsertChar(buf, ' ', j + 3);
 }
+
 //format 2
 void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 {
@@ -1326,6 +1334,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
         }
     }
 }
+
 //from "extensible_buffer.c" cut lines on smaller ones
 void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start, AppContext* appContext)
 {
@@ -1483,8 +1492,8 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     }
     //find and set
     //previous TAG
-	if(firstLine > 0)
-	{    
+    if(firstLine > 0)
+    {    
         line = diGetLine(di, firstLine);
         if(IsTag(line[0],line[1])==0)   //no tag at the begining
         {

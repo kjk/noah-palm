@@ -31,8 +31,8 @@ typedef struct {
     DisplayElementPrefs definition;
     DisplayElementPrefs example;
     DisplayElementPrefs synonym;
-    DisplayElementPrefs list;
-    DisplayElementPrefs bigList;
+    DisplayElementPrefs defList;
+    DisplayElementPrefs posList;
 } DisplayPrefs;
 
 typedef enum {  //when displayed - reverse ordered !!!!
@@ -55,7 +55,7 @@ void SetDrawParam(char type, DisplayPrefs *displayPrefs,struct _AppContext * app
 void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolean onlyColor);
 
 Boolean FormatWantsWord(struct _AppContext *appContext);
-Boolean DisplayPrefFormHandleEventNoahPro(EventType * event);
+Boolean DisplayPrefFormHandleEvent(EventType * event);
 
 Boolean ShakeSortExtBuf(ExtensibleBuffer *buf);
 void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf);
