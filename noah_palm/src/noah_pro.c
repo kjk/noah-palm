@@ -489,7 +489,7 @@ void DisplayAboutNoahPro(void)
 #else
     dh_display_string("Ver 2.1 alpha", 2, 20);
 #endif
-    dh_display_string("(C) ArsLexis 2000-2002", 1, 24);
+    dh_display_string("(C) ArsLexis 2000-2003", 1, 24);
     /* dh_display_string("arslexis@pobox.com", 2, 20); */
 #ifdef DEMO
     dh_display_string("http://www.arslexis.com", 2, 20);

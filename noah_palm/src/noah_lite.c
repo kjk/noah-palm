@@ -93,7 +93,7 @@ void DisplayAboutNoahLite(void)
     dh_save_font();
     dh_display_string("Noah Lite", 2, 12);
     dh_display_string("Ver 0.7 beta", 2, 30);
-    dh_display_string("(C) ArsLexis", 1, 18);
+    dh_display_string("(C) 2000-2003 ArsLexis", 1, 18);
     dh_display_string("arslexis@pobox.com", 1, 20);
     dh_display_string("get Noah Pro at:", 2, 20);
     dh_display_string("http://www.arslexis.com", 2, 0);

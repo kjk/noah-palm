@@ -399,7 +399,7 @@ void DisplayAboutThes(void)
   #endif
 #endif
     FntSetFont((FontID) 1);
-    DrawCenteredString( "(C) ArsLexis", 58 + 8 - 17);
+    DrawCenteredString( "(C) 2000-2003 ArsLexis", 58 + 8 - 17);
     DrawCenteredString( "arslexis@pobox.com", 76 + 8 - 17);
     FntSetFont((FontID) 2);
     DrawCenteredString( "http://www.arslexis.com", 96 + 8 - 17);

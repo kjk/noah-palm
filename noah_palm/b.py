@@ -2,7 +2,7 @@
 #!/cygdrive/c/Python22/./python
 
 # Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
-# Copyright (C) 2002 Krzysztof Kowalczyk (krzysztofk@pobox.com)
+# Copyright (C) 2002-2003 Krzysztof Kowalczyk (krzysztofk@pobox.com)
 
 # Purpose: build system for Noah Pro, Noah Lite and Thesaurus
 # Generate makefile on the fly and then execute it. Can build debug
