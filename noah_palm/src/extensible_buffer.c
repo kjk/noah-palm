@@ -189,6 +189,25 @@ void ebufAddStr(ExtensibleBuffer * buf, char *str)
     ebufAddStrN(buf, str, StrLen(str));
 }
 
+//delete one char from buffer
+//we will not free memory!!!
+void ebufDeleteChar(ExtensibleBuffer *buf, int pos)
+{
+    if (pos > buf->used || pos < 0) 
+        return;
+    if (pos < buf->used - 1)
+        MemMove(&(buf->data[pos]), &(buf->data[pos+1]), buf->used - pos - 1);
+    buf->used--;
+}
+//insert string into buf[pos]
+void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos)
+{
+    int i;
+    i = StrLen(string) - 1;
+    for(; i >= 0; i--)
+        ebufInsertChar(buf, string[i], pos);
+}
+
 /*
   if a give line doesn't fit in one line on a display, wrap it
   into as many lines as needed
@@ -270,11 +289,11 @@ void ebufWrapBigLines(ExtensibleBuffer *buf)
     txt = ebufGetDataPointer(buf);
     len = ebufGetDataSize(buf);
 
-    if(GetDisplayListStyle(appContext)!=0)
+    if(appContext->prefs.displayPrefs.listStyle!=0)
     {
         ShakeSortExtBuf(buf);
-        Format1OnSortedBuf(GetDisplayListStyle(appContext), buf);
-        Format2OnSortedBuf(GetDisplayListStyle(appContext), buf);
+        Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
+        Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
         txt = ebufGetDataPointer(buf);
         len = ebufGetDataSize(buf);
     }    

@@ -205,6 +205,8 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         ++defRecord;
     }
 
+    ebufAddChar(&si->buffer, FORMAT_TAG);
+    ebufAddChar(&si->buffer, FORMAT_POS);
     ebufAddChar(&si->buffer, 149);
     ebufAddChar(&si->buffer, ' ');
 
@@ -217,6 +219,10 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     partOfSpeech = (posData[0] >> (2 * (wordNo % 4))) & 3;
     ebufAddStr(&si->buffer, GetWnPosTxt(partOfSpeech));
     ebufAddChar(&si->buffer, ' ');
+    
+    ebufAddChar(&si->buffer, FORMAT_TAG);
+    ebufAddChar(&si->buffer, FORMAT_WORD);
+    
     word = simple_get_word((void *) si, wordNo);
     ebufAddStr(&si->buffer, word);
     ebufAddChar(&si->buffer, '\n');
@@ -237,6 +243,9 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     si->curDefLen = unpackedLen;
     unpackedDef = si->curDefData;
     fsUnlockRecord(si->file, defRecord);
+
+    ebufAddChar(&si->buffer, FORMAT_TAG);
+    ebufAddChar(&si->buffer, FORMAT_DEFINITION);
 
     ebufAddStrN(&si->buffer, (char *) unpackedDef, unpackedLen);
     ebufAddChar(&si->buffer, '\0');

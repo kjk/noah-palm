@@ -967,9 +967,11 @@ ChooseDatabase:
             newValue = event->data.sclRepeat.newValue;
             if (newValue != appContext->firstDispLine)
             {
+                SetGlobalBackColor(appContext);            
                 ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H);
                 appContext->firstDispLine = newValue;
                 DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+                SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
             }
             handled = true;
             break;

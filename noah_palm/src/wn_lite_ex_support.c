@@ -314,6 +314,7 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     unsigned char   *defDataCopy = NULL;
     unsigned char   *unpackedDef = NULL;
     numIter         ni;
+    AppContext      *appContext = GetAppContext();
 
     wi = (WnLiteInfo *) data;
 
@@ -358,6 +359,15 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         return 1;
     }
 
+    if(FormatWantsWord(appContext))
+    {
+        ebufAddChar(&wi->buffer, FORMAT_TAG);
+        ebufAddChar(&wi->buffer, FORMAT_SYNONYM);
+        word = wnlex_get_word(wi, wordNo);
+        ebufAddStr(&wi->buffer, word);
+        ebufAddChar(&wi->buffer, '\n');
+    }
+
     currentSynset = 0;
     while (currentSynset < synsetsCount)
     {
@@ -369,6 +379,10 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         defData = (unsigned char *) fsLockRegion(wi->file, wi->synsets[currentSynset].record, wi->synsets[currentSynset].offset, defDataSize);
         Assert((defDataSize >= 4) && (defDataSize <= wi->maxComprDefLen));
         defDataCopy = defData;
+
+
+        ebufAddChar(&wi->buffer, FORMAT_TAG);
+        ebufAddChar(&wi->buffer, FORMAT_POS);
 
         ebufAddChar(&wi->buffer, 149);
         ebufAddChar(&wi->buffer, ' ');
@@ -396,6 +410,10 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
         ++defData;
         --defDataSize;
+
+        /*TODO: remove word from list of synonyms!!!*/
+        ebufAddChar(&wi->buffer, FORMAT_TAG);
+        ebufAddChar(&wi->buffer, FORMAT_WORD);
 
         /* read all words */
         do
@@ -441,10 +459,14 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
             if (1 == unpackedDef[0])
             {
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_DEFINITION);
                 ebufAddStr(&wi->buffer, " ");
             }
             else
             {
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_EXAMPLE);
                 ebufAddStr(&wi->buffer, " \"");
             }
 

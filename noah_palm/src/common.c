@@ -269,6 +269,50 @@ void SetTextColorRed(AppContext* appContext)
     SetTextColor( appContext, &rgb_color );
 
 }
+void SetBackColor(AppContext* appContext,RGBColorType *color)
+{
+    if ( GetOsVersion(appContext) >= 40 )
+    {
+        WinSetBackColorRGB (color, NULL);
+    }
+}
+void SetBackColorWhite(AppContext* appContext)
+{
+    RGBColorType rgb_color;
+
+    rgb_color.index = 0;
+    rgb_color.r = 255;
+    rgb_color.g = 255;
+    rgb_color.b = 255;
+    SetBackColor( appContext, &rgb_color );
+}
+void SetBackColorRGB(int r, int g, int b,AppContext* appContext)
+{
+    RGBColorType rgb_color;
+
+    rgb_color.r = r;
+    rgb_color.g = g;
+    rgb_color.b = b;
+    SetBackColor( appContext, &rgb_color );
+}
+void SetTextColorRGB(int r, int g, int b,AppContext* appContext)
+{
+    RGBColorType rgb_color;
+
+    rgb_color.r = r;
+    rgb_color.g = g;
+    rgb_color.b = b;
+    SetTextColor(appContext, &rgb_color );
+}
+void SetGlobalBackColor(AppContext* appContext)
+{
+    RGBColorType rgb_color;
+
+    rgb_color.r = appContext->prefs.displayPrefs.bgcolR;
+    rgb_color.g = appContext->prefs.displayPrefs.bgcolG;
+    rgb_color.b = appContext->prefs.displayPrefs.bgcolB;
+    SetBackColor( appContext, &rgb_color);
+}
 
 void HideScrollbar(void)
 {
@@ -363,6 +407,7 @@ static void RedrawWordDefinition(AppContext* appContext)
     MemSet(appContext->prefs.lastWord, 32, 0);
     MemMove(appContext->prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
 
+    SetBackColorWhite(appContext);
     DrawWord(word, appContext->screenHeight-FONT_DY);
     ClearDisplayRectangle(appContext);
     DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);

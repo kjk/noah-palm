@@ -403,9 +403,11 @@ static Boolean MainFormHandleEventNoahLite(EventType * event)
             newValue = event->data.sclRepeat.newValue;
             if (newValue != appContext->firstDispLine)
             {
+                SetGlobalBackColor(appContext);
                 ClearDisplayRectangle(appContext);
                 appContext->firstDispLine = newValue;
                 DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+                SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
             }
             handled = true;
             break;

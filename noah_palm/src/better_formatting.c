@@ -4,72 +4,13 @@
 */
 
 #include "common.h"
-#include "cw_defs.h"
-#include "mem_leak.h"
-#include "better_formatting.h"
 
 #ifdef NOAH_PRO
-#include "noah_pro.h"
 #include "noah_pro_2nd_segment.h"
-#include "noah_pro_rcp.h"
 #endif
 
-#ifdef NOAH_LITE
-#include "noah_lite.h"
-#include "noah_lite_rcp.h"
-#endif
-
-#ifdef THESAURUS
-#include "thes.h"
-#include "thes_rcp.h"
-#endif
-
-static void SetBackColor(RGBColorType *color,AppContext* appContext)
-{
-    if ( GetOsVersion(appContext) >= 40 )
-    {
-        WinSetBackColorRGB (color, NULL);
-    }
-}
-void SetBackColorWhite(AppContext* appContext)
-{
-    RGBColorType rgb_color;
-
-    rgb_color.index = 0;
-    rgb_color.r = 255;
-    rgb_color.g = 255;
-    rgb_color.b = 255;
-    SetBackColor( &rgb_color ,appContext);
-}
-void SetBackColorRGB(int r, int g, int b,AppContext* appContext)
-{
-    RGBColorType rgb_color;
-
-    rgb_color.r = r;
-    rgb_color.g = g;
-    rgb_color.b = b;
-    SetBackColor( &rgb_color ,appContext);
-}
-void SetTextColorRGB(int r, int g, int b,AppContext* appContext)
-{
-    RGBColorType rgb_color;
-
-    rgb_color.r = r;
-    rgb_color.g = g;
-    rgb_color.b = b;
-    SetTextColor(appContext, &rgb_color );
-}
-void SetGlobalBackColor(AppContext* appContext)
-{
-    RGBColorType rgb_color;
-
-    rgb_color.r = appContext->prefs.displayPrefs.bgcolR;
-    rgb_color.g = appContext->prefs.displayPrefs.bgcolG;
-    rgb_color.b = appContext->prefs.displayPrefs.bgcolB;
-    SetBackColor( &rgb_color ,appContext);
-}
 /*When we change global background we need to change all backgrounds to global background color*/
-void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
+static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
 {
     displayPrefs -> pos.bgcolR = displayPrefs -> bgcolR;
     displayPrefs -> pos.bgcolG = displayPrefs -> bgcolG;
@@ -195,7 +136,7 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
 }
 
 /*sets fonts (used in ebufWrapLine*/
-void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
+static void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
 {
      // I use "case (char) FORMAT_POS:" instead of "case FORMAT_POS:" because
      // FORMAT_POS is greater than 127 and we use signed char!!!
@@ -323,7 +264,7 @@ void SetDrawParam(char type, DisplayPrefs *displayPrefs, AppContext * appContext
 }
 
 /**/
-void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
+static void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
 {
     RGBColorType rgb_color;
 
@@ -341,7 +282,7 @@ void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
 }
 
 /*Set color to draw buttons*/
-void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *displayPrefs,AppContext * appContext)
+static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *displayPrefs,AppContext * appContext)
 {
     if(!back)
     switch(actTag)
@@ -438,7 +379,7 @@ void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *displayPrefs,A
     
 }
 /*Draw color rectangles over the buttons */
-void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, AppContext *appContext)
+static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, AppContext *appContext)
 {
 /* Now we dont use Font button draw in current font... but we can do it here!*/
 //    FontID prev_font;
@@ -475,7 +416,7 @@ void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, AppContext
 }
 
 /*Makes definition and draw it!*/
-void RedrawExampleDefinition(AppContext* appContext)
+static void RedrawExampleDefinition(AppContext* appContext)
 {
     ExtensibleBuffer *Buf;
     char *rawTxt;
@@ -631,7 +572,6 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
         case winDisplayChangedEvent:
                 DisplPrefFormDisplayChanged(appContext, frm);
                 actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                FrmDrawForm(FrmGetActiveForm());
                 SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
                 SetPopupLabel(frm, listActTag, popupActTag, actTag);
                 RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
@@ -856,7 +796,7 @@ Boolean DisplayPrefFormHandleEventNoahPro(EventType * event)
 }
 
 //return 1 if "ab" is tag else return 0
-int  IsTag(char a, char b)
+static int  IsTag(char a, char b)
 {
     if(a != (char)FORMAT_TAG)
         return 0;
@@ -878,7 +818,7 @@ int  IsTag(char a, char b)
 /*return:   r<0 if pos1 < pos2
             r=0 if pos1 = pos2
             r>0 if pos1 > pos2   */
-int  CmpPos(char *pos1, char *pos2)
+static int  CmpPos(char *pos1, char *pos2)
 {
     int i,len1,len2;
     
@@ -910,7 +850,7 @@ int  CmpPos(char *pos1, char *pos2)
 /*  before: abCdefghijKlmnopqrstuwXyz                */
 /*  after:  abKlmnopqrstuwCdefghijXyz                */
 /*                        |off2 - return             */
-int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
+static int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
 {
     int  i;
     char z;
@@ -1018,34 +958,16 @@ Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
     return ret;
 }
 
-//delete one char from buffer
-//we will not free memory!!!
-void ebufDeleteChar(ExtensibleBuffer *buf, int pos)
-{
-    if (pos > buf->used || pos < 0) 
-        return;
-    if (pos < buf->used - 1)
-        MemMove(&(buf->data[pos]), &(buf->data[pos+1]), buf->used - pos - 1);
-    buf->used--;
-}
 //delete all text until tag or EOB is reached
-void ebufDeletePos(ExtensibleBuffer *buf, int pos)
+static void ebufDeletePos(ExtensibleBuffer *buf, int pos)
 {
     while( IsTag(buf->data[pos],buf->data[pos+1])==0 && pos < buf->used)
         ebufDeleteChar(buf, pos);
 }
-//insert string into buf[pos]
-void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos)
-{
-    int i;
-    i = StrLen(string) - 1;
-    for(; i >= 0; i--)
-        ebufInsertChar(buf, string[i], pos);
-}
 //word is marked as synonym! and synonyms are marked as words!
 //we need to change it... and sort synonyms after definition and examples
 //also add "synonyms:" text (but not in thes.).
-void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
+static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
 {
     int  i, j, k;
 
@@ -1594,9 +1516,4 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     FntSetFont(prev_font);
     SetBackColorWhite(appContext);
     SetTextColorBlack(appContext);
-}
-/*to avoid putting "gd" to all modules...*/
-int GetDisplayListStyle(AppContext* appContext)
-{
-    return appContext->prefs.displayPrefs.listStyle;
 }

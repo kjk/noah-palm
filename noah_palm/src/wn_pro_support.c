@@ -1088,7 +1088,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                 Assert(unpackedLen >= 0);
             }
             //shakesort is natural sort method! if its sorted it's only =O(N)
-            if(GetDisplayListStyle(appContext)!=0)
+            if(appContext->prefs.displayPrefs.listStyle!=0)
                 if(ShakeSortExtBuf(&wi->buffer))
                 {
                     SetGlobalBackColor(appContext);

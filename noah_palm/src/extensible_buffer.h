@@ -34,5 +34,7 @@ void    ebufAddStrN(ExtensibleBuffer *buf, char *str, int strLen);
 void    ebufAddStr(ExtensibleBuffer *buf, char *str);
 //void    ebufWrapLine(ExtensibleBuffer *buf, int lineStart, int lineLen, int spacesAtStart, struct _AppContext * appContext);
 void    ebufWrapBigLines(ExtensibleBuffer *buf);
+void    ebufDeleteChar(ExtensibleBuffer *buf, int pos);
+void    ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos);
 
 #endif
