@@ -1,4 +1,6 @@
-* figure out why do I have fListDisabled and remove if not needed
+* cache the list of databases on CF in order to avoid rescaning the card (slow)
+* improve the way the word is displayed on the main form (use full length and
+  add "..." if doesn't fit fully)
 * restore/add word history to Thesaurus
 * register with PDA Green http://www.pdagreen.com/dev_apply.asp
 * thes prefs: last used db
@@ -67,6 +69,8 @@ bug:
 > > 
 > > Michael
 
+* [DONE 2003/06/30] (didn't figure out but removed) figure out why do I have
+  fListDisabled and remove if not needed
 * [DONE 2003/04/26] test caching in low memory scenario
 * [DONE 2003/04/26] bug np: VFS for wn pro doesn't work when we no longer have mem for 
   cache (newer was there in the first place?)

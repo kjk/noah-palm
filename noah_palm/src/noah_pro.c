@@ -1109,8 +1109,6 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                 SendFieldChanged();
             }
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
-            // CtlHideControlEx( frm, listMatching );
-            //gd.fListDisabled = true;
             FrmDrawForm(frm);
             handled = true;
             break;

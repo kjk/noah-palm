@@ -1141,7 +1141,6 @@ void LstSetSelectionMakeVisibleEx(ListType * list, long itemNo)
         }
         LstMakeItemVisible(list, itemNo - gd.listItemOffset);
         LstSetSelection(list, itemNo - gd.listItemOffset);
-        //CtlShowControlEx( FrmGetActiveForm(), listMatching );
         LstEraseList(list);
         LstDrawList(list);
         return;
@@ -1175,7 +1174,6 @@ void LstSetSelectionMakeVisibleEx(ListType * list, long itemNo)
     }
     LstSetSelection(list, itemNo - gd.listItemOffset);
     gd.prevTopItem = newTopItem;
-    //CtlShowControlEx( FrmGetActiveForm(), listMatching );
 }
 
 void CtlShowControlEx( FormType *frm, UInt16 objID)
@@ -1191,13 +1189,11 @@ void CtlHideControlEx( FormType *frm, UInt16 objID)
 void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char        *str;
-    Int16       stringWidthP = 80; /* max width of the string in the list selection window */
+    Int16       stringWidthP = 160; /* max width of the string in the list selection window */
     Int16       stringLenP;
     Boolean     truncatedP = false;
     long        realItemNo;
 
-    //if ( gd.fListDisabled )
-    //    return;
     Assert(itemNum >= 0);
     realItemNo = gd.listItemOffset + itemNum;
     Assert((realItemNo >= 0) && (realItemNo < gd.wordsCount));
@@ -1575,7 +1571,6 @@ void DoFieldChanged(void)
     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
     word = FldGetTextPtr(fld);
     /* DrawWord( word, 149 ); */
-    //gd.fListDisabled = false;
     newSelectedWord = 0;
     if (word && *word)
     {

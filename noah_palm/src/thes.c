@@ -923,30 +923,6 @@ ChooseDatabase:
 
 #define WORDS_IN_LIST 15
 
-void RememberLastWord(FormType * frm)
-{
-    char *word = NULL;
-    int wordLen;
-    FieldType *fld;
-
-    Assert(frm);
-
-    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
-#if 0
-    MemSet((void *) &(gd.prefs.lastWord[0]), wordHistory, 0);
-#endif
-    word = FldGetTextPtr(fld);
-    wordLen = FldGetTextLength(fld);
-#if 0
-    if (wordLen >= (wordHistory - 1))
-    {
-        wordLen = wordHistory - 1;
-    }
-#endif
-    MemMove((void *) &(gd.lastWord[0]), word, wordLen);
-    FldDelete(fld, 0, wordLen - 1);
-}
-
 Boolean FindFormHandleEventThes(EventType * event)
 {
     Boolean handled = false;
