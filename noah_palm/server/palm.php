@@ -351,7 +351,7 @@ if ( isset($HTTP_GET_VARS['register']) )
     serve_register($reg_code);
 }
 
-if ( isset($HTTP_GET_VAR['get_random_word'] ) )
+if ( isset($HTTP_GET_VARS['get_random_word'] ) )
 {
     $get_random_word = $HTTP_GET_VARS['get_random_word'];
     if ($get_random_word != "")
