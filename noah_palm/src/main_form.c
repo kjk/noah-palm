@@ -368,6 +368,8 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
     Boolean     handled=false;
     FormType*   form=FrmGetFormPtr(formRegistration);
     UInt16      index;
+    char *      regCode;
+    AppContext* appContext=GetAppContext();
 
     switch (event->eType)
     {
@@ -377,6 +379,15 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
                 index=FrmGetObjectIndex(form, fieldRegCode);
                 Assert(frmInvalidObjectId!=index);
                 FrmSetFocus(form, index);
+                FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+                Assert(field);
+
+                regCode = (char*)appContext->prefs.regCode;
+                if (StrLen(regCode)>0)
+                {
+                    FldClearInsert(form, fieldRegCode, regCode);
+                    FldSelectAllText(field);
+                }
             }
             handled = true;
             break;
@@ -395,7 +406,17 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
     return handled;
 }
 
-static void MainFormHandleRegister(AppContext* appContext)
+// Show a registration dialog where a user enters registration number.
+// if fDeleteAfterCancel is set to true, we'll remove the registration number
+// from preferences. We want this behavior if "re-enter registration code" was
+// pressed after registration process failed (this was an invalid registration code
+// so we don't want the client to send it to the server -> so we erase it).
+// If this dialog was brought by "Register" menu item, then we don't want to
+// touch the registration code (we assume it's correct)
+// TODO: maybe if we're called from "Register" menu and registartion code
+// is already present (i.e. valid) we should make it harder to edit it by accident
+// (e.g. make it read only until user makes some action like pressing a "edit" button)
+static void MainFormHandleRegister(AppContext* appContext, bool fDeleteAfterCancel)
 {
     FormType* form=FrmInitForm(formRegistration);
     if (!form)
@@ -408,7 +429,14 @@ static void MainFormHandleRegister(AppContext* appContext)
     FrmSetEventHandler(form, RegistrationFormHandleEvent);
     UInt16 button=FrmDoDialog(form);
     if (buttonRegister!=button)
+    {
+        if (fDeleteAfterCancel)
+        {
+            appContext->prefs.regCode[0] = '\0';
+            SavePreferencesInoah(appContext);
+        }
         goto Exit;
+    }
 
     UInt16 index=FrmGetObjectIndex(form, fieldRegCode);
     Assert(frmInvalidObjectId!=index);
@@ -490,7 +518,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             break;        
 
         case menuItemRegister:
-            MainFormHandleRegister(appContext);
+            MainFormHandleRegister(appContext,false);
             handled=true;
             break;
 
@@ -577,7 +605,7 @@ static void MainFormHandleWrongRegCode(AppContext *appContext)
     }
     Assert(1==buttonId);
     // this must be "Re-enter registration code" button
-    MainFormHandleRegister(appContext);
+    MainFormHandleRegister(appContext,true);
 }
 
 static Boolean MainFormHandleEvent(EventType* event)
