@@ -382,6 +382,7 @@ void DisplayHelp(AppContext* appContext)
     diSetRawTxt(appContext->currDispInfo, rawTxt);
     appContext->firstDispLine = 0;
     ClearDisplayRectangle(appContext);
+    cbNoSelection(appContext);    
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
 }

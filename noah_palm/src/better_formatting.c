@@ -637,6 +637,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                 return true;
             break;
         case frmOpenEvent:
+            cbNoSelection(appContext);
             InitOldDisplayPrefs(appContext);
             CopyParamsFromTo(&appContext->prefs.displayPrefs, appContext->ptrOldDisplayPrefs);    
             FrmDrawForm(FrmGetActiveForm());

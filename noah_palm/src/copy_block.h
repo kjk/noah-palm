@@ -7,9 +7,16 @@
 #define _COPY_BLOCK_H_
 
 /**
- * Max no of text lines displayed at once (set it)
+ * Max no of text lines displayed at once (set it!) 
+ * (in sony it will be 20 but safety set it 30)
  */
-#define CB_MAX_DISPLAY_LINES  40
+#define CB_MAX_DISPLAY_LINES  30    
+/**
+ * No of pixels. 
+ * When screenY < CB_SCROLL_UP_DY+DRAW_DI_Y 
+ *     then scrollUp screen (only if pen is selecting)
+ */
+#define CB_SCROLL_UP_DY       2
 
 Boolean cbCopyToClippboard(struct _AppContext *appContext);
 Boolean cbPenDownEvent(struct _AppContext *appContext, Int16 screenX, Int16 screenY);
@@ -17,16 +24,16 @@ Boolean cbPenUpEvent(struct _AppContext *appContext, Int16 screenX, Int16 screen
 Boolean cbPenMoveEvent(struct _AppContext *appContext, Int16 screenX, Int16 screenY);
 
 void cbInvertSelection(struct _AppContext *appContext);
-void cdNoSelection(struct _AppContext *appContext);
+void cbNoSelection(struct _AppContext *appContext);
 
 /**
  * States of selection
  */
 typedef enum {
-    noSelection = 0,
-    wasPenDown,
-    isSelection,
-    onceAgain    
+    cbNothingSelected = 0,
+    cbWasPenDown,
+    cbIsSelection,
+    cbOnceAgain    
 } cbState;
 
 /**
@@ -57,7 +64,8 @@ typedef struct _CopyBlock{
     Int16   nextDy[CB_MAX_DISPLAY_LINES + 1];   
     char    firstTag;                   //to store format of first displayed line
     char    actTag;                     //format of actPosition char
-        
+    
+    long    wordNoOld;    
 } CopyBlock;
 
 #endif

@@ -8,16 +8,16 @@
 #include "common.h"
 
 /**
- *  Remove it if you want to se how it works :)
+ *  Remove '//' if you want to work without selection
  */
-#define DONT_DO_COPY_WORD_DEFINITION 1
+//#define DONT_DO_COPY_WORD_DEFINITION 1
 
 /**
  *  Set no selection! Use it if you change word, or display settings!
  */
-void cdNoSelection(struct _AppContext *appContext)
+void cbNoSelection(struct _AppContext *appContext)
 {
-        appContext->copyBlock.state = noSelection;
+        appContext->copyBlock.state = cbNothingSelected;
         appContext->copyBlock.startClick.dx = 0;
         appContext->copyBlock.startClick.lineNo = 0;
         appContext->copyBlock.startClick.charNo = 0;
@@ -40,7 +40,7 @@ Boolean cbCopyToClippboard(AppContext *appContext)
 #ifdef DONT_DO_COPY_WORD_DEFINITION
     return false;
 #endif
-    if(appContext->copyBlock.state == noSelection || appContext->copyBlock.state == wasPenDown)
+    if(appContext->copyBlock.state == cbNothingSelected || appContext->copyBlock.state == cbWasPenDown)
         return false;
 
     Assert(appContext->currDispInfo);
@@ -80,6 +80,95 @@ Boolean cbCopyToClippboard(AppContext *appContext)
     ClipboardAddItem(clipboardText, defTxt, defTxtLen);
     ebufFreeData(&clipboardBuf);
     return true;    
+}
+
+/**
+ *  Try to translate word.
+ */
+static Boolean cbTryWord(AppContext* appContext, char *wordInput)
+{
+    char        txt[WORD_MAX_LEN+1];
+    char *      word;
+    UInt32      wordNo;
+    int         idx;
+    UInt16      itemLen;
+
+    MemSet(txt, sizeof(txt), 0);
+    itemLen = (StrLen(wordInput) < sizeof(txt)-1) ? StrLen(wordInput) : sizeof(txt)-1;
+    MemMove(txt, wordInput, itemLen);
+
+#ifndef NOAH_LITE
+    strtolower(txt);
+    RemoveWhiteSpaces( txt );
+#endif
+
+    idx = 0;
+    while (txt[idx] && (txt[idx] == ' '))
+        ++idx;
+
+    wordNo = dictGetFirstMatching(GetCurrentFile(appContext), txt);
+    word = dictGetWord(GetCurrentFile(appContext), wordNo);
+
+    if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
+    {
+        DrawDescription(appContext, wordNo);
+        return true;
+    }
+    else
+    {
+        MemMove(appContext->lastWord, word, StrLen(word));
+        FrmPopupForm(formDictFind);
+        return true;
+    }
+    return false;
+}
+
+/**
+ *  Gets word from selection. Then run cbTryWord().
+ */
+static void cbGetWordFromSelectionAndTranslate(AppContext *appContext,cbSelectionPoint *start,cbSelectionPoint *stop)
+{
+    ExtensibleBuffer eBuf;
+    int              i, j, m, n, k;
+    char *           defTxt;
+
+    Assert(appContext->currDispInfo);
+    ebufInit(&eBuf,256);
+
+    m = start->lineNo;
+    n = stop->lineNo;
+
+    while(m <= n)
+    {
+        defTxt = diGetLine(appContext->currDispInfo, m);
+
+        if(m == start->lineNo)
+            i = start->charNo;
+        else
+            i = 0;    
+
+        if(m == n)
+            j = stop->charNo;
+        else
+            j = StrLen(defTxt);
+            
+        for(k = i; k < j; k++)
+            ebufAddChar(&eBuf, defTxt[k]);
+        
+        if(m != n)
+            ebufAddChar(&eBuf, '\n');
+            
+        m++;
+    }
+    ebufAddChar(&eBuf, '\0');
+
+    //remove all display formating tags
+    bfStripBufferFromTags(&eBuf);
+    defTxt = ebufGetDataPointer(&eBuf);
+
+    cbTryWord(appContext, defTxt);
+    ebufFreeData(&eBuf);
+    return;    
 }
 
 /**
@@ -357,11 +446,11 @@ static void cbSetLRonActWord(AppContext *appContext)
     FntSetFont(prev_font);
 }
 /**
- *  Return true if left == oldLeft && right == oldRight && state == isSelection
+ *  Return true if left == oldLeft && right == oldRight && state == cbIsSelection
  */
 static Boolean cbIsThatAgainThatWord(AppContext *appContext)
 {
-    if(appContext->copyBlock.state != isSelection)
+    if(appContext->copyBlock.state != cbIsSelection)
         return false;
     if(appContext->copyBlock.left.lineNo != appContext->copyBlock.oldLeft.lineNo)
         return false;
@@ -412,7 +501,6 @@ static void cbSetLRonActAndStart(AppContext *appContext)
 Boolean cbPenDownEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
 {
 
-
 #ifdef DONT_DO_COPY_WORD_DEFINITION
     return false;
 #endif
@@ -429,11 +517,11 @@ Boolean cbPenDownEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
             {
                 if(cbIsLNotEqualR(appContext))
                 {
-                    appContext->copyBlock.state = onceAgain;
+                    appContext->copyBlock.state = cbOnceAgain;
                     cbInvertSelection(appContext);
                 }
                 else
-                    appContext->copyBlock.state = wasPenDown;
+                    appContext->copyBlock.state = cbWasPenDown;
             }
             else
             {
@@ -441,7 +529,7 @@ Boolean cbPenDownEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
                 appContext->copyBlock.right = appContext->copyBlock.actPosition;
                 appContext->copyBlock.oldLeft = appContext->copyBlock.actPosition;
                 appContext->copyBlock.oldRight = appContext->copyBlock.actPosition;
-                appContext->copyBlock.state = wasPenDown;
+                appContext->copyBlock.state = cbWasPenDown;
             }             
         }   
         else
@@ -449,11 +537,11 @@ Boolean cbPenDownEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
             cbSetLRonActWord(appContext);
             if(cbIsLNotEqualR(appContext))
             {
-                appContext->copyBlock.state = isSelection;
+                appContext->copyBlock.state = cbIsSelection;
                 cbInvertSelection(appContext);
             }    
             else
-                appContext->copyBlock.state = wasPenDown;
+                appContext->copyBlock.state = cbWasPenDown;
         } 
     }
     else
@@ -461,7 +549,7 @@ Boolean cbPenDownEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
         appContext->copyBlock.left = appContext->copyBlock.actPosition;
         appContext->copyBlock.right = appContext->copyBlock.actPosition;
         appContext->copyBlock.startClick = appContext->copyBlock.actPosition;
-        appContext->copyBlock.state = wasPenDown;
+        appContext->copyBlock.state = cbWasPenDown;
     }
     return true;    
 }
@@ -475,29 +563,28 @@ Boolean cbPenUpEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
 {
     cbSelectionPoint start,stop;
 
-
 #ifdef DONT_DO_COPY_WORD_DEFINITION
     return false;
 #endif
 
-    if(appContext->copyBlock.state == noSelection)
+    if(appContext->copyBlock.state == cbNothingSelected)
         return true;
 
-    if(appContext->copyBlock.state == onceAgain)
+    if(appContext->copyBlock.state == cbOnceAgain)
     {
         cbInvertSelection(appContext);
         start = appContext->copyBlock.left;
         stop = appContext->copyBlock.right;
 
-        cdNoSelection(appContext);
+        cbNoSelection(appContext);
         
         //TODO: translate selected word!!!
-
+        cbGetWordFromSelectionAndTranslate(appContext, &start, &stop);
 
         return true;
     }
     
-    if(appContext->copyBlock.state == isSelection)
+    if(appContext->copyBlock.state == cbIsSelection)
     {
         appContext->copyBlock.oldLeft = appContext->copyBlock.left;
         appContext->copyBlock.oldRight = appContext->copyBlock.right;
@@ -505,7 +592,7 @@ Boolean cbPenUpEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
     else
     {
         cbInvertSelection(appContext);
-        cdNoSelection(appContext);
+        cbNoSelection(appContext);
     }
     return true;    
 }
@@ -517,31 +604,37 @@ Boolean cbPenUpEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
  */
 Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
 {
+
 #ifdef DONT_DO_COPY_WORD_DEFINITION
     return false;
 #endif
 
-    if(appContext->copyBlock.state == noSelection)
+    if(appContext->copyBlock.state == cbNothingSelected)
         return true;
+
+    if(screenY > appContext->copyBlock.nextDy[appContext->lastDispLine - appContext->firstDispLine + 1]
+        &&  appContext->lastDispLine+1 < appContext->currDispInfo->linesCount)
+    {
+        DefScrollDown(appContext, scrollLine);
+    }
+    
+    if(screenY < appContext->copyBlock.nextDy[0] + CB_SCROLL_UP_DY 
+        &&  appContext->firstDispLine > 0)
+    {
+        DefScrollUp(appContext, scrollLine);
+    }    
 
     cbInvertSelection(appContext);
     cbIsTextHitted(appContext, screenX, screenY);
     
-//    if(cbIsActNotEqualStart(appContext))
+    cbSetLRonActAndStart(appContext);
+    if(cbIsLNotEqualR(appContext))
     {
-        cbSetLRonActAndStart(appContext);
-        if(cbIsLNotEqualR(appContext))
-        {
-            appContext->copyBlock.state = isSelection;
-            cbInvertSelection(appContext);
-        }
-    }    
-        return true;    
+        appContext->copyBlock.state = cbIsSelection;
+        cbInvertSelection(appContext);
+    }
+    return true;    
 }
-
-
-
-
 
 /**
  * Inverts selection from left to right
@@ -554,8 +647,16 @@ void cbInvertSelection(AppContext *appContext)
 #ifdef DONT_DO_COPY_WORD_DEFINITION
     return;
 #endif
+
+    if(appContext->currentWord != appContext->copyBlock.wordNoOld)
+    {
+        appContext->copyBlock.wordNoOld = appContext->currentWord;
+        cbNoSelection(appContext);
+        return;
+    }
+
     //nothing selected 
-    if(appContext->copyBlock.state == noSelection || appContext->copyBlock.state == wasPenDown)
+    if(appContext->copyBlock.state == cbNothingSelected || appContext->copyBlock.state == cbWasPenDown)
         return;
 
     //if not in display area
@@ -608,6 +709,3 @@ void cbInvertSelection(AppContext *appContext)
         }        
     }
 }
-
-
-
