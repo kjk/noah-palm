@@ -58,7 +58,7 @@ protected:
     ExtensibleBuffer _currLineData;
 public:
     HttpResponseIterator(char *data, int dataSize);
-    HttpResponseIterator();
+    ~HttpResponseIterator();
     void    reset();
     HTTPErr getNextHttpLine(char **line, int *lineSize);
     char *  getRest(int *restSize);
@@ -82,7 +82,7 @@ HttpResponseIterator::HttpResponseIterator(char *data, int dataSize)
     ebufInit(&_currLineData, 0);
 }
 
-HttpResponseIterator::HttpResponseIterator()
+HttpResponseIterator::~HttpResponseIterator()
 {
     ebufFreeData( &_currLineData );
 }

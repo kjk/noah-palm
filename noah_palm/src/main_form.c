@@ -109,7 +109,17 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
             Err error=LookupWord(appContext, newWord);
             FldSelectAllText(field);
             if (!error)
+            {
+                FrmHideObject(form, index);
+                appContext->mainFormMode=mainFormShowingWord;
                 FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
+            }                
+        }
+        else
+        {
+            FrmHideObject(form, index);
+            appContext->mainFormMode=mainFormShowingWord;
+            DrawWord((Char*)newWord, appContext->screenHeight-FONT_DY);
         }
     }
 }
@@ -133,16 +143,12 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
 static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* event)
 {
     UInt16 index;
-    //    Err error=errNone;
     MainFormDraw(appContext, form);
 
     appContext->mainFormMode=mainFormShowingField;
     index=FrmGetObjectIndex(form, fieldWordInput);
     FrmSetFocus(form, index);
 
-//    error=LookupWord(appContext, "art");
-//    if (!error)
-//        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
     return true;
 }
 

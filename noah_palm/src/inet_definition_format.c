@@ -34,8 +34,8 @@ static Err ConvertSynonymsBlock(AppContext* appContext, const Char* word, const 
         const Char* synBegin=begin+1;
         if (synBegin<end) 
         {  
-            const Char* synEnd=StrFind(synBegin, end, "!");
-            begin=synEnd;
+            const Char* synEnd=StrFind(synBegin, end, "\r\n!");
+            begin=synEnd+2;
             StrTrimTail(synBegin, &synEnd);
             if (synBegin<synEnd)
             {
@@ -80,6 +80,13 @@ static Err ConvertDefinitionBlock(const Char* begin, const Char* end, Extensible
         if (defBegin<end)
         {
             const Char* defEnd=StrFindOneOf(defBegin, end, "@#");
+            while (defEnd<end)
+            {
+                if (0==StrNCmp(defEnd-2, "\r\n", 2))
+                    break;
+                else                    
+                    defEnd=StrFindOneOf(defEnd+1, end, "@#");
+            }
             begin=defEnd;
             StrTrimTail(defBegin, &defEnd);
             if (defBegin<defEnd)
@@ -124,10 +131,10 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     begin=StrFind(begin, end, "!");
     while (begin<end)
     {
-        const Char* partBlock=StrFind(begin, end, "$");
+        const Char* partBlock=StrFind(begin, end, "\r\n$");
         if (partBlock<end)
         {
-            const Char* partOfSpeech=partBlock+1;
+            const Char* partOfSpeech=(partBlock+=2)+1;
             if (partOfSpeech<end)
             {
                 error=ExpandPartOfSpeechSymbol(*partOfSpeech, &partOfSpeech);
@@ -142,9 +149,17 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
                     if (!error)
                     {
                         const Char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
+                        while (defBlock<end)
+                        {
+                            if (0==StrNCmp(defBlock-2, "\r\n", 2))
+                                break;
+                            else                    
+                                defBlock=StrFindOneOf(defBlock+1, end, "@#");
+                        }
                         if (defBlock<end)
                         {
-                            begin=StrFind(defBlock, end, "!");
+                            begin=StrFind(defBlock, end, "\r\n!");
+                            if (begin<end) begin+=2;
                             error=ConvertDefinitionBlock(defBlock, begin, out);
                             if (error)
                                 break;
@@ -184,6 +199,7 @@ Err PrepareDisplayInfo(AppContext* appContext, const Char* word, const Char* res
         if (appContext->currDispInfo)
         {
             ebufAddChar(&buffer, chrNull);
+            ebufWrapBigLines(&buffer);
             ebufSwap(&buffer, &appContext->currentDefinition);
             diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
             ebufResetWithStr(&appContext->currentWord, (Char*)word);
