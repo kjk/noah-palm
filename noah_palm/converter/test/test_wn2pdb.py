@@ -87,8 +87,13 @@ class Wn2PdbTest(unittest.TestCase):
         compressionTwo = self._testCompressionWithCompressor(comp,lines)
         print "compressed size for CompInfoGenWeak : %d" % compressionTwo[1]
 
+        comp = wn2pdb.CompInfoGenNew(lines)
+        compressionFour = self._testCompressionWithCompressor(comp,lines)
+        print "compressed size for CompInfoGenNew : %d" % compressionFour[1]
+
         assert compressionOne[0] == compressionTwo[0]
         assert compressionTwo[0] == compressionThree[0]
+        assert compressionThree[0] == compressionFour[0]
 
 def getLinesFromFile():
     fileName = os.path.join("..", "wn2pdb.py")

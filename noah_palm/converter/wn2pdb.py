@@ -265,7 +265,7 @@ class StringCompressor:
 
     def buildCompressTable(self,packStrings):
         """given an array of pack strings build a table for fast compression"""
-        print packStrings
+        #print packStrings
         table = {}
         code = 0
         for str in packStrings:
@@ -716,21 +716,44 @@ def _getStrFromCodes(codes,s):
             break
         s = tmp
         prevLen = len(s)
-        print s
     return tmp
+
+def _codeStringByCodeTable(txt,codeTable):
+    strOutAsList = [codeTable[ord(c)] for c in txt]
+    strOut = string.join(strOutAsList,"")
+    return strOut
+
+def _decodeStringByCodeTable(txt,codeTable):
+    try:
+        strOutAsList = [chr(codeTable.index(c)) for c in txt]
+    except ValueError:
+        print "txt = %s, c=%s" % (txt,c)
+        raise ValueError, "list.index(x): x not in list"
+    return string.join(strOutAsList, "")
+
+def _testCodeTable():
+    testStrings = ["ab", "rubra", "genoatara", "hello", "this is a test string"]
+    codeTable = [None for t in range(256)]
+    code = 0
+    for s in testStrings:
+        for c in s:
+            if codeTable[ord(c)] == None:
+                codeTable[ord(c)] = chr(code)
+                code += 1
+    codedStrings = [_codeStringByCodeTable(s,codeTable) for s in testStrings]
+    decodedStrings = [_decodeStringByCodeTable(s,codeTable) for s in codedStrings]
+    for (orig,decoded) in zip(testStrings,decodedStrings):
+        #print "orig: %s" % orig
+        #print "deco: %s" % decoded
+        assert orig == decoded
 
 class CompInfoGenNew:
     """Given a list of strings, generate compression info (packStrings). This
-    should be identical to the way original lisp version works"""
+    is slow but should be the most efficient version."""
     def __init__(self,strList):
         self.strList = strList
         self.reservedCodes = 32
 
-# UNDONE: THIS IS BROKEN. It should be:
-# - build freq for original strings
-# - get all used chars and encode them
-# - encode original strings using those codes
-# - do the same using encoded strings
     def buildPackStrings(self):
         freqTable = Freq(256,256)
         strList = self.strList
@@ -742,11 +765,23 @@ class CompInfoGenNew:
                 assert packStrings.count(chr(v)) == 0
                 packStrings.append(chr(v))
         currCode = len(packStrings)
+
+        codeTable = [None for t in range(256)]
+        code = 0
+        for c in packStrings:
+            assert len(c) == 1
+            codeTable[ord(c)] = chr(code)
+            code += 1
+        assert code == currCode
+        strList = [_codeStringByCodeTable(s,codeTable) for s in strList]
+        freqTable.buildFreqForStrings(strList)
         pairs = []
+        sys.stdout.write("found code: ")
         while True:
             flist = freqTable.getMostFrequent(1)
             codeStr = flist[0][1]
-            print "code = %d, code string: %s" % (currCode,codeStr)
+            #print "code = %d, code string: %s" % (currCode,_decodeStringByCodeTable(codeStr,codeTable))
+            sys.stdout.write( "%d, " % currCode )
             pairs.append( (codeStr,currCode) )
             replaceChar = chr(currCode)
             strList = [s.replace(codeStr,replaceChar) for s in strList]
@@ -756,15 +791,17 @@ class CompInfoGenNew:
             assert currCode < 256
             freqTable.buildFreqForStrings(strList)
         codes = [None for t in range(256)]
+        sys.stdout.write( "\nstrCode: " )
         for p in pairs:
             strPair = p[0]
             code = p[1]
             codes[code] = strPair
             strCode = _getStrFromCodes(codes,strPair)
-            print "strCode: %s" % strCode
+            strCode = _decodeStringByCodeTable(strCode,codeTable)
+            sys.stdout.write( "'%s', " % strCode)
             packStrings.append(strCode)
         sortStringsByLen(packStrings)
-        print packStrings
+        #print packStrings
         return packStrings
 
 class CompInfoGenOrig:
@@ -897,6 +934,7 @@ class CompInfoGenOrig:
 def buildStringCompressor(strList):
     """Given a list of strings, build compressor object optimal for compressing
     those strings"""
+    #_testCodeTable()
     #ft = CompInfoGenWeak(strList)
     #ft = CompInfoGen(strList)
     #ft = CompInfoGenOrig(strList)
