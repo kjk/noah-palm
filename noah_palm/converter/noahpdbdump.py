@@ -41,6 +41,47 @@ wnProFirstRecDef = ["wordsCount", "L",
                "bytesPerWordNum", "H",
                "maxWordsPerSynset", "H"]
 
+#format of the first record of the wn lite dictionary data
+#typedef struct
+#{
+#    long    wordsCount;
+#    long    synsetsCount;
+#    int     synsetDefLenRecordsCount;
+#    int     wordsInfoRecordsCount;
+#    int     wordsRecordsCount;
+#    int     synsetDefRecordsCount;
+#    int     maxWordLen;
+#    int     maxDefLen;
+#    int     maxComprDefLen;
+#    int     maxSynsetsForWord;
+#    long    firstLemmaInWordInfoRec; // this is really an array with wordsInfoRecordsCount+1 entries
+#} WnLiteFirstRecord;
+wnLiteFirstRecDef =  [
+               "wordsCount", "L",
+               "synsetsCount", "L",
+               "synsetDefLenRecordsCount", "H",
+               "wordsInfoRecordsCount", "H",
+               "wordsRecordsCount", "H",
+               "synsetDefRecordsCount", "H",
+               "maxWordLen", "H",
+               "maxDefLen", "H",
+               "maxComprDefLen", "H",
+               "maxSynsetsForWord", "H" ]
+#               "firstLemmaInWordInfoRec", "L"]
+
+wnLiteFirstRecDefPost065 =  [
+               "synsetsCount", "L",
+               "wordsCount", "L",
+               "wordsInfoRecordsCount", "H",
+               "synsetDefLenRecordsCount", "H",
+               "synsetDefRecordsCount", "H",
+               "wordsRecordsCount", "H",
+               "maxDefLen", "H",
+               "maxWordLen", "H",
+               "maxSynsetsForWord", "H",
+               "maxComprDefLen", "H"]
+#               "firstLemmaInWordInfoRec", "L"]
+
 # format of the pdb with simple dictionary data
 #  0  4 long wordsCount
 #  4  2 int  wordsRecsCount   - number of records with compressed words
@@ -90,6 +131,22 @@ def _extractWnProFirstRecordData(data):
             unpackedTuple = struct.unpack(">LL",packedEntry)
             synCache.append(unpackedTuple)
     return (firstRec,synCache)
+
+def _extractWnLiteFirstRecordData(data):
+    #print "len(data) = %d" % len(data)
+    fmt = structhelper.GetFmtFromMetadata(wnLiteFirstRecDef)
+    assert 24 == struct.calcsize(fmt)
+    hdrData = data[:24]
+    firstRec = structhelper.UnpackDataUsingFmt(wnLiteFirstRecDef,hdrData,fmt)
+    #print firstRec
+    restData = data[24:]
+    wordsInfoRecordsCount = firstRec["wordsInfoRecordsCount"]
+    #print "wordsInfoRecordsCount = %d" % wordsInfoRecordsCount
+    restDataRecLen = 4*wordsInfoRecordsCount
+    #print "len(restData)  = %d" % len(restData)
+    #print "restDataRecLen = %d" % restDataRecLen
+    assert len(restData) == restDataRecLen
+    return (firstRec,restData)
 
 def _extractBigEndianInt(data):
     i = struct.unpack(">H",data[0:2])
@@ -183,7 +240,10 @@ def _dumpWnProData(db):
     _dumpRecWithPackStrings(db.records[3].data)
 
 def _dumpWnLiteData(db):
-    pass
+    firstRecData = db.records[0].data
+    firstRec = _extractWnLiteFirstRecordData(firstRecData)
+    for name in structhelper.iterlist(wnLiteFirstRecDef,step=2):
+        print "%s: %d" % (name, firstRec[name])
 
 def _dumpWordCacheRecord(recData):
     size = len(recData)

@@ -26,8 +26,6 @@ static void numIterUnlockRecord(AbstractFile* file, numIter * ni, int record);
 static long numIterGetNextNumber(AbstractFile* file, numIter * ni,  int *lastNumberP);
 static void numIterSkipNumbers(AbstractFile* file, numIter * ni,  long numCount,  long *firstLemmaInRecord);
 
-//static ExtensibleBuffer g_buf = { 0 };
-
 void wnlex_delete(void *data)
 {
     WnLiteInfo *wi= (WnLiteInfo *) data;
@@ -79,6 +77,7 @@ void *wnlex_new(AbstractFile* file)
     wi->file=file;
     wi->recordsCount = fsGetRecordsCount(file);
     LogV1("wnlex_new(), recs count=%ld", (long)wi->recordsCount);
+
     wi->wordsCount = firstRecord->wordsCount;
     wi->synsetsCount = firstRecord->synsetsCount;
     wi->wordsRecordsCount = firstRecord->wordsRecordsCount;

@@ -20,21 +20,24 @@
 /**
  *  Remove '//' if you want to work without selection
  */
-//#define DONT_DO_COPY_WORD_DEFINITION 1
+
+#ifdef NOAH_LITE
+#define DONT_DO_COPY_WORD_DEFINITION 1
+#endif
 
 /**
  *  Set no selection! Use it if you change word, or display settings!
  */
 void cbNoSelection(struct _AppContext *appContext)
 {
-        appContext->copyBlock.state = cbNothingSelected;
-        appContext->copyBlock.startClick.dx = 0;
-        appContext->copyBlock.startClick.lineNo = 0;
-        appContext->copyBlock.startClick.charNo = 0;
-        appContext->copyBlock.left = appContext->copyBlock.startClick;
-        appContext->copyBlock.right = appContext->copyBlock.startClick;
-        appContext->copyBlock.oldLeft = appContext->copyBlock.left;
-        appContext->copyBlock.oldRight = appContext->copyBlock.right;
+    appContext->copyBlock.state = cbNothingSelected;
+    appContext->copyBlock.startClick.dx = 0;
+    appContext->copyBlock.startClick.lineNo = 0;
+    appContext->copyBlock.startClick.charNo = 0;
+    appContext->copyBlock.left = appContext->copyBlock.startClick;
+    appContext->copyBlock.right = appContext->copyBlock.startClick;
+    appContext->copyBlock.oldLeft = appContext->copyBlock.left;
+    appContext->copyBlock.oldRight = appContext->copyBlock.right;
 }
 
 /**
@@ -383,6 +386,7 @@ static Boolean cbIsActNotEqualStart(AppContext *appContext)
         return true;
     return false;
 }
+
 /**
  *  Sets left and right on the selected word
  */
@@ -484,6 +488,7 @@ static void cbSetLRonActWord(AppContext *appContext)
     }   
     FntSetFont(prev_font);
 }
+
 /**
  *  Return true if left == oldLeft && right == oldRight && state == cbIsSelection
  */

@@ -133,7 +133,7 @@ void DisplayAbout(AppContext* appContext)
     currentY+=20;
     
     FntSetFont(boldFont);
-    DrawCenteredString(appContext, "(C) 2003-2004 ArsLexis", currentY);
+    DrawCenteredString(appContext, "Copyrigh (C) ArsLexis", currentY);
     currentY+=24;
     
     FntSetFont(largeFont);
@@ -174,7 +174,7 @@ static void VfsFindCbNoahLite(void* context, AbstractFile *file )
 
     if ( eFS_MEM == file->fsType )
     {
-        if ( 0 != StrCaselessCompare( file->fileName, "Wordnet medium" ) )
+        if ( 0 != StrCaselessCompare( file->fileName, NOAH_LITE_DB_NAME ) )
         {
             /* Filter out all except wordnet medium */
             LogV1( "VfsFindCbNoahLite(), filtered out %s", file->fileName );
@@ -517,33 +517,6 @@ static Boolean MainFormHandleEventNoahLite(EventType * event)
 #endif
             handled = true;
             break;
-
-#ifdef NEVER
-        case nilEvent:
-            if (-1 != appContext->start_seconds_count)
-            {
-                /* we're still displaying About info, check
-                   if it's time to switch to info */
-                Assert(appContext->start_seconds_count <= TimGetSeconds());
-                if (NULL == appContext->currDispInfo)
-                {
-                    if (TimGetSeconds() - appContext->start_seconds_count > 5)
-                    {
-                        DisplayHelp();
-                        /* we don't nid evtNil events anymore */
-                        appContext->start_seconds_count = -1;
-                        appContext->current_timeout = -1;
-                    }
-                }
-                else
-                {
-                    appContext->start_seconds_count = -1;
-                    appContext->current_timeout = -1;
-                }
-            }
-            handled = true;
-            break;
-#endif
         default:
             break;
     }

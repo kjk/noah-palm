@@ -378,8 +378,6 @@ static Boolean GetCharBounds(AppContext* appContext, UInt16 x, UInt16 y, Rectang
     lineOnScreen = y / FONT_DY;    /* should be font height */
     r->topLeft.x = 0;
     r->topLeft.y = lineOnScreen * FONT_DY;
-// 2003-11-26 andrzejc DynamicInputArea    
-//    r->extent.x = 120;
     r->extent.x = appContext->screenWidth-40;
     r->extent.y = FONT_DY;
 

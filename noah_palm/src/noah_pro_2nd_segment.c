@@ -16,7 +16,7 @@
 #include "bookmarks.h"
 #include "better_formatting.h"
 
- // Create a blob containing serialized prefernces.
+// Create a blob containing serialized preferences.
 // Devnote: caller needs to free memory returned.
 void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
 {

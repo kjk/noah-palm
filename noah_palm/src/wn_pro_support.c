@@ -24,18 +24,6 @@ static int si_word_in_synset_backward_p(AbstractFile* file, SynsetsInfo * si, lo
                                         long wordNo);
 static long si_get_word_no(AbstractFile* file, SynsetsInfo * si, long synset, int word_idx);
 
-/* this buffer holds a copy of previous buffer + leading zero, for the
-purpose of giving this data to DisplayInfo */
-
-//static ExtensibleBuffer g_buf_tmp = { 0 };
-
-/* this buffer will hold word definition currently being constructed inside
-   wn_get_display_info */
-//static ExtensibleBuffer g_buf = { 0 };
-
-/* for displaying progressive definitions */
-//DisplayInfo g_di_tmp = { 0 };
-
 void *wn_new(AbstractFile* file)
 {
     WnInfo *wi = NULL;
@@ -921,15 +909,14 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     syn = start_syn;
     end_p = false;
 
-            if(FormatWantsWord(appContext))
-            {
-                ebufAddChar(&wi->buffer, FORMAT_TAG);
-                ebufAddChar(&wi->buffer, FORMAT_SYNONYM);
-                word = wn_get_word((void *) wi, wordNo);
-                ebufAddStr(&wi->buffer, word);
-                ebufAddChar(&wi->buffer, '\n');
-            }
-
+    if(FormatWantsWord(appContext))
+    {
+        ebufAddChar(&wi->buffer, FORMAT_TAG);
+        ebufAddChar(&wi->buffer, FORMAT_SYNONYM);
+        word = wn_get_word((void *) wi, wordNo);
+        ebufAddStr(&wi->buffer, word);
+        ebufAddChar(&wi->buffer, '\n');
+    }
 
     while (!end_p)
     {

@@ -8,6 +8,33 @@
 #include "common.h"
 #include "word_compress.h"
 
+#define NOAH_LITE_DB_VERSION_1_0 1
+
+#ifdef NOAH_LITE_DB_VERSION_1_0
+#define NOAH_LITE_DB_NAME "NoahLite medium"
+// in version 1.0 of Noah Lite we've changed the format of dictionary file
+// so that people can't use databases from previous versions
+typedef struct
+{
+    long    synsetsCount;
+    long    wordsCount;
+
+    int     wordsInfoRecordsCount;
+    int     synsetDefLenRecordsCount;
+
+    int     synsetDefRecordsCount;
+    int     wordsRecordsCount;
+
+    int     maxDefLen;
+    int     maxWordLen;
+
+    int     maxSynsetsForWord;
+    int     maxComprDefLen;
+
+    long    firstLemmaInWordInfoRec;
+} WnLiteFirstRecord;
+#else
+#define NOAH_LITE_DB_NAME "Wordnet medium"
 typedef struct
 {
     long    wordsCount;
@@ -22,6 +49,7 @@ typedef struct
     int     maxSynsetsForWord;
     long    firstLemmaInWordInfoRec;
 } WnLiteFirstRecord;
+#endif
 
 typedef struct
 {
