@@ -11,6 +11,8 @@
 #ifndef _COPY_BLOCK_H_
 #define _COPY_BLOCK_H_
 
+#define WORD_MAX_LEN 40
+
 /**
  * Max no of text lines displayed at once (set it!) 
  * (in sony it will be 20 but safety set it 30)

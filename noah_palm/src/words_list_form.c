@@ -226,12 +226,11 @@ static Boolean WordsListFormKeyDown(AppContext* appContext, FormType* form, Even
                 break;
 
             default:
-                FieldType* field=NULL;
-                UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
-                Assert(index!=frmInvalidObjectId);
-                field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
-                Assert(field);
-                FldSendChangeNotification(field);
+                // notify ourselves that a text field is (possibly) updated
+                SendFieldChanged();
+                // mark as unhandled so that text field will (possibly) get updated
+                handled = false;
+                break;
         }
     }
     return handled;
@@ -257,7 +256,7 @@ static Boolean WordsListFormHandleEvent(EventType* event)
             handled=WordsListFormItemSelected(appContext, form, event);
             break;
         
-        case fldChangedEvent:
+        case evtFieldChanged:
             handled=WordsListFormFieldChanged(appContext, form, event);
             break;
             

@@ -51,14 +51,13 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #define  WORDNET_PRO_TYPE       'wn20'
 #endif
 
+#define MAX_DICTS 10
+
+#endif //I_NOAH
 
 #define evtFieldChanged          (firstUserEvent+1)
 #define evtNewWordSelected       (firstUserEvent+2)
 #define evtNewDatabaseSelected   (firstUserEvent+3)
-#define MAX_DICTS 10
-
-
-#endif //I_NOAH
 
 // information about the area for displaying definitions:
 // start x, start y, number of lines (dy).

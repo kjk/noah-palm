@@ -1967,14 +1967,6 @@ void DoFieldChanged(AppContext* appContext)
         SetWordAsLastWord(appContext, wordInField, -1);
 }
 
-void SendFieldChanged(void)
-{
-    EventType   newEvent;
-    MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = (eventsEnum)evtFieldChanged;
-    EvtAddEventToQueue(&newEvent);
-}
-
 void SendNewDatabaseSelected(int db)
 {
     EventType   newEvent;
@@ -2020,6 +2012,13 @@ long FindCurrentDbIndex(AppContext* appContext)
 
 #endif // I_NOAH
 
+void SendFieldChanged(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = (eventsEnum)evtFieldChanged;
+    EvtAddEventToQueue(&newEvent);
+}
 
 /* Change the size of a given form to the size of the whole screen. Used
    in response to window size change event. */
@@ -2804,6 +2803,7 @@ NoResidentLaunch:
     return;
 }
 
+#ifndef I_NOAH
 void DoWord(AppContext* appContext, char *word)
 {
     long wordNo;
@@ -2813,4 +2813,5 @@ void DoWord(AppContext* appContext, char *word)
     FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
     DrawDescription(appContext, wordNo);
 }
+#endif
 
