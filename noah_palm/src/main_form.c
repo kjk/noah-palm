@@ -117,15 +117,6 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
         FrmUpdateForm(formDictMain, redrawAll); //! @todo Prepare some more sophisticated handling (shrinking/stretching current definition etc.)
 }
 
-/* Select all text in a given Field */
-static void FldSelectAllText(FieldType* field)
-{
-    UInt16 endPos;
-    endPos = FldGetTextLength(field);
-    FldSetSelection(field,(UInt16)0,endPos);
-    FldGrabFocus(field);
-}
-
 static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
 {
     const Char* newWord=NULL;

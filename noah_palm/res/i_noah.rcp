@@ -58,8 +58,8 @@ END
 ALERT alertWordNotFound
 INFORMATION
 BEGIN
-    TITLE "Word not found"
-    MESSAGE "The selected word was not found."
+    TITLE "Definition not found"
+    MESSAGE "^1 - definition not found."
     BUTTONS "OK"
 END
 

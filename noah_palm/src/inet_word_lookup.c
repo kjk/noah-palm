@@ -532,12 +532,22 @@ void PerformLookupTask(AppContext* appContext)
     {
         const Char* begin=ebufGetDataPointer(&connData->response);
         const Char* end=begin+ebufGetDataSize(&connData->response);
+        FormType* frm = FrmGetFormPtr(formDictMain);
+        UInt16 index=FrmGetObjectIndex(frm, fieldWordInput);
+        FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(frm, index));
+
         if (0==StrNCmp(begin, noDefnitionResponse, end-begin))
-            FrmAlert(alertWordNotFound);
+        {
+            
+            const Char* word = ebufGetDataPointer(&connData->wordToFind);
+            FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
+        }
         else
             PrepareDisplayInfo(appContext, ebufGetDataPointer(&connData->wordToFind), begin, end);
+        FldSelectAllText(field);
         AbortCurrentLookup(appContext, true);
-    }        
+
+    }
 }
 
 #ifdef DEBUG

@@ -502,15 +502,18 @@ Err DefaultFormInit(AppContext* appContext, FormType* frm);
 
 extern Err AppHandleSysNotify(SysNotifyParamType* param);
 extern Err AppNotifyInit(AppContext* appContext);
+#ifndef I_NOAH
 extern Err AppNotifyFree(AppContext* appContext, Boolean beResident);
+#endif // I_NOAH
 
 extern AppContext* GetAppContext();
 
 #define IsValidPrefRecord(recData) (AppPrefId==*((long*)(recData)))
 
-extern UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize);
+extern void FldSelectAllText(FieldType* field);
 
 #ifndef I_NOAH
+extern UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize);
 extern AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name);
 #endif // I_NOAH
 

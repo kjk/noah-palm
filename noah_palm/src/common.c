@@ -1925,6 +1925,15 @@ AppContext* GetAppContext()
     return res;
 }
 
+/* Select all text in a given Field */
+void FldSelectAllText(FieldType* field)
+{
+    UInt16 endPos;
+    endPos = FldGetTextLength(field);
+    FldSetSelection(field,(UInt16)0,endPos);
+    FldGrabFocus(field);
+}
+
 #ifndef I_NOAH
 
 UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize) 
