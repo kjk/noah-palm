@@ -1056,12 +1056,14 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             first_rec_with_defs =
                 first_rec_with_defs_len + wi->defsLenRecsCount;
 
+
             if ( !get_defs_record(wi->file, syn, first_rec_with_defs_len,
                             wi->defsLenRecsCount, first_rec_with_defs,
                             &defs_record, &def_offset, &defDataSize) )
             {
                 return NULL;
             }
+
 
             Assert(defs_record > 4);
             Assert((def_offset >= 0) && (def_offset < 66000));

@@ -585,6 +585,104 @@ void DrawWord(char *word, int pos_y)
 }
 
 #ifndef I_NOAH
+/**
+ *  Faster version of function get_defs_records - 
+ *  diffrence: "long entry_count" is set to 1. 
+ */
+static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs, SynsetDef * synsets)
+{
+    long offset = 0;
+    long curr_len;
+    int curr_record = 0;
+    long curr_rec_size = 0;
+    unsigned char *def_lens = NULL;
+    unsigned char *def_lens_fast = NULL;
+    unsigned char *def_lens_fast_end = NULL;
+    long current_entry;
+    Boolean loop_end_p;
+
+    Assert(synsets);
+    Assert(entry_count >= 0);
+    Assert(first_record_with_defs_len >= 0);
+    Assert(defs_len_rec_count > 0);
+    Assert(first_record_with_defs >= 0);
+
+    curr_record = first_record_with_defs_len;
+    def_lens = (unsigned char *) fsLockRecord(file, curr_record);
+    if (NULL == def_lens)
+    {
+        return false;
+    }
+    curr_rec_size = fsGetRecordSize(file, curr_record);
+
+    /* calculate the length and offset of all entries */
+    current_entry = 0;
+    def_lens_fast = def_lens;
+    def_lens_fast_end = def_lens + curr_rec_size;
+    do
+    {
+        curr_len = (UInt32) ((unsigned char)def_lens_fast[0]);
+        def_lens_fast++;
+        if (255 == curr_len)
+        {
+            curr_len = (UInt32)((unsigned char)(def_lens_fast[0])) * 256;
+            def_lens_fast++;
+            curr_len += (UInt32)(unsigned char)(def_lens_fast[0]);
+            def_lens_fast++;
+        }
+
+        if (current_entry == synsets[0].synsetNo)
+        {
+            synsets[0].offset = offset;
+            synsets[0].dataSize = curr_len;
+            break;
+        }
+
+        offset += curr_len;
+        Assert(def_lens_fast_end <= def_lens_fast);
+        if(def_lens_fast_end == def_lens_fast)
+        {
+            fsUnlockRecord(file, curr_record);
+            ++curr_record;
+            Assert(curr_record < first_record_with_defs_len + defs_len_rec_count);
+            def_lens = (unsigned char *) fsLockRecord(file, curr_record);
+            def_lens_fast = def_lens;
+            curr_rec_size = fsGetRecordSize(file, curr_record);
+            def_lens_fast_end = def_lens + curr_rec_size;
+        }
+        ++current_entry;
+    }
+    while (true);
+
+    fsUnlockRecord(file, curr_record);
+
+    /* -1 means that we haven't yet found record for this one */
+    synsets[0].record = -1;
+
+    /* find out the record it is in and the offset in that record */
+    curr_record = first_record_with_defs;
+    do
+    {
+        loop_end_p = true;
+        if (-1 == synsets[0].record)
+        {
+            /* didn't find the record yet for this one */
+            if (synsets[0].offset >= fsGetRecordSize(file, curr_record))
+            {
+                synsets[0].offset -= fsGetRecordSize(file, curr_record);
+                loop_end_p = false;
+            }
+            else
+            {
+                synsets[0].record = curr_record;
+                Assert(synsets[0].offset < 65000);
+            }
+        }
+        ++curr_record;
+    }
+    while (!loop_end_p);
+    return true;
+}
 
 /*
   Given entry number find out entry's definition (record,
@@ -605,7 +703,9 @@ Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with
     Assert(len_out);
 
     synset_def.synsetNo = entry_no;
-    if ( !get_defs_records(file, 1, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def) )
+    /*old version - slow!!! new version knows that the 1 is constant */
+    //if ( !get_defs_records(file, 1, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def) )
+    if ( !get_defs_records_oneEntryCount(file, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def) )
     {
         return false;
     }
@@ -646,6 +746,7 @@ Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_
     idx_in_rec = 0;
     current_entry = 0;
     entry_index = 0;
+
     do
     {
         curr_len = (UInt32) def_lens[idx_in_rec++];
@@ -657,10 +758,12 @@ Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_
 
         if (current_entry == synsets[entry_index].synsetNo)
         {
+
             synsets[entry_index].offset = offset;
             synsets[entry_index].dataSize = curr_len;
+            
             ++entry_index;
-            if (entry_index == entry_count)
+            if (entry_index == entry_count) 
             {
                 break;
             }
@@ -715,6 +818,7 @@ Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_
         ++curr_record;
     }
     while (!loop_end_p);
+
     return true;
 }
 
