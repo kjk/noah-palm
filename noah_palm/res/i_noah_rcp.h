@@ -28,6 +28,8 @@
 
 #define menuItemStress          1123
 
+#define forwardMenuItem         1125
+#define backMenuItem            1126
 
 #define alertMemError                      2000
 #define alertRomIncompatible               2001
@@ -52,7 +54,11 @@
 #define alertRegistrationFailed            2020
 #define alertRegistrationOk                2022
 
-#define bmpFind             3000
+#define bmpFind               3000
+#define forwardDisabledBitmap 3001
+#define backDisabledBitmap    3002
+#define forwardBitmap         3003
+#define backBitmap            3004
 
 #define scrollDef           4000
 #define buttonFind          4001
@@ -72,6 +78,7 @@
 #define buttonBGpos         4107
 #define buttonDefault       4108
 #define cbShowPronunctiation    4109
+
 #define labelBkmSortBy      4200
 #define popupSortBy         4201
 #define listSortBy          4202
@@ -91,4 +98,7 @@
 
 #define buttonRegister      4400
 #define fieldRegCode        4401
+
+#define backButton          4500
+#define forwardButton       4501
 

@@ -36,7 +36,7 @@ static void MainFormDisplayAbout(AppContext* appContext)
     UInt16 currentY=0;
     WinPushDrawState();
     SetGlobalBackColor(appContext);
-    ClearRectangle(0, currentY, appContext->screenWidth, appContext->screenHeight - currentY - FRM_RSV_H);
+    ClearRectangle(0, currentY, appContext->screenWidth, appContext->screenHeight - currentY - FRM_RSV_H - 1);
     HideScrollbar();
     
     currentY+=7;
@@ -93,7 +93,7 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
     SetGlobalBackColor(appContext);
     UInt16 statusBarStartY=appContext->screenHeight-lookupStatusBarHeight;
     ClearRectangle(0, statusBarStartY, appContext->screenWidth, lookupStatusBarHeight);
-    WinDrawLine(0, statusBarStartY-2, appContext->screenWidth, statusBarStartY-2);
+    WinDrawLine(0, statusBarStartY-3, appContext->screenWidth, statusBarStartY-3);
     const char* text=GetConnectionStatusText(appContext);
     Assert(text);
     UInt16 textLen=StrLen(text);    
@@ -105,7 +105,7 @@ static void MainFormDrawCurrentDisplayInfo(AppContext* appContext)
 {
     WinPushDrawState();
     SetBackColorRGB(appContext, WHITE_Packed);
-    ClearRectangle(0, 0, appContext->screenWidth, appContext->screenHeight - FRM_RSV_H);
+    ClearRectangle(0, 0, appContext->screenWidth, appContext->screenHeight - FRM_RSV_H - 1);
     DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, 0, 0, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
     WinPopDrawState();
@@ -118,7 +118,7 @@ static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCo
     {
         case redrawAll:
             FrmDrawForm(form);
-            WinDrawLine(0, statusBarStartY-2, appContext->screenWidth, statusBarStartY-2);
+            WinDrawLine(0, statusBarStartY-3, appContext->screenWidth, statusBarStartY-3);
             switch (appContext->mainFormContent)
             {
                 case mainFormShowsAbout:
@@ -614,13 +614,18 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
     if ( !DIA_Supported(&appContext->diaSettings) )
         return false;
 
+    //return true;
     UpdateFrmBounds(form);
 
-    FrmSetObjectPosByID(form, buttonFind, appContext->screenWidth-26, appContext->screenHeight-13);
-    FrmSetObjectBoundsByID(form, fieldWordInput, -1, appContext->screenHeight-13, appContext->screenWidth-60, -1);
-    FrmSetObjectPosByID(form, labelWord, -1, appContext->screenHeight-13);
+    FrmSetObjectPosByID(form, backButton,    -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(form, forwardButton, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(form, labelWord, -1, appContext->screenHeight-14);
+    FrmSetObjectBoundsByID(form, fieldWordInput, -1, appContext->screenHeight-14, appContext->screenWidth-80, -1);
+    FrmSetObjectPosByID(form, buttonFind, appContext->screenWidth-26, appContext->screenHeight-14);
+
+    FrmSetObjectPosByID(form, buttonAbortLookup, appContext->screenWidth-14, appContext->screenHeight-14);
+
     FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
-    FrmSetObjectPosByID(form, buttonAbortLookup, appContext->screenWidth-13, appContext->screenHeight-13);
 
     // TODO: optimize, only do when dx screen size has changed   
     ReformatLastResponse(appContext);

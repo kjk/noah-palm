@@ -1,0 +1,18 @@
+iNoah
+* add prev/next button and menu item, like in iPedia. Release as v 1.1.
+* add spell-checking on the server
+* add wild-cards (requires server change)
+* compact mode
+* port to ars_framework ?
+* resident mode
+* don't start in full-screen mode (no menu visible), add it as an option in
+  preferences
+
+Noah Pro
+* release 3.5 with:
+ - improved arm speed
+ - better resident mode
+ - eBookReader integration
+
+Thesaurus
+* release v. 1.2

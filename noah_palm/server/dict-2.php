@@ -265,7 +265,7 @@ function report_no_lookups_left()
 {
     $total_limit = TOTAL_REQUESTS_LIMIT;
     $daily_limit = DAILY_REQUESTS_LIMIT;
-    write_MSG("You've reached the lookup limit for the unregistered version ($daily_limit daily lookups).\n Please register iNoah at http://www.arslexis.com.\n\nTip: you can still use 'Main\Random word' lookup.");
+    write_MSG("You've reached the lookup limit for the trial version. Please register iNoah at http://www.arslexis.com.");
     exit;
 }
 
