@@ -1,6 +1,33 @@
 #include "i_noah_rcp.h"
 
-VERSION ID 1 "1.0"
+MENU ID menuMain
+BEGIN
+  PULLDOWN "Main"
+  BEGIN
+    MENUITEM "Random word"          ID menuItemRandomWord        "R"
+    MENUITEM "Copy to clipboard"    ID menuItemCopy              "C"
+    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard   "L"
+    MENUITEM "Recent lookups"       ID menuItemRecentLookups    "S"
+  END
+
+  PULLDOWN "Bookmarks"
+  BEGIN
+    MENUITEM "Add bookmark"            ID menuItemBookmarkWord   "A"
+    MENUITEM "Delete bookmark"         ID menuItemBookmarkDelete "D"
+    MENUITEM "View bookmarks"          ID menuItemBookmarkView   "V"
+  END
+
+  PULLDOWN "Options"
+  BEGIN
+    MENUITEM "Preferences"             ID menuItemPrefs         "P"
+    MENUITEM "Display prefs"           ID menuItemDispPrefs     "D" 
+
+/*    MENUITEM SEPARATOR
+    MENUITEM "Register"                ID menuItemRegister      "G" */
+    MENUITEM SEPARATOR
+    MENUITEM "About"                   ID menuItemAbout         "A"
+  END
+END
 
 FORM formDictMain AT (0 0 160 160)
 USABLE
@@ -11,6 +38,100 @@ BEGIN
    LABEL "Word:" ID labelWord              AT (2 147) FONT 0
    FIELD ID fieldWordInput          AT (PrevRight+4 PrevTop 100 12) MAXCHARS 255 UNDERLINED EDITABLE
    BUTTON "Go"      buttonFind      AT (160-26 147 Auto Auto)
+END
+
+FORM formDisplayPrefs AT (0 0 160 160)
+USABLE
+FRAME
+BEGIN
+   TITLE  "Display"
+
+   POPUPTRIGGER "Layout 1" popupListStyle AT (100 1 AUTO AUTO) LEFTANCHOR
+   LIST "Layout 1" "Layout 2" "Layout 3" ID listListStyle AT (PREVLEFT PREVTOP + 2 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
+   POPUPLIST popupListStyle listListStyle
+
+   POPUPTRIGGER "part of speech" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
+   LIST "word" "p. of speech list" "part of speech" "definition list" "definition" "synonyms" "examples"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
+   POPUPLIST popupActTag listActTag
+
+   BUTTON ""             buttonGlobalBGcol  AT (RIGHT@160-2    16      20   10) FONT 0
+   LABEL "Background:"                    AUTOID AT (RIGHT@PrevLeft-2  15) FONT 0
+
+   BUTTON "Font"         buttonFpos         AT ( 10               29      AUTO AUTO) FONT 0
+   BUTTON ""             buttonCOLpos       AT ( 95               PrevTop    20   AUTO) FONT 0
+   LABEL "Text:"                     AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
+   BUTTON ""             buttonBGpos        AT (RIGHT@160 - 2     PrevTop    20   AUTO) FONT 0
+   LABEL "Bg:"                       AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
+
+   BUTTON "OK"           buttonOk           AT (center@30  BOTTOM@160-1 40 AUTO)  FONT 0
+   BUTTON "Cancel"       buttonCancel       AT (center@80  BOTTOM@160-1 40 AUTO)  FONT 0
+   BUTTON "Default"      buttonDefault      AT (center@130 BOTTOM@160-1 40 AUTO)  FONT 0
+END 
+
+FORM formPrefs AT (2 2 156 156)
+FRAME
+MODAL
+USABLE
+DEFAULTBTNID buttonOk
+BEGIN
+   TITLE "Preferences"
+
+   LABEL "Startup action:" AUTOID AT (5 20) FONT 1
+   POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+19 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH 35) NONUSABLE VISIBLEITEMS 3
+   POPUPLIST popupStartupAction listStartupAction
+
+   LABEL "Up/Down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
+   POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
+   POPUPLIST popuphwButtonsAction listhwButtonsAction
+
+   LABEL "5-Way up/down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
+   POPUPTRIGGER  "1/2 Page Scroll" popupNavButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listNavButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
+   POPUPLIST popupNavButtonsAction listNavButtonsAction
+
+#ifndef _DONT_DO_PRONUNCIATION_
+   /* CHECKBOX "Show pronunciation" cbShowPronunctiation AT (2 PREVTOP+14 AUTO AUTO) */
+#endif
+
+   BUTTON "OK"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
+   BUTTON "Cancel" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
+END
+
+FORM ID formBookmarks   AT ( 0 0 160 160 )
+FRAME
+MODAL
+USABLE
+BEGIN
+   LABEL "Sort by:" labelBkmSortBy AT (1 147)
+   POPUPTRIGGER "name" popupSortBy  AT (PREVRIGHT+2 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST    "name" "time" ID listSortBy    AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2 
+   POPUPLIST popupSortBy  listSortBy
+
+   LIST   ""        listBookmarks   AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   BUTTON "Cancel"  buttonCancel    AT (121 146 AUTO AUTO) FONT 0
+END
+
+FORM formWordsList AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+   BUTTON "\002"            ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
+   BUTTON "\003"            ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
+   LIST ""                  listProposals    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   FIELD                    fieldWordInput       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   BUTTON "Cancel"          buttonCancel    AT (120 146 AUTO AUTO) FONT 0
+END
+
+FORM ID formRegistration  AT ( 2 85 156 70 )
+MODAL DEFAULTBTNID buttonOk
+BEGIN
+        TITLE "Registration"
+	LABEL "Enter your registration number:" AUTOID AT (5 20)
+	FIELD ID fieldSerialNumber   AT (5 PREVBOTTOM+5 146 AUTO) MAXCHARS 64 EDITABLE UNDERLINED 
+	BUTTON "Register" ID buttonRegister   AT (5 PREVBOTTOM+5 40 AUTO)
+	BUTTON "Cancel" ID buttonCancel  AT (PREVRIGHT+5 PREVTOP 40 AUTO)
 END
 
 ALERT alertMemError
@@ -146,134 +267,4 @@ BITMAPFAMILYEX ID bmpFind
 BEGIN
     BITMAP "find.bmp"     BPP 1 DENSITY 1
     BITMAP "find-x2.bmp"  BPP 1 DENSITY 2
-END
-
-MENU ID menuMain
-BEGIN
-  PULLDOWN "Main"
-  BEGIN
-    MENUITEM "Random word"          ID menuItemRandomWord        "R"
-    MENUITEM "Copy to clipboard"    ID menuItemCopy              "C"
-    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard   "L"
-    MENUITEM "Recent lookups"       ID menuItemRecentLookups    "S"
-  END
-
-  PULLDOWN "Bookmarks"
-  BEGIN
-    MENUITEM "Add bookmark"            ID menuItemBookmarkWord   "A"
-    MENUITEM "Delete bookmark"         ID menuItemBookmarkDelete "D"
-    MENUITEM "View bookmarks"          ID menuItemBookmarkView   "V"
-  END
-
-  PULLDOWN "Options"
-  BEGIN
-    MENUITEM "Preferences"             ID menuItemPrefs         "P"
-    MENUITEM "Display prefs"           ID menuItemDispPrefs     "D" 
-
-/*    MENUITEM SEPARATOR
-    MENUITEM "Register"                ID menuItemRegister      "G" */
-    MENUITEM SEPARATOR
-    MENUITEM "About"                   ID menuItemAbout         "A"
-  END
-
-END
-
-STRING ID helpPrefs "\'Startup action:\' choose what will happen when iNoah starts\r\nNothing - display standard About info\r\nLast word - display definition of the last visited word\r\nClipboard - display definition of the word in a clipboard (if any)\r\n\r\n\'Up/Down buttons:\' What to do when you press up/down hardware buttons\r\nNothing\r\nLine Scroll - scroll the definition by one line\r\n1/2 Page Scroll - scroll the definition by half a page\r\nPage Scroll - scroll the definition by one page\r\n\r\nFor more info see the documentation"   
-
-
-FORM formDisplayPrefs AT (0 0 160 160)
-USABLE
-FRAME
-HELPID helpPrefs
-BEGIN
-   TITLE  "Display"
-
-   POPUPTRIGGER "Layout 1" popupListStyle AT (100 1 AUTO AUTO) LEFTANCHOR
-   LIST "Layout 1" "Layout 2" "Layout 3" ID listListStyle AT (PREVLEFT PREVTOP + 2 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
-   POPUPLIST popupListStyle listListStyle
-
-   POPUPTRIGGER "part of speech" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
-   LIST "word" "p. of speech list" "part of speech" "definition list" "definition" "synonyms" "examples"  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 7
-   POPUPLIST popupActTag listActTag
-
-   BUTTON ""             buttonGlobalBGcol  AT (RIGHT@160-2    16      20   10) FONT 0
-   LABEL "Background:"                    AUTOID AT (RIGHT@PrevLeft-2  15) FONT 0
-
-   BUTTON "Font"         buttonFpos         AT ( 10               29      AUTO AUTO) FONT 0
-   BUTTON ""             buttonCOLpos       AT ( 95               PrevTop    20   AUTO) FONT 0
-   LABEL "Text:"                     AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
-   BUTTON ""             buttonBGpos        AT (RIGHT@160 - 2     PrevTop    20   AUTO) FONT 0
-   LABEL "Bg:"                       AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
-
-   BUTTON "OK"           buttonOk           AT (center@30  BOTTOM@160-1 40 AUTO)  FONT 0
-   BUTTON "Cancel"       buttonCancel       AT (center@80  BOTTOM@160-1 40 AUTO)  FONT 0
-   BUTTON "Default"      buttonDefault      AT (center@130 BOTTOM@160-1 40 AUTO)  FONT 0
-END 
-
-FORM formPrefs AT (2 2 156 156)
-FRAME
-MODAL
-USABLE
-DEFAULTBTNID buttonOk HELPID helpPrefs
-BEGIN
-   TITLE "Preferences"
-
-   LABEL "Startup action:" AUTOID AT (5 20) FONT 1
-   POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+19 PREVTOP AUTO AUTO) LEFTANCHOR
-   LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH 35) NONUSABLE VISIBLEITEMS 3
-   POPUPLIST popupStartupAction listStartupAction
-
-   LABEL "Up/Down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
-   POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
-   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
-   POPUPLIST popuphwButtonsAction listhwButtonsAction
-
-   LABEL "5-Way up/down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
-   POPUPTRIGGER  "1/2 Page Scroll" popupNavButtonsAction AT (70 PREVTOP+14 AUTO AUTO) LEFTANCHOR
-   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listNavButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
-   POPUPLIST popupNavButtonsAction listNavButtonsAction
-
-#ifndef _DONT_DO_PRONUNCIATION_
-   CHECKBOX "Show pronunciation" cbShowPronunctiation AT (5 PREVTOP+12 AUTO AUTO)
-#endif
-
-   BUTTON "OK"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
-   BUTTON "Cancel" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
-END
-
-FORM ID formBookmarks   AT ( 0 0 160 160 )
-FRAME
-MODAL
-USABLE
-BEGIN
-   LABEL "Sort by:" labelBkmSortBy AT (1 147)
-   POPUPTRIGGER "name" popupSortBy  AT (PREVRIGHT+2 PREVTOP AUTO AUTO) LEFTANCHOR
-   LIST    "name" "time" ID listSortBy    AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2 
-   POPUPLIST popupSortBy  listSortBy
-
-   LIST   ""        listBookmarks   AT (  0   0  160 145) USABLE VISIBLEITEMS 13
-   BUTTON "Cancel"  buttonCancel    AT (121 146 AUTO AUTO) FONT 0
-END
-
-FORM formWordsList AT (0 0 160 160)
-USABLE
-NOFRAME
-BEGIN
-   BUTTON "\002"            ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
-   BUTTON "\003"            ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
-   LIST ""                  listProposals    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
-   FIELD                    fieldWordInput       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
-   BUTTON "Cancel"          buttonCancel    AT (120 146 AUTO AUTO) FONT 0
-END
-
-
-
-FORM ID formRegistration  AT ( 2 85 156 70 )
-MODAL DEFAULTBTNID buttonOk
-BEGIN
-        TITLE "Registration"
-	LABEL "Enter your registration number:" AUTOID AT (5 20)
-	FIELD ID fieldSerialNumber   AT (5 PREVBOTTOM+5 146 AUTO) MAXCHARS 64 EDITABLE UNDERLINED 
-	BUTTON "Register" ID buttonRegister   AT (5 PREVBOTTOM+5 40 AUTO)
-	BUTTON "Cancel" ID buttonCancel  AT (PREVRIGHT+5 PREVTOP 40 AUTO)
 END

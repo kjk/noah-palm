@@ -1976,14 +1976,6 @@ void SendNewDatabaseSelected(int db)
     EvtAddEventToQueue(&newEvent);
 }
 
-void SendStopEvent(void)
-{
-    EventType   newEvent;
-    MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = appStopEvent;
-    EvtAddEventToQueue(&newEvent);
-}
-
 #pragma segment Segment1
 
 char *strdup(char *s)
@@ -2011,6 +2003,14 @@ long FindCurrentDbIndex(AppContext* appContext)
 }
 
 #endif // I_NOAH
+
+void SendStopEvent(void)
+{
+    EventType   newEvent;
+    MemSet(&newEvent, sizeof(EventType), 0);
+    newEvent.eType = appStopEvent;
+    EvtAddEventToQueue(&newEvent);
+}
 
 void SendFieldChanged(void)
 {
@@ -2721,7 +2721,7 @@ void FldClearInsert(FormType *frm, int fldId, char *txt)
 
     FldDelete(fld, 0, len);
 
-    len = FldGetTextAllocatedSize(fld);
+    len = FldGetMaxChars(fld);
 
     if ( len > StrLen(txt) )
         len = StrLen(txt);

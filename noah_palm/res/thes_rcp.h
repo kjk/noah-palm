@@ -5,6 +5,9 @@
 /* width, in pixels, of the history pop-up list */
 #define   HISTORY_LIST_DX 92
 
+/* max number of characters in word field */
+#define   WORD_FIELD_MAXCHARS 20
+
 #define   formDictMain        1001
 #define   formDictFind        1002
 #define   formDictFindPattern 1003
@@ -80,8 +83,6 @@
 
 #define   labelBkmSortBy          6500
 #define   checkResidentMode       6510
-
-#define   helpPrefs               7001
 
 #define   menuItemDispPrefs       9000
 #define   formDisplayPrefs        9001

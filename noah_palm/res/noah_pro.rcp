@@ -1,19 +1,5 @@
 #include "noah_pro_rcp.h"
 
-STRING ID helpPrefs
-"\'Startup action:\' choose what will happen when"\
-"Noah Pro starts\n"\
-"Nothing - display standard About info\n"\
-"Last word - display definition of the last visited word\n"\
-"Clipboard - display definition of the word in a clipboard (if any)\n\n"\
-"\'Up/Down buttons:\' What to do when you press up/down"\
-"hardware buttons\n"\
-"Nothing\n"\
-"Line Scroll - scroll the definition by one line\n"\
-"1/2 Page Scroll - scroll the definition by half a page\n"\
-"Page Scroll - scroll the definition by one page\n\n"\
-"For more info see the documentation"
-
 #ifdef DEBUG
 MENU ID menuMain
 BEGIN
@@ -92,7 +78,7 @@ BEGIN
    SCROLLBAR ID scrollDef AT (152 1 7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    BUTTON "\002" ctlArrowLeft AT (0 148 8 11) FONT 4 NOFRAME
    BUTTON "\003" ctlArrowRight AT (8 148 10 11) FONT 4 NOFRAME
-   FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS WORD_FIELD_MAXCHARS
    POPUPTRIGGER "" ID popupHistory AT (128 147 17 13) LEFTANCHOR FONT 0
    LIST "" ID listHistory AT (154-HISTORY_LIST_DX 156-(HISTORY_ITEMS*11) HISTORY_LIST_DX HISTORY_ITEMS*11) NONUSABLE FONT 0
    POPUPLIST ID popupHistory listHistory
@@ -107,7 +93,7 @@ BEGIN
    SCROLLBAR         ID scrollDef     AT (152   1  7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    BUTTON "\002"        ctlArrowLeft  AT (  0 148  8  11) FONT 4 NOFRAME
    BUTTON "\003"        ctlArrowRight AT (  8 148 10  11) FONT 4 NOFRAME
-   FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS WORD_FIELD_MAXCHARS
    FORMBITMAP                         AT (147 147)        BITMAP bmpClose
    BUTTON       ""      buttonClose    AT (146 146 14  14) NOFRAME
    
@@ -123,7 +109,7 @@ BEGIN
    BUTTON "\002"            ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
    BUTTON "\003"            ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
    LIST ""                  listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
-   FIELD                    fieldWord       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   FIELD                    fieldWord       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS WORD_FIELD_MAXCHARS
    BUTTON "Cancel"          buttonCancel    AT (120 146 AUTO AUTO) FONT 0
 END
 
@@ -142,7 +128,6 @@ END
 FORM formDisplayPrefs AT (0 0 160 160)
 USABLE
 FRAME
-HELPID helpPrefs
 BEGIN
    TITLE  "Display"
 
@@ -176,7 +161,7 @@ BEGIN
    BUTTON "\002"    ctlArrowLeft    AT (  0 148    8   11) FONT 4 NOFRAME
    BUTTON "\003"    ctlArrowRight   AT (  8 148   10   11) FONT 4 NOFRAME
    LIST   ""        listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
-   FIELD            fieldWord       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
+   FIELD            fieldWord       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS WORD_FIELD_MAXCHARS
    BUTTON "Cancel"  buttonCancel    AT (120 146 AUTO AUTO) FONT 0
 END
 
@@ -185,7 +170,7 @@ USABLE
 NOFRAME
 BEGIN
    LIST   ""        listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
-   FIELD            fieldWord       AT ( 2 147   45 AUTO) UNDERLINED MAXCHARS 20
+   FIELD            fieldWord       AT ( 2 147   45 AUTO) UNDERLINED MAXCHARS WORD_FIELD_MAXCHARS
    BUTTON "Find"    buttonFind      AT (50 146 AUTO AUTO) FONT 0
    BUTTON "Cancel"  buttonCancel    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
    BUTTON "?"       buttonOneChar   AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0

@@ -78,4 +78,3 @@
 #define buttonRegister	4400
 #define fieldSerialNumber	4401
 
-#define helpPrefs   5000

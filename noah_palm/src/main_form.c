@@ -567,6 +567,7 @@ Err MainFormLoad(AppContext* appContext)
         error=memErrNotEnoughSpace;
         goto OnError;
     }
+    FrmSetActiveForm(form);
     error=DefaultFormInit(appContext, form);
     if (!error)
     {

@@ -5,6 +5,9 @@
 /* width, in pixels, of the history pop-up list */
 #define   HISTORY_LIST_DX 92
 
+/* max number of characters in word field */
+#define   WORD_FIELD_MAXCHARS 20
+
 #define   formDictFind        1002
 #define   formDictFindPattern 1003
 #define   formSelectDict      1004
@@ -85,8 +88,6 @@
 #define   popuphwButtonsAction    6004
 #define   popupNavButtonsAction   6005
 #define   popupSortBy             6006
-
-#define   helpPrefs               7001
 
 #define   buttonFpos              9010
 #define   buttonCOLpos            9014

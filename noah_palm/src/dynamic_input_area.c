@@ -209,9 +209,10 @@ Err DIA_FrmEnableDIA(const DIA_Settings* diaSettings, FormType* form, Coord minH
     wh=FrmGetWindowHandle(form);
     Assert(wh);
     error=WinSetConstraintsSize(wh, minH, prefH, maxH, minW, prefW, maxW);
-    if (error) 
-        goto OnError;
+    /*if (error) 
+        goto OnError;*/
     error=PINSetInputAreaState(pinInputAreaUser);
+    error = errNone;
 OnError:
     if (error==pinErrNoSoftInputArea) 
         error=errNone;

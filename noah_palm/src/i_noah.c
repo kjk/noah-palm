@@ -303,11 +303,20 @@ static void AppLoadForm(AppContext* appContext, const EventType* event)
             Assert(false);
     }
     Assert(!error);
+    if (error)
+    {
+        // impossible has happen and we have to respect that
+        // if we don't quit we might get a blank screen due
+        // to form not being there (as in MainFormLoad() we
+        // delete the form if there's an error)
+        SendStopEvent();
+    }
 }
 
 static Boolean AppHandleEvent(AppContext* appContext, EventType* event)
 {
     Boolean handled=false;
+
     switch (event->eType)
     {
         case frmLoadEvent:
