@@ -27,6 +27,11 @@ struct RogetInfo *RogetNew(void)
     if (NULL == info) goto Error;
 
     info->recordsCount = CurrFileGetRecordsCount();
+    if ( info->recordsCount > 100 )
+    {
+        // TODO: report corruption
+        return NULL;
+    }
 
     firstRecord = (RogetFirstRecord *) CurrFileLockRecord(0);
 

@@ -74,7 +74,6 @@ void *wn_new(void)
     wi->maxDefLen = firstRecord->maxDefLen;
     wi->maxComprDefLen = firstRecord->maxComprDefLen;
     wi->bytesPerWordNum = firstRecord->bytesPerWordNum;
-    wi->maxWordsPerSynset = firstRecord->maxWordsPerSynset;
 
     wi->synCountRec = wi->recordsCount - 1;
     wi->curDefData = (unsigned char *) new_malloc(wi->maxDefLen + 2);
@@ -100,6 +99,11 @@ void *wn_new(void)
     {
         wi->fastP = true;
         wi->cacheEntries = CurrFileGetRecordSize(0) - sizeof(WnFirstRecord);
+        if (wi->cacheEntries % sizeof(SynWordCountCache) != 0)
+        {
+            // TODO: invalid data
+
+        }
         wi->cacheEntries = wi->cacheEntries / sizeof(SynWordCountCache);
     }
 

@@ -45,10 +45,10 @@ struct RogetInfo
     PackContext defPackContext;
 };
 
-struct RogetInfo   *RogetNew(void);
+struct RogetInfo *RogetNew(void);
 void        RogetDelete(struct RogetInfo *info);
 long        RogetGetWordsCount(struct RogetInfo *info);
 long        RogetGetFirstMatching(struct RogetInfo *info, char *word);
-char        *RogetGetWord(struct RogetInfo *info, long wordNo);
+char *      RogetGetWord(struct RogetInfo *info, long wordNo);
 Err         RogetGetDisplayInfo(struct RogetInfo *info, long wordNo, int dx, DisplayInfo * di);
 #endif

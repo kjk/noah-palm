@@ -66,7 +66,6 @@ typedef struct
     int     maxDefLen;
     int     maxComprDefLen;
     int     bytesPerWordNum;
-    int     maxWordsPerSynset;
     int     synCountRec;
     Boolean fastP;
     int     cacheEntries;

@@ -23,16 +23,15 @@
 
 #define  WORDNET_LITE_TYPE      'wnet'
 
-#ifndef DEMO
-#define  WORDNET_PRO_TYPE       'wn20'
-#else
+#ifdef DEMO
 #define  WORDNET_PRO_TYPE       'wnde'
+#else
+#define  WORDNET_PRO_TYPE       'wn20'
 #endif
 
 #define evtFieldChanged          (firstUserEvent+1)
 #define evtNewWordSelected       (firstUserEvent+2)
 #define evtNewDatabaseSelected   (firstUserEvent+3)
-#define evtRedisplayCurrentWord  (firstUserEvent+4)
 
 #define  DRAW_DI_X 0
 
