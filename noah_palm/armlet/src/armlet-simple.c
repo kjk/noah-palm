@@ -218,24 +218,16 @@ void ebufInsertChar(ExtensibleBuffer *buf, char c, int pos,const void *emulState
 
     if ((buf->used + 1) >= buf->allocated)
     {
-        if (0 == buf->allocated)
-        {
-            newAllocated = 256;
-        }
-        else
-        {
-            newAllocated = buf->allocated + 256;
-        }
+        newAllocated = buf->allocated + 256;
         newData = (char *) new_malloc(newAllocated,emulStateP,call68KFuncP);   
         if (!newData)
             return;
         if (buf->data)
         {
             memmove(newData, buf->data, buf->used);
+            new_free(buf->data,emulStateP,call68KFuncP);
         }
         buf->allocated = newAllocated;
-        if (buf->data)
-            new_free(buf->data,emulStateP,call68KFuncP);
         buf->data = newData;
     }
     // make room if inserting 
@@ -367,8 +359,16 @@ int  CmpPos(char *pos1, char *pos2)
 //delete all text until tag or EOB is reached
 static void ebufDeletePos(ExtensibleBuffer *buf, int pos)
 {
-    while( !IsTagInLine(buf->data[pos],buf->data[pos+1]) && pos < buf->used)
-        ebufDeleteChar(buf, pos);
+    int i,j;
+    char *data = buf->data;
+    
+    i = pos;
+    j = buf->used;
+    while(!IsTagInLine(data[pos],data[pos+1]) && pos < j)
+        pos++;
+  
+    memmove(&(data[i]), &(data[pos]), j - pos);
+    buf->used -= (pos-i);
 }
 
 /*  Xchg AbcdEef -> EefAbcd   return updated offset2 */
