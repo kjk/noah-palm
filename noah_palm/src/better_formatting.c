@@ -65,22 +65,23 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
     // format 3(0): (old)
     SetPrefsAs(&prefs[ 0], 0x00,   0,  0,  0, 255,255,255 );    // color is black, font is small
     // format 1:
-    SetPrefsAs(&prefs[ 1], 0x07,  63,127, 63, 255,255,255 );    // word
-    SetPrefsAs(&prefs[ 2], 0x01,   0,100,100, 255,255,255 );    // pos
+    SetPrefsAs(&prefs[ 1], 0x07,   0,  0,255, 255,255,255 );    // word
+    SetPrefsAs(&prefs[ 2], 0x01,   0,220,  0, 255,255,255 );    // pos
     SetPrefsAs(&prefs[ 3], 0x00,   0,  0,  0, 255,255,255 );    // definition
-    SetPrefsAs(&prefs[ 4], 0x00, 128,128,  0, 255,255,255 );    // example
+
+    SetPrefsAs(&prefs[ 4], 0x00, 221, 34, 17, 255,255,255 );    // example
     SetPrefsAs(&prefs[ 5], 0x01,   0,  0, 68, 255,255,255 );    // synonyms
     SetPrefsAs(&prefs[ 6], 0x00,   0,  0,  0, 255,255,255 );    // definition list
-    SetPrefsAs(&prefs[ 7], 0x01,   0,100,100, 255,255,255 );    // pos list
+    SetPrefsAs(&prefs[ 7], 0x01,   0,220,  0, 255,255,255 );    // pos list
     // format 2: (default)
     SetPrefsAs(&prefs[ 8], 0x07,   0,  0,255, 255,255,255 );    // word
-    SetPrefsAs(&prefs[ 9], 0x01,   0, 99,  0, 255,255,255 );    // pos
+    SetPrefsAs(&prefs[ 9], 0x01,   0,220,  0, 255,255,255 );    // pos
     SetPrefsAs(&prefs[10], 0x00,   0,  0,  0, 255,255,255 );    // definition
 
     SetPrefsAs(&prefs[11], 0x00, 221, 34, 17, 255,255,255 );    // example
-    SetPrefsAs(&prefs[12], 0x01,   0, 68, 68, 255,255,255 );    // synonyms
+    SetPrefsAs(&prefs[12], 0x01,   0,  0, 68, 255,255,255 );    // synonyms
     SetPrefsAs(&prefs[13], 0x00,   0,  0,  0, 255,255,255 );    // definition list
-    SetPrefsAs(&prefs[14], 0x01,   0, 99,  0, 255,255,255 );    // pos list
+    SetPrefsAs(&prefs[14], 0x01,   0,220,  0, 255,255,255 );    // pos list
 
     prefsToSet = &prefs[0];
 

@@ -213,7 +213,7 @@ BEGIN
    POPUPLIST popupListStyle listListStyle
 
    POPUPTRIGGER "part of speach" popupActTag AT (1 15 AUTO AUTO) LEFTANCHOR
-   LIST "word" "p. of sp. list" "part of speech" "definition list" /*"definition"*/ "synonyms" /*"examples"*/  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 5
+   LIST "word" "p. of speech list" "part of speech" "definition list" /*"definition"*/ "synonyms" /*"examples"*/  ID listActTag AT (PREVLEFT + 4 PREVTOP+3 PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 5
    POPUPLIST popupActTag listActTag
 
    BUTTON ""             buttonGlobalBGcol  AT (RIGHT@160-2    16      20   10) FONT 0
