@@ -102,6 +102,8 @@
 
 #define   buttonGlobalBGcol       9050
 
+#define   armID                   9666  
+
 #define   labelBkmSortBy          6500
 
 #define   checkResidentMode       6510

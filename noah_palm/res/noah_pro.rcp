@@ -349,3 +349,5 @@ BEGIN
     BITMAP "icons/no_mb_bigx2.bmp"     BPP 1 DENSITY 2
     BITMAP "icons/no_mb_bigx256.bmp"   BPP 8 DENSITY 2 TRANSPARENCY 255 255 255
 END
+
+DATA "ARMC" ID armID "armlet-simple.bin"
