@@ -15,40 +15,10 @@
 #include "fs.h"
 #include "fs_ex.h"
 
-struct VfsData
-{
-    UInt16          volRef;
-    FileRef         dirRef;
-    FileInfoType    fileInfo;
-    UInt32          dirIter;
-    /* if false, we need to init iteration of findfirst()/findnext() */
-    Boolean         iterationInitedP;
-    Boolean         headerInitedP;    /* has the header already been loaded */
-
-    char            name[dmDBNameLength];
-    UInt32          dbCreator;
-    UInt32          dbType;
-    Boolean         recursiveP; /* recursive dir traversal or just one dir */
-    Boolean         worksP;     /* has been initilized successfully? */
-
-    char            *fullFileName;
-    char            *currDir;
-
-    StringStack     dirsToVisit;
-};
-
 Boolean FsVfsInit(void);
 void    FsVfsDeinit(void);
 Boolean FFsVfsPresent(void);
 
-struct VfsData *vfsNew(void);
-Err             vfsInit(struct VfsData *vfs);
-void            VfsDeinit(struct VfsData *vfs);
-
-UInt32          vfsGetDbCreator(struct VfsData *vfs);
-UInt32          vfsGetDbType(struct VfsData *vfs);
-char *          vfsGetDbName(struct VfsData *vfs);
-Boolean         vfsReadHeader(struct VfsData *vfs);
-Err             vfsCopyExternalToMem(struct VfsData *vfs, UInt32 offset, UInt32 size, void *dstBuf);
-
+Boolean vfsInitCacheData(AbstractFile *file, struct DbCacheData *cacheData);
+Err     vfsCopyExternalToMem(AbstractFile *file, UInt32 offset, UInt32 size, void *dstBuf);
 #endif

@@ -1132,10 +1132,8 @@ void ssDeinit( StringStack *ss )
 }
 
 /* Pushes a copy of the string on the stack */
-void ssPush( StringStack *ss, char *string )
+Boolean ssPush( StringStack *ss, char *str )
 {
-    int     strLen;
-    char    *strCopy;
     int     newSlots;
     char    **newStrings;
 
@@ -1148,7 +1146,7 @@ void ssPush( StringStack *ss, char *string )
         if ( NULL == newStrings )
         {
             gd.err = ERR_NO_MEM;
-            return;
+            return false;
         }
 
         // copy old values if needed
@@ -1162,18 +1160,10 @@ void ssPush( StringStack *ss, char *string )
         ss->freeSlots = newSlots - ss->stackedCount;
     }
 
-    strLen = StrLen(string) + 1;
-    strCopy = new_malloc( strLen );
-    if ( NULL == strCopy )
-    {
-        gd.err = ERR_NO_MEM;
-        return;
-    }
-    StrCopy( strCopy, string );
-
-    ss->strings[ss->stackedCount] = strCopy;
+    ss->strings[ss->stackedCount] = str;
     ss->stackedCount += 1;
     ss->freeSlots -= 1;
+    return true;
 }
 
 /* Pop a string from the stack. Return NULL if no more strings on the stack.

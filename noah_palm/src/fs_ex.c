@@ -18,23 +18,28 @@ void dcDelCacheDb(void)
     DmDeleteDatabase(0, dbId );
 }
 
-DbCacheData *dcNew(struct VfsData *vfs, UInt32 cacheCreator)
+struct DbCacheData *dcNew(AbstractFile *file, UInt32 cacheCreator)
 {
-    DbCacheData *data = (DbCacheData*) new_malloc( sizeof(DbCacheData) );
+    struct DbCacheData *data = (struct DbCacheData*) new_malloc_zero( sizeof(struct DbCacheData) );
     if (NULL==data) return NULL;
-    Assert( vfs );
     Assert( 0 != cacheCreator );
-    data->vfs = vfs;
     data->cacheCreator = cacheCreator;
+    dcInit(data);
+    if (!vfsInitCacheData(file, data) )
+    {
+        dcDeinit(data);
+        new_free(data);
+        data = NULL;
+    }
     return data;
 }
 
-void dcInit(DbCacheData *cache)
+void dcInit(struct DbCacheData *cache)
 {
     cache->lockRegionCacheRec = 1;
 }
 
-void dcDeinit(DbCacheData *cache)
+void dcDeinit(struct DbCacheData *cache)
 {
 #ifdef DEBUG
     int i;
@@ -65,12 +70,12 @@ void dcDeinit(DbCacheData *cache)
 
 #define LOCK_REGION_REC_SIZE 4096
 
-UInt16 dcGetRecordsCount(DbCacheData *cache)
+UInt16 dcGetRecordsCount(struct DbCacheData *cache)
 {
     return cache->recsCount;
 }
 
-long dcGetRecordSize(DbCacheData *cache, UInt16 recNo)
+long dcGetRecordSize(struct DbCacheData *cache, UInt16 recNo)
 {
     Assert(recNo < cache->recsCount);
     return cache->recsInfo[recNo].size;
@@ -81,7 +86,7 @@ long dcGetRecordSize(DbCacheData *cache, UInt16 recNo)
    real database has been read, so we have enough information
    to do the job (number of records and database name)
    Also create the first record.*/
-LocalID dcCreateCacheDb(DbCacheData *cache)
+LocalID dcCreateCacheDb(struct DbCacheData *cache)
 {
     Err             err = errNone;
     CacheDBInfoRec  *dbFirstRec = NULL;
@@ -135,9 +140,6 @@ LocalID dcCreateCacheDb(DbCacheData *cache)
     }
 
     dbFirstRec->signature = VFS_CACHE_DB_SIG_V1;
-    dbFirstRec->realDbCreator = vfsGetDbCreator(cache->vfs);
-    dbFirstRec->realDbType = vfsGetDbType(cache->vfs);
-    MemMove(dbFirstRec->realDbName, vfsGetDbName(cache->vfs), 32);
     dbFirstRec->realDbRecsCount = CurrFileGetRecordsCount();
 
     err = dcUpdateFirstCacheRec(cache, dbFirstRec);
@@ -194,7 +196,7 @@ LocalID dcCreateCacheDb(DbCacheData *cache)
    If yes but for different database delete and and create new.
    If exist read info for cacheDbInfoRec
  */
-Err dcCacheDbRef(DbCacheData *cache)
+Err dcCacheDbRef(struct DbCacheData *cache)
 {
     Err             err = errNone;
     LocalID         dbId = 0;
@@ -203,12 +205,6 @@ Err dcCacheDbRef(DbCacheData *cache)
     CacheDBInfoRec  *firstRecMem;
     UInt32          firstRecSize = 0;
     UInt32          reslFirstRecSize = 0;
-
-    /* need to read database header first */
-    if (false == vfsReadHeader(cache->vfs))
-    {
-        goto Error;
-    }
 
     /* check if not already opened */
     if (0 != cache->cacheDbRef)
@@ -289,7 +285,7 @@ Err dcCacheDbRef(DbCacheData *cache)
     return err;
 }
 
-void dcCloseCacheDb(DbCacheData *cache)
+void dcCloseCacheDb(struct DbCacheData *cache)
 {
     if (cache->cacheDbRef != 0)
     {
@@ -307,7 +303,7 @@ the first available one (counting from the end).
 Returns a record number to delete or -1 if there is no record available to
 delete.
 */
-static int dcFindRecordToDelete(DbCacheData *cache)
+static int dcFindRecordToDelete(struct DbCacheData *cache)
 {
 
     int    i;
@@ -333,7 +329,7 @@ return an error.
 How to choose a record to delete: Last Recently Used? Least Frequently Used?
 
 */
-Err dcCacheRecord(DbCacheData *cache, UInt16 recNo)
+Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
 {
     Err             err = errNone;
     UInt16          recPos = dmMaxRecordIndex;
@@ -384,7 +380,7 @@ Err dcCacheRecord(DbCacheData *cache, UInt16 recNo)
     }
 
     recData = (char*) MemHandleLock(recHandle);
-    err = vfsCopyExternalToMem(cache->vfs, offsetInPdbFile, recSize, recData);
+    err = vfsCopyExternalToMem( GetCurrentFile(), offsetInPdbFile, recSize, recData);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, recPos, false );
     if (err)
@@ -415,7 +411,7 @@ Err dcCacheRecord(DbCacheData *cache, UInt16 recNo)
 /* Update the first record in cache with info in dbFirstRec.
    Assumes that the database is created and open and first record
    already exists. */
-Err dcUpdateFirstCacheRec(DbCacheData *cache, CacheDBInfoRec * dbFirstRec)
+Err dcUpdateFirstCacheRec(struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec)
 {
     MemHandle   recHandle = 0;
     Err         err = errNone;
@@ -446,7 +442,7 @@ Err dcUpdateFirstCacheRec(DbCacheData *cache, CacheDBInfoRec * dbFirstRec)
     return err;
 }
 
-void *dcLockRecord(DbCacheData *cache, UInt16 recNo)
+void *dcLockRecord(struct DbCacheData *cache, UInt16 recNo)
 {
     UInt16      cachedRecNo;
     MemHandle   recHandle;
@@ -487,7 +483,7 @@ void *dcLockRecord(DbCacheData *cache, UInt16 recNo)
     return cache->recsInfo[recNo].data;
 }
 
-void dcUnlockRecord(DbCacheData *cache, UInt16 recNo)
+void dcUnlockRecord(struct DbCacheData *cache, UInt16 recNo)
 {
     MemHandle   recHandle;
     UInt16      cachedRecNo;
@@ -512,7 +508,7 @@ void dcUnlockRecord(DbCacheData *cache, UInt16 recNo)
   (number 1) to copy the data from recNo at given offset to it.
 */
 
-void *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
+void *dcLockRegion(struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
 {
     char        *recData;
     void        *dstData;
@@ -528,7 +524,7 @@ void *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
     dstData = MemHandleLock(recHandle);
     /* copy data from CF to memory record */
     offsetInPdbFile = cache->recsInfo[recNo].offset + offset;
-    err = vfsCopyExternalToMem(cache->vfs, offsetInPdbFile, size, dstData);
+    err = vfsCopyExternalToMem(GetCurrentFile(), offsetInPdbFile, size, dstData);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, cache->lockRegionCacheRec, false);
     if (err)
@@ -550,7 +546,7 @@ Error:
 /* TODO: optimize by opening the record one with DmGetRecord() at the
    beginning and keeping it open, closing on exit, so this would become
    a no-op */
-void dcUnlockRegion(DbCacheData *cache, char *regionPtr)
+void dcUnlockRegion(struct DbCacheData *cache, char *regionPtr)
 {
     MemHandle recHandle;
 
@@ -570,7 +566,7 @@ void dcUnlockRegion(DbCacheData *cache, char *regionPtr)
 are in recs.
 Return true if ok, false if there was a problem (most likely not
 enough memory to create cache database */
-Boolean dcCacheRecords(DbCacheData *cache, int recsCount, UInt16 * recs)
+Boolean dcCacheRecords(struct DbCacheData *cache, int recsCount, UInt16 * recs)
 {
     int i;
     for (i = 0; i < recsCount; i++)

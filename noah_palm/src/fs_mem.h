@@ -35,6 +35,4 @@ void    memUnlockRecord(struct MemData *memData, UInt16 record_no);
 long    memGetRecordSize(struct MemData *memData, UInt16 recNo);
 void    *memLockRegion(struct MemData *memData, UInt16 recNo, UInt16 offset, UInt16 size);
 void    memUnlockRegion(struct MemData *memData, char *regionPtr);
-
-
 #endif

@@ -46,9 +46,8 @@ typedef struct
     UInt32  offset;    /* offset of the record within *pdb file */
 } OneVfsRecordInfo;
 
-typedef struct
+struct DbCacheData
 {
-    struct VfsData      *vfs;
     UInt32              cacheCreator;
     DmOpenRef           cacheDbRef;   /* pointer to opened cached database */
     int                 recsCount;    /* number of records in the pdb */
@@ -62,24 +61,24 @@ typedef struct
     This record should not be bigger than 4 kB */
     int                 lockRegionCacheRec;
     char                *lastLockedRegion;
-} DbCacheData;
+};
 
 /* dc stands for Database Cache */
-DbCacheData *dcNew(struct VfsData *vfs, UInt32 cacheCreator);
+struct DbCacheData *dcNew(AbstractFile *file, UInt32 cacheCreator);
 void         dcDelCacheDb(void);
-void         dcInit(DbCacheData *cache);
-void         dcDeinit(DbCacheData *cache);
-UInt16       dcGetRecordsCount(DbCacheData *cache);
-long         dcGetRecordSize(DbCacheData *cache, UInt16 recNo);
-LocalID      dcCreateCacheDb(DbCacheData *cache);
-Err          dcCacheDbRef(DbCacheData *cache);
-void         dcCloseCacheDb(DbCacheData *cache);
-Err          dcCacheRecord(DbCacheData *cache, UInt16 recNo);
-Err          dcUpdateFirstCacheRec(DbCacheData *cache, CacheDBInfoRec * dbFirstRec);
-void        *dcLockRecord(DbCacheData *cache, UInt16 recNo);
-void        *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size);
-void         dcUnlockRecord(DbCacheData *cache, UInt16 recNo);
-void         dcUnlockRegion(DbCacheData *cache,char *regionPtr);
-//Boolean dcCacheRecords(DbCacheData *cache, int recsCount, UInt16 * recs);
+void         dcInit(struct DbCacheData *cache);
+void         dcDeinit(struct DbCacheData *cache);
+UInt16       dcGetRecordsCount(struct DbCacheData *cache);
+long         dcGetRecordSize(struct DbCacheData *cache, UInt16 recNo);
+LocalID      dcCreateCacheDb(struct DbCacheData *cache);
+Err          dcCacheDbRef(struct DbCacheData *cache);
+void         dcCloseCacheDb(struct DbCacheData *cache);
+Err          dcCacheRecord(struct DbCacheData *cache, UInt16 recNo);
+Err          dcUpdateFirstCacheRec(struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec);
+void        *dcLockRecord(struct DbCacheData *cache, UInt16 recNo);
+void        *dcLockRegion(struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size);
+void         dcUnlockRecord(struct DbCacheData *cache, UInt16 recNo);
+void         dcUnlockRegion(struct DbCacheData *cache,char *regionPtr);
+//Boolean dcCacheRecords(struct DbCacheData *cache, int recsCount, UInt16 * recs);
 
 #endif

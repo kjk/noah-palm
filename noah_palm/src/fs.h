@@ -22,7 +22,7 @@ typedef enum  {
 } eFsType;
 
 struct MemData;
-struct VfsData;
+struct DbCacheData;
 
 struct RogetInfo;
 struct WnInfo;
@@ -44,9 +44,11 @@ typedef struct
     char     *fileName;  /* dbName in case of internal mem, full path in case of vfs */
 
     /* those are runtime-only */
+
+    UInt16  volRef;  /* vfs only - on which volume the file is */
     union {
-        struct MemData *memData;
-        struct VfsData *vfsData;
+        struct MemData      *memData;
+        struct DbCacheData  *cacheData;
     } data;
 
     union {

@@ -126,11 +126,15 @@ void LoadPreferences(NoahDBPrefs * data, UInt32 dataLen)
 void DictFoundCBThes( AbstractFile *file )
 {
     Assert( file );
+    Assert( THES_CREATOR == file->creator );
+    Assert( ROGET_TYPE == file->type );
     if (gd.dictsCount>=MAX_DICTS)
+    {
+        AbstractFileFree(file);
         return;
+    }
 
     gd.dicts[gd.dictsCount++] = file;
-    return;
 }
 
 void FreeDicts(void)
@@ -141,15 +145,29 @@ void FreeDicts(void)
     }
 }
 
-/* checks if a given file is a thesaurus database */
+/* called for every file on the external card */
 void ThesVfsFindCb( AbstractFile *file )
 {
+    AbstractFile *fileCopy;
 
+    /* TODO: update progress dialog with a number of files processed */
+    if ( THES_CREATOR != file->creator )
+        return;
+
+    if ( ROGET_TYPE != file->type )
+        return;
+
+    fileCopy = AbstractFileNewFull( file->fsType, file->creator, file->type, file->fileName );
+    if ( NULL == fileCopy ) return;
+    fileCopy->volRef = file->volRef;
+    DictFoundCBThes( fileCopy );
 }
 
 void ScanForDictsThes(void)
 {
     FsMemFindDb( THES_CREATOR, ROGET_TYPE, NULL, &DictFoundCBThes );
+
+    /* TODO: show a progress dialog with a number of files processed so far */
     FsVfsFindDb( &ThesVfsFindCb );
 }
 

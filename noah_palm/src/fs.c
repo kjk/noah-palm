@@ -80,7 +80,7 @@ void AbstractFileFree(AbstractFile *file)
 {
     Assert( NULL != file );
     Assert( NULL == file->data.memData );
-    Assert( NULL == file->data.vfsData );
+    Assert( NULL == file->data.cacheData );
     if (file->fileName) new_free(file->fileName);
     new_free(file);
 }
@@ -182,10 +182,9 @@ Boolean FsFileOpen(AbstractFile *file)
             }
             break;
         case eFS_VFS:
-            file->data.vfsData = vfsNew();
-            // TODO;
-            //vfs
-            Assert(0);
+            file->data.cacheData = dcNew(file, THES_CREATOR);
+            if ( !file->data.cacheData )
+                return false;
             break;
         default:
             Assert(0);
@@ -208,11 +207,11 @@ void FsFileClose(AbstractFile *file)
             }
             break;
         case eFS_VFS:
-            if ( file->data.vfsData )
+            if ( file->data.cacheData )
             {
-                VfsDeinit( file->data.vfsData );
-                new_free( file->data.vfsData );
-                file->data.vfsData = NULL;
+                dcDeinit( file->data.cacheData );
+                new_free( file->data.cacheData );
+                file->data.cacheData = NULL;
             }
             break;
         default:
@@ -227,7 +226,7 @@ UInt16 fsGetRecordsCount(AbstractFile *file)
         case eFS_MEM:
             return memGetRecordsCount(file->data.memData );
         case eFS_VFS:
-            return VfsGetRecordsCount(file->data.vfsData);
+            return dcGetRecordsCount(file->data.cacheData);
         default:
             Assert(0);
             return 0;
@@ -241,7 +240,7 @@ UInt16 fsGetRecordSize(AbstractFile *file, UInt16 recNo)
         case eFS_MEM:
             return memGetRecordSize(file->data.memData, recNo);
         case eFS_VFS:
-            return VfsGetRecordSize(file->data.vfsData, recNo);
+            return dcGetRecordSize(file->data.cacheData, recNo);
         default:
             Assert(0);
             return 0;
@@ -255,7 +254,7 @@ void *fsLockRecord(AbstractFile *file, UInt16 recNo)
         case eFS_MEM:
             return memLockRecord(file->data.memData, recNo);
         case eFS_VFS:
-            return VfsLockRecord(file->data.vfsData, recNo);
+            return dcLockRecord(file->data.cacheData, recNo);
         default:
             Assert(0);
             return NULL;
@@ -270,7 +269,7 @@ void fsUnlockRecord(AbstractFile *file, UInt16 recNo)
             memUnlockRecord(file->data.memData, recNo );
             break;
         case eFS_VFS:
-            VfsUnlockRecord(file->data.vfsData, recNo );
+            dcUnlockRecord(file->data.cacheData, recNo );
             break;
         default:
             Assert(0);
@@ -284,7 +283,7 @@ void *fsLockRegion(AbstractFile *file, UInt16 recNo, UInt16 offset, UInt16 size)
         case eFS_MEM:
             return memLockRegion(file->data.memData, recNo, offset, size );
         case eFS_VFS:
-            return VfsLockRegion(file->data.vfsData, recNo, offset, size );
+            return dcLockRegion(file->data.cacheData, recNo, offset, size );
         default:
             Assert(0);
             return NULL;
@@ -299,7 +298,7 @@ void fsUnlockRegion(AbstractFile *file, char *data)
             memUnlockRegion(file->data.memData, data );
             break;
         case eFS_VFS:
-            VfsUnlockRegion(file->data.vfsData, data );
+            dcUnlockRegion(file->data.cacheData, data );
             break;
         default:
             Assert(0);

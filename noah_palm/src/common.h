@@ -191,7 +191,7 @@ typedef struct
 
 void    ssInit  ( StringStack *ss );
 void    ssDeinit( StringStack *ss );
-void    ssPush  ( StringStack *ss, char *string );
+Boolean ssPush  ( StringStack *ss, char *str );
 char    *ssPop  ( StringStack *ss );
 
 #endif

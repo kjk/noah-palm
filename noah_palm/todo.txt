@@ -1,8 +1,5 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
-
-
-* vfs_ex should use vfs and not the other way around (invert ownership 
-relationship)
+* make vfs_ex compile
 * add vfs support for Thes
 * bring Noah Pro to using only vfs/mem
 * save preferences in Thes
