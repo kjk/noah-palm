@@ -131,6 +131,7 @@ static void cbGetWordFromSelectionAndTranslate(AppContext *appContext,cbSelectio
     ExtensibleBuffer eBuf;
     int              i, j, m, n, k;
     char *           defTxt;
+    char             txt[WORD_MAX_LEN+1];
 
     Assert(appContext->currDispInfo);
     ebufInit(&eBuf,256);
@@ -166,8 +167,16 @@ static void cbGetWordFromSelectionAndTranslate(AppContext *appContext,cbSelectio
     bfStripBufferFromTags(&eBuf);
     defTxt = ebufGetDataPointer(&eBuf);
 
-    cbTryWord(appContext, defTxt);
+    MemSet(txt, sizeof(txt), 0);
+    i = 0;
+    do
+    {
+        txt[i] = defTxt[i];
+        i++;
+    }while(defTxt[i]!='\0' && (i+1)<sizeof(txt));
     ebufFreeData(&eBuf);
+    defTxt = txt;
+    cbTryWord(appContext, defTxt);
     return;    
 }
 
