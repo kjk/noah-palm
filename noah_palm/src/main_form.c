@@ -113,8 +113,18 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
     LookupProgressEventData* data=reinterpret_cast<LookupProgressEventData*>(&event->data);
     if (lookupProgress==data->flag) 
         FrmUpdateForm(formDictMain, redrawLookupStatusBar);
-    else 
-        FrmUpdateForm(formDictMain, redrawAll); //! @todo Prepare some more sophisticated handling (shrinking/stretching current definition etc.)
+    else        //! @todo Prepare some more sophisticated handling (shrinking/stretching current definition etc.)
+    {
+        if (lookupFinished==data->flag)
+        {
+            if (!data->error) 
+                appContext->firstDispLine=0;
+            UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
+            FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+            FldSelectAllText(field);
+        }
+        FrmUpdateForm(formDictMain, redrawAll); 
+    }        
 }
 
 static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)

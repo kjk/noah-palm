@@ -35,13 +35,15 @@ typedef struct ConnectionData_
     NetSocketRef socket;
 } ConnectionData;
 
-static void SendLookupProgressEvent(LookupProgressEventFlag flag)
+static void SendLookupProgressEvent(LookupProgressEventFlag flag, Err error=errNone)
 {
     EventType event;
     MemSet(&event, sizeof(event), 0);
     event.eType=static_cast<eventsEnum>(lookupProgressEvent);
+    Assert(sizeof(LookupProgressEventData)<=sizeof(event.data));
     LookupProgressEventData* data=reinterpret_cast<LookupProgressEventData*>(&event.data);
     data->flag=flag;
+    data->error=error;
     EvtAddEventToQueue(&event);
 }
 
@@ -478,7 +480,7 @@ static ConnectionStageHandler* GetConnectionStageHandler(const ConnectionData* c
     return handler;
 }
 
-void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent)
+void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent, Err error)
 {
     Assert(appContext);
     ConnectionData* connData=static_cast<ConnectionData*>(appContext->currentLookupData);
@@ -486,7 +488,7 @@ void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent)
     appContext->currentLookupData=NULL;
     FreeConnectionData(connData);
     if (sendNotifyEvent)
-        SendLookupProgressEvent(lookupFinished);
+        SendLookupProgressEvent(lookupFinished, error);
 }
 
 void StartLookup(AppContext* appContext, const Char* wordToFind)
@@ -510,7 +512,7 @@ void StartLookup(AppContext* appContext, const Char* wordToFind)
     {
         FreeConnectionData(connData);
         if (wasInProgress)
-            SendLookupProgressEvent(lookupFinished);
+            SendLookupProgressEvent(lookupFinished, netErrUserCancel);
     }
 }
 
@@ -524,7 +526,7 @@ void PerformLookupTask(AppContext* appContext)
     {
         Err error=(*handler)(connData);
         if (error)
-            AbortCurrentLookup(appContext, true);
+            AbortCurrentLookup(appContext, true, error);
         else
             SendLookupProgressEvent(lookupProgress);
     }
@@ -532,21 +534,16 @@ void PerformLookupTask(AppContext* appContext)
     {
         const Char* begin=ebufGetDataPointer(&connData->response);
         const Char* end=begin+ebufGetDataSize(&connData->response);
-        FormType* frm = FrmGetFormPtr(formDictMain);
-        UInt16 index=FrmGetObjectIndex(frm, fieldWordInput);
-        FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(frm, index));
-
+        Err error=errNone;
         if (0==StrNCmp(begin, noDefnitionResponse, end-begin))
         {
-            
+            error=appErrWordNotFound;
             const Char* word = ebufGetDataPointer(&connData->wordToFind);
             FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
         }
         else
-            PrepareDisplayInfo(appContext, ebufGetDataPointer(&connData->wordToFind), begin, end);
-        FldSelectAllText(field);
-        AbortCurrentLookup(appContext, true);
-
+            error=PrepareDisplayInfo(appContext, ebufGetDataPointer(&connData->wordToFind), begin, end);
+        AbortCurrentLookup(appContext, true, error);
     }
 }
 

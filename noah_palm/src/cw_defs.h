@@ -82,11 +82,11 @@ to provide per-target defines. In gcc version they're set via Makefile.
 #if __ide_target("iNoah Debug")
 #define DEBUG 1
 #define MEM_LEAKS 1
-#define I_NOAH
+#define I_NOAH  1
 #endif
 
 #if __ide_target("iNoah Release")
-#define I_NOAH
+#define I_NOAH  1
 #endif
 
 #endif /* __MWERKS__ */

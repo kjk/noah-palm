@@ -105,6 +105,3 @@ BEGIN
 	MENUITEM SEPARATOR
 	MENUITEM "Preferences" ID menuEditPreferences  "P"
 END
-
-     
-END

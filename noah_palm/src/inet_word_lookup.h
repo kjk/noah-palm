@@ -21,7 +21,7 @@
 
 extern void StartLookup(AppContext* appContext, const Char* word);
 extern void PerformLookupTask(AppContext* appContext);
-extern void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent);
+extern void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent, Err error=errNone);
 extern const Char* GetLookupStatusText(AppContext* appContext);
 
 #define LookupInProgress(appContext) (NULL!=(appContext)->currentLookupData)
@@ -36,6 +36,7 @@ typedef enum LookupProgressEventFlag_
 typedef struct LookupProgressEventData_ 
 {
     LookupProgressEventFlag flag;
+    Err  error;
 } LookupProgressEventData;        
 
 #ifdef DEBUG

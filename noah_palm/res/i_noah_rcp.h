@@ -1,3 +1,4 @@
+#define HISTORY_ITEMS 12
 
 #define formDictMain        1000
 

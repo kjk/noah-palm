@@ -2076,7 +2076,7 @@ DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type)
     return NULL;
 }
 
-UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total)
+UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total)
 {
     current*=100;
     current/=total;

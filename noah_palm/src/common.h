@@ -7,8 +7,6 @@
 
 #pragma warn_a5_access on 
 
-#define optional
-
 #include <PalmOS.h>
 #include "cw_defs.h"
 
@@ -286,7 +284,7 @@ typedef struct _AppContext
     
     /**
      * Flags related with system notifications and present features.
-     * @see AppFlags in file common.h
+     * @see AppFlags
      */
     long               flags;
 
@@ -525,7 +523,7 @@ DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type);
  * @param buffer <code>Char</code> array with space for at least 5 elements, or NULL if not needed.
  * @return ratio in percents.
  */ 
-extern UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total);
+extern UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total);
 
 #define MillisecondsToTicks(millis) ((((float)SysTicksPerSecond())*((float)(millis)))/1000.0)
 
