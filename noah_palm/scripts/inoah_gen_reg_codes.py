@@ -98,7 +98,7 @@ MIN_PG_CODES = 500
 
 # TODO: check MIN_H_CODES limit
 # minimum number of per-file codes for Handango
-MIN_H_CODES = 500
+MIN_H_CODES = 100
 
 # minimum number of per-file codes for smartphone.net
 MIN_SN_CODES = 100
