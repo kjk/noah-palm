@@ -58,8 +58,8 @@ typedef struct
     ScrollType              tapScrollType;
     ScrollType              hwButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
-    unsigned char           lastWord[WORD_MAX_LEN];
-    unsigned char *         lastDbUsedName;
+    char                    lastWord[WORD_MAX_LEN];
+    char *                  lastDbUsedName;
 } NoahPrefs;
 
 /*
@@ -86,6 +86,7 @@ typedef struct
     int                 historyCount;
     long                wordHistory[HISTORY_ITEMS];
     NoahPrefs           prefs;
+    Boolean             fFirstRun; /* is this first run or not */
 } GlobalData;
 
 #endif

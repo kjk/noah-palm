@@ -38,26 +38,25 @@ Boolean FIsPrefRecord(void *recData)
     long    sig;
     Assert( recData );
     sig = ((long*)recData)[0];
-	if ( Noah21Pref == sig )
-		return true;
-	else
-		return false;
+    if ( Noah21Pref == sig )
+        return true;
+    else
+        return false;
 }
 
 // Create a blob containing serialized prefernces.
 // Devnote: caller needs to free memory returned.
 void *GetSerializedPreferencesNoahPro(long *pBlobSize)
 {
-    void *      prefsBlob;
-    long        blobSize;
-    long        blobSizePhaseOne;
-    int         phase;
-    NoahPrefs   *prefs;
-    UInt32      prefRecordId = Noah21Pref;
-    AbstractFile *currFile;
-    int         dbNameLen;
-    int         wordLen;
-    int         i;
+    void *          prefsBlob;
+    long            blobSize;
+    long            blobSizePhaseOne;
+    int             phase;
+    NoahPrefs *     prefs;
+    UInt32          prefRecordId = Noah21Pref;
+    AbstractFile *  currFile;
+    unsigned char   currFilePos;
+    int             i;
 
     Assert( pBlobSize );
 
@@ -71,37 +70,55 @@ void *GetSerializedPreferencesNoahPro(long *pBlobSize)
     {
         blobSize = 0;
         Assert( 4 == sizeof(prefRecordId) );
+        /* 1. preferences */
         serData( (char*)&prefRecordId, sizeof(prefRecordId), prefsBlob, &blobSize );
         serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
         serByte( prefs->tapScrollType, prefsBlob, &blobSize );
         serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
-        currFile = GetCurrentFile();
-        if ( NULL != currFile )
-        {
-            serByte( currFile->fsType, prefsBlob, &blobSize );
-            dbNameLen = strlen(currFile->fileName)+1;
-            serInt( dbNameLen, prefsBlob, &blobSize );
-            serData( currFile->fileName, dbNameLen, prefsBlob, &blobSize );
-        }
-        else
-        {
-            /* so that we can tell in deserializer */
-            LogG( "GetSerializedPreferencesNoahPro(), currFile == NULL" );
-            serByte( eFS_NONE, prefsBlob, &blobSize );
-        }
-        wordLen = strlen( (const char*) gd.prefs.lastWord)+1;
-        Assert( wordLen <= WORD_MAX_LEN );
-        serInt( wordLen, prefsBlob, &blobSize );
-        serData( (char*)gd.prefs.lastWord, wordLen, prefsBlob, &blobSize );
-        LogV1( "GetSerializedPreferencesNoahPro(), lastWord=%s", gd.prefs.lastWord );
 
+        /* 2. number of databases found */
+        serByte( gd.dictsCount, prefsBlob, &blobSize );
+
+        /* 3. currently used database */
+        currFilePos = 0xff;
+        for (i=0; i<gd.dictsCount; i++)
+        {
+            if( GetCurrentFile() == gd.dicts[i] )
+            {
+                currFilePos = (unsigned char)i;
+                break;
+            }
+        }
+        serByte( currFilePos, prefsBlob, &blobSize );
+
+        /* 4. list of databases */
+        for(i=0; i<gd.dictsCount; i++)
+        {
+            currFile = gd.dicts[i];
+            Assert( NULL != currFile );
+            serByte( currFile->fsType, prefsBlob, &blobSize );
+            serString(currFile->fileName, prefsBlob, &blobSize);
+        }
+
+        /* 5. last word */
+        serString( (char*)gd.prefs.lastWord, prefsBlob, &blobSize);
+
+        /* 6. number of words in the history */
         serInt( gd.historyCount, prefsBlob, &blobSize );
+
+        /* 7. all words in the history */
+        /* TODO: change those to strings instead of word numbers
+          (not valid when switching to a different database) */
         for (i=0; i<gd.historyCount; i++)
         {
+#if 0
+            serString()
+#endif
             serLong( gd.wordHistory[i], prefsBlob, &blobSize );
         }
+
         if ( 1 == phase )
         {
             Assert( blobSize > 0 );
@@ -129,10 +146,10 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
 {
     NoahPrefs *     prefs;
     eFsType         fsType;
-    int             dbNameLen;
-    unsigned char * dbName;
-    int             wordLen;
+    char *          dbName;
     int             i;
+    unsigned char   dbCount;
+    unsigned char   currDb;
 
     Assert( prefsBlob );
     Assert( blobSize > 8 );
@@ -145,6 +162,7 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
     prefsBlob += 4;
     blobSize -= 4;
 
+    /* 1. preferences */
     prefs->fDelVfsCacheOnExit = (Boolean) deserByte( &prefsBlob, &blobSize );
     prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
     prefs->tapScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
@@ -152,28 +170,37 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
 
     Assert( blobSize > 0);
-    fsType = (eFsType) deserByte( &prefsBlob, &blobSize );
-    if ( fsType != eFS_NONE )
+
+    /* 2. number of databases detected */
+    dbCount = deserByte( &prefsBlob, &blobSize );
+
+    /* 3. currently used database */
+    currDb = deserByte( &prefsBlob, &blobSize );
+
+    /* 4. list of databases */
+    for(i=0; i<(int)dbCount; i++)
     {
+        fsType = (eFsType) deserByte( &prefsBlob, &blobSize );
         Assert( (eFS_MEM==fsType) || (eFS_VFS==fsType) );
-        dbNameLen = deserInt( &prefsBlob, &blobSize );
-        Assert( 0 == prefsBlob[dbNameLen-1] );
-        dbName = new_malloc( dbNameLen );
-        deserData( dbName, dbNameLen, &prefsBlob, &blobSize );
-        LogV1( "DeserilizePreferencesNoahPro(), dbName=%s", dbName );
-        prefs->lastDbUsedName = dbName;
+        dbName = deserString( &prefsBlob, &blobSize );
+        if (i==currDb)
+        {
+            prefs->lastDbUsedName = dbName;
+        }
+        else
+            new_free(dbName);
     }
-    else
-    {
-        LogG( "DeserilizePreferencesNoahPro(), fsType==eFS_NONE" );
-    }
-    wordLen = deserInt( &prefsBlob, &blobSize );
-    Assert( wordLen <= WORD_MAX_LEN );
-    Assert( 0 == prefsBlob[wordLen-1] );
-    deserData( gd.prefs.lastWord, wordLen, &prefsBlob, &blobSize );
+
+    /* 5. last word */
+    deserStringToBuf( (char*)gd.prefs.lastWord, WORD_MAX_LEN, &prefsBlob, &blobSize );
     LogV1( "DeserilizePreferencesNoahPro(), lastWord=%s", gd.prefs.lastWord );
 
+    /* 6. number of words in the history */
     gd.historyCount = deserInt( &prefsBlob, &blobSize );
+
+    /* 7. all words in the history */
+    /* TODO: change those to strings instead of word numbers
+       (not valid when switching to a different database) */
     for (i=0; i<gd.historyCount; i++)
     {
         gd.wordHistory[i] = deserLong( &prefsBlob, &blobSize );
@@ -652,7 +679,7 @@ ChooseDatabase:
             fileToOpen = gd.dicts[0];
         else
         {
-            lastDbUsedName = (char *)gd.prefs.lastDbUsedName;
+            lastDbUsedName = gd.prefs.lastDbUsedName;
             if ( NULL != lastDbUsedName )
             {
                 LogV1( "db name from prefs: %s", lastDbUsedName );

@@ -80,6 +80,7 @@ typedef struct
     int                historyCount;
     long               wordHistory[HISTORY_ITEMS];
     ThesPrefs          prefs;
+    Boolean            fFirstRun; /* is this first run or not */
 } GlobalData;
 
 #endif

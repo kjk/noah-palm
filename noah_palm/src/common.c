@@ -1378,7 +1378,7 @@ void serLong(long val, char *prefsBlob, long *pCurrBlobSize)
     serByte( valPtr[3], prefsBlob, pCurrBlobSize );
 }
 
-unsigned char deserByte( unsigned char **data, long *pBlobSizeLeft )
+unsigned char deserByte(unsigned char **data, long *pBlobSizeLeft)
 {
     unsigned char val;
     unsigned char *d = *data;
@@ -1390,14 +1390,14 @@ unsigned char deserByte( unsigned char **data, long *pBlobSizeLeft )
     return val;
 }
 
-int getInt( unsigned char *data)
+int getInt(unsigned char *data)
 {
     int val;
     val = data[0]*256+data[1];
     return val;
 }
 
-int deserInt( unsigned char **data, long *pBlobSizeLeft )
+int deserInt(unsigned char **data, long *pBlobSizeLeft)
 {
     int val;
     unsigned char *d = *data;
@@ -1409,7 +1409,7 @@ int deserInt( unsigned char **data, long *pBlobSizeLeft )
     return val;
 }
 
-long deserLong( unsigned char **data, long *pBlobSizeLeft)
+long deserLong(unsigned char **data, long *pBlobSizeLeft)
 {
     long val;
     unsigned char * valPtr;
@@ -1432,7 +1432,7 @@ void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
         serByte(data[i],prefsBlob,pCurrBlobSize);
 }
 
-void deserData( unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft )
+void deserData(unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft)
 {
     Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=len) );
     MemMove( valOut, *data, len );
@@ -1440,5 +1440,34 @@ void deserData( unsigned char *valOut, int len, unsigned char **data, long *pBlo
     *pBlobSizeLeft -= len;
 }
 
+void serString(char *str, char *prefsBlob, long *pCurrBlobSize)
+{
+    int len = StrLen(str)+1;
+    serInt(len, prefsBlob, pCurrBlobSize);
+    serData(str, len, prefsBlob, pCurrBlobSize);
+}
 
+char *deserString(unsigned char **data, long *pCurrBlobSize)
+{
+    char *  str;
+    int     strLen;
+
+    strLen = deserInt( data, pCurrBlobSize );
+    Assert( 0 == (*data)[strLen-1] );
+    str = new_malloc( strLen );
+    if (NULL==str)
+        return NULL;
+    deserData( (unsigned char*)str, strLen, data, pCurrBlobSize );
+    return str;
+}
+
+void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize)
+{
+    int     strLen;
+
+    strLen = deserInt( data, pCurrBlobSize );
+    Assert( 0 == (*data)[strLen-1] );
+    Assert( bufSize >= strLen );
+    deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
+}
 
