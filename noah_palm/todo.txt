@@ -1,8 +1,6 @@
 * restore/add word history to Thesaurus
 * register with PDA Green http://www.pdagreen.com/dev_apply.asp
-* bug np: VFS for wn pro doesn't work when we no longer have mem for cache
 * bug nl: no screen refresh when going back from word search
-* test caching in low memory scenario
 * add a color icon for Noah Pro
 * add a hi-res icon for Noah Pro (4bpp and 8bpp)
 * add a color icon for Thesaurus
@@ -72,6 +70,9 @@ bug:
 > > 
 > > Michael
 
+* [DONE 2003/04/26] test caching in low memory scenario
+* [DONE 2003/04/26] bug np: VFS for wn pro doesn't work when we no longer have mem for 
+  cache (newer was there in the first place?)
 * [DONE 2003/03/03] add high-res icon for word search
 * [DONE 2002/12/26] np: restore word history
 * [DONE 2002/12/26] np prefs: last word

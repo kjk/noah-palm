@@ -658,453 +658,457 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
-    case frmOpenEvent:
-        LogG( "MainFormHandleEventNoahPro" );
-        FrmDrawForm(frm);
+        case frmUpdateEvent:
+            LogG( "mainFrm - frmUpdateEvent" );
+            break;
 
-        ScanForDictsNoahPro();
+        case frmOpenEvent:
+            LogG( "mainFrm - frmOpenEvent" );
+            FrmDrawForm(frm);
 
-        if (0 == gd.dictsCount)
-        {
-            FrmAlert(alertNoDB);
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = appStopEvent;
-            EvtAddEventToQueue(&newEvent);
-            return true;
-        }
+            ScanForDictsNoahPro();
+
+            if (0 == gd.dictsCount)
+            {
+                FrmAlert(alertNoDB);
+                MemSet(&newEvent, sizeof(EventType), 0);
+                newEvent.eType = appStopEvent;
+                EvtAddEventToQueue(&newEvent);
+                return true;
+            }
 
 ChooseDatabase:
-        fileToOpen = NULL;
-        if (1 == gd.dictsCount )
-            fileToOpen = gd.dicts[0];
-        else
-        {
-            lastDbUsedName = gd.prefs.lastDbUsedName;
-            if ( NULL != lastDbUsedName )
+            fileToOpen = NULL;
+            if (1 == gd.dictsCount )
+                fileToOpen = gd.dicts[0];
+            else
             {
-                LogV1( "db name from prefs: %s", lastDbUsedName );
+                lastDbUsedName = gd.prefs.lastDbUsedName;
+                if ( NULL != lastDbUsedName )
+                {
+                    LogV1( "db name from prefs: %s", lastDbUsedName );
+                }
+                else
+                {
+                    LogG( "no db name from prefs" );
+                }
+
+                if ( (NULL != lastDbUsedName) &&
+                    (dbStartupActionLast == gd.prefs.dbStartupAction) )
+                {
+                    for( i=0; i<gd.dictsCount; i++)
+                    {
+                        if (0==StrCompare( lastDbUsedName, gd.dicts[i]->fileName ) )
+                        {
+                            fileToOpen = gd.dicts[i];
+                            LogV1( "found db=%s", fileToOpen->fileName );
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (fileToOpen)
+            {
+                LogV1( "found db2=%s", fileToOpen->fileName );
+            }
+
+            if (NULL == fileToOpen)
+            {
+                LogG( "no file, please choose" );
+                /* ask user which database to use */
+                FrmPopupForm(formSelectDict);
+                return true;
             }
             else
             {
-                LogG( "no db name from prefs" );
-            }
-
-            if ( (NULL != lastDbUsedName) &&
-                (dbStartupActionLast == gd.prefs.dbStartupAction) )
-            {
-                for( i=0; i<gd.dictsCount; i++)
+                LogG( "there is file, try to init" );
+                if ( !DictInit(fileToOpen) )
                 {
-                    if (0==StrCompare( lastDbUsedName, gd.dicts[i]->fileName ) )
-                    {
-                        fileToOpen = gd.dicts[i];
-                        LogV1( "found db=%s", fileToOpen->fileName );
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (fileToOpen)
-        {
-            LogV1( "found db2=%s", fileToOpen->fileName );
-        }
-
-        if (NULL == fileToOpen)
-        {
-            LogG( "no file, please choose" );
-            /* ask user which database to use */
-            FrmPopupForm(formSelectDict);
-            return true;
-        }
-        else
-        {
-            LogG( "there is file, try to init" );
-            if ( !DictInit(fileToOpen) )
-            {
-                // failed to initialize dictionary. If we have more - retry,
-                // if not - just quit
-                if ( gd.dictsCount > 1 )
-                {
-                    i = 0;
-                    while ( fileToOpen != gd.dicts[i] )
-                    {
-                        ++i;
-                        Assert( i<gd.dictsCount );
-                    }
-                    AbstractFileFree( gd.dicts[i] );
-                    while ( i<gd.dictsCount )
-                    {
-                        gd.dicts[i] = gd.dicts[i+1];
-                        ++i;
-                    }
-                    --gd.dictsCount;
-                    FrmAlert( alertDbFailed);
-                    goto ChooseDatabase;
-                }
-                else
-                {
-                    FrmAlert( alertDbFailed);
-                    MemSet(&newEvent, sizeof(EventType), 0);
-                    newEvent.eType = appStopEvent;
-                    EvtAddEventToQueue(&newEvent);
-                    return true;                    
-                }
-            }
-        }
-        WinDrawLine(0, 145, 160, 145);
-        WinDrawLine(0, 144, 160, 144);
-        if ( startupActionClipboard == gd.prefs.startupAction )
-        {
-            if (!FTryClipboard())
-                DisplayAboutNoahPro();
-        }
-        else
-            DisplayAboutNoahPro();
-
-        if ( (startupActionLast == gd.prefs.startupAction) &&
-            gd.prefs.lastWord[0] )
-        {
-            DoWord( (char *)gd.prefs.lastWord );
-        }
-        FixWordHistory();
-        handled = true;
-        break;
-
-    case popSelectEvent:
-        switch (event->data.popSelect.listID)
-        {
-        case listHistory:
-            wordNo = gd.wordHistory[event->data.popSelect.selection];
-            if (wordNo != gd.currentWord)
-            {
-                Assert(wordNo < gd.wordsCount);
-                DrawDescription(wordNo);
-                gd.penUpsToConsume = 1;
-            }
-            break;
-        default:
-            Assert(0);
-            break;
-        }
-        handled = true;
-        break;
-
-    case ctlSelectEvent:
-        switch (event->data.ctlSelect.controlID)
-        {
-        case ctlArrowLeft:
-            if (gd.currentWord > 0)
-            {
-                DrawDescription(gd.currentWord - 1);
-            }
-            break;
-        case ctlArrowRight:
-            if (gd.currentWord < gd.wordsCount - 1)
-            {
-                DrawDescription(gd.currentWord + 1);
-            }
-            break;
-        case buttonFind:
-            FrmPopupForm(formDictFind);
-            break;
-        case popupHistory:
-            // TODO: why false???
-            return false;
-            break;
-        default:
-            Assert(0);
-            break;
-        }
-        handled = true;
-        break;
-
-    case evtNewWordSelected:
-        AddToHistory(gd.currentWord);
-        if (1 == gd.historyCount)
-        {
-            CtlShowControlEx(frm, popupHistory);
-            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-            LstSetListChoices(list, NULL, gd.historyCount);
-            LstSetDrawFunction(list, HistoryListDrawFunc);
-        }
-        if (gd.historyCount < 6)
-        {
-            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listHistory));
-            LstSetListChoices(list, NULL, gd.historyCount);
-        }
-        WinDrawLine(0, 145, 160, 145);
-        WinDrawLine(0, 144, 160, 144);
-        DrawDescription(gd.currentWord);
-        gd.penUpsToConsume = 1;
-        handled = true;
-        break;
-
-    case evtNewDatabaseSelected:
-        selectedDb = EvtGetInt( event );
-        fileToOpen = gd.dicts[selectedDb];
-        if ( GetCurrentFile() != fileToOpen )
-        {
-            DictCurrentFree();
-            if ( !DictInit(fileToOpen) )
-            {
-                // failed to initialize dictionary. If we have more - retry,
-                // if not - just quit
-                if ( gd.dictsCount > 1 )
-                {
-                    i = 0;
-                    while ( fileToOpen != gd.dicts[i] )
-                    {
-                        ++i;
-                        Assert( i<gd.dictsCount );
-                    }
-                    AbstractFileFree( gd.dicts[i] );
-                    while ( i<gd.dictsCount )
-                    {
-                        gd.dicts[i] = gd.dicts[i+1];
-                        ++i;
-                    }
-                    --gd.dictsCount;
-                    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                    LstSetListChoices(list, NULL, gd.dictsCount);
+                    // failed to initialize dictionary. If we have more - retry,
+                    // if not - just quit
                     if ( gd.dictsCount > 1 )
                     {
-                        FrmAlert( alertDbFailedGetAnother );
-                        FrmPopupForm( formSelectDict );
+                        i = 0;
+                        while ( fileToOpen != gd.dicts[i] )
+                        {
+                            ++i;
+                            Assert( i<gd.dictsCount );
+                        }
+                        AbstractFileFree( gd.dicts[i] );
+                        while ( i<gd.dictsCount )
+                        {
+                            gd.dicts[i] = gd.dicts[i+1];
+                            ++i;
+                        }
+                        --gd.dictsCount;
+                        FrmAlert( alertDbFailed);
+                        goto ChooseDatabase;
                     }
                     else
                     {
-                        /* only one dictionary left - try this one */
-                        FrmAlert( alertDbFailed );
-                        SendNewDatabaseSelected( 0 );
+                        FrmAlert( alertDbFailed);
+                        MemSet(&newEvent, sizeof(EventType), 0);
+                        newEvent.eType = appStopEvent;
+                        EvtAddEventToQueue(&newEvent);
+                        return true;                    
                     }
-                    return true;
+                }
+            }
+            WinDrawLine(0, 145, 160, 145);
+            WinDrawLine(0, 144, 160, 144);
+            if ( startupActionClipboard == gd.prefs.startupAction )
+            {
+                if (!FTryClipboard())
+                    DisplayAboutNoahPro();
+            }
+            else
+                DisplayAboutNoahPro();
+
+            if ( (startupActionLast == gd.prefs.startupAction) &&
+                gd.prefs.lastWord[0] )
+            {
+                DoWord( (char *)gd.prefs.lastWord );
+            }
+            FixWordHistory();
+            handled = true;
+            break;
+
+        case popSelectEvent:
+            switch (event->data.popSelect.listID)
+            {
+            case listHistory:
+                wordNo = gd.wordHistory[event->data.popSelect.selection];
+                if (wordNo != gd.currentWord)
+                {
+                    Assert(wordNo < gd.wordsCount);
+                    DrawDescription(wordNo);
+                    gd.penUpsToConsume = 1;
+                }
+                break;
+            default:
+                Assert(0);
+                break;
+            }
+            handled = true;
+            break;
+
+        case ctlSelectEvent:
+            switch (event->data.ctlSelect.controlID)
+            {
+            case ctlArrowLeft:
+                if (gd.currentWord > 0)
+                {
+                    DrawDescription(gd.currentWord - 1);
+                }
+                break;
+            case ctlArrowRight:
+                if (gd.currentWord < gd.wordsCount - 1)
+                {
+                    DrawDescription(gd.currentWord + 1);
+                }
+                break;
+            case buttonFind:
+                FrmPopupForm(formDictFind);
+                break;
+            case popupHistory:
+                // TODO: why false???
+                return false;
+                break;
+            default:
+                Assert(0);
+                break;
+            }
+            handled = true;
+            break;
+
+        case evtNewWordSelected:
+            AddToHistory(gd.currentWord);
+            if (1 == gd.historyCount)
+            {
+                CtlShowControlEx(frm, popupHistory);
+                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+                LstSetListChoices(list, NULL, gd.historyCount);
+                LstSetDrawFunction(list, HistoryListDrawFunc);
+            }
+            if (gd.historyCount < 6)
+            {
+                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listHistory));
+                LstSetListChoices(list, NULL, gd.historyCount);
+            }
+            WinDrawLine(0, 145, 160, 145);
+            WinDrawLine(0, 144, 160, 144);
+            DrawDescription(gd.currentWord);
+            gd.penUpsToConsume = 1;
+            handled = true;
+            break;
+
+        case evtNewDatabaseSelected:
+            selectedDb = EvtGetInt( event );
+            fileToOpen = gd.dicts[selectedDb];
+            if ( GetCurrentFile() != fileToOpen )
+            {
+                DictCurrentFree();
+                if ( !DictInit(fileToOpen) )
+                {
+                    // failed to initialize dictionary. If we have more - retry,
+                    // if not - just quit
+                    if ( gd.dictsCount > 1 )
+                    {
+                        i = 0;
+                        while ( fileToOpen != gd.dicts[i] )
+                        {
+                            ++i;
+                            Assert( i<gd.dictsCount );
+                        }
+                        AbstractFileFree( gd.dicts[i] );
+                        while ( i<gd.dictsCount )
+                        {
+                            gd.dicts[i] = gd.dicts[i+1];
+                            ++i;
+                        }
+                        --gd.dictsCount;
+                        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+                        LstSetListChoices(list, NULL, gd.dictsCount);
+                        if ( gd.dictsCount > 1 )
+                        {
+                            FrmAlert( alertDbFailedGetAnother );
+                            FrmPopupForm( formSelectDict );
+                        }
+                        else
+                        {
+                            /* only one dictionary left - try this one */
+                            FrmAlert( alertDbFailed );
+                            SendNewDatabaseSelected( 0 );
+                        }
+                        return true;
+                    }
+                    else
+                    {
+                        FrmAlert( alertDbFailed);
+                        MemSet(&newEvent, sizeof(EventType), 0);
+                        newEvent.eType = appStopEvent;
+                        EvtAddEventToQueue(&newEvent);
+                        return true;                    
+                    }
+                }
+            }
+
+            FrmDrawForm(frm);
+            WinDrawLine(0, 145, 160, 145);
+            WinDrawLine(0, 144, 160, 144);
+
+            if ( startupActionClipboard == gd.prefs.startupAction )
+            {
+                if (!FTryClipboard())
+                    DisplayAboutNoahPro();
+            }
+            else
+                DisplayAboutNoahPro();
+
+            if ( (startupActionLast == gd.prefs.startupAction) &&
+                gd.prefs.lastWord[0] )
+            {
+                DoWord( (char *)gd.prefs.lastWord );
+            }
+
+            FixWordHistory();
+            if (gd.historyCount > 0)
+            {
+                CtlShowControlEx(frm, popupHistory);
+                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+                LstSetListChoices(list, NULL, gd.historyCount);
+                LstSetDrawFunction(list, HistoryListDrawFunc);
+            }
+            else
+            {
+                CtlHideControlEx(frm, popupHistory);
+            }
+            handled = true;
+            break;
+
+        case keyDownEvent:
+            if (pageUpChr == event->data.keyDown.chr)
+            {
+                DefScrollUp(gd.prefs.hwButtonScrollType);
+            }
+            else if (pageDownChr == event->data.keyDown.chr)
+            {
+                DefScrollDown(gd.prefs.hwButtonScrollType);
+            }
+            else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
+                     || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
+                     || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
+            {
+                gd.lastWord[0] = event->data.keyDown.chr;
+                gd.lastWord[1] = 0;
+                FrmPopupForm(formDictFind);
+            }
+            handled = true;
+            break;
+
+        case sclExitEvent:
+            newValue = event->data.sclRepeat.newValue;
+            if (newValue != gd.firstDispLine)
+            {
+                ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+                gd.firstDispLine = newValue;
+                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
+            }
+            handled = true;
+            break;
+
+        case penDownEvent:
+            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+            {
+                handled = false;
+                break;
+            }
+
+#if 0
+            r.topLeft.x = event->screenX-5;
+            r.topLeft.y = event->screenY-5;
+            r.extent.x = 10;
+            r.extent.y = 10;
+            start_x = event->screenX;
+            start_y = event->screenY;
+            if (GetCharBounds(event->screenX,event->screenY,&r,&line,&charPos))
+            {
+                 WinInvertRectangle(&r,0);
+            }
+#endif
+            handled = true;
+            break;
+
+        case penMoveEvent:
+
+            handled = true;
+            break;
+
+        case penUpEvent:
+            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
+            {
+                handled = false;
+                break;
+            }
+
+#if 0
+            r.topLeft.x = event->data.penUp.start.x-5;
+            r.topLeft.y = event->data.penUp.start.y-5;
+            r.extent.x = 10;
+            r.extent.y = 10;
+            WinInvertRectangle(&r,0);
+            if (GetCharBounds(event->data.penUp.start.x, event->data.penUp.start.y,
+                     &r, &line, &charPos))
+            {
+                WinInvertRectangle(&r,0);
+            }
+
+            r.topLeft.x = event->data.penUp.end.x-5;
+            r.topLeft.y = event->data.penUp.end.y-5;
+            r.extent.x = 10;
+            r.extent.y = 10;
+            WinInvertRectangle(&r,0);
+#endif
+
+            if (0 != gd.penUpsToConsume)
+            {
+                --gd.penUpsToConsume;
+                handled = true;
+                break;
+            }
+
+            if (event->screenY > (144 / 2))
+            {
+                DefScrollDown(gd.prefs.tapScrollType);
+            }
+            else
+            {
+                DefScrollUp(gd.prefs.tapScrollType);
+            }
+            handled = true;
+            break;
+
+        case menuEvent:
+            switch (event->data.menu.itemID)
+            {
+            case menuItemFind:
+                FrmPopupForm(formDictFind);
+                break;
+            case menuItemAbout:
+                DisplayAboutNoahPro();
+                break;
+            case menuItemHelp:
+                DisplayHelp();
+                break;
+            case menuItemSelectDB:
+                FrmPopupForm(formSelectDict);
+                break;
+            case menuItemDispPrefs:
+                FrmPopupForm(formDisplayPrefs);
+                break;
+            case menuItemCopy:
+                if (NULL != gd.currDispInfo)
+                {
+                    ebufReset(&clipboard_buf);
+                    linesCount = diGetLinesCount(gd.currDispInfo);
+                    for (i = 0; i < linesCount; i++)
+                    {
+                        defTxt = diGetLine(gd.currDispInfo, i);
+                        ebufAddStr(&clipboard_buf, defTxt);
+                        ebufAddChar(&clipboard_buf, '\n');
+                    }
+                    defTxt = ebufGetDataPointer(&clipboard_buf);
+                    defTxtLen = StrLen(defTxt);
+
+                    ClipboardAddItem(clipboardText, defTxt, defTxtLen);
+                }
+                break;
+            case menuItemTranslate:
+                FTryClipboard();
+                break;
+#ifdef DEBUG
+            case menuItemStress:
+                stress(2);
+                break;
+#endif
+            case menuItemPrefs:
+                FrmPopupForm(formPrefs);
+                break;
+            default:
+                Assert(0);
+                break;
+            }
+            handled = true;
+            break;
+#if 0
+        case nilEvent:
+            if (-1 != gd.start_seconds_count)
+            {
+                /* we're still displaying About info, check
+                   if it's time to switch to info */
+                Assert(gd.start_seconds_count <= TimGetSeconds());
+                if (NULL == gd.currDispInfo)
+                {
+                    if (TimGetSeconds() - gd.start_seconds_count > 5)
+                    {
+                        DisplayHelp();
+                        /* we don't need evtNil events anymore */
+                        gd.start_seconds_count = -1;
+                        gd.current_timeout = -1;
+                    }
                 }
                 else
                 {
-                    FrmAlert( alertDbFailed);
-                    MemSet(&newEvent, sizeof(EventType), 0);
-                    newEvent.eType = appStopEvent;
-                    EvtAddEventToQueue(&newEvent);
-                    return true;                    
-                }
-            }
-        }
-
-        FrmDrawForm(frm);
-        WinDrawLine(0, 145, 160, 145);
-        WinDrawLine(0, 144, 160, 144);
-
-        if ( startupActionClipboard == gd.prefs.startupAction )
-        {
-            if (!FTryClipboard())
-                DisplayAboutNoahPro();
-        }
-        else
-            DisplayAboutNoahPro();
-
-        if ( (startupActionLast == gd.prefs.startupAction) &&
-            gd.prefs.lastWord[0] )
-        {
-            DoWord( (char *)gd.prefs.lastWord );
-        }
-
-        FixWordHistory();
-        if (gd.historyCount > 0)
-        {
-            CtlShowControlEx(frm, popupHistory);
-            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-            LstSetListChoices(list, NULL, gd.historyCount);
-            LstSetDrawFunction(list, HistoryListDrawFunc);
-        }
-        else
-        {
-            CtlHideControlEx(frm, popupHistory);
-        }
-        handled = true;
-        break;
-
-    case keyDownEvent:
-        if (pageUpChr == event->data.keyDown.chr)
-        {
-            DefScrollUp(gd.prefs.hwButtonScrollType);
-        }
-        else if (pageDownChr == event->data.keyDown.chr)
-        {
-            DefScrollDown(gd.prefs.hwButtonScrollType);
-        }
-        else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
-                 || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
-                 || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
-        {
-            gd.lastWord[0] = event->data.keyDown.chr;
-            gd.lastWord[1] = 0;
-            FrmPopupForm(formDictFind);
-        }
-        handled = true;
-        break;
-
-    case sclExitEvent:
-        newValue = event->data.sclRepeat.newValue;
-        if (newValue != gd.firstDispLine)
-        {
-            ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
-            gd.firstDispLine = newValue;
-            DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
-        }
-        handled = true;
-        break;
-
-    case penDownEvent:
-        if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
-        {
-            handled = false;
-            break;
-        }
-
-#if 0
-        r.topLeft.x = event->screenX-5;
-        r.topLeft.y = event->screenY-5;
-        r.extent.x = 10;
-        r.extent.y = 10;
-        start_x = event->screenX;
-        start_y = event->screenY;
-        if (GetCharBounds(event->screenX,event->screenY,&r,&line,&charPos))
-        {
-             WinInvertRectangle(&r,0);
-        }
-#endif
-        handled = true;
-        break;
-
-    case penMoveEvent:
-
-        handled = true;
-        break;
-
-    case penUpEvent:
-        if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
-        {
-            handled = false;
-            break;
-        }
-
-#if 0
-        r.topLeft.x = event->data.penUp.start.x-5;
-        r.topLeft.y = event->data.penUp.start.y-5;
-        r.extent.x = 10;
-        r.extent.y = 10;
-        WinInvertRectangle(&r,0);
-        if (GetCharBounds(event->data.penUp.start.x, event->data.penUp.start.y,
-                 &r, &line, &charPos))
-        {
-            WinInvertRectangle(&r,0);
-        }
-
-        r.topLeft.x = event->data.penUp.end.x-5;
-        r.topLeft.y = event->data.penUp.end.y-5;
-        r.extent.x = 10;
-        r.extent.y = 10;
-        WinInvertRectangle(&r,0);
-#endif
-
-        if (0 != gd.penUpsToConsume)
-        {
-            --gd.penUpsToConsume;
-            handled = true;
-            break;
-        }
-
-        if (event->screenY > (144 / 2))
-        {
-            DefScrollDown(gd.prefs.tapScrollType);
-        }
-        else
-        {
-            DefScrollUp(gd.prefs.tapScrollType);
-        }
-        handled = true;
-        break;
-
-    case menuEvent:
-        switch (event->data.menu.itemID)
-        {
-        case menuItemFind:
-            FrmPopupForm(formDictFind);
-            break;
-        case menuItemAbout:
-            DisplayAboutNoahPro();
-            break;
-        case menuItemHelp:
-            DisplayHelp();
-            break;
-        case menuItemSelectDB:
-            FrmPopupForm(formSelectDict);
-            break;
-        case menuItemDispPrefs:
-            FrmPopupForm(formDisplayPrefs);
-            break;
-        case menuItemCopy:
-            if (NULL != gd.currDispInfo)
-            {
-                ebufReset(&clipboard_buf);
-                linesCount = diGetLinesCount(gd.currDispInfo);
-                for (i = 0; i < linesCount; i++)
-                {
-                    defTxt = diGetLine(gd.currDispInfo, i);
-                    ebufAddStr(&clipboard_buf, defTxt);
-                    ebufAddChar(&clipboard_buf, '\n');
-                }
-                defTxt = ebufGetDataPointer(&clipboard_buf);
-                defTxtLen = StrLen(defTxt);
-
-                ClipboardAddItem(clipboardText, defTxt, defTxtLen);
-            }
-            break;
-        case menuItemTranslate:
-            FTryClipboard();
-            break;
-#ifdef DEBUG
-        case menuItemStress:
-            stress(2);
-            break;
-#endif
-        case menuItemPrefs:
-            FrmPopupForm(formPrefs);
-            break;
-        default:
-            Assert(0);
-            break;
-        }
-        handled = true;
-        break;
-#if 0
-    case nilEvent:
-        if (-1 != gd.start_seconds_count)
-        {
-            /* we're still displaying About info, check
-               if it's time to switch to info */
-            Assert(gd.start_seconds_count <= TimGetSeconds());
-            if (NULL == gd.currDispInfo)
-            {
-                if (TimGetSeconds() - gd.start_seconds_count > 5)
-                {
-                    DisplayHelp();
-                    /* we don't need evtNil events anymore */
                     gd.start_seconds_count = -1;
                     gd.current_timeout = -1;
                 }
             }
-            else
-            {
-                gd.start_seconds_count = -1;
-                gd.current_timeout = -1;
-            }
-        }
-        handled = true;
-        break;
+            handled = true;
+            break;
 #endif
-    default:
-        break;
+        default:
+            break;
     }
     return handled;
 }

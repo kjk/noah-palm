@@ -1180,11 +1180,63 @@ void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
 }
 
+// return a position of the last occurence of character c in string str
+// return NULL if no c in str
+char *StrFindLastCharPos(char *str, char c)
+{
+    char    *lastPos = NULL;
+    while( *str )
+    {
+        if (c==*str)
+            lastPos = str;
+        ++str;
+    }
+    return lastPos;
+}
+
+// Given a file path in standard form ("/foo/bar/myFile.pdb")
+// returns a newly allocated string that presents the file path in a more
+// readable way i.e. "myFile.pdb (/foo/bar)".
+// Special case: "/myFile.pdb" produces "myFile.pdb" and not "myFile.pdb ()"
+// Client must free the memory.
+char *FilePathDisplayFriendly(char *filePath)
+{
+    char * newPath, *strTmp, *lastSlash;
+    int    newPathLen;
+
+    Assert( '/' == filePath[0] );
+    newPathLen = StrLen(filePath)  + 3 /* for " ()" */ 
+                                   - 1 /* take "/" out */;
+
+    newPath = new_malloc( newPathLen + 1 ); /* for NULL-termination */
+    if ( !newPath )
+        return NULL;
+
+    lastSlash = StrFindLastCharPos(filePath, '/');
+    strTmp = newPath;
+
+    StrCopy(strTmp,lastSlash+1);
+    strTmp += StrLen(lastSlash+1);
+
+    // put path in "()" unless this is "/foo.pdb" scenario
+    if ( filePath != lastSlash )
+    {
+        *strTmp++ = ' ';
+        *strTmp++ = '(';
+        while( filePath < lastSlash )
+            *strTmp++ = *filePath++;
+        *strTmp++ = ')';
+    }
+    *strTmp++ = 0;
+    Assert( StrLen(newPath) <= newPathLen);
+    return newPath;
+}
+
 void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
-    char    *str, *strTmp, *lastSlash, *mungedName = NULL;
+    char    *str, *mungedName = NULL;
     Int16   strDx = bounds->extent.x - bounds->topLeft.x;
-    Int16   strLen, mungedNameLen, i;
+    Int16   strLen;
     Boolean truncatedP = false;
 
     Assert(itemNum >= 0);
@@ -1198,29 +1250,11 @@ void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     all files from vfs. */
     if ( '/' == str[0] )
     {
-        mungedNameLen = strLen + 3 /* for " ()" */ 
-                               + 1 /* NULL termination */
-                               - 1 /* take on "/" out */;
-        mungedName = new_malloc( mungedNameLen );
-        if (mungedName)
-        {
-            for(i=0;i<strLen;i++)
-            {
-                if ( '/' == str[i] )
-                    lastSlash = &str[i];
-            }
-            strTmp = mungedName;
-            StrCopy(strTmp,lastSlash+1);
-            strTmp += StrLen(lastSlash+1);
-            *strTmp++ = ' ';
-            *strTmp++ = '(';
-            while( str < lastSlash )
-                *strTmp++ = *str++;
-            *strTmp++ = ')';
-            *strTmp++ = 0;
-            Assert((int)(strTmp-mungedName) == mungedNameLen);
-            str = mungedName;
-        }
+        mungedName = FilePathDisplayFriendly( str );
+        if ( !mungedName )
+            return;
+        str = mungedName;
+        strLen = StrLen(mungedName);
     }
 
     FntCharsInWidth(str, &strDx, &strLen, &truncatedP);
