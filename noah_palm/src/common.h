@@ -210,9 +210,9 @@ typedef struct _AppContext
 #endif // I_NOAH    
 
     DisplayInfo *      currDispInfo;
+    ExtensibleBuffer * helpDispBuf;
 
 #ifndef I_NOAH    
-    ExtensibleBuffer * helpDispBuf;
     long               currentWord;
     long               wordsCount;
 #endif // I_NOAH

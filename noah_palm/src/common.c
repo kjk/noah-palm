@@ -370,8 +370,6 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     SetBackColorWhite(appContext); 
 }
 
-#ifndef I_NOAH
-
 #pragma segment Segment2
 
 void DisplayHelp(AppContext* appContext)
@@ -398,6 +396,8 @@ void DisplayHelp(AppContext* appContext)
 }
 
 #pragma segment Segment1
+
+#ifndef I_NOAH
 
 extern void DisplayAbout(AppContext* appContext);
 
@@ -1038,6 +1038,8 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
     return 0;
 }
 
+#endif // I_NOAH
+
 //static const char helpText[] =
 
 #define helpText \
@@ -1056,12 +1058,15 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
 
 Boolean CreateHelpData(AppContext* appContext)
 {
+    Assert(!appContext->helpDispBuf);
     appContext->helpDispBuf = ebufNew();
     ebufAddStr(appContext->helpDispBuf, (char*)helpText);
     ebufAddChar(appContext->helpDispBuf, '\0');
     ebufWrapBigLines(appContext->helpDispBuf);
     return true;
 }
+
+#ifndef I_NOAH
 
 void FreeInfoData(AppContext* appContext)
 {

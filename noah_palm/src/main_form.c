@@ -366,6 +366,12 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             handled=true;
             break;
             
+        case menuItemHelp:
+            ebufFreeData(&appContext->currentWordBuf);
+            DisplayHelp(appContext);
+            handled=true;
+            break;
+            
         default:
             Assert(false);
     }
