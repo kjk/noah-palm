@@ -19,6 +19,117 @@ require_once("ez_mysql.php");
 
 require_once("common.php");
 
+function get_word_row($word)
+{
+    global $dict_db;
+    $word = $dict_db->escape($word);
+    $query = "SELECT word,def,pron FROM words WHERE word='$word';";
+    $word_row = $dict_db->get_row($query); 
+    return $word_row;
+}
+
+# for a given word try to get a row with word, its definition and pron
+# if exact match is not found, try stemming the word
+# if didnt find even after stemming, return null
+# TODO: capturing=>capture
+function get_word_row_try_stemming($word)
+{
+    $word_row = get_word_row($word);
+    if ( $word_row )
+        return $word_row;
+
+    # didnt find the exact word, so try a few heuristics
+
+    # if word ends with "s", try to find word without it e.g. "strings" => "string"
+    if ( "s" == substr($word,strlen($word)-1) )
+    {
+        $word = substr($word,0,strlen($word)-1);
+        $word_row = get_word_row($word);
+        if ( $word_row )
+            return $word_row;
+    }
+
+    # if word ends with "ed", try to find word without it e.g. "glued" => "glue"
+    if ( "ed" == substr($word,strlen($word)-2) )
+    {
+        $word = substr($word,0,strlen($word)-2);
+        $word_row = get_word_row($word);
+        if ( $word_row )
+            return $word_row;
+    }
+
+    # if word ends with "ing", try to find word without it e.g. "working" => "work"
+    if ( "ing" == substr($word,strlen($word)-3) )
+    {
+        $word = substr($word,0,strlen($word)-3);
+        $word_row = get_word_row($word);
+        if ( $word_row )
+            return $word_row;
+    }
+
+    return 0;
+}
+
+
+# each di tag consists of tag name and tag value
+# known tag names are:
+#  HS - hex-bin-encoded hotsync name
+#  SN - hex-bin-encoded device serial number (if exists)
+#  HN - hex-bin-encoded handspring device serial number (if exists)
+#  PN - hex-bin-encoded phone number (if exists)
+#  OC - hex-bin-encoded OEM company ID
+#  OD - hex-bin-encoded OEM device ID
+function is_valid_di_tag($tag)
+{
+
+    if ( strlen($tag)<2 )
+        return false;
+
+    $tag_name  = substr($tag,0,2);
+    $valid_tag_names = array('HS', 'SN', 'HN', 'PN', 'OC', 'OD', 'DN');
+
+    if ( !in_array($tag_name, $valid_tag_names) )
+        return false;
+
+    $tag_value_encoded = substr($tag,2);
+    $tag_value = decode_di_tag_value($tag_value_encoded);
+    if ( $tag_value )
+        return true;
+
+    return false;
+}
+
+function decode_di($device_id)
+{
+    $tags = explode(":", $device_id);
+    $ret_arr = array();
+
+    foreach( $tags as $tag )
+    {
+        if ( !is_valid_di_tag($tag) )
+        {
+            $ret_arr['device_name'] = "INVALID because not is_valid_di_tag($tag)";
+            return $ret_arr;
+        }
+
+        $tag_name  = substr($tag,0,2);
+        $tag_value_encoded = substr($tag,2);
+        $tag_value = decode_di_tag_value($tag_value_encoded);
+        if ( ! $tag_value )
+        {
+            $ret_arr['device_name'] = "INVALID because not decode_di_tag_value($tag_name,$tag_value_encoded,$tag_value)";
+            return $ret_arr;
+        }
+        $ret_arr[$tag_name] = $tag_value;
+    }
+    $device_name = "*unavailable*";
+    if ( isset($ret_arr['OC']) && isset($ret_arr['OD']) )
+    {
+        $device_name = get_device_name_by_oc_od( $ret_arr['OC'], $ret_arr['OD'] );
+    }
+    $ret_arr['device_name'] = $device_name;
+    return $ret_arr;
+}
 function cmp_stats($a, $b)
 {
     if ($a[1]== $b[1]) return 0;
