@@ -3,7 +3,7 @@
 //#include <conio.h>
 #include <ctype.h>
 #include <string.h>
-#include <alloc.h>
+#include <malloc.h>
 //#include <dos.h>
 
 #define OFF_AppInfoArea          52
@@ -360,7 +360,9 @@ int wcGetWord(FILE *in, char * wordIn, BB32 wordNo)
 	if(data == NULL)
 	{
 		printf("malloc failed!!!\n");
+#ifdef NEVER
 		printf("wordNo:%lu Coreleft:%lu\n",wordNo,coreleft());
+#endif
 		printf("record:%u offset:%u nextrecord:%u nextoffset:%u\n",record,offset,ch_nextbb16,ch_nextcc16);
 		printf("malloc size:%lu\n",recordSize);
 
@@ -376,7 +378,7 @@ int wcGetWord(FILE *in, char * wordIn, BB32 wordNo)
 	currWord = firstWord;
 	prevWord[0] = '\0';
 
-	pc.currData = data;
+	pc.currData = (unsigned char*)data;
 	pc.currOffset = 0;
 	pc.currPackStr = -1;
 	pc.currPackStrLen = 0;
@@ -688,7 +690,7 @@ int GetPron(FILE *pr,char *pron,char *word)
 		if(i == 0)
 		{
 			found = 1;
-			strcpy(pron,record.pron);
+			strcpy(pron,(const char*)record.pron);
 		}
 
 	}
@@ -913,10 +915,12 @@ int	MakeFiles()
 		}
 
 
+#ifdef NEVER
 		if(actWord%1000 == 0)
 		{
 			printf("Word:%lu Coreleft:%lu\n",actWord,coreleft());
 		}
+#endif
 
 		offBefore = ftell(pronData);
 		PutPron(pronData,pron);
