@@ -414,6 +414,87 @@ inline static UInt16 CalculateDummyProgress(UInt16 step)
     return progress*100;
 }
 
+/* Create new MemoPad record with a given header and body of the memo.
+   header can be NULL, if bodySize is -1 => calc it from body via StrLen */
+static void CreateNewMemoRec(DmOpenRef dbMemo, char *header, char *body, int bodySize)
+{
+    UInt16      newRecNo;
+    MemHandle   newRecHandle;
+    void *      newRecData;
+    UInt32      newRecSize;
+    Char        null = '\0';
+
+    if (-1 == bodySize)
+       bodySize = StrLen(body);
+
+    if ( NULL == header )
+         header = "";
+
+    newRecSize = StrLen(header) + bodySize + 1;
+
+    newRecHandle = DmNewRecord(dbMemo,&newRecNo,newRecSize);
+    if (!newRecHandle)
+        return;
+
+    newRecData = MemHandleLock(newRecHandle);
+
+    DmWrite(newRecData,0,header,StrLen(header));
+    DmWrite(newRecData,StrLen(header),body,bodySize);
+    DmWrite(newRecData,StrLen(header) + bodySize,&null,1);
+    MemHandleUnlock(newRecHandle);
+
+    DmReleaseRecord(dbMemo,newRecNo,true);
+}
+
+/* Create a new memo with a given memoBody of size of memoBodySize.
+   If memoBodySize is -1 => calculate the size via StrLen(memoBody). */
+static void CreateNewMemo(char *memoBody, int memoBodySize)
+{
+    LocalID     id;
+    UInt16      cardno;
+    UInt32      type,creator;
+
+    DmOpenRef   dbMemo;
+
+    // check all the open database and see if memo is currently open
+    dbMemo = DmNextOpenDatabase(NULL);
+    while (dbMemo)
+    {
+        DmOpenDatabaseInfo(dbMemo,&id, NULL,NULL,&cardno,NULL);
+        DmDatabaseInfo(cardno,id,
+            NULL,NULL,NULL, NULL,NULL,NULL,
+            NULL,NULL,NULL, &type,&creator);
+
+        if( ('DATA' == type)  && ('memo' == creator) )
+            break;
+        dbMemo = DmNextOpenDatabase(dbMemo);
+    }
+
+    // we either found memo db, in which case dbTmp points to it, or
+    // didn't find it, in which case dbTmp is NULL
+    if (NULL == dbMemo)
+        dbMemo = DmOpenDatabaseByTypeCreator('DATA','memo',dmModeReadWrite);
+
+    if (NULL != dbMemo)
+        CreateNewMemoRec(dbMemo, NULL, memoBody, memoBodySize);
+
+    if (dbMemo)
+        DmCloseDatabase(dbMemo);
+}
+
+static void DumpConnectionResponseToMemo(ConnectionData * connData)
+{
+    ExtensibleBuffer *  ebufResp;
+    char *              data;
+    int                 dataSize;
+    
+    ebufResp = &connData->response;
+    data     = ebufGetDataPointer( ebufResp );
+    dataSize = ebufGetDataSize( ebufResp );
+    Assert( dataSize > 0 );
+    CreateNewMemo( data, dataSize );
+}
+
 static Err ReceiveResponse(ConnectionData* connData, Int16* percents, const Char** errorMessage)
 {
     Err error=errNone;
@@ -443,13 +524,17 @@ static Err ReceiveResponse(ConnectionData* connData, Int16* percents, const Char
         *percents=100;
         connData->connectionStage++;
         result=NetLibSocketShutdown(connData->netLibRefNum, connData->socket, netSocketDirBoth, MillisecondsToTicks(transmitTimeout), &error);
-        if (-1==result)
-            Assert(false); // Get breakpoint so that we could diagnose what's wrong. But it's not a big case, so continue anyway.
+        Assert( -1 != result ); // will get asked to drop into debugger (so that we can diagnose it) when fails; It's not a big deal, so continue anyway.
+
+#ifdef DEBUG
+        // just for debuggin purposes, dump the full connection response to a MemoPad
+        // DumpConnectionResponseToMemo(connData);
+#endif
         error=ParseResponse(connData);
         if (error)
         {          
             *errorMessage="server returned malformed response";
-            ebufFreeData(&connData->response);            
+            ebufFreeData(&connData->response);
             *percents=percentsNotSupported;
         }            
     }
