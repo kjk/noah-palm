@@ -3,8 +3,11 @@
 
 Boolean BookmarksFormHandleEvent(EventType * event)
 {
-    Boolean handled = true;
+    Boolean handled = false;
     FormType * frm = NULL;
+    ListType *  list = NULL;
+    char *      listTxt = NULL;
+    AppContext* appContext = GetAppContext();
 
     frm = FrmGetActiveForm();
     switch (event->eType)
@@ -27,9 +30,30 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             }
             break;
 
+        case popSelectEvent:
+            list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, event->data.popSelect.listID));
+            listTxt = LstGetSelectionText(list, event->data.popSelect.selection);
+            switch (event->data.popSelect.listID)
+            {
+                case listSortBy:
+                    CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+
         default:
-            handled = false;
             break;
     }
     return handled;
+}
+
+void AddBookmark(AppContext* appContext, char * word)
+{
+}
+
+void DeleteBookmark(AppContext* appContext, char * word)
+{
 }

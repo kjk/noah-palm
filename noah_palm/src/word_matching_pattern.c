@@ -1,6 +1,5 @@
 #include "word_matching_pattern.h"
 #include "word_compress.h"
-#include <ctype.h>
 
 Boolean TappedInRect(RectangleType * rect)
 {
@@ -193,8 +192,8 @@ int WordMatchesPattern(char * word, char * pattern)
             return 0;
 
         default:
-            // I used tolower from ctype.h, because char_to_lower from word_compress.h didn't work (WHY?)
-            if (tolower(c) == tolower(*word))
+            // word case preserved, as the same words with different case exist
+            if (c == *word)
             {
                 if (c == '\0')
                     return 1;
@@ -226,6 +225,7 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
         UInt16 len, tmpLen;
         char * tmpPattern;  // prefix of the pattern (beginning of the pattern until '*' or '?')
         long pos;
+        long wordCount;
 
         len = StrLen(pattern);
         tmpPattern = (char *) new_malloc(len + 1);
@@ -240,6 +240,7 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
         tmpLen = StrLen(tmpPattern);
         pos = dictGetFirstMatching(currFile, tmpPattern);
         str = dictGetWord(currFile, pos);
+        wordCount = dictGetWordsCount(currFile);
         while (1)
         {
             // word prefix has changed and is not fitting to pattern, we quit
@@ -249,7 +250,7 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
             StrPrintF(tmp, "%d%%", (int)((long)(pos * 100) / (long)num));
             DrawCenteredString(appContext, tmp, rc.topLeft.y + 20);
             if (TappedInRect(&rcStop)) break;
-            if (++pos >= dictGetWordsCount(currFile)) break;
+            if (++pos >= wordCount) break;
             str = dictGetWord(currFile, pos);
         }
         new_free(tmpPattern);

@@ -100,16 +100,6 @@ BEGIN
    BUTTON "" buttonFind AT (146 146 14 14) NOFRAME
 END
 
-FORM formBookmarks AT (0 0 160 160)
-USABLE
-NOFRAME
-MENUID menuMain
-BEGIN
-   BUTTON "By name" buttonByName    AT (2 146 AUTO AUTO) FONT 0
-   BUTTON "By time" buttonByTime    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
-   BUTTON "Cancel"  buttonCancel    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
-END
-
 FORM formResidentLookup AT (0 0 160 160)
 USABLE
 NOFRAME
@@ -197,6 +187,20 @@ BEGIN
    BUTTON "Cancel"  buttonCancel    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
    BUTTON "?"       buttonOneChar   AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
    BUTTON "*"       buttonAnyChar   AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
+END
+
+FORM ID formBookmarks   AT ( 0 0 160 160 )
+FRAME
+MODAL
+USABLE
+BEGIN
+   LABEL "Sort by:" AUTOID AT (1 147)
+   POPUPTRIGGER "name" popupSortBy  AT (PREVRIGHT+2 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST    "name" "time" ID listSortBy    AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2 
+   POPUPLIST popupSortBy  listSortBy
+
+   LIST   ""        listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   BUTTON "Cancel"  buttonCancel    AT (121 146 AUTO AUTO) FONT 0
 END
 
 FORM formPrefs AT (0 0 160 160)

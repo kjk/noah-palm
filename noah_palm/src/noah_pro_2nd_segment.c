@@ -739,6 +739,12 @@ ChooseDatabase:
                 case menuItemBookmarkView:
                     FrmPopupForm(formBookmarks);
                     break;
+                case menuItemBookmarkWord:
+                    AddBookmark(appContext, appContext->lastWord);
+                    break;
+                case menuItemBookmarkDelete:
+                    DeleteBookmark(appContext, appContext->lastWord);
+                    break;
                 case menuItemAbout:
                     if (NULL != appContext->currDispInfo)
                     {
