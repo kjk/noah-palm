@@ -1059,6 +1059,28 @@ Boolean IsTag(char a, char b)
     }
 }
 
+// return true if a,b represents a tag
+// inline version to make it faster!
+static inline Boolean IsTagInLine(char a, char b)
+{
+    if(a != (char)FORMAT_TAG)
+        return false;
+    switch(b)
+    {
+        case (char)FORMAT_POS:
+        case (char)FORMAT_WORD:
+        case (char)FORMAT_DEFINITION: 
+        case (char)FORMAT_LIST:
+        case (char)FORMAT_BIG_LIST:
+        case (char)FORMAT_SYNONYM:
+        case (char)FORMAT_EXAMPLE: 
+        case (char)FORMAT_PRONUNCIATION: 
+            return true;
+        default: 
+            return false;
+    }
+}
+
 /* Remove all tags from buffer*/
 void bfStripBufferFromTags(ExtensibleBuffer *buf)
 {
@@ -1066,7 +1088,7 @@ void bfStripBufferFromTags(ExtensibleBuffer *buf)
 
     while(i+1 < buf->used)
     {
-        if(IsTag(buf->data[i],buf->data[i+1]))
+        if(IsTagInLine(buf->data[i],buf->data[i+1]))
         {
             ebufDeleteChar(buf, i);
             ebufDeleteChar(buf, i);
@@ -1089,12 +1111,12 @@ int  CmpPos(char *pos1, char *pos2)
     int i,len1,len2;
     
     i = 1;
-    while( !IsTag(pos1[i],pos1[i+1]) && pos1[i+1]!='\0')
+    while( !IsTagInLine(pos1[i],pos1[i+1]) && pos1[i+1]!='\0')
         i++;
     len1 = i;
     
     i = 1;
-    while( !IsTag(pos2[i],pos2[i+1]) && pos2[i+1]!='\0')
+    while( !IsTagInLine(pos2[i],pos2[i+1]) && pos2[i+1]!='\0')
         i++;
     len2 = i;
 
@@ -1117,6 +1139,8 @@ int  CmpPos(char *pos1, char *pos2)
 /*  before: abCdefghijKlmnopqrstuwXyz                */
 /*  after:  abKlmnopqrstuwCdefghijXyz                */
 /*                        |off2 - return             */
+
+/* //old version - in place
 int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
 {
     int  i;
@@ -1160,6 +1184,19 @@ int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
         txt2--;
     }
     return offset2;
+}
+*/
+//faster but with malloc!
+int XchgInBuffer(char *txt, int offset1, int offset2, int end2)
+{
+    char *txt1;
+    int  i = end2 - (offset2 - offset1);
+    txt1 = (char *) new_malloc(offset2 - offset1 + 1);
+    MemMove(txt1,&txt[offset1],offset2 - offset1);
+    MemMove(&txt[offset1],&txt[offset2],end2-offset2);
+    MemMove(&txt[i],txt1,offset2 - offset1);
+    new_free(txt1);
+    return i;
 }
 
 /*  Sort buffer by text after 'FORMAT_TAG''FORMAT_POS'
@@ -1262,7 +1299,7 @@ Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
 //delete all text until tag or EOB is reached
 static void ebufDeletePos(ExtensibleBuffer *buf, int pos)
 {
-    while( !IsTag(buf->data[pos],buf->data[pos+1]) && pos < buf->used)
+    while( !IsTagInLine(buf->data[pos],buf->data[pos+1]) && pos < buf->used)
         ebufDeleteChar(buf, pos);
 }
 
@@ -1296,7 +1333,7 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
         }
         //set j on next tag
         j = i+2;
-        while(j < buf->used && !IsTag(buf->data[j],buf->data[j+1]))
+        while(j < buf->used && !IsTagInLine(buf->data[j],buf->data[j+1]))
             j++;
     
         k = j;
@@ -1383,7 +1420,7 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
                 }
 
                 j = 0;
-                while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
+                while( !IsTagInLine(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
                 {
                     if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
                     {
@@ -1423,7 +1460,7 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
         ebufDeleteChar(buf, first_pos);
     }
     j = 0;
-    while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
+    while( !IsTagInLine(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
     {
         if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
         {
@@ -1449,7 +1486,11 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     int  bignumber;    
     char str_number[10];
     char *roman[10];// = {""," I"," II"," III"," IV"," V"," VI"," VII"," VIII"," IX"};
+    char *data;
+    char *dataTest;
 
+    if(format_id != 2)  //as it was without formatting
+        return;
     //initialize data (resident mode)
     roman[0] = " ";
     roman[1] = " I";
@@ -1462,14 +1503,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     roman[8] = " VIII";
     roman[9] = " IX";
 
-    if(format_id != 2)  //as it was without formatting
-        return;
-
     XchgWordsWithSynonyms(buf);
-
-    //ebufInsertStringOnPos(buf, "word", 0);
-    //ebufInsertChar(buf, FORMAT_WORD, 0);
-    //ebufInsertChar(buf, FORMAT_TAG, 0);
 
     i = 0;
     while((buf->data[i] != (char)FORMAT_TAG || buf->data[i+1] != (char)FORMAT_POS) && i+1 < buf->used)
@@ -1481,84 +1515,98 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     i = first_pos;
     number = 1;
     bignumber = 1;
-    while( i+1 < buf->used )
+    
+    data = buf->data;
+    data += i;
+    dataTest = (buf->data) + (buf->used);
+    
+    while(data +1 < dataTest)
     {
-        if(buf->data[i] == (char)FORMAT_TAG && buf->data[i+1] == (char)FORMAT_POS)
+        if(data[0] == (char)FORMAT_TAG)
         {
-            i += 2;
-            
-            if(CmpPos(&buf->data[i], &buf->data[first_pos])==0)
+            if(data[1] == (char)FORMAT_POS)
             {
-                //add numbers to buff (2. 3. 4. etc)
-                ebufDeletePos(buf, i);
-                number++;                
-                StrPrintF(str_number,"%d) \0",number);                     
+                i = buf->used - (dataTest-data);
                 
-                j = 0;
-                while(str_number[j] != '\0')
+                i += 2;
+            
+                if(CmpPos(&buf->data[i], &buf->data[first_pos])==0)
                 {
-                    ebufInsertChar(buf, str_number[j], i + j);
-                    j++;
+                    //add numbers to buff (2. 3. 4. etc)
+                    ebufDeletePos(buf, i);
+                    number++;                
+                    StrPrintF(str_number,"%d) \0",number);                     
+                    
+                    j = 0;
+                    while(str_number[j] != '\0')
+                    {
+                        ebufInsertChar(buf, str_number[j], i + j);
+                        j++;
+                    }
+                    ebufReplaceChar(buf, FORMAT_LIST, i - 1);
+                    i += j-1;
                 }
-                ebufReplaceChar(buf, FORMAT_LIST, i - 1);
-                i += j-1;
+                else
+                {
+                    //put 1) in first_pos (if its not a single pos type)
+                    if(buf->data[first_pos] == (char)149)
+                    {
+                        ebufDeleteChar(buf, first_pos);
+                        ebufDeleteChar(buf, first_pos);
+                        i-=2;
+                    }
+    
+                    j = first_pos;
+
+                    while( !IsTagInLine(buf->data[j],buf->data[j+1]) )
+                    {
+                        if(buf->data[j] == ')' || buf->data[j]== '(')
+                        {
+                            ebufDeleteChar(buf, j);
+                            j--;
+                            i--;
+                        }
+                        j++;                
+                    }
+    
+                    ebufInsertChar(buf, '\n', j);
+                    j++;
+                    i++;
+                                    
+                    if(number > 1)
+                    {
+                        ebufInsertChar(buf, FORMAT_TAG, j);
+                        ebufInsertChar(buf, FORMAT_LIST , j + 1);
+                        ebufInsertChar(buf, '1', j + 2);
+                        ebufInsertChar(buf, ')', j + 3);
+                        ebufInsertChar(buf, ' ', j + 4);
+                        i += 5;
+                    }
+                    
+                    StrPrintF(str_number,"%c%c%s \0", FORMAT_TAG, FORMAT_BIG_LIST, roman[bignumber%10]);                     
+                    j = 0;
+                    while(str_number[j] != '\0')
+                    {
+                        ebufInsertChar(buf, str_number[j], first_pos - 2 + j);
+                        j++;
+                    }
+                    i += j-1;
+                    
+                    i++;
+                    number = 1;
+                    first_pos = i;
+                    i++;
+                    bignumber++;
+                }
+        
+                data = buf->data + i;
+                dataTest = (buf->data) + (buf->used);
             }
             else
-            {
-                //put 1) in first_pos (if its not a single pos type)
-                if(buf->data[first_pos] == (char)149)
-                {
-                    ebufDeleteChar(buf, first_pos);
-                    ebufDeleteChar(buf, first_pos);
-                    i-=2;
-                }
-
-                j = 0;
-                while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
-                {
-                    if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
-                    {
-                        ebufDeleteChar(buf, first_pos+j);
-                        j--;
-                        i--;
-                    }
-                    j++;                
-                }
-                j = first_pos + j;
-
-                ebufInsertChar(buf, '\n', j);
-                j++;
-                i++;
-                                
-                if(number > 1)
-                {
-                    ebufInsertChar(buf, FORMAT_TAG, j);
-                    ebufInsertChar(buf, FORMAT_LIST , j + 1);
-                    ebufInsertChar(buf, '1', j + 2);
-                    ebufInsertChar(buf, ')', j + 3);
-                    ebufInsertChar(buf, ' ', j + 4);
-                    i += 5;
-                }
-                
-                StrPrintF(str_number,"%c%c%s \0", FORMAT_TAG, FORMAT_BIG_LIST, roman[bignumber%10]);                     
-                j = 0;
-                while(str_number[j] != '\0')
-                {
-                    ebufInsertChar(buf, str_number[j], first_pos - 2 + j);
-                    j++;
-                }
-                i += j-1;
-                
-                i++;
-                number = 1;
-                first_pos = i;
-                i++;
-                bignumber++;
-            }
-
+                data++;            
         }
         else
-            i++;
+            data++;
     } 
 
     //put 1) in first_pos (if its not a single pos type)
@@ -1568,12 +1616,12 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
         ebufDeleteChar(buf, first_pos);
     }
 
-    j = 0;
-    while( !IsTag(buf->data[first_pos+j],buf->data[first_pos+j+1]) )
+    j = first_pos;
+    while( !IsTagInLine(buf->data[j],buf->data[j+1]) )
     {
-        if(buf->data[first_pos+j] == ')' || buf->data[first_pos+j]== '(')
+        if(buf->data[j] == ')' || buf->data[j]== '(')
         {
-            ebufDeleteChar(buf, first_pos+j);
+            ebufDeleteChar(buf, j);
             j--;
         }
         j++;                
@@ -1581,7 +1629,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 
     //goto end of pos
     j = first_pos + 1;
-    while( !IsTag(buf->data[j], buf->data[j+1]) )
+    while( !IsTagInLine(buf->data[j], buf->data[j+1]) )
         j++;
 
     ebufInsertChar(buf, '\n', j);
@@ -1607,7 +1655,8 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
         }
     }
 }
-//from "extensible_buffer.c" cut lines on smaller ones
+
+//from "extensible_buffer.c" cut lines to smaller ones
 void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start, AppContext* appContext)
 {
     char *txt;
@@ -1622,7 +1671,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     int pos, breakLine;
     int i,j;
 
-    txt = ebufGetDataPointer(buf);
+    txt = buf->data;
     if (NULL == txt)
         return;
 
@@ -1632,7 +1681,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     txt += line_start;
     tagOffset = 0;
 
-    if( IsTag(txt[0],txt[1]) )
+    if( IsTagInLine(txt[0],txt[1]) )
     {
         SetOnlyFont(txt[1],&appContext->prefs.displayPrefs);    //we dont reset it to default before return!
         string_len -= 2;
@@ -1644,8 +1693,19 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     
     //is there more than one tag in his line???
     j = 1;    
-    while(j < string_len && !IsTag(txt[j],txt[j+1]))
+
+/*  old lines    
+    while(j < string_len && !IsTagInLine(txt[j],txt[j+1]))
         j++;
+*/
+    while(j < string_len)
+        if(txt[j] != (char)FORMAT_TAG)
+            j++;
+        else
+            if(IsTagInLine(txt[j],txt[j+1]))
+                break;
+            else
+                j++;
      
     //more than one tag in line!!!    
     if(j < string_len)
@@ -1669,12 +1729,12 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
             }        
             else
             {
-                if( IsTag(txt[j],txt[j+1]) )
+                if( IsTagInLine(txt[j],txt[j+1]) )
                 {
                     SetOnlyFont(txt[j+1],&appContext->prefs.displayPrefs);
                     tagOffset = j+2;
                     j += 2;
-                    while(j < string_len && !IsTag(txt[j],txt[j+1]))
+                    while(j < string_len && !IsTagInLine(txt[j],txt[j+1]))
                         j++;
                 }
                 else
@@ -1702,6 +1762,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     /* doesn't fit, so we have to cut it */
     /* find last space or some other charactar that is save
        to wrap around */
+
     found = false;
     while ((pos > 0) && (found == false))
     {
@@ -1729,6 +1790,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
         }
         --pos;
     }
+
     if (found == false)
     {
         /* didn't find so just brutally insert a newline */
@@ -1767,14 +1829,14 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     if(firstLine > 0)
     {    
         line = diGetLine(di, firstLine);
-        if( !IsTag(line[0],line[1]) )   //no tag at the begining
+        if( !IsTagInLine(line[0],line[1]) )   //no tag at the begining
         {
             i = firstLine - 1;
             while(i >= 0)
             {
                 line = diGetLine(di, i);
                 for(j = strlen(line) - 2; j >= 0; j--)
-                    if( IsTag(line[j],line[j+1]) )
+                    if( IsTagInLine(line[j],line[j+1]) )
                     { 
                         SetDrawParam(line[j+1], &appContext->prefs.displayPrefs,appContext);
                         appContext->copyBlock.firstTag = line[j+1];
@@ -1797,7 +1859,7 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
         tagOffset = 0;
         curX = x;
   
-        if( IsTag(line[0],line[1]) )
+        if( IsTagInLine(line[0],line[1]) )
         {
             SetDrawParam(line[1],&appContext->prefs.displayPrefs,appContext);
             tagOffset += 2; 
@@ -1808,7 +1870,7 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
         j = tagOffset;
         while(line[j] != '\0')
         {
-            while( !IsTag(line[j],line[j+1]) && line[j] != '\0')
+            while( !IsTagInLine(line[j],line[j+1]) && line[j] != '\0')
                 j++;
 
             if(curY + fontDY < (appContext->screenHeight - DRAW_DI_Y - 16))	

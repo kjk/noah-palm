@@ -899,15 +899,16 @@ static Boolean wn_pseudoSortBuffer(ExtensibleBuffer *buf)
     //get number of elements (n)
     n = 0;
     for(i = 0; i < len-1; i++)
-        if(txt[i] == (char)FORMAT_TAG && txt[i+1] == (char)FORMAT_POS)
-        {
-            if(first == -1)
-                first = i;
-            prevPrevLast = prevLast;
-            prevLast = last;
-            last = i;
-            n++;
-        }
+        if(txt[i] == (char)FORMAT_TAG)
+            if(txt[i+1] == (char)FORMAT_POS)
+            {
+                if(first == -1)
+                    first = i;
+                prevPrevLast = prevLast;
+                prevLast = last;
+                last = i;
+                n++;
+            }
         
     if(n < 2)
         return false;

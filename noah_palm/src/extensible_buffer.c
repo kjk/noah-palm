@@ -215,13 +215,12 @@ void ebufInsertStringOnPos(ExtensibleBuffer *buf, char *string, int pos)
     for(; i >= 0; i--)
         ebufInsertChar(buf, string[i], pos);
 }
-
+/*make a copy of buffer - faster then inserting char by char*/
 void ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src)
 {
     char *newData;
     if(dst->allocated < src->allocated)
     {
-
         newData = (char *) new_malloc(src->allocated);
         if (!newData)
             return;
@@ -233,69 +232,6 @@ void ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src)
     MemMove(dst->data, src->data, src->allocated);
     dst->used = src->used;
 }
-/*
-  if a give line doesn't fit in one line on a display, wrap it
-  into as many lines as needed
- */
-/*
-void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start)
-{
-    char *txt;
-    Int16 string_dx;
-    Int16 string_len;
-    Boolean fits;
-    Boolean found;
-    int pos;
-    int i;
-
-    txt = ebufGetDataPointer(buf);
-    if (NULL == txt)
-        return;
-
-    string_dx = 152;
-    string_len = line_len;
-    txt += line_start;
-
-    fits = false;
-    FntCharsInWidth(txt, &string_dx, &string_len, &fits);
-    if (fits)
-        return;
-
-    pos = string_len - 1;
-    found = false;
-    while ((pos > 0) && (found == false))
-    {
-        switch (txt[pos])
-        {
-        case ' ':
-            found = true;
-            txt[pos] = '\n';
-            for (i = 0; i < spaces_at_start; i++)
-            {
-                ebufInsertChar(buf, ' ', line_start + pos + i + 1);
-            }
-            pos += spaces_at_start;
-            break;
-        case ';':
-        case ',':
-            found = true;
-            ebufInsertChar(buf, '\n', line_start + pos + 1);
-            for (i = 0; i < spaces_at_start; i++)
-            {
-                ebufInsertChar(buf, ' ', line_start + pos + i + 2);
-            }
-            pos += spaces_at_start + 1;
-            break;
-        }
-        --pos;
-    }
-    if (found == false)
-    {
-        ebufInsertChar(buf, '\n', line_start + string_len - 1);
-        pos = line_start + string_len;
-    }
-}
-*/
 /* wrap all lines that are too long to fit on the screen */
 void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
 {
@@ -321,6 +257,8 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
     }
     txt = ebufGetDataPointer(buf);
     len = ebufGetDataSize(buf);
+//    txt = buf->data;
+//    len = buf->used;
 
     /* find every line, calculate the number of spaces at its
        beginning & fetch this to a proc that will wrap this line
@@ -331,22 +269,23 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
     {
         if (line_start)
         {
-            line_len = 0;
-            while ((curr_pos + line_len < len)
-                   && (txt[curr_pos + line_len] == ' '))
+            line_len = curr_pos;
+            while ((line_len < len)
+                   && (txt[line_len] == ' '))
                 ++line_len;
-            spaces = line_len;
-            while ((curr_pos + line_len < len)
-                   && (txt[curr_pos + line_len] != '\n'))
+            spaces = line_len - curr_pos;
+            while ((line_len < len)
+                   && (txt[line_len] != '\n'))
                 ++line_len;
+            line_len -= curr_pos;    
             ebufWrapLine(buf, curr_pos, line_len, spaces, appContext);
             /* this might have changed our buffer, so we have to re-get it */
-            txt = ebufGetDataPointer(buf);
-            len = ebufGetDataSize(buf);
+            txt = buf->data;
+            len = buf->used;
             line_start = false;
         }
-        /* find another line */
-        if ((len > 0) && (txt[curr_pos] == '\n'))
+        /* find another line */ /*len is > 0*/
+        if (/*(len > 0) && */(txt[curr_pos] == '\n'))
             line_start = true;
         ++curr_pos;
     }
