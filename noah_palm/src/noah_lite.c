@@ -589,11 +589,18 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
                 case buttonCancel:
                     RememberLastWord(frm);
                     FrmReturnToForm(0);
-                    return true;
+                    break;
+                case ctlArrowLeft:
+                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                    break;
+                case ctlArrowRight:
+                    ScrollWordListByDx( frm, WORDS_IN_LIST );
+                    break;
                 default:
                     Assert(0);
                     break;
             }
+            handled = true;
             break;
         default:
             break;
