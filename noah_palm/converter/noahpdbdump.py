@@ -2,9 +2,7 @@
 
 # Author: Krzysztof Kowalczyk
 
-# Todo:
-#  - everything
-
+#from __future__ import generators
 import palmdb,struct
 import structhelper
 
@@ -13,7 +11,6 @@ WnProType = "wn20"
 WnProDemoType = "wnde"
 WnLiteType = "wnet"
 SimpleType = "simp"
-
 
 wnProFirstRecDef = ["wordsCount", "L",
                "synsetsCount", "L",
@@ -49,23 +46,30 @@ def _extractWnProFirstRecordData(data):
     fmt = structhelper.GetFmtFromMetadata(wnProFirstRecDef,True)
     assert 28 == struct.calcsize(fmt)
     assert len(data) >= struct.calcsize(fmt)
+    SYN_CACHE_REC_SIZE = 8
     if len(data) > 28:
         firstRecHdr = data[0:28]
+        synsetCachePacked = data[28:]
+        assert (len(synsetCachePacked) % SYN_CACHE_REC_SIZE) == 0
     else:
         firstRecHdr = data
+        synsetCachePacked = None
     firstRec = structhelper.ExtractDataUsingFmt(wnProFirstRecDef,firstRecHdr,fmt)
-    return firstRec
+    synCache = []
+    if synsetCachePacked:
+        for i in range(len(synsetCachePacked)/SYN_CACHE_REC_SIZE):
+            packedEntry = synsetCachePacked[SYN_CACHE_REC_SIZE*i:SYN_CACHE_REC_SIZE*(i+1)]
+            unpackedTuple = struct.unpack(">LL",packedEntry)
+            synCache.append(unpackedTuple)
+    return (firstRec,synCache)
 
 def _dumpWnProData(db):
     firstRecData = db.records[0].data
-    firstRec = _extractWnProFirstRecordData(firstRecData)
-    isFormat = False
-    for name in wnProFirstRecDef:
-        if isFormat:
-            isFormat = False
-        else:
-            print "%s: %d" % (name, firstRec[name])
-            isFormat = True
+    (firstRec,synCache) = _extractWnProFirstRecordData(firstRecData)
+    for name in structhelper.iterlist(wnProFirstRecDef,step=2):
+        print "%s: %d" % (name, firstRec[name])
+    for s in synCache:
+        print "synsetNo=%d, wordsCount=%d" % s
 
 def _dumpWnLiteData(db):
     pass

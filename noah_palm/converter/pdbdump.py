@@ -19,8 +19,10 @@ def dumpPDBInfo(fileName):
         print "Rec %2d, size: %4d" % (recNo,rec.size)
         recNo += 1
 
-_fileMediumNew = "c:\\kjk\\src\\mine\\noah_dicts\\pdb\\new_converts\\wn_medium.pdb"
 _fileMediumOld = "c:\\kjk\\src\\mine\\noah_dicts\\pdb\\originals\\wn_medium.pdb"
+_fileMediumNew = "c:\\kjk\\src\\mine\\noah_dicts\\pdb\\new_converts\\wn_medium.pdb"
+_fileMediumNew2 = "c:\\kjk\\src\\mine\\noah_dicts\\pdb\\new_converts_fast\\wn_medium_f.pdb"
 if __name__ == '__main__':
     dumpPDBInfo( _fileMediumOld )
     dumpPDBInfo( _fileMediumNew )
+    dumpPDBInfo( _fileMediumNew2 )

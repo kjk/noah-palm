@@ -7,10 +7,6 @@
 #   http://www.eecs.harvard.edu/~nr/pilot/pdb/
 
 # Author: Krzysztof Kowalczyk krzysztofk@pobox.com
-# History:
-#   2003-06-04 Started
-#   2003-06-05 programming continues
-#   2003-06-06 improving classes
 
 import string,sys,os,struct,stat
 
