@@ -8,6 +8,11 @@
 #include "common.h"
 #include "better_formatting.h"
 
+#ifdef NOAH_PRO
+
+#include "armlet_runner.h"
+
+#endif
 /* Kind of like a constructor in C++ */
 ExtensibleBuffer *ebufNew(void)
 {
@@ -254,7 +259,13 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
         if(sort)
             ShakeSortExtBuf(buf);
         Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
+#ifndef NOAH_PRO
         Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
+#else
+        if(appContext->prefs.displayPrefs.listStyle==2)
+            if(!armFormat2onSortedBuffer(buf))
+                Format2OnSortedBuf(2, buf);
+#endif   
     }
     txt = buf->data;
     len = buf->used;
