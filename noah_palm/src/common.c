@@ -2341,7 +2341,7 @@ AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
 // Return database id of a database with a given dbName, type and creator
 // in dbId. This can be used e.g. in DmOpenDatabase()
 // Return errNone if found, dmErrCantFind if db can't be found
-Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, LocalID *dbId)
+Err ErrFindDatabaseByNameTypeCreator(const char *dbName, UInt32 type, UInt32 creator, LocalID *dbId)
 {
     Err                 err;
     DmSearchStateType   stateInfo;
@@ -2356,7 +2356,7 @@ Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, 
     while (errNone == err)
     {
         MemSet(dbNameBuf, sizeof(dbName), 0);
-        DmDatabaseInfo(cardNo, *dbId, (char*)dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
+        DmDatabaseInfo(cardNo, *dbId, dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
 
         if (0==StrCompare(dbName,dbNameBuf))
             return errNone;

@@ -34,7 +34,7 @@
 namespace {
 
     //! @todo do something with ErrFindDatabaseByNameTypeCreator()
-    static Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, LocalID *dbId)
+    static Err ErrFindDatabaseByNameTypeCreator(const char* dbName, UInt32 type, UInt32 creator, LocalID *dbId)
     {
         Err                 err;
         DmSearchStateType   stateInfo;
@@ -49,9 +49,9 @@ namespace {
         while (errNone == err)
         {
             MemSet(dbNameBuf, sizeof(dbName), 0);
-            DmDatabaseInfo(cardNo, *dbId, (char*)dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
+            DmDatabaseInfo(cardNo, *dbId, dbNameBuf, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
 
-            if (0==StrCompare(dbName,dbNameBuf))
+            if (0==StrCompare(dbName, dbNameBuf))
                 return errNone;
             err = DmGetNextDatabaseByTypeCreator(false, &stateInfo, type, creator, 0, &cardNo, dbId);
         }
@@ -104,7 +104,7 @@ Serialization of an item:
 */
 
 // devnote: could be optimized
-void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
+void serData(const char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
 {
     long i;
     for ( i=0; i<dataSize; i++)
@@ -119,7 +119,7 @@ void serByte(unsigned char val, char *prefsBlob, long *pCurrBlobSize)
     *pCurrBlobSize += 1;
 }
 
-static void serBool(Boolean val, char *prefsBlob, long *pCurrBlobSize)
+inline static void serBool(Boolean val, char *prefsBlob, long *pCurrBlobSize)
 {
     if (val)
         serByte(1,prefsBlob,pCurrBlobSize);
@@ -143,7 +143,7 @@ static void serUInt16(UInt16 val, char *prefsBlob, long *pCurrBlobSize)
     serData( (char*) &val, sizeof(val), prefsBlob, pCurrBlobSize);
 }
 
-static UInt16 deserUInt16(unsigned char **data, long *pBlobSizeLeft)
+static UInt16 deserUInt16(const unsigned char ** data, long *pBlobSizeLeft)
 {
     UInt16   val;
     Assert(sizeof(val)==2);
@@ -157,7 +157,7 @@ static void serUInt32(UInt32 val, char *prefsBlob, long *pCurrBlobSize)
     serData( (char*) &val, sizeof(val), prefsBlob, pCurrBlobSize);
 }
 
-static UInt32 deserUInt32(unsigned char **data, long *pBlobSizeLeft)
+static UInt32 deserUInt32(const unsigned char **data, long *pBlobSizeLeft)
 {
     UInt32   val;
     Assert(sizeof(val)==4);
@@ -167,16 +167,16 @@ static UInt32 deserUInt32(unsigned char **data, long *pBlobSizeLeft)
 
 void serLong(long val, char *prefsBlob, long *pCurrBlobSize)
 {
-    unsigned char * valPtr;
+    const unsigned char * valPtr;
 
-    valPtr = (unsigned char*) &val;
+    valPtr = (const unsigned char*) &val;
     serByte( valPtr[0], prefsBlob, pCurrBlobSize );
     serByte( valPtr[1], prefsBlob, pCurrBlobSize );
     serByte( valPtr[2], prefsBlob, pCurrBlobSize );
     serByte( valPtr[3], prefsBlob, pCurrBlobSize );
 }
 
-static Boolean deserBool(unsigned char **data, long *pBlobSizeLeft)
+static Boolean deserBool(const unsigned char **data, long *pBlobSizeLeft)
 {
     unsigned char val = deserByte(data, pBlobSizeLeft);
     Assert( (1==val) || (0==val) );
@@ -186,10 +186,10 @@ static Boolean deserBool(unsigned char **data, long *pBlobSizeLeft)
         return false;
 }
 
-unsigned char deserByte(unsigned char **data, long *pBlobSizeLeft)
+unsigned char deserByte(const unsigned char **data, long *pBlobSizeLeft)
 {
     unsigned char val;
-    unsigned char *d = *data;
+    const unsigned char *d = *data;
 
     Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=1) );
     val = *d++;
@@ -198,14 +198,14 @@ unsigned char deserByte(unsigned char **data, long *pBlobSizeLeft)
     return val;
 }
 
-static int getInt(unsigned char *data)
+static int getInt(const unsigned char *data)
 {
     int val;
     val = data[0]*256+data[1];
     return val;
 }
 
-int deserInt(unsigned char **data, long *pBlobSizeLeft)
+int deserInt(const unsigned char **data, long *pBlobSizeLeft)
 {
     int val;
 
@@ -216,11 +216,11 @@ int deserInt(unsigned char **data, long *pBlobSizeLeft)
     return val;
 }
 
-long deserLong(unsigned char **data, long *pBlobSizeLeft)
+long deserLong(const unsigned char **data, long *pBlobSizeLeft)
 {
     long val;
     unsigned char * valPtr;
-    unsigned char *d = *data;
+    const unsigned char *d = *data;
 
     valPtr = (unsigned char*) &val;
     valPtr[0] = d[0];
@@ -232,7 +232,7 @@ long deserLong(unsigned char **data, long *pBlobSizeLeft)
     return val;
 }
 
-void deserData(unsigned char *valOut, int len, unsigned char **data, long *pBlobSizeLeft)
+void deserData(unsigned char *valOut, int len, const unsigned char **data, long *pBlobSizeLeft)
 {
     Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=len) );
     MemMove( valOut, *data, len );
@@ -240,14 +240,14 @@ void deserData(unsigned char *valOut, int len, unsigned char **data, long *pBlob
     *pBlobSizeLeft -= len;
 }
 
-void serString(char *str, char *prefsBlob, long *pCurrBlobSize)
+void serString(const char *str, char *prefsBlob, long *pCurrBlobSize)
 {
     int len = StrLen(str)+1;
     serInt(len, prefsBlob, pCurrBlobSize);
     serData(str, len, prefsBlob, pCurrBlobSize);
 }
 
-char *deserString(unsigned char **data, long *pCurrBlobSize)
+char *deserString(const unsigned char **data, long *pCurrBlobSize)
 {
     char *  str;
     int     strLen;
@@ -261,7 +261,7 @@ char *deserString(unsigned char **data, long *pCurrBlobSize)
     return str;
 }
 
-void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize)
+void deserStringToBuf(char *buf, int bufSize, const unsigned char **data, long *pCurrBlobSize)
 {
     int     strLen;
 
@@ -271,7 +271,7 @@ void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrB
     deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
 }
 
-static char *deserStringInPlace(unsigned char **data, long *pCurrBlobSize)
+static const char *deserStringInPlace(const unsigned char **data, long *pCurrBlobSize)
 {
     Assert(*pCurrBlobSize>=2);
     if (*pCurrBlobSize<2)
@@ -280,13 +280,13 @@ static char *deserStringInPlace(unsigned char **data, long *pCurrBlobSize)
     Assert(0 == (*data)[strLen-1]);
     if (0!=(*data)[strLen-1])
         return NULL;      // this means blob corruption
-    char * str = (char*)*data;
+    const char * str = (const char*)*data;
     *data += strLen;
     *pCurrBlobSize -= strLen;
     return str;
 }
 
-PrefsStoreReader::PrefsStoreReader(char *dbName, UInt32 dbCreator, UInt32 dbType)
+PrefsStoreReader::PrefsStoreReader(const char *dbName, UInt32 dbCreator, UInt32 dbType)
     : _dbName(dbName), _dbCreator(dbCreator), _dbType(dbType), _db(0),
       _recHandle(NULL), _recData(NULL), _fDbNotFound(false)
 {
@@ -392,7 +392,7 @@ Err PrefsStoreReader::ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem)
     Assert(recSizeLeft>=4);
     if (recSizeLeft<4)
         return psErrDatabaseCorrupted;
-    unsigned char *currData = _recData;
+    const unsigned char *currData = _recData;
     Assert(FValidPrefsStoreRecord(currData));
     // skip the header
     currData += 4;
@@ -527,7 +527,7 @@ Err PrefsStoreReader::ErrGetUInt32(int uniqueId, UInt32 *value)
 // the string returned points to data inside the object that is only valid
 // while the object is alive. If client wants to use it after that, he must
 // make a copy
-Err PrefsStoreReader::ErrGetStr(int uniqueId, char **value)
+Err PrefsStoreReader::ErrGetStr(int uniqueId, const char **value)
 {
     PrefItem    prefItem;
     Err err = ErrGetPrefItemWithId(uniqueId, &prefItem);
@@ -540,7 +540,7 @@ Err PrefsStoreReader::ErrGetStr(int uniqueId, char **value)
     return errNone;
 }
 
-PrefsStoreWriter::PrefsStoreWriter(char *dbName, UInt32 dbCreator, UInt32 dbType)
+PrefsStoreWriter::PrefsStoreWriter(const char *dbName, UInt32 dbCreator, UInt32 dbType)
     : _dbName(dbName), _dbCreator(dbCreator), _dbType(dbType), _itemsCount(0)
 {
     Assert(dbName);
@@ -634,7 +634,7 @@ Err PrefsStoreWriter::ErrSetUInt32(int uniqueId, UInt32 value)
 
 // value must point to a valid location during ErrSavePrefernces() since
 // for perf reasons we don't make a copy of the string
-Err PrefsStoreWriter::ErrSetStr(int uniqueId, char *value)
+Err PrefsStoreWriter::ErrSetStr(int uniqueId, const char *value)
 {
     PrefItem    prefItem;
 

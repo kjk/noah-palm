@@ -34,7 +34,7 @@ static void DictFoundCBNoahPro(void* context, AbstractFile *file)
 
 // Given a blob containing serialized prefrences deserilize the blob
 // and set the preferences accordingly.
-static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char *prefsBlob, long blobSize)
+static void DeserializePreferencesNoahPro(AppContext* appContext, const unsigned char *prefsBlob, long blobSize)
 {
     NoahPrefs *     prefs;
     eFsType         fsType;

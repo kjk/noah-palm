@@ -140,7 +140,7 @@ static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
 
 // Given a blob containing serialized prefrences deserilize the blob
 // and set the preferences accordingly.
-static void DeserializePreferencesThes(AppContext* appContext, unsigned char *prefsBlob, long blobSize)
+static void DeserializePreferencesThes(AppContext* appContext, const unsigned char *prefsBlob, long blobSize)
 {
     ThesPrefs *     prefs;
     int             i;

@@ -67,7 +67,7 @@ static void LoadPreferencesInoah(AppContext* appContext)
     Err               err;
     AppPrefs *        prefs = &(appContext->prefs);
     PrefsStoreReader  store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
-    char *            tmpStr;
+    const char *            tmpStr;
     int               tmpInt;
 
     // general pattern: set a given setting, try to read it from the database

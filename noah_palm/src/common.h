@@ -551,7 +551,7 @@ extern UInt16 FldGetSelectedText(FieldType* field, char* buffer, UInt16 bufferSi
 extern AbstractFile* FindOpenDatabase(AppContext* appContext, const char* name);
 #endif // I_NOAH
 
-Err ErrFindDatabaseByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator, LocalID *dbId);
+Err ErrFindDatabaseByNameTypeCreator(const char *dbName, UInt32 type, UInt32 creator, LocalID *dbId);
 DmOpenRef OpenDbByNameTypeCreator(char *dbName, UInt32 type, UInt32 creator);
 
 /**
