@@ -740,10 +740,10 @@ ChooseDatabase:
                     FrmPopupForm(formBookmarks);
                     break;
                 case menuItemBookmarkWord:
-                    AddBookmark(appContext, appContext->lastWord);
+                    AddBookmark(appContext, dictGetWord(GetCurrentFile(appContext), appContext->currentWord));
                     break;
                 case menuItemBookmarkDelete:
-                    DeleteBookmark(appContext, appContext->lastWord);
+                    DeleteBookmark(appContext, dictGetWord(GetCurrentFile(appContext), appContext->currentWord));
                     break;
                 case menuItemAbout:
                     if (NULL != appContext->currDispInfo)

@@ -9,12 +9,12 @@ Err OpenBookmarksDB(AppContext* appContext, Int16 bookmarksSortBySelection)
     char * bookmarksDBByTime = "Noah_bookmarks_t";
     char * bookmarksDB;
 
-    if (bookmarksSortBySelection == 0)   // we open the bookmarks-sorted-by-name database
+    if (bookmarksSortBySelection == BOOKMARKS_SORT_BY_NAME)   // we open the bookmarks-sorted-by-name database
     {
         bookmarksDB = bookmarksDBByName;
         Assert(StrLen(bookmarksDB) < dmDBNameLength);
     }
-    else if (bookmarksSortBySelection == 1)
+    else if (bookmarksSortBySelection == BOOKMARKS_SORT_BY_TIME)
     {
         bookmarksDB = bookmarksDBByTime;
         Assert(StrLen(bookmarksDB) < dmDBNameLength);
@@ -66,6 +66,7 @@ void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
         stringLenP = StrLen(str);
         FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
         WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
+        MemHandleUnlock(recHandle);
     }
     else
     {
@@ -134,16 +135,136 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             }
             break;
 
+        case lstSelectEvent:
+        {
+            MemHandle recHandle;
+            char * str;
+            recHandle = DmQueryRecord(appContext->bookmarksDb, appContext->listItemOffset + (UInt32) event->data.lstSelect.selection);
+            if (recHandle)
+            {
+                str = MemHandleLock(recHandle);
+                appContext->currentWord = dictGetFirstMatching(GetCurrentFile(appContext), str);
+                MemHandleUnlock(recHandle);
+            }
+            SendNewWordSelected();
+            FrmReturnToForm(0);
+            return true;
+        }
+
         default:
             break;
     }
     return handled;
 }
 
-void AddBookmark(AppContext* appContext, char * word)
+Int16 BookmarksByNameCompare(char * r1, char * r2, Int16 sortOrder, SortRecordInfoPtr /* info1 */, 
+	SortRecordInfoPtr /* info2 */, MemHandle /* appInfoH */)
 {
+    return StrCompare(r1, r2);
+}
+
+Err AddBookmark(AppContext* appContext, char * word)
+{
+    Err err;
+    MemHandle recHandle;
+    char * str;
+    UInt16 pos;
+    Boolean recFound;
+    Int16 lastSortBySelection;
+
+    lastSortBySelection = appContext->bookmarksSortBySelection;
+
+    // 1. See if we already have the record in bookmarks.
+    //    We assume that if the record wasn't found in sorted-by-name database, it doesn't exist in the other.
+    //    The sorted-by-name database is quicker to scan, because we can use binary search.
+    recFound = false;
+    if (OpenBookmarksDB(appContext, BOOKMARKS_SORT_BY_NAME) == errNone)
+    {
+        pos = DmFindSortPosition(appContext->bookmarksDb, word, NULL, (DmComparF *) BookmarksByNameCompare, 0);
+        
+        // DmFindSortPosition returns the position there the new record should be placed
+        // so if the record exist it's position is (pos - 1)
+        if (pos > 0)
+            pos--;
+        
+        recHandle = DmQueryRecord(appContext->bookmarksDb, pos);
+        if (recHandle)
+        {
+            str = MemHandleLock(recHandle);
+            if (!StrCompare(word, str))
+                recFound = true;
+            MemHandleUnlock(recHandle);
+        }
+    }
+    if (recFound)
+        return 1;
+    // 2. If we haven't fount the record, we add it to databases
+    else {
+        if (OpenBookmarksDB(appContext, BOOKMARKS_SORT_BY_NAME) == errNone)
+        {
+            // the record must be put alphabetically, so we must obtain it's position
+            pos = DmFindSortPosition(appContext->bookmarksDb, word, NULL, (DmComparF *) BookmarksByNameCompare, 0);
+            recHandle = DmNewRecord(appContext->bookmarksDb, &pos, BOOKMARKS_REC_SIZE);
+            if (recHandle)
+            {
+                str = MemHandleLock(recHandle);
+                err = DmWrite(str, 0, word, BOOKMARKS_REC_SIZE);
+                MemHandleUnlock(recHandle);
+                DmReleaseRecord(appContext->bookmarksDb, pos, true);
+            }
+        }
+
+        if (OpenBookmarksDB(appContext, BOOKMARKS_SORT_BY_TIME) == errNone)
+        {
+            // the record must be put chronogically, so we simply put it at the end of this database
+            pos = dmMaxRecordIndex;
+            recHandle = DmNewRecord(appContext->bookmarksDb, &pos, BOOKMARKS_REC_SIZE);
+            if (recHandle)
+            {
+                str = MemHandleLock(recHandle);
+                err = DmWrite(str, 0, word, BOOKMARKS_REC_SIZE);
+                MemHandleUnlock(recHandle);
+                DmReleaseRecord(appContext->bookmarksDb, pos, true);
+            }
+        }
+    }
+    appContext->bookmarksSortBySelection = lastSortBySelection;
+    OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
+    return errNone;
 }
 
 void DeleteBookmark(AppContext* appContext, char * word)
 {
+    UInt16 num, i;
+    Int16 lastSortBySelection, sortBy;
+    MemHandle recHandle;
+    char * str;
+    
+    lastSortBySelection = appContext->bookmarksSortBySelection;
+
+    // for all the sorting databases we iterate, find the record and remove it
+    for (sortBy = BOOKMARKS_SORT_BY_FIRST; sortBy <= BOOKMARKS_SORT_BY_LAST; sortBy++)
+    {
+        if (OpenBookmarksDB(appContext, sortBy) == errNone)
+        {
+            num = BookmarksNumRecords(appContext);
+            for (i = 0; i < num; i++)
+            {
+                recHandle = DmQueryRecord(appContext->bookmarksDb, i);
+                if (recHandle)
+                {
+                    str = MemHandleLock(recHandle);
+                    if (!StrCompare(str, word))
+                    {
+                        MemHandleUnlock(recHandle);
+                        DmRemoveRecord(appContext->bookmarksDb, i);
+                    }
+                    else
+                        MemHandleUnlock(recHandle);
+                }
+            }
+        }
+    }
+    appContext->bookmarksSortBySelection = lastSortBySelection;
+    OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
 }
