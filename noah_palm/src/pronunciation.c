@@ -13,7 +13,7 @@
 #include "pronunciation.h"
 #include "five_way_nav.h"
 
-#define DRAW_DI_X_P     0
+#define DRAW_DI_X_P     4
 #define DRAW_DI_Y_P     15
 
 
@@ -272,6 +272,7 @@ Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleB
     long        wordNoPart;
     Boolean     findSth = false;
     
+    appContext->pronData.actWordHavePronunciation = false;
 #ifdef DONT_DO_PRONUNCIATION
     return false;
 #endif    
@@ -332,6 +333,7 @@ Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleB
         }
 
         ebufAddChar(buf,']');
+        appContext->pronData.actWordHavePronunciation = true;
         return true;
 PronExitComplexFalse:
         while(bufferPosition != buf->used)
@@ -349,6 +351,7 @@ PronExitComplexFalse:
         ebufAddStr(buf,pron);
         new_free(pron);
         ebufAddChar(buf,']');
+        appContext->pronData.actWordHavePronunciation = true;
         return true;
     }   
     else
@@ -364,8 +367,6 @@ static int pronInsertSpaces(ExtensibleBuffer *buf, int start,int end, int dx)
     Int16   newDx;
     Int16   len;
     
-    char txt[50];
-
     len = end - start;
         
     newDx = FntCharsWidth (&buf->data[start], len);
@@ -377,10 +378,6 @@ static int pronInsertSpaces(ExtensibleBuffer *buf, int start,int end, int dx)
         len = end - start;
         newDx = FntCharsWidth (&buf->data[start], len);
     }
-    
-    
-    StrPrintF(txt,"%d   ",newDx);
-    WinDrawChars(txt,StrLen(txt),5,2);
     return newDx;
 }
 
@@ -769,94 +766,103 @@ static void DrawPronunciationOnForm(AppContext* appContext)
     AbstractFile *file;
     ExtensibleBuffer *buf;
     ExtensibleBuffer *buf2;
-    
+
     buf = ebufNew();
-    buf2 = ebufNew();
 
-    file = appContext->currentFile->dictData.wn->file;
-    wordNo = appContext->currentWord;
-    word = wn_get_word(appContext->currentFile->dictData.wn,wordNo);
-
-    ebufAddChar(buf,FORMAT_TAG);
-    ebufAddChar(buf,FORMAT_WORD);
-    ebufAddStr(buf,word);
-    ebufAddChar(buf,'\n');
-    ebufAddChar(buf,FORMAT_TAG);
-    ebufAddChar(buf,FORMAT_PRONUNCIATION);
-    
-    if(!pronGetCompresedWord(appContext,file,compresed,wordNo))
+    if(appContext->pronData.actWordHavePronunciation)
     {
-        //complex pronunciation! ignore ' ', '-' and "(p)"
-        bufferPosition = buf->used;
-        ebufAddChar(buf,'[');
-        MemMove(wordToPrarting,word,StrLen(word)+1);
-
-        j = 0;
-        while(wordToPrarting[j] != 0)
-        {
-            i = 0;
-            while(wordToPrarting[j]!=0 && wordToPrarting[j]!=' ' && wordToPrarting[j]!='-' && wordToPrarting[j]!='(')
-            {
-                wordPart[i] = wordToPrarting[j];
-                i++;
-                j++;
-            }
-            wordPart[i] = 0;
-
-            if(findSth)
-                ebufAddStr(buf,"     ");
+        buf2 = ebufNew();
     
-            if(wordToPrarting[j] == '(')
+        file = appContext->currentFile->dictData.wn->file;
+        wordNo = appContext->currentWord;
+        word = wn_get_word(appContext->currentFile->dictData.wn,wordNo);
+    
+        ebufAddChar(buf,FORMAT_TAG);
+        ebufAddChar(buf,FORMAT_WORD);
+        ebufAddStr(buf,word);
+        ebufAddChar(buf,' ');
+        ebufAddChar(buf,FORMAT_TAG);
+        ebufAddChar(buf,FORMAT_PRONUNCIATION);
+        
+        if(!pronGetCompresedWord(appContext,file,compresed,wordNo))
+        {
+            //complex pronunciation! ignore ' ', '-' and "(p)"
+            bufferPosition = buf->used;
+            ebufAddChar(buf,'[');
+            MemMove(wordToPrarting,word,StrLen(word)+1);
+    
+            j = 0;
+            while(wordToPrarting[j] != 0)
             {
+                i = 0;
+                while(wordToPrarting[j]!=0 && wordToPrarting[j]!=' ' && wordToPrarting[j]!='-' && wordToPrarting[j]!='(')
+                {
+                    wordPart[i] = wordToPrarting[j];
+                    i++;
+                    j++;
+                }
+                wordPart[i] = 0;
+    
+                if(findSth)
+                    ebufAddStr(buf,"     ");
+        
+                if(wordToPrarting[j] == '(')
+                {
+                    findSth = true;
+                    while(wordToPrarting[j++] != ')')
+                        ;; //asm nop;
+                }            
+                
+                //this will be very slow!!!            
+                wordNoPart = dictGetFirstMatching(GetCurrentFile(appContext), wordPart);
+                wordTest = dictGetWord(GetCurrentFile(appContext), wordNoPart);
+    
+                pronGetCompresedWord(appContext,file,compresed,wordNoPart);
                 findSth = true;
-                while(wordToPrarting[j++] != ')')
-                    ;; //asm nop;
-            }            
-            
-            //this will be very slow!!!            
-            wordNoPart = dictGetFirstMatching(GetCurrentFile(appContext), wordPart);
-            wordTest = dictGetWord(GetCurrentFile(appContext), wordNoPart);
-
-            pronGetCompresedWord(appContext,file,compresed,wordNoPart);
-            findSth = true;
-            
+                
+                pronDecomprese(decompresed,compresed);
+    
+                for(i=0;decompresed[i]!=0;i++)
+                    pronFillHelpBufferWithPhonem(appContext, buf2, decompresed[i]);    
+                            
+                pron = pronTranslateDecompresed(appContext, decompresed);
+    
+                ebufAddStr(buf,pron);
+                new_free(pron);
+    
+                while(wordToPrarting[j]!=0 && (wordToPrarting[j]==' ' || wordToPrarting[j]=='-'))
+                    j++;
+            }
+    
+            ebufAddChar(buf,']');
+        }
+        else
+        {      
             pronDecomprese(decompresed,compresed);
-
             for(i=0;decompresed[i]!=0;i++)
                 pronFillHelpBufferWithPhonem(appContext, buf2, decompresed[i]);    
-                        
+        
             pron = pronTranslateDecompresed(appContext, decompresed);
-
+            ebufAddChar(buf,'[');
             ebufAddStr(buf,pron);
             new_free(pron);
-
-            while(wordToPrarting[j]!=0 && (wordToPrarting[j]==' ' || wordToPrarting[j]=='-'))
-                j++;
+            ebufAddChar(buf,']');
         }
-
-        ebufAddChar(buf,']');
+    
+        ebufAddChar(buf,'\n');
+    
+        ebufAddStrN(buf,buf2->data,buf2->used);
+        ebufDelete(buf2);    
     }
     else
-    {      
-        pronDecomprese(decompresed,compresed);
-        for(i=0;decompresed[i]!=0;i++)
-            pronFillHelpBufferWithPhonem(appContext, buf2, decompresed[i]);    
-    
-        pron = pronTranslateDecompresed(appContext, decompresed);
-        ebufAddChar(buf,'[');
-        ebufAddStr(buf,pron);
-        new_free(pron);
-        ebufAddChar(buf,']');
+    {
+        for(i=0;i <= 39;i++)
+            pronFillHelpBufferWithPhonem(appContext, buf, i);    
     }
-
-    ebufAddChar(buf,'\n');
-
-    ebufAddStrN(buf,buf2->data,buf2->used);
-    ebufDelete(buf2);    
-
+    
     ebufAddChar(buf,'\0');
     ebufWrapBigLines(buf,false);
-
+    
     if(appContext->ptrOldDisplayPrefs==NULL)
     {
         /*we use currDispInfo to draw help. We need to restore it before exiting*/
@@ -1032,6 +1038,8 @@ OnError:
 
 void pronDisplayHelp(AppContext* appContext, char* pronHitted)
 {
+    if(!appContext->currDispInfo)
+        return;
     cbNoSelection(appContext);
     FrmPopupForm(formPronunciation);
 }

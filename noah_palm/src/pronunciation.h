@@ -30,6 +30,7 @@ typedef struct _PronunciationData
     UInt16  firstRecordWithPron;
     UInt16  numberOfPronRecords;
     Boolean isPronInUsedDictionary;
+    Boolean actWordHavePronunciation;
 } PronunciationData;
 
 Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf, AbstractFile *file, long wordNo, char *word);

@@ -752,6 +752,9 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
                 case menuItemSelectDB:
                     FrmPopupForm(formSelectDict);
                     break;
+                case menuItemShowPronunciation:
+                    pronDisplayHelp(appContext,"");
+                    break;
                 case menuItemDispPrefs:
                     FrmPopupForm(formDisplayPrefs);
                     break;
