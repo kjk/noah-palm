@@ -56,21 +56,28 @@ static void MainFormDisplayAbout(AppContext* appContext)
 
     FntSetFont(largeFont);
     DrawCenteredString(appContext, "http://www.arslexis.com", currentY);
-    currentY+=28;
+    currentY+=24;
 
     FntSetFont(stdFont);
     if (0==StrLen(appContext->prefs.regCode))
     {
-        DrawCenteredString(appContext, "Trial mode", currentY);
+        DrawCenteredString(appContext, "Unregistered", currentY);
         currentY+=14;
 #ifdef  DEMO_HANDANGO
         DrawCenteredString(appContext, "Buy at: www.handango.com/purchase", currentY);
         currentY+=14;
         DrawCenteredString(appContext, "        Product ID: 101763", currentY);
-#endif
-#ifdef DEMO_PALMGEAR
+#else
+  #ifdef DEMO_PALMGEAR
         DrawCenteredString(appContext, "Buy at: www.palmgear.com?53831", currentY);
+  #else
+        DrawCenteredString(appContext, "Buy at: www.arslexis.com/buy.html", currentY);
+  #endif
 #endif
+    }
+    else
+    {
+        DrawCenteredString(appContext, "Registered version", currentY);
     }
     WinPopDrawState();    
 }
@@ -400,8 +407,8 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
     return handled;
 }
 
-// Show a registration dialog where a user enters registration number.
-// if fDeleteAfterCancel is set to true, we'll remove the registration number
+// Show a registration dialog where a user enters registration code.
+// if fDeleteAfterCancel is set to true, we'll remove the registration code
 // from preferences. We want this behavior if "re-enter registration code" was
 // pressed after registration process failed (this was an invalid registration code
 // so we don't want the client to send it to the server -> so we erase it).
@@ -441,7 +448,7 @@ static void MainFormHandleRegister(AppContext* appContext, bool fDeleteAfterCanc
 
     if ( (NULL != regCode) && (regCodeLen>0) )
     {
-        // save the registration number in preferences so that we can
+        // save the registration code in preferences so that we can
         // send it in all requests
         if (regCodeLen>MAX_REG_CODE_LENGTH)
         {
@@ -458,7 +465,7 @@ static void MainFormHandleRegister(AppContext* appContext, bool fDeleteAfterCanc
         // send a registration query to the server so that the user
         // knows if he registered correctly
         // it doesn't really matter, in the long run, because every time
-        // we send a request, we also send the registration number and
+        // we send a request, we also send the registration code and
         // if it's not correct, we'll reject the query
         StartRegistration(appContext, (const char*)appContext->prefs.regCode);
     }
@@ -537,7 +544,15 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             break;
 
         case menuItemGotoWebsite:
-            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com/pda/inoah.html",NULL) )
+            //if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://arslexis.local.org:4080/pda/palm.html",NULL) )
+            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com/pda/palm.html",NULL) )
+                FrmAlert(alertNoWebBrowser);
+            handled=true;
+            break;
+
+        case menuItemCheckUpdates:
+            //if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://arslexis.local.org:4080/updates/palm-inoah-1-0.html",NULL) )
+            if ( errNone != ErrWebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com/updates/palm-inoah-1-0.html",NULL) )
                 FrmAlert(alertNoWebBrowser);
             handled=true;
             break;

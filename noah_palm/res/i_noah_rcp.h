@@ -19,6 +19,7 @@
 #define menuItemBookmarkDelete  1127
 #define menuItemBookmarkView    1130
 #define menuItemGotoWebsite     1133
+#define menuItemCheckUpdates    1134
 
 #define menuItemPrefs           1112
 #define menuItemDispPrefs       1115
