@@ -498,7 +498,7 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     Assert(firstLine >= 0);
     Assert(maxLines > 0);
 
-    SetTextColorRed();
+/*    SetTextColorRed(); */
 
     fontDY = FntCharHeight();
 
@@ -516,13 +516,13 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
         {
             FntSetFont((FontID) 1);
             prev_font = (FontID) 1;
-            SetTextColorRed();
+/*            SetTextColorRed(); */
         }
         else if (prev_font != 0)
         {
             FntSetFont((FontID) 0);
             prev_font = (FontID) 0;
-            SetTextColorRed();
+/*            SetTextColorRed(); */
         }
         WinDrawChars(line, StrLen(line), x, curY);
         curY += fontDY;

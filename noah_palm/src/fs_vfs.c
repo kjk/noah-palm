@@ -274,6 +274,7 @@ ScanNextDir:
         {
             fileName = BuildFullFileName( currDir, fileInfo.nameP );
             if ( NULL == fileName ) goto NoMoreFiles;
+            LogV1("FsVfsFindDb(): file %s", fileName );
             file = NULL;
             if ( ReadPdbHeader(currVolRef, fileName, &hdr ) )
             {

@@ -152,6 +152,7 @@ void DictFoundCBNoahPro( AbstractFile *file )
             (WORDNET_LITE_TYPE == file->type) ||
             (SIMPLE_TYPE == file->type) ||
             (ENGPOL_TYPE == file->type));
+
     if (gd.dictsCount>=MAX_DICTS)
     {
         AbstractFileFree(file);
@@ -170,9 +171,9 @@ void VfsFindCbNoahPro( AbstractFile *file )
     if ( NOAH_PRO_CREATOR != file->creator )
         return;
 
-    if ( (WORDNET_PRO_TYPE != file->type) ||
-        (WORDNET_LITE_TYPE != file->type) ||
-        (SIMPLE_TYPE != file->type) ||
+    if ( (WORDNET_PRO_TYPE != file->type) &&
+        (WORDNET_LITE_TYPE != file->type) &&
+        (SIMPLE_TYPE != file->type) &&
         (ENGPOL_TYPE != file->type))
     {
         return;
@@ -1403,10 +1404,6 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
         FrmGotoForm(formDictMain);
         EventLoopNoahPro();
         StopNoahPro();
-#if 0
-        NP_EventLoop();
-        NP_AppStop();
-#endif
         break;
     default:
         break;
