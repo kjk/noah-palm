@@ -195,11 +195,49 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
     return handled;
 }
 
+static void MainFormLookupClipboard(AppContext* appContext)
+{
+    UInt16 length=0;
+    MemHandle handle=ClipboardGetItem(clipboardText, &length);
+    ExtensibleBuffer buffer;
+    ebufInit(&buffer, 0);
+    if (handle) 
+    {
+        const Char* text=static_cast<const Char*>(MemHandleLock(handle));
+        if (text)
+        {
+            ebufAddStrN(&buffer, const_cast<Char*>(text), length);
+            MemHandleUnlock(handle);
+        }
+    }
+    if (ebufGetDataSize(&buffer))
+    {
+        ebufAddChar(&buffer, chrNull);
+        StartLookup(appContext, ebufGetDataPointer(&buffer));
+    }
+    ebufFreeData(&buffer);
+}
+
 static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* event)
 {
+
     FrmUpdateForm(formDictMain, redrawAll);
+
     UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
     FrmSetFocus(form, index);
+
+    switch (appContext->prefs.startupAction)
+    {
+        case startupActionClipboard:
+            MainFormLookupClipboard(appContext);
+            break;
+        
+        case startupActionLast:
+            if (StrLen(appContext->prefs.lastWord))
+                StartLookup(appContext, appContext->prefs.lastWord);
+            break;
+    }
+    
     return true;
 }
 
@@ -276,30 +314,6 @@ inline static void MainFormHandleCopy(AppContext* appContext)
     if (appContext->currDispInfo)
         diCopyToClipboard(appContext->currDispInfo);
 }
-
-static void MainFormLookupClipboard(AppContext* appContext) 
-{
-    UInt16 length=0;
-    MemHandle handle=ClipboardGetItem(clipboardText, &length);
-    ExtensibleBuffer buffer;
-    ebufInit(&buffer, 0);
-    if (handle) 
-    {
-        const Char* text=static_cast<const Char*>(MemHandleLock(handle));
-        if (text)
-        {
-            ebufAddStrN(&buffer, const_cast<Char*>(text), length);
-            MemHandleUnlock(handle);
-        }
-    }
-    if (ebufGetDataSize(&buffer))
-    {
-        ebufAddChar(&buffer, chrNull);
-        StartLookup(appContext, ebufGetDataPointer(&buffer));
-    }
-    ebufFreeData(&buffer);
-}
-
 
 static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, EventType* event)
 {

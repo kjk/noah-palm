@@ -40,6 +40,10 @@ static Boolean PreferencesFormDisplayChanged(AppContext* appContext, FormType* f
         UInt16 index=0;
         RectangleType bounds;
         WinGetBounds(WinGetDisplayWindow(), &bounds);
+        bounds.topLeft.y+=2;
+        bounds.topLeft.x+=2;
+        bounds.extent.y-=4;
+        bounds.extent.x-=4;
         WinSetBounds(FrmGetWindowHandle(form), &bounds);
         
         index=FrmGetObjectIndex(form, buttonOk);

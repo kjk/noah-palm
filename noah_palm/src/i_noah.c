@@ -100,7 +100,7 @@ static Err AppInit(AppContext* appContext)
     if (error) 
         goto OnError;
 #endif  
-
+    
 OnError:
     return error;
 }
@@ -108,6 +108,11 @@ OnError:
 static void AppDispose(AppContext* appContext)
 {
     Err error=errNone;
+    if (ebufGetDataSize(&appContext->currentWordBuf))
+    {
+        StrNCopy(appContext->prefs.lastWord, ebufGetDataPointer(&appContext->currentWordBuf), WORD_MAX_LEN-1);
+        appContext->prefs.lastWord[WORD_MAX_LEN-1]=chrNull;
+    }
     SavePreferences(appContext);
     FrmCloseAllForms();
     error=DIA_Free(&appContext->diaSettings);
