@@ -831,7 +831,33 @@ ChooseDatabase:
             break;
 
         case keyDownEvent:
-            if (pageUpChr == event->data.keyDown.chr)
+            if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
+            {
+                if (FiveWayCenterPressed(event))
+                {
+                    FrmPopupForm(formDictFind);
+                }
+                if (FiveWayDirectionPressed( event, Left ))
+                {
+                    if (gd.currentWord > 0)
+                        DrawDescription(gd.currentWord - 1);
+                }
+                if (FiveWayDirectionPressed( event, Right ))
+                {
+                    if (gd.currentWord < gd.wordsCount - 1)
+                        DrawDescription(gd.currentWord + 1);
+                }
+                if (FiveWayDirectionPressed( event, Up ))
+                {
+                    DefScrollUp( scrollLine );
+                }
+                if (FiveWayDirectionPressed( event, Down ))
+                {
+                    DefScrollDown( scrollLine );
+                }
+                return false;
+            }
+            else if (pageUpChr == event->data.keyDown.chr)
             {
                 DefScrollUp(gd.prefs.hwButtonScrollType);
             }
