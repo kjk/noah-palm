@@ -319,7 +319,8 @@ static Err ParseChunkHeader(const Char* headerBegin, const Char* headerEnd, UInt
     Err error=errNone;
     const Char* end=StrFind(headerBegin, headerEnd, " ");
     Int32 size=0;
-    error=StrAToIEx(headerBegin, end, &size, 16);    if (error)
+    error=StrAToIEx(headerBegin, end, &size, 16);
+    if (error)
     {
         error=appErrMalformedResponse;
         goto OnError;

@@ -81,6 +81,14 @@ static Boolean ResidentLookupFormKeyDown(AppContext* appContext, FormType* form,
         DefScrollDown(appContext, appContext->prefs.hwButtonScrollType);
         handled=true;
     }
+    else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
+             || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
+             || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
+    {
+        appContext->lastWord[0] = event->data.keyDown.chr;
+        appContext->lastWord[1] = 0;
+        ResidentLookupFormFindPressed(appContext);
+    }
     return handled;
 }
 
