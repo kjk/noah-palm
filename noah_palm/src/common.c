@@ -57,14 +57,13 @@ void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char *      str;
     AppContext* appContext=GetAppContext();
-    Int16       stringWidthP;
-    Int16       stringLenP;
-    Boolean     truncatedP = false;
-
+    /* max width of the string in the list selection window */
+    Int16   stringWidthP = HISTORY_LIST_DX;
+    Int16   stringLenP;
+    Boolean truncatedP = false;
     Assert(appContext);
     Assert((itemNum >= 0) && (itemNum <= appContext->historyCount));
 
-    stringWidthP = appContext->screenWidth; /* max width of the string in the list selection window */
     str = appContext->wordHistory[itemNum];
     stringLenP = StrLen(str);
 
