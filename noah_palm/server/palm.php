@@ -14,6 +14,9 @@ define( 'ERR_RANDOM_NOT_EMPTY',  8);
 define( 'ERR_DB_CONNECT_FAIL',   9);
 define( 'ERR_DB_SELECTDB_FAIL', 10);
 define( 'ERR_DB_SELECT_FAIL',   11);
+define( 'ERR_RECENT_LOOKUPS_NOT_EMPTY', 12);
+define( 'ERR_COOKIE_UNKNOWN',   13);  # client sent a cookie that we didnt generate
+define( 'ERR_COOKIE_DISABLED',  14);  # client sent a cookie that we disabled for some reason
 
 require( "dbsettings.inc" );
 
@@ -36,7 +39,7 @@ function validate_client_version( $cv )
 function report_error( $err )
 {
     print "ERROR\n";
-    print "Error number $err occured on the server.";
+    print "Error number $err occured on the server. Please contact support@arslexis.com for more information.";
     exit;
 }
 
@@ -48,11 +51,12 @@ function write_MSG( $msg )
 }
 
 # write DEF response to returning stream
-function write_DEF( $word, $def )
+function write_DEF( $word, $pron, $def )
 {
     print "DEF\n";
-    print $word;
-    print "\n";
+    print "$word\n";
+    if ( $pron )
+        print "PRON $pron\n";
     print $def;
 }
 
@@ -62,22 +66,64 @@ function write_WORDLIST( $list )
     print $list;
 }
 
+define( 'COOKIE_LEN', 12);
+
+function generate_cookie()
+{
+    global $cookie_letters_len, $dict_db;
+    $cookie_letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    $cookie_letters_len = strlen($cookie_letters);
+    $cookie = "";
+    for ($i=0; $i<COOKIE_LEN; $i++)
+    {
+        $letter_pos = rand(0,$cookie_letters_len-1);
+        $letter = $cookie_letters[$letter_pos];
+        $cookie .= $letter;
+    }
+    return $cookie;
+}
+
+function generate_unique_cookie()
+{
+    global $dict_db;
+    do {
+        $cookie = generate_cookie();
+        $found_cookie = $dict_db->get_var("SELECT cookie FROM cookies WHERE cookie='$cookie';");
+    } while ( $found_cookie );
+    return $cookie;
+}
+
 function serve_get_cookie($di)
 {
-    # TODO:
-    # generate a new random, unique cookie
-    # insert cookie and $di into cookies table
-    # return the cookie to the client
+    global $dict_db;
+    $cookie = generate_unique_cookie();
     print "COOKIE\n";
-    $magic_cookie = "berake";
-    print $magic_cookie;
+    print $cookie;
+
+    $query = "INSERT INTO cookies (cookie,dev_info,reg_code,disabled_p) VALUES ('$cookie', '$di', NULL, 'f');";
+    $dict_db->query($query);
     exit;
+}
+
+function user_registered_p($cookie)
+{
+    global $dict_db;
+    $query = ("SELECT reg_code FROM cookies WHERE cookie='$cookie';");
+    $reg_code = $dict_db->get_var($query);
+    if ($reg_code)
+        return true;
+    else
+        return false;
 }
 
 function serve_register($reg_code)
 {
-    if ( $reg_code == 'valid' )
-        write_MSG("Registration has been succesful. Enjoy!");
+    global $dict_db;
+
+    $query = "SELECT reg_code FROM reg_codes WHERE reg_code='$reg_code';";
+    $reg_code = $dict_db->get_var($query);
+    if ( $reg_code )
+        write_MSG("Registration has been succesful. We hope you'll enjoy using Noah.");
     else
         write_MSG("Registration failed");
     exit;
@@ -102,7 +148,7 @@ function serve_get_random_word()
     $def = $res->def;
     $word = $res->word;
 
-    write_DEF($word, $def);
+    write_DEF($word, $word, $def);
     exit;
 }
 
@@ -114,9 +160,15 @@ function get_word_def($word)
     return $def;
 }
 
-function serve_get_word($word)
+function log_get_word_request($cookie,$word)
 {
+    global $dict_db;
+    $query = "INSERT INTO request_log (cookie,word,query_time) VALUES ('$cookie','$word',CURRENT_TIMESTAMP());";
+    $dict_db->query( $query );
+}
 
+function serve_get_word($cookie,$word)
+{
     if ( $word=='wl' )
     {
         write_WORDLIST( "word one\nand another\nand even more\nword three\ntest\nsample\n" );
@@ -129,11 +181,13 @@ function serve_get_word($word)
         exit;
     }
 
+    log_get_word_request($cookie, $word);
+
     $def = get_word_def($word);
 
     if ( $def != "" )
     {
-        write_DEF($word,$def);
+        write_DEF($word,$word,$def);
         exit;
     }
 
@@ -146,7 +200,7 @@ function serve_get_word($word)
         $def = get_word_def($word);
         if ( $def != "" )
         {
-            write_DEF($word,$def);
+            write_DEF($word, NULL,$def);
             exit;
         }
     }
@@ -158,7 +212,7 @@ function serve_get_word($word)
         $def = get_word_def($word);
         if ( $def != "" )
         {
-            write_DEF($word,$def);
+            write_DEF($word,$word,$def);
             exit;
         }
     }
@@ -170,13 +224,37 @@ function serve_get_word($word)
         $def = get_word_def($word);
         if ( $def != "" )
         {
-            write_DEF($word,$def);
+            write_DEF($word,$word,$def);
             exit;
         }
     }
 
     # didnt find the word
     write_MSG("Definition of word $word not found");
+    exit;
+}
+
+define( 'MAX_RECENT_LOOKUPS', 20 );
+
+# return a list of recently looked up words by user using cookie $cookie
+# TODO: use TOP in sql query to limit the number of lookups. should be faster
+function serve_recent_lookups($cookie)
+{
+    global $dict_db;
+
+    $words = "";
+    $query = "SELECT word FROM request_log WHERE cookie='$cookie' ORDER BY query_time;";
+    $rows = $dict_db->get_results($query);
+    $words_count = 0;
+    foreach ( $rows as $row )
+    {
+        $word = $row->word;
+        $words .= "$word\n";
+        $words_count += 1;
+        if ( $words_count > MAX_RECENT_LOOKUPS )
+            break;        
+    }
+    write_WORDLIST($words);
     exit;
 }
 
@@ -188,14 +266,25 @@ function validate_di($device_id)
 }
 
 # check if $cookie is a valid cookie (was assigned by us and is not disabled)
+# TODO: log invalid cookies ?
 function validate_cookie($cookie)
 {
-    # TODO
-    if ( $cookie == 'invalid' )
+    global $dict_db;
+
+    $query = "SELECT cookie, disabled_p FROM cookies WHERE cookie='$cookie';";
+    $row = $dict_db->get_row($query);
+    if ( $row )
     {
-        write_MSG( "Invalid cookie of value '$cookie'");
-        exit;
+        if ( $row->disabled_p == "t" )
+        {
+            report_error(ERR_COOKIE_DISABLED);
+        }
     }
+    else
+    {
+        report_error(ERR_COOKIE_UNKNOWN);
+    }
+    # everything went fine so the cookie is ok
 }
 
 $protocol_version = $HTTP_GET_VARS['pv'];
@@ -237,9 +326,19 @@ if ( !is_null($get_random_word) )
     serve_get_random_word();
 }
 
+$recent_lookups = $HTTP_GET_VARS['recent_lookups'];
+if ( !is_null( $recent_lookups ) )
+{
+    if ($recent_lookups != "")
+        report_error(ERR_RECENT_LOOKUPS_NOT_EMPTY);
+    serve_recent_lookups($cookie);
+}
+
+
+
 $get_word = $HTTP_GET_VARS['get_word'];
 if ( !is_null($get_word) )
-    serve_get_word($get_word);
+    serve_get_word($cookie,$get_word);
 
 report_error(ERR_UKNOWN_REQUEST);
 ?>
