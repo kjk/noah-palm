@@ -25,6 +25,13 @@ void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx)
 }
 #endif //NOAH_LITE
 
+static bool isWs(char c)
+{
+    if ( (' '==c) || ('\n'==c) || ('\t'==c) )
+        return true;
+    return false;
+}
+
 #ifndef I_NOAH
 
 /* those functions are not available for Noah Lite */
@@ -121,13 +128,6 @@ void FreeHistory(AppContext* appContext)
         new_free(appContext->wordHistory[i]);
     }
     appContext->historyCount = 0;
-}
-
-static bool isWs(char c)
-{
-    if ( (' '==c) || ('\n'==c) || ('\t'==c) )
-        return true;
-    return false;
 }
 
 // in eReader 2.5 they've added a "Copy quotation" function which copies
