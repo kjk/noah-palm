@@ -45,32 +45,158 @@ unsigned char deviceGlibResponse[] =
 
 #endif
 
-static const char *txt = "hello";
 static const UInt32 ourMinVersion = sysMakeROMVersion(3,0,0,sysROMStageDevelopment,0);
 static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelopment,0);
 
-static void LoadPreferences(AppContext* appContext)
+// Create a blob containing serialized preferences.
+// Caller needs to free returned memory
+static void *SerializePreferencesInoah(AppContext* appContext, long *pBlobSize)
 {
-    UInt16 size=0;
-    Int16 version=PrefGetAppPreferences(APP_CREATOR, appPreferencesId, NULL, &size, true);
-    if (noPreferenceFound!=version)
-    {
-        if (appPreferencesVersion==version && sizeof(appContext->prefs)==size)
-        {
-            version=PrefGetAppPreferences(APP_CREATOR, appPreferencesId, &appContext->prefs, &size, true);
-            Assert(appPreferencesVersion==version);
-            Assert(size==sizeof(appContext->prefs));
-        }            
-        else
-        {
-            //! @todo Add support for other versions preferences as format changes.
-        }
-    }
+    AppPrefs *      prefs;
+    long            blobSize;
+    char *          prefsBlob;
+    UInt32 *        prefRecordId;
+
+    Assert(appContext);
+    Assert(pBlobSize);
+
+    prefs = &appContext->prefs;
+    blobSize = sizeof(UInt32) + sizeof(AppPrefs);
+    prefsBlob = (char*)new_malloc(blobSize);
+    if (NULL == prefsBlob)
+        return NULL;
+    prefRecordId = (UInt32*)prefsBlob;
+    *prefRecordId = AppPrefId;
+    MemMove(prefsBlob+sizeof(UInt32), (char*)prefs, sizeof(AppPrefs));
+    *pBlobSize = blobSize;
+    return prefsBlob;
 }
 
-inline static void SavePreferences(const AppContext* appContext)
+
+// Given a blob containing serialized prefrences deserilize the blob
+// and set the preferences accordingly.
+static void DeserializePreferencesInoah(AppContext* appContext, unsigned char *prefsBlob, long blobSize)
 {
-    PrefSetAppPreferences(APP_CREATOR, appPreferencesId, appPreferencesVersion, &appContext->prefs, sizeof(appContext->prefs), true);
+    AppPrefs * prefs;
+
+    Assert(prefsBlob);
+    Assert(blobSize > 8);
+
+    prefs = &appContext->prefs;
+    /* skip the 4-byte signature of the preferences record */
+    Assert( IsValidPrefRecord(prefsBlob) );
+    prefsBlob += 4;
+    blobSize -= 4;
+
+    Assert( blobSize == sizeof(AppPrefs) );
+
+    MemMove((char*)prefs,prefsBlob, blobSize);
+}
+
+static void LoadPreferencesInoah(AppContext* appContext)
+{
+    DmOpenRef    db;
+    UInt         recNo;
+    void *       recData;
+    MemHandle    recHandle;
+    UInt         recsCount;
+
+    db = DmOpenDatabaseByTypeCreator(APP_PREF_TYPE, APP_CREATOR, dmModeReadWrite);
+    if (!db) return;
+    recsCount = DmNumRecords(db);
+    for (recNo = 0; recNo < recsCount; recNo++)
+    {
+        recHandle = DmQueryRecord(db, recNo);
+        recData = MemHandleLock(recHandle);
+        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && IsValidPrefRecord(recData) )
+        {
+            DeserializePreferencesInoah(appContext, (unsigned char*)recData, MemHandleSize(recHandle) );
+            MemHandleUnlock(recHandle);
+            break;
+        }
+        MemHandleUnlock(recHandle);
+    }
+    DmCloseDatabase(db);
+
+}
+
+static void SavePreferencesInoah(AppContext* appContext)
+{
+    DmOpenRef      db;
+    UInt           recNo;
+    UInt           recsCount;
+    Boolean        fRecFound = false;
+    Err            err;
+    void *         recData;
+    long           recSize;
+    MemHandle      recHandle;
+    void *         prefsBlob;
+    long           blobSize;
+    Boolean        fRecordBusy = false;
+
+    prefsBlob = SerializePreferencesInoah(appContext, &blobSize );
+    if ( NULL == prefsBlob ) return;
+
+    db = DmOpenDatabaseByTypeCreator(APP_PREF_TYPE, APP_CREATOR, dmModeReadWrite);
+    if (!db)
+    {
+        err = DmCreateDatabase(0, "iNoah Prefs", APP_CREATOR,  APP_PREF_TYPE, false);
+        if ( errNone != err)
+            return;
+
+        db = DmOpenDatabaseByTypeCreator(APP_PREF_TYPE, APP_CREATOR, dmModeReadWrite);
+        if (!db)
+            return;
+    }
+    recNo = 0;
+    recsCount = DmNumRecords(db);
+    while (recNo < recsCount)
+    {
+        recHandle = DmGetRecord(db, recNo);
+        fRecordBusy = true;
+        recData = MemHandleLock(recHandle);
+        recSize = MemHandleSize(recHandle);
+        if (IsValidPrefRecord(recData))
+        {
+            fRecFound = true;
+            break;
+        }
+        MemPtrUnlock(recData);
+        DmReleaseRecord(db, recNo, true);
+        fRecordBusy = false;
+        ++recNo;
+    }
+
+    if (fRecFound && blobSize>recSize)
+    {
+        /* need to resize the record */
+        MemPtrUnlock(recData);
+        DmReleaseRecord(db,recNo,true);
+        fRecordBusy = false;
+        recHandle = DmResizeRecord(db, recNo, blobSize);
+        if ( NULL == recHandle )
+            return;
+        recData = MemHandleLock(recHandle);
+        Assert( MemHandleSize(recHandle) == blobSize );        
+    }
+
+    if (!fRecFound)
+    {
+        recNo = 0;
+        recHandle = DmNewRecord(db, &recNo, blobSize);
+        if (!recHandle)
+            goto CloseDbExit;
+        recData = MemHandleLock(recHandle);
+        fRecordBusy = true;
+    }
+
+    DmWrite(recData, 0, prefsBlob, blobSize);
+    MemPtrUnlock(recData);
+    if (fRecordBusy)
+        DmReleaseRecord(db, recNo, true);
+CloseDbExit:    
+    DmCloseDatabase(db);
+    new_free( prefsBlob );
 }
 
 static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
@@ -131,7 +257,7 @@ static Err AppInit(AppContext* appContext)
         goto OnError;
     }
 
-    LoadPreferences(appContext);
+    LoadPreferencesInoah(appContext);
 
     SyncScreenSize(appContext);
     
@@ -154,7 +280,7 @@ static void AppDispose(AppContext* appContext)
         StrNCopy(appContext->prefs.lastWord, ebufGetDataPointer(&appContext->currentWordBuf), WORD_MAX_LEN-1);
         appContext->prefs.lastWord[WORD_MAX_LEN-1]=chrNull;
     }
-    SavePreferences(appContext);
+    SavePreferencesInoah(appContext);
     FrmCloseAllForms();
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);

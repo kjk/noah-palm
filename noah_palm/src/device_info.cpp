@@ -81,7 +81,7 @@ Err GetHotSyncName(ExtensibleBuffer* out)
     error=DlkGetSyncInfo(NULL, NULL, NULL, nameBuffer, NULL, NULL);
     if (!error)
     {
-        if (StrLen(nameBuffer))
+        if (StrLen(nameBuffer)>0)
             ebufAddStr(out, nameBuffer);
         else
             error=sysErrNotAllowed;            

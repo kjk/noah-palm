@@ -8,8 +8,11 @@
 
 #include "i_noah_rcp.h"
 
-#define  I_NOAH_CREATOR      'STRT'
-#define APP_CREATOR I_NOAH_CREATOR
+#define  I_NOAH_CREATOR      'iNoA'
+#define  I_NOAH_PREF_TYPE    'inpr'
+
+#define  APP_CREATOR   I_NOAH_CREATOR
+#define  APP_PREF_TYPE I_NOAH_PREF_TYPE
 
 #define MAX_COOKIE_LENGTH 64
 
@@ -26,15 +29,17 @@ typedef struct
     BookmarkSortType        bookmarksSortType;
     
     Char                    cookie[MAX_COOKIE_LENGTH+1];
-    Boolean               dontShowPronunciation;
+    Boolean                 dontShowPronunciation;
 } iNoahPrefs;
 
-#define HasCookie(prefs) (0<StrLen((prefs).cookie))
+#define HasCookie(prefs) (StrLen((prefs).cookie)>0)
 
 typedef iNoahPrefs AppPrefs;
 
-#define appPreferencesVersion 0x0101
-#define appPreferencesId    0
+#define iNoah10Pref   0x341272a9
+#define AppPrefId     iNoah10Pref
+
+#define PREF_REC_MIN_SIZE 4
 
 #define     PROTOCOL_VERSION "1"
 #define     CLIENT_VERSION   "0.5"
