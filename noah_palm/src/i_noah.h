@@ -47,7 +47,7 @@ typedef iNoahPrefs AppPrefs;
 #define PREF_REC_MIN_SIZE 4
 
 #define     PROTOCOL_VERSION "1"
-#define     CLIENT_VERSION   "0.5"
+#define     CLIENT_VERSION   "1"
 
 typedef enum AppEvent_
 {

@@ -27,6 +27,15 @@ require_once("common.php");
 
 $dict_db = new inoah_db(DBUSER, '', DBNAME, DBHOST);
 
+$f_force_upgrade = 0;
+
+# write MSG response to returning stream
+function write_MSG( $msg )
+{
+    print "MESSAGE\n";
+    print $msg;
+}
+
 function validate_protocol_version( $pv )
 {
     if ($pv != '1')
@@ -35,8 +44,14 @@ function validate_protocol_version( $pv )
 
 function validate_client_version( $cv )
 {
-    if ($cv != '0.5')
-        report_error(ERR_INVALID_CV);
+    if ( $f_force_upgrade && $cv!='1' )
+    {
+        write_MSG("You're using an older version $cv of the client. Please upgrade to the latest 1.0 version by downloading it from http://www.arslexis.com");
+        exit;
+    }
+    if ( ($cv=='0.5') || ($cv=='1') )
+        return;
+    report_error(ERR_INVALID_CV);
 }
 
 function report_error( $err )
@@ -46,23 +61,22 @@ function report_error( $err )
     exit;
 }
 
-# write MSG response to returning stream
-function write_MSG( $msg )
-{
-    print "MESSAGE\n";
-    print $msg;
-}
-
 # write DEF response to returning stream
 # if $requests_left < 0 => don't write it
 function write_DEF( $word, $pron, $def, $requests_left )
 {
+    global $client_version;
+
     print "DEF\n";
     print "$word\n";
-    if ( $pron )
+
+    if ( $client_version!='0.5' )
     {
-        $pron = strtolower($pron);
-        print "PRON $pron\n";
+        if ( $pron )
+        {
+            $pron = strtolower($pron);
+            print "PRON $pron\n";
+        }
     }
     if ($requests_left>=0)
     {
@@ -94,7 +108,7 @@ function report_no_lookups_left()
 {
     $total_limit = TOTAL_REQUESTS_LIMIT;
     $daily_limit = DAILY_REQUESTS_LIMIT;
-    write_MSG("You've reached the lookup limit for the trial version. Trial version allows $daily_limit free daily lookups. Please register iNoah at http://www.arslexis.com.");
+    write_MSG("You've reached the lookup limit for the trial version. Trial version allows allows unlimited random word lookups but only $daily_limit daily lookups. Please register iNoah at http://www.arslexis.com.");
     exit;
 }
 
