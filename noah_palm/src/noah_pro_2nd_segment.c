@@ -444,7 +444,7 @@ ChooseDatabase:
         {
             // we were launched in resident mode but couldn't be able to retrieve
             // the word from the field, so we try to lookup the clipboard
-            if (!FTryClipboard(appContext))
+            if (!FTryClipboard(appContext, false))
                 DoWord(appContext, appContext->residentWordLookup);
         }
         else
@@ -454,7 +454,7 @@ ChooseDatabase:
 
     if ( startupActionClipboard == appContext->prefs.startupAction )
     {
-        if (!FTryClipboard(appContext))
+        if (!FTryClipboard(appContext, false))
             DisplayAbout(appContext);
     }
     else
@@ -526,7 +526,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* frm, EventT
                 diCopyToClipboard(appContext->currDispInfo);
             break;
         case menuItemLookupClipboard:
-            FTryClipboard(appContext);
+            FTryClipboard(appContext, false);
             break;
 #ifdef DEBUG
         case menuItemStress:
@@ -615,7 +615,7 @@ static Boolean MainFormNewDatabaseSelected(AppContext* appContext, FormType* frm
     
     if ( startupActionClipboard == appContext->prefs.startupAction )
     {
-        if (!FTryClipboard(appContext))
+        if (!FTryClipboard(appContext,false))
             DisplayAbout(appContext);
     }
     else

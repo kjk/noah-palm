@@ -145,7 +145,10 @@ static void eReaderCleanup(char *buf)
 
     tmp = buf;
 
-    wordStart = ++buf;
+    while( '"' == *buf )
+        ++buf;
+
+    wordStart = buf;
     wordEnd = NULL;
 
     while (*buf)
@@ -160,6 +163,21 @@ static void eReaderCleanup(char *buf)
     if (NULL==wordEnd)
         return;
 
+    // remove noise that eReader often includes at the end of a word
+    --wordEnd;
+    while (wordEnd>wordStart)
+    {
+        if ( (','==*wordEnd) || ('.'==*wordEnd) || (';'==*wordEnd) || 
+             ('"'==*wordEnd) || ('-'==*wordEnd) || ('?'==*wordEnd) || 
+             ('!'==*wordEnd) )
+            --wordEnd;
+        else
+        {
+            wordEnd++;
+            break;
+        }
+    }
+
     while (wordStart<wordEnd)
     {
         *tmp++ = *wordStart++;
@@ -168,9 +186,12 @@ static void eReaderCleanup(char *buf)
     *tmp = '\0';    
 }
 
-// return false if didn't find anything in clipboard, true if 
-// got word from clipboard
-Boolean FTryClipboard(AppContext* appContext)
+// If fRequireExact is true, will lookup the word and return true only if
+// exactly such word exists in the dictionary. Otherwise won't lookup
+// and will return false.
+// If fRequireExact is false, will looup the closest matching word and return
+// true. Will return false only if there is no text in clipboard.
+Boolean FTryClipboard(AppContext* appContext, Boolean fRequireExact)
 {
     MemHandle   clipItemHandle;
     char        txt[WORD_MAX_LEN+1];
@@ -203,12 +224,20 @@ Boolean FTryClipboard(AppContext* appContext)
     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), txt);
     word = dictGetWord(GetCurrentFile(appContext), wordNo);
 
-    if (0 == StrNCaselessCompare((char*)txt, word, StrLen(word) <  StrLen(txt) ? StrLen(word) : StrLen(txt)))
+    if (fRequireExact)
     {
-        DrawDescription(appContext, wordNo);
-        return true;
+        if (0 == StrNCaselessCompare((char*)txt, word, StrLen(word) <  StrLen(txt) ? StrLen(word) : StrLen(txt)))
+        {
+            DrawDescription(appContext, wordNo);
+            return true;
+        }
+        return false;
     }
-    return false;
+    else
+    {
+        DoWord(appContext, word);
+    }
+    return true;
 }
 
 

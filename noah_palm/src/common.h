@@ -417,7 +417,7 @@ void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
 void    strtolower(char *txt);
 void AddToHistory(AppContext* appContext, UInt32 wordNo);
 void FreeHistory(AppContext* appContext);
-Boolean FTryClipboard(AppContext* appContext);
+Boolean FTryClipboard(AppContext* appContext, Boolean fRequireExact);
 #endif
 void    SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx);
 

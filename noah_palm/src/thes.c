@@ -753,7 +753,7 @@ ChooseDatabase:
 
     if ( startupActionClipboard == appContext->prefs.startupAction )
     {
-        if (!FTryClipboard(appContext))
+        if (!FTryClipboard(appContext, false))
             DisplayAbout(appContext);
     }
     else
@@ -933,7 +933,7 @@ static Boolean MainFormHandleEventThes(EventType * event)
 
             if ( startupActionClipboard == appContext->prefs.startupAction )
             {
-                if (!FTryClipboard(appContext))
+                if (!FTryClipboard(appContext, false))
                     DisplayAbout(appContext);
             }
             else
@@ -1083,7 +1083,7 @@ static Boolean MainFormHandleEventThes(EventType * event)
                         diCopyToClipboard(appContext->currDispInfo);
                     break;
                 case menuItemLookupClipboard:
-                    FTryClipboard(appContext);
+                    FTryClipboard(appContext,false);
                     break;
 #ifdef DEBUG
                 case menuItemStress:
