@@ -162,16 +162,43 @@
         </DOCKINFO>
     </WINDOW>
     <WINDOW>
-        <SESSION>-1</SESSION>
-        <EDOCTYPE>1</EDOCTYPE>
-        <PATH USERELATIVEPATHS = "true">..\..\res\thes.rcp</PATH>
+        <SESSION>-2147483648</SESSION>
+        <EDOCTYPE>36</EDOCTYPE>
+        <DEFAULT>true</DEFAULT>
+        <PATH USERELATIVEPATHS = "false"></PATH>
+        <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
-            <X>126</X>
-            <Y>216</Y>
+            <X>4</X>
+            <Y>25</Y>
         </FRAMELOC>
         <FRAMESIZE>
-            <W>654</W>
-            <H>487</H>
+            <W>691</W>
+            <H>426</H>
+        </FRAMESIZE>
+        <DOCKINFO>
+            <STATUS>0</STATUS>
+            <ROW></ROW>
+            <COLUMN></COLUMN>
+            <DOCKBARID></DOCKBARID>
+            <PCTWIDTH></PCTWIDTH>
+            <HGT></HGT>
+            <GROUPID>
+                <GIDHIGHPART></GIDHIGHPART>
+                <GIDLOWPART></GIDLOWPART>
+            </GROUPID>
+        </DOCKINFO>
+    </WINDOW>
+    <WINDOW>
+        <SESSION>-2147483648</SESSION>
+        <EDOCTYPE>23</EDOCTYPE>
+        <PATH USERELATIVEPATHS = "false"></PATH>
+        <FRAMELOC>
+            <X>4</X>
+            <Y>25</Y>
+        </FRAMELOC>
+        <FRAMESIZE>
+            <W>952</W>
+            <H>1057</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>

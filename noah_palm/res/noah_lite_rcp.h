@@ -29,3 +29,5 @@
 
 #define   scrollDef         4008
 
+#define   bmpFind             5001
+

@@ -20,7 +20,7 @@
 /* information about the area for displaying definitions:
    start x, start y, number of lines (dy).
    assume that width is full screen (160) */
-#define DRAW_DI_Y 17
+#define DRAW_DI_Y 0
 #define DRAW_DI_LINES 13
 
 typedef struct

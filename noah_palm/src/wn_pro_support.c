@@ -189,10 +189,6 @@ char *wn_get_word(void *data, long wordNo)
     return wcGetWord(wi->wci, wordNo);
 }
 
-#define DRAW_DI_X 0
-#define DRAW_DI_Y 0
-#define DRAW_DI_LINES 13
-
 #define CACHE_SPAN 1000
 
 SynWordCountCache *si_create_cache(SynsetsInfo * si)

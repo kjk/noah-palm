@@ -1,6 +1,7 @@
 #include "noah_pro_rcp.h"
 
 VERSION ID 1 "2.1"
+
 STRING ID helpPrefs
 "If those controls are not clear please take a look "\
 "at the html documentation that has been included "\
@@ -215,7 +216,7 @@ END
 
 BITMAPFAMILYEX ID bmpFind
 BEGIN
-	BITMAP "find.bmp" BPP 1 DENSITY 1
-	BITMAP "find-x2.bmp" BPP 1 DENSITY 2
+    BITMAP "find.bmp" BPP 1 DENSITY 1
+    BITMAP "find-x2.bmp" BPP 1 DENSITY 2
 END
 

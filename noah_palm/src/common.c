@@ -368,6 +368,12 @@ void DrawDescription(long wordNo)
     RedrawWordDefinition();
 }
 
+void ClearDisplayRectangle()
+{
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X - 7,
+                    160 - DRAW_DI_Y - 16);
+}
+
 void ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey)
 {
     RectangleType r;

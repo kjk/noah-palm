@@ -466,7 +466,7 @@ void StopNoahPro(void)
 
 void DisplayAboutNoahPro(void)
 {
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
+    ClearDisplayRectangle();
     HideScrollbar();
 
     dh_set_current_y(7);

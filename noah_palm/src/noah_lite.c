@@ -9,12 +9,6 @@
 
 #define MAX_WORD_LABEL_LEN 18
 
-void ClearDisplayRectangle()
-{
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X - 7,
-                    160 - DRAW_DI_Y);
-}
-
 char helpText[] =
     "Instructions:\n\255 to lookup a definition of a word\n  press the find button in the right\n  upper corner and select the word\n\255 you can scroll the definition using\n  hardware buttons, tapping on the\n  screen or using a scrollbar\n\255 left/right arrow moves to next\n  or previous word\n";
 
@@ -87,11 +81,13 @@ Err InitNoahLite(void)
 
 void DisplayAboutNoahLite(void)
 {
+/*    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144); */
     ClearDisplayRectangle();
     HideScrollbar();
 
+    dh_set_current_y(7);
+
     dh_save_font();
-    dh_set_current_y(16 + 8);
     dh_display_string("Noah Lite", 2, 12);
     dh_display_string("Ver 0.7 beta", 2, 30);
     dh_display_string("(C) ArsLexis", 1, 18);
@@ -218,8 +214,8 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
     case frmOpenEvent:
         frm = FrmGetActiveForm();
         FrmDrawForm(frm);
-        WinDrawLine(0, DRAW_DI_Y - 2, 160, DRAW_DI_Y - 2);
-        WinDrawLine(0, DRAW_DI_Y - 1, 160, DRAW_DI_Y - 1);
+        WinDrawLine(0, 145, 160, 145);
+        WinDrawLine(0, 144, 160, 144);
 
         ScanForDictsNoahLite();
         if ( 0 == gd.dictsCount )

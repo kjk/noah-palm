@@ -114,6 +114,7 @@ void    dh_set_current_y(int y);
 void    dh_display_string(const char *str, int font, int dy);
 
 void    ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey);
+void    ClearDisplayRectangle();
 void    DrawCenteredString(const char *str, int dy);
 void    DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x,
                      Int16 y, int maxLines);

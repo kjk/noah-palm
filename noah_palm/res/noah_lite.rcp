@@ -8,7 +8,7 @@ BEGIN
   PULLDOWN "Main"
   BEGIN
     MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Stress"                   ID menuItemStress
+    MENUITEM "Stress"                  ID menuItemStress
     MENUITEM "Info"                    ID menuItemHelp "I"
     MENUITEM "About"                   ID menuItemAbout "A"
   END
@@ -30,10 +30,16 @@ USABLE
 NOFRAME
 MENUID menuMain
 BEGIN
-   BUTTON "\002" ctlArrowLeft AT (0 2 8 11) FONT 4 NOFRAME
+   SCROLLBAR ID scrollDef AT (152 1 7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+   BUTTON "\002" ctlArrowLeft AT (0 148 8 11) FONT 4 NOFRAME
+   BUTTON "\003" ctlArrowRight AT (8 148 10 11) FONT 4 NOFRAME
+   FORMBITMAP AT (147 147) BITMAP bmpFind
+   BUTTON "" buttonFind AT (146 146 14 14) NOFRAME
+
+/*   BUTTON "\002" ctlArrowLeft AT (0 2 8 11) FONT 4 NOFRAME
    BUTTON "\003" ctlArrowRight AT (8 2 10 11) FONT 4 NOFRAME
    BUTTON "F" buttonFind AT (160-17 1 AUTO AUTO)
-   SCROLLBAR ID scrollDef AT (160-8 20 7 140) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+   SCROLLBAR ID scrollDef AT (160-8 20 7 140) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1 */
 END
 
 FORM formSelectDict AT (0 0 160 160)
@@ -108,3 +114,10 @@ BEGIN
     BITMAP "icons/nl30x2.bmp" BPP 1 DENSITY 2
     BITMAP "icons/nl30x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
 END
+
+BITMAPFAMILYEX ID bmpFind
+BEGIN
+    BITMAP "find.bmp" BPP 1 DENSITY 1
+    BITMAP "find-x2.bmp" BPP 1 DENSITY 2
+END
+
