@@ -1256,6 +1256,8 @@ static Boolean HandleEventNoahPro(AppContext* appContext, EventType * event)
         }
         Assert(!error);
     }
+    else if (event->eType == winDisplayChangedEvent)
+        SyncScreenSize(appContext);
     return false;
 }
 

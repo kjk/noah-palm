@@ -388,6 +388,9 @@ static Boolean AppHandleEvent(AppContext* appContext, EventType* event)
             AppLoadForm(appContext, event);
             handled=true;
             break;
+        case winDisplayChangedEvent:
+            SyncScreenSize(appContext);
+            break;
     }
     return handled;
 }

@@ -826,6 +826,9 @@ static Boolean HandleEventNoahLite(AppContext* appContext, EventType * event)
         handled = true;
         Assert(!error);
     }
+    else if (event->eType == winDisplayChangedEvent)
+        SyncScreenSize(appContext);
+    
     return handled;
 }
 

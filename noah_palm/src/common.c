@@ -2240,7 +2240,7 @@ static Boolean FResidentModeEnabled()
     fEnabled = appContext->prefs.fResidentModeEnabled;
 
 Exit:
-    if (NULL==appContext)
+    if (NULL!=appContext)
         MemPtrFree(appContext);
     return fEnabled;
 }

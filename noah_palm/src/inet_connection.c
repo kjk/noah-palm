@@ -98,7 +98,6 @@ inline static void DisposeNetLib(ConnectionData* connData)
 
     Assert(connData->netLibRefNum);
     error=NetLibClose(connData->netLibRefNum, false);
-    Assert(!error);
     connData->netLibRefNum=0;
 }
 

@@ -179,8 +179,14 @@ OnError:
 void DIA_HandleResizeEvent() 
 {
     EventType event;
+    RectangleType* bounds;
+    Coord x, y;
     MemSet(&event, sizeof(event), 0);
     event.eType=(eventsEnum)winDisplayChangedEvent;
+    bounds=&event.data.winDisplayChanged.newBounds;
+    WinGetDisplayExtent(&x, &y);
+    bounds->extent.x=x;
+    bounds->extent.y=y;
     EvtAddUniqueEventToQueue(&event, 0, true);
 }
 
@@ -201,17 +207,15 @@ Err DIA_FrmEnableDIA(const DIA_Settings* diaSettings, FormType* form, Coord minH
     error=FrmSetDIAPolicyAttr(form, frmDIAPolicyCustom);
     if (error) 
         goto OnError;
-    error=PINSetInputTriggerState(pinInputTriggerEnabled);
-    if (error) 
-        goto OnError;
 
     wh=FrmGetWindowHandle(form);
     Assert(wh);
+
+    error=PINSetInputTriggerState(pinInputTriggerEnabled);
     error=WinSetConstraintsSize(wh, minH, prefH, maxH, minW, prefW, maxW);
-    /*if (error) 
-        goto OnError;*/
     error=PINSetInputAreaState(pinInputAreaUser);
     error = errNone;
+    
 OnError:
     if (error==pinErrNoSoftInputArea) 
         error=errNone;

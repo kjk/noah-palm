@@ -1589,6 +1589,9 @@ static Boolean HandleEventThes(AppContext* appContext, EventType * event)
             break;
         }
     }
+    else if (event->eType == winDisplayChangedEvent)
+        SyncScreenSize(appContext);
+    
     Assert(!error); // so that we get breakpoint if something unexpected happens
     return handled;
 }

@@ -325,7 +325,7 @@ static Boolean MainFormScrollExit(AppContext* appContext, FormType* form, EventT
         appContext->firstDispLine = newValue;
         FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
     }
-    return true;
+    return false;
 }
 
 inline static void MainFormHandleAbout(AppContext* appContext)
@@ -523,8 +523,9 @@ static Boolean MainFormHandleEvent(EventType* event)
         case keyDownEvent:
             handled = MainFormKeyDown(appContext, form, event);
             break;
-            
-        case sclExitEvent:
+
+        case sclRepeatEvent:
+//        case sclExitEvent:
             handled=MainFormScrollExit(appContext, form, event);
             break;
             

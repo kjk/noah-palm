@@ -69,11 +69,11 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #define FRM_RSV_H 16
 #define FRM_RSV_W 10
 #define FRM_MIN_H 160
-#define FRM_PREF_H FRM_MIN_H
-#define FRM_MAX_H 225
+#define FRM_PREF_H pinMaxConstraintSize
+#define FRM_MAX_H pinMaxConstraintSize
 #define FRM_MIN_W 160
-#define FRM_PREF_W FRM_MIN_W
-#define FRM_MAX_W FRM_PREF_W
+#define FRM_PREF_W pinMaxConstraintSize
+#define FRM_MAX_W pinMaxConstraintSize
 
 typedef enum 
 {
