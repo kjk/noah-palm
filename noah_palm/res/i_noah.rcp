@@ -116,6 +116,14 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT alertNoLookupsYet
+INFORMATION
+BEGIN
+    TITLE "Information"
+    MESSAGE "You didn't make any lookups yet."
+    BUTTONS "OK"
+END
+
 ICONFAMILYEX
 BEGIN
     BITMAP "icons/no22x2.bmp"   BPP 1 DENSITY 1

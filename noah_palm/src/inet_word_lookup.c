@@ -292,17 +292,21 @@ static Err RecentLookupsResponseProcessor(AppContext* appContext, void* context,
 
 void StartRecentLookupsRequest(AppContext* appContext)
 {
-    ExtensibleBuffer urlBuffer;
-    ebufInit(&urlBuffer, 0);
-    Err error=PrepareGenericRequest(appContext->prefs.cookie, recentLookupsRequestParam, urlBuffer);
-    if (!error) 
-    {
-        const char* requestUrl=ebufGetDataPointer(&urlBuffer);
-        StartConnection(appContext, NULL, requestUrl, GeneralStatusTextRenderer,
-            RecentLookupsResponseProcessor, NULL);
-    }
+    if (!HasCookie(appContext->prefs))        FrmAlert(alertNoLookupsYet);
     else 
-        FrmAlert(alertMemError);
-    ebufFreeData(&urlBuffer);
+    {
+        ExtensibleBuffer urlBuffer;
+        ebufInit(&urlBuffer, 0);
+        Err error=PrepareGenericRequest(appContext->prefs.cookie, recentLookupsRequestParam, urlBuffer);
+        if (!error) 
+        {
+            const char* requestUrl=ebufGetDataPointer(&urlBuffer);
+            StartConnection(appContext, NULL, requestUrl, GeneralStatusTextRenderer,
+                RecentLookupsResponseProcessor, NULL);
+        }
+        else 
+            FrmAlert(alertMemError);
+        ebufFreeData(&urlBuffer);
+    }
 }
 

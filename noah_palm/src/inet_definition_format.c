@@ -327,10 +327,10 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
     return error;
 }
 
-static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
+static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd, Boolean isErrorMessage=false)
 {
     Err error=errNone;
-    const Char* messageBegin=responseBegin+messageResponseLen;
+    const Char* messageBegin=responseBegin+(isErrorMessage?errorMessageResponseLen:messageResponseLen);
     if (messageBegin<responseEnd)
     {
         ExtensibleBuffer buffer;
@@ -407,7 +407,7 @@ Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, 
     }
     else if ((responseErrorMessage & resMask) && StrStartsWith(begin, end, errorMessageResponse))
     {
-        error=ProcessMessageResponse(appContext, begin, end);
+        error=ProcessMessageResponse(appContext, begin, end, true);
         if (!error)
             result=responseErrorMessage;
     }
