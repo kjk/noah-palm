@@ -503,6 +503,22 @@ static Boolean cbIsThatAgainThatWord(AppContext *appContext)
 }
 
 /**
+ *  Return: 
+ *  r = 0 if sp1 = sp2
+ *  r < 0 if sp1 < sp2
+ *  r > 0 if sp1 > sp2
+ */
+static int cbCompareSelectionPoints(cbSelectionPoint *sp1, cbSelectionPoint *sp2)
+{
+    int i;
+    i = sp1->lineNo - sp2->lineNo;
+    if(i != 0)
+        return i;
+    i = sp1->charNo - sp2->charNo;
+    return i;
+}
+
+/**
  *  Sets: (left, right) <- (actPosition, startClick)
  */
 static void cbSetLRonActAndStart(AppContext *appContext)
@@ -642,6 +658,9 @@ Boolean cbPenUpEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
  */
 Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
 {
+    Boolean wasScroll = false;
+    cbSelectionPoint sp1,sp2,sp3,sp4;
+//    cbCompareSelectionPoints(cbSelectionPoint *sp1, cbSelectionPoint *sp2)
 
 #ifdef DONT_DO_COPY_WORD_DEFINITION
     return false;
@@ -654,25 +673,112 @@ Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
         &&  appContext->lastDispLine+1 < appContext->currDispInfo->linesCount)
     {
         DefScrollDown(appContext, scrollLine);
+        cbInvertSelection(appContext);
+        wasScroll = true;
     }
     
     if(screenY < appContext->copyBlock.nextDy[0] + CB_SCROLL_UP_DY 
         &&  appContext->firstDispLine > 0)
     {
         DefScrollUp(appContext, scrollLine);
+        cbInvertSelection(appContext);
+        wasScroll = true;
     }    
 
-    cbInvertSelection(appContext);
+    if(!wasScroll)
+        if(cbCompareSelectionPoints(&appContext->copyBlock.left, &appContext->copyBlock.startClick) != 0 &&
+            cbCompareSelectionPoints(&appContext->copyBlock.right, &appContext->copyBlock.startClick) != 0)
+        {
+            cbInvertSelection(appContext);
+            wasScroll = true;
+        }    
+        else
+        {   
+            //set left and right of old selection
+            sp1 = appContext->copyBlock.left;
+            sp2 = appContext->copyBlock.right;    
+        }    
+    
     cbIsTextHitted(appContext, screenX, screenY);
     
     cbSetLRonActAndStart(appContext);
     if(cbIsLNotEqualR(appContext))
     {
         appContext->copyBlock.state = cbIsSelection;
-        cbInvertSelection(appContext);
+        if(wasScroll)
+        {
+            cbInvertSelection(appContext);
+        }
+        else
+        {
+            if(cbCompareSelectionPoints(&appContext->copyBlock.left, &sp1) == 0 ||
+                cbCompareSelectionPoints(&appContext->copyBlock.right, &sp2) == 0)
+            {
+                if(cbCompareSelectionPoints(&appContext->copyBlock.left, &sp1) != 0)
+                {
+                    if(cbCompareSelectionPoints(&appContext->copyBlock.left, &sp1) < 0)
+                    {   //invert from left to sp1
+                        sp2 = appContext->copyBlock.right;
+                        appContext->copyBlock.right = sp1;
+                        cbInvertSelection(appContext);
+                        appContext->copyBlock.right = sp2;
+                    }
+                    else
+                    {   //invert from sp1 to left
+                        sp2 = appContext->copyBlock.right;
+                        sp3 = appContext->copyBlock.left;
+                        appContext->copyBlock.right = sp3;
+                        appContext->copyBlock.left  = sp1;
+                        cbInvertSelection(appContext);
+                        appContext->copyBlock.left  = sp3;
+                        appContext->copyBlock.right = sp2;
+                    }
+                }
+                else
+                {
+                    if(cbCompareSelectionPoints(&appContext->copyBlock.right, &sp2) > 0)
+                    {   //invert from sp2 to right
+                        sp1 = appContext->copyBlock.left;
+                        appContext->copyBlock.left = sp2;
+                        cbInvertSelection(appContext);
+                        appContext->copyBlock.left = sp1;
+                    }
+                    else
+                    {   //invert from right to sp2
+                        sp3 = appContext->copyBlock.left;
+                        sp1 = appContext->copyBlock.right;
+                        appContext->copyBlock.left  = sp1;
+                        appContext->copyBlock.right = sp2;
+                        cbInvertSelection(appContext);
+                        appContext->copyBlock.left  = sp3;
+                        appContext->copyBlock.right = sp1;
+                    }
+                }
+            }
+            else
+            {   //now we are at the another side of startClick
+                sp3 = appContext->copyBlock.left;
+                sp4 = appContext->copyBlock.right;
+                appContext->copyBlock.left  = sp1;
+                appContext->copyBlock.right = sp2;
+                cbInvertSelection(appContext);
+                appContext->copyBlock.left  = sp3;
+                appContext->copyBlock.right = sp4;
+                cbInvertSelection(appContext);            
+            }
+        }    
     }
     else
     {
+        if(!wasScroll)
+        {
+            sp3 = appContext->copyBlock.left;
+            appContext->copyBlock.left  = sp1;
+            appContext->copyBlock.right = sp2;
+            cbInvertSelection(appContext);
+            appContext->copyBlock.left  = sp3;
+            appContext->copyBlock.right = sp3;
+        }    
         appContext->copyBlock.state = cbWasPenDown;
     }
     return true;    
@@ -706,6 +812,13 @@ void cbInvertSelection(AppContext *appContext)
         return;
     }
 #endif
+
+    //if nothing in currDispInfo
+    if(appContext->currDispInfo==NULL)
+    {
+        cbNoSelection(appContext);
+        return;
+    }    
 
     //nothing selected 
     if(appContext->copyBlock.state == cbNothingSelected || appContext->copyBlock.state == cbWasPenDown)
