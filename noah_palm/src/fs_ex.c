@@ -355,7 +355,7 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
     MemHandle       recHandle;
     char            *recData;
     UInt32          offsetInPdbFile;
-    int             recToDelete;
+    int             recToDelete, realRecToDelete;
 
     recSize = cache->recsInfo[recNo].size;
     offsetInPdbFile = cache->recsInfo[recNo].offset;
@@ -375,12 +375,16 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
                 err = dmErrMemError;
                 goto Error;
             }
+            Assert(0==cache->recsInfo[recToDelete].lockCount);
+            Assert(0!=cache->recRealCachedNoMap[recToDelete]);
             /* re-try creating a record */
-            err = DmDeleteRecord(cache->cacheDbRef, recToDelete );
+            realRecToDelete = cache->recRealCachedNoMap[recToDelete];
+            err = DmDeleteRecord(cache->cacheDbRef, realRecToDelete);
             if ( errNone != err )
             {
                 goto Error;
             }
+            cache->recRealCachedNoMap[recToDelete] = 0;
             continue;
         }
         err = DmReleaseRecord(cache->cacheDbRef, recPos, false);
