@@ -21,15 +21,6 @@ def _commonPrefixLen(s1, s2):
             return r
     return maxCommon
 
-def _commonPrefixLen2(s1, s2):
-    """Return the length of the common prefix for seqences s1 and s2 
-    e.g. 2 for "blah" and "bloom" (length of "bl")"""
-    len = 0
-    for x,y in zip(s1,s2):
-        if x==y: len += 1
-        else: break
-    return len
-
 def _isEmptyString(str):
     if str.isspace() or len(str)==0: return True
     return False
@@ -50,7 +41,8 @@ class SimpleDictEntry:
 
 # states used when reading simple dictionary file
 SS_NONE, SS_HAS_LEMMA, SS_READING_DEF = range(3)
-ssNamesDict = { SS_NONE:"SS_NONE", SS_HAS_LEMMA:"SS_HAS_LEMMA", SS_READING_DEF:"SS_READING_DEF" }
+def _getStateName(state):
+    return ["SS_NONE", "SS_HAS_LEMMA", "SS_READING_DEF"][state]
 
 def SimpleDictEntriesGen(fileName):
     """Iterator over entries in simple dictionary file. Returns SimpleDictEntry,
@@ -64,7 +56,7 @@ def SimpleDictEntriesGen(fileName):
         currLineNo += 1
         if len(line) == 0:
             if state != SS_NONE:
-                raise ValueError, "reached en of file but the current state is %s and not SS_NONE" % (ssNamesDict[state])
+                raise ValueError, "reached an end of a file but the current state is %s and not SS_NONE" % (_getStateName[state],)
             break
 
         if state == SS_NONE:

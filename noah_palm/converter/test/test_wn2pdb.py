@@ -24,9 +24,9 @@ class Wn2PdbTest(unittest.TestCase):
             self.assertEqual( False, wn2pdb._isPos(s) )
 
     def test_stateNoToName(self):
-        self.assertEqual(wn2pdb.ssNamesDict[wn2pdb.SS_NONE], "SS_NONE")
-        self.assertEqual(wn2pdb.ssNamesDict[wn2pdb.SS_HAS_LEMMA], "SS_HAS_LEMMA")
-        self.assertEqual(wn2pdb.ssNamesDict[wn2pdb.SS_READING_DEF], "SS_READING_DEF")
+        self.assertEqual(wn2pdb._getStateName(wn2pdb.SS_NONE), "SS_NONE")
+        self.assertEqual(wn2pdb._getStateName(wn2pdb.SS_HAS_LEMMA), "SS_HAS_LEMMA")
+        self.assertEqual(wn2pdb._getStateName(wn2pdb.SS_READING_DEF), "SS_READING_DEF")
 
     def test_commonPrefixLen(self):
         data = [ ['','',0], ['a','',0], ['','b',0], ['a','b',0], ['a','a',1],
