@@ -31,13 +31,18 @@ to provide per-target defines. In gcc version they're set via Makefile.
 #define EP_DICT 1
 #endif
 
-#if __ide_target("NP Handango Demo Release")
+#if __ide_target("NP Handango Demo")
 #define NOAH_PRO 1
-#define WNLEX_DICT 1
 #define WN_PRO_DICT 1
-#define SIMPLE_DICT 1
-#define EP_DICT 1
 #define DEMO 1
+#define DEMO_HANDANGO 1
+#endif
+
+#if __ide_target("NP Palmgear Demo")
+#define NOAH_PRO 1
+#define WN_PRO_DICT 1
+#define DEMO 1
+#define DEMO_PALMGEAR 1
 #endif
 
 #if __ide_target("NL Debug")

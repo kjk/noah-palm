@@ -23,6 +23,7 @@
 
 #define strlen StrLen
 
+#define  ENGPOL_TYPE            'enpl'
 #define  SIMPLE_TYPE            'simp'
 
 #define  WORDNET_LITE_TYPE      'wnet'

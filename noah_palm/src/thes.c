@@ -534,7 +534,7 @@ void DisplayAbout(void)
     dh_display_string("        Product ID: 10023", 0, 0);
 #endif
 #ifdef DEMO_PALMGEAR
-    dh_display_string("Buy at: www.palmgear.com?7423", 2, 0);
+    dh_display_string("Buy at: www.palmgear.com?7423", 0, 0);
 #endif
     dh_restore_font();
 }
@@ -1211,7 +1211,7 @@ Boolean FindFormHandleEventThes(EventType * event)
                     ScrollWordListByDx( frm, -WORDS_IN_LIST );
                     break;
                 case ctlArrowRight:
-                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                    ScrollWordListByDx( frm, WORDS_IN_LIST );
                     break;
                 default:
                     Assert(0);

@@ -363,14 +363,19 @@ Boolean FNoahProDatabase( UInt32 creator, UInt32 type )
     if ( NOAH_PRO_CREATOR != creator )
         return false;
 
-    if ( (WORDNET_PRO_TYPE != type) &&
-        (WORDNET_LITE_TYPE != type) &&
-        (SIMPLE_TYPE != type) &&
-        (ENGPOL_TYPE != type))
-    {
-        return false;
-    }
+#ifdef DEMO
+if ( WORDNET_PRO_TYPE == type )
     return true;
+#else
+    if ( (WORDNET_PRO_TYPE == type) ||
+        (WORDNET_LITE_TYPE == type) ||
+        (SIMPLE_TYPE == type) ||
+        (ENGPOL_TYPE == type))
+    {
+        return true;
+    }
+#endif
+    return false;
 }
 
 /* called for every file on the external card */
@@ -562,7 +567,7 @@ void DisplayAbout(void)
     dh_display_string("        Product ID: 10421", 0, 0);
 #endif
 #ifdef DEMO_PALMGEAR
-    dh_display_string("Buy at: www.palmgear.com?7775", 2, 0);
+    dh_display_string("Buy at: www.palmgear.com?7775", 0, 0);
 #endif
     dh_restore_font();
 }
@@ -1240,7 +1245,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                     ScrollWordListByDx( frm, -WORDS_IN_LIST );
                     break;
                 case ctlArrowRight:
-                    ScrollWordListByDx( frm, -WORDS_IN_LIST );
+                    ScrollWordListByDx( frm, WORDS_IN_LIST );
                     break;
                 default:
                     Assert(0);
