@@ -190,7 +190,11 @@ static Err ResolveServerAddress(ConnectionData* connData)
         AdvanceConnectionStage(connData);
     } 
     else
+    {
+        Assert(error);
+        LogErrorToMemo("NetLibGetHostByName returned error", error);
         FrmCustomAlert(alertCustomError, "Unable to resolve host address.", NULL, NULL);
+    }        
 OnError: 
     if (infoBuf) 
         new_free(infoBuf);
@@ -206,6 +210,7 @@ static Err OpenConnection(ConnectionData* connData)
     if (-1==connData->socket)
     {
         Assert(error);
+        LogErrorToMemo("NetLibSocketOpen returned error", error);
         FrmCustomAlert(alertCustomError, "Unable to open socket.", NULL, NULL);
     }
     else
@@ -220,6 +225,7 @@ static Err OpenConnection(ConnectionData* connData)
         if (-1==result)
         {
             Assert(error);
+            LogErrorToMemo("NetLibSocketConnect returned error", error);
             FrmCustomAlert(alertCustomError, "Unable to connect socket.", NULL, NULL);
         }
         else 
@@ -252,11 +258,13 @@ static Err SendRequest(ConnectionData* connData)
         if (!result)
         {
             Assert(netErrSocketClosedByRemote==error);
+            LogErrorToMemo("NetLibSend returned netErrSocketClosedByRemote", error);
             FrmCustomAlert(alertCustomError, "Connection closed by remote host.", NULL, NULL);
         }
         else
         {
             Assert(error);
+            LogErrorToMemo("NetLibSend returned error", error);
             FrmCustomAlert(alertCustomError, "Error while sending request.", NULL, NULL);
         }
         ebufFreeData(&connData->request);

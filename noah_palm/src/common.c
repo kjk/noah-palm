@@ -2324,6 +2324,24 @@ void CreateNewMemo(char *memoBody, int memoBodySize)
         DmCloseDatabase(dbMemo);
 }
 
+#ifdef DEBUG
+void LogErrorToMemo_(const Char* message, Err error)
+{
+    Assert(message);
+    Assert(error);    
+    ExtensibleBuffer buffer;
+    ebufInitWithStr(&buffer, const_cast<Char*>(message));
+    UInt16 messageLength=ebufGetDataSize(&buffer);
+    ebufAddStr(&buffer, " (0x0000)"); // Provide space for error code
+    ebufAddChar(&buffer, chrNull);
+    Char* errorCodeBuffer=ebufGetDataPointer(&buffer)+messageLength; // Should now point at start of " (0x0000)" text
+    Int16 length=StrPrintF(errorCodeBuffer, " (0x%hx)", (UInt16)error); // Yep, I know it's already UInt16, but that way we won't get buffer overflow if it ever changes
+    Assert(9==length);
+    CreateNewMemo(errorCodeBuffer-messageLength, messageLength+9);
+    ebufFreeData(&buffer);
+}
+#endif
+
 Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
 {
     UInt16 index;

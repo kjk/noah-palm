@@ -603,6 +603,18 @@ extern Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt
 extern Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID);
 
 extern void CreateNewMemo(char *memoBody, int memoBodySize);
+
+#ifdef DEBUG 
+
+extern void LogErrorToMemo_(const Char* message, Err error);
+#define LogErrorToMemo(message, error) LogErrorToMemo_(message, error)
+
+#else
+
+#define LogErrorToMemo(message, error) (message), (error)
+
+#endif
+
 #ifdef _RECORD_SPEED_
 void StartTiming(AppContext* appContext, char * description);
 void StopTiming(AppContext* appContext);
