@@ -1925,37 +1925,6 @@ void SendStopEvent(void)
     EvtAddEventToQueue(&newEvent);
 }
 
-void SendPenDownEvent(Int16 x, Int16 y)
-{
-    EventType newEvent;
-
-    MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = penDownEvent;
-    newEvent.penDown = true;
-    newEvent.tapCount = 1;
-    newEvent.screenX = x;
-    newEvent.screenY = y;
-    EvtAddEventToQueue(&newEvent);
-}
-
-void SendPenUpEvent(Int16 x, Int16 y, Int16 sx, Int16 sy, Int16 ex, Int16 ey)
-{
-    EventType newEvent;
-
-    MemSet(&newEvent, sizeof(EventType), 0);
-    newEvent.eType = penUpEvent;
-    newEvent.penDown = false;
-    newEvent.tapCount = 1;
-    newEvent.screenX = x;
-    newEvent.screenY = y;
-    newEvent.data.penUp.start.x = sx;
-    newEvent.data.penUp.start.y = sy;
-    newEvent.data.penUp.end.x = ex;
-    newEvent.data.penUp.end.y = ey;
-    EvtAddEventToQueue(&newEvent);
-}
-
-
 void SendFieldChanged(void)
 {
     EventType   newEvent;
@@ -1963,6 +1932,7 @@ void SendFieldChanged(void)
     newEvent.eType = (eventsEnum)evtFieldChanged;
     EvtAddEventToQueue(&newEvent);
 }
+
 
 /* Change the size of a given form to the size of the whole screen. Used
    in response to window size change event. */

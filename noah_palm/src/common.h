@@ -62,6 +62,7 @@ typedef char WordStorageType[WORD_MAX_LEN];
 #define evtRegistrationFailed    (firstUserEvent+5)
 #define evtRegistrationOk        (firstUserEvent+6)
 #define evtConnectionFinished    (firstUserEvent+7)
+#define evtRefresh               (firstUserEvent+8)
 
 // information about the area for displaying definitions:
 // start x, start y, number of lines (dy).
@@ -509,8 +510,6 @@ void            DoFieldChanged(AppContext* appContext);
 void            SendFieldChanged(void);
 void            SendNewDatabaseSelected(int db);
 void            SendStopEvent(void);
-void            SendPenDownEvent(Int16 x, Int16 y);
-void            SendPenUpEvent(Int16 x, Int16 y, Int16 sx, Int16 sy, Int16 ex, Int16 ey);
 char *          strdup(char *s);
 long            FindCurrentDbIndex(AppContext* appContext);
 

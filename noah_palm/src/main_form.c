@@ -516,10 +516,11 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
         case menuItemDispPrefs:
             FrmPopupForm(formDisplayPrefs);
             handled=true;
-            break;        
+            break;
 
         case menuItemRegister:
             MainFormHandleRegister(appContext,false);
+            FrmUpdateForm(formDictMain, redrawAll); 
             handled=true;
             break;
 
@@ -670,11 +671,16 @@ static Boolean MainFormHandleEvent(EventType* event)
             cbPenUpEvent(appContext,event->screenX,event->screenY);
             handled = true;
             break;
-            
+
         case connectionProgressEvent:
             MainFormHandleConnectionProgress(appContext, form, event);
             handled=true;
             break;            
+
+        case evtRefresh:
+            FrmUpdateForm(formDictMain, redrawAll);
+            handled=true;
+            break;
 
         case evtShowMalformedAlert:
             FrmAlert(alertMalformedResponse);
@@ -683,11 +689,13 @@ static Boolean MainFormHandleEvent(EventType* event)
 
         case evtRegistrationFailed:
             MainFormHandleWrongRegCode(appContext);
+            FrmUpdateForm(formDictMain, redrawAll); 
             handled=true;
             break;
 
         case evtRegistrationOk:
             FrmAlert(alertRegistrationOk);
+            // FrmUpdateForm(formDictMain, redrawAll); 
             handled=true;
             break;
 

@@ -727,6 +727,9 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 #ifdef THESAURUS
                     SavePreferencesThes(appContext);
 #endif                  
+#ifdef I_NOAH
+                    SavePreferencesInoah(appContext);
+#endif
                     bfFreePTR(appContext);
 
 #ifdef I_NOAH                    
@@ -734,18 +737,22 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
 #else
                     SendNewWordSelected();
 #endif
-
                     FrmReturnToForm(0);
+#ifdef I_NOAH
+                    SendEvtWithType(evtRefresh);
+#endif              
                     break;
                 case buttonCancel:
                     CopyParamsFromTo((DisplayPrefs*)appContext->ptrOldDisplayPrefs, displayPrefs);    
                     bfFreePTR(appContext);
-#ifndef I_NOAH                    
-                    SendNewWordSelected();
-#else
+
+/*#ifdef I_NOAH                    
                     ReformatLastResponse(appContext);
-#endif
+#else
+                    SendNewWordSelected();
+#endif*/
                     FrmReturnToForm(0);
+
                     break;
                 default:
                     Assert(0);
@@ -1652,8 +1659,6 @@ void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y,
     SetBackColorRGB(appContext, WHITE_Packed);
     SetTextColorRGB(appContext, BLACK_Packed);
 
-//#ifndef I_NOAH
     cbInvertSelection(appContext);
-//#endif    
 }
 
