@@ -33,7 +33,7 @@ typedef struct ConnectionData_
     NetSocketRef socket;
 } ConnectionData;
 
-static void SendLookupProgressEvent(LookupProgressEventFlag flag, Err error=errNone)
+static void SendLookupProgressEvent(LookupProgressEventFlag flag, ResponseParsingResult result=responseError)
 {
     EventType event;
     MemSet(&event, sizeof(event), 0);
@@ -41,7 +41,8 @@ static void SendLookupProgressEvent(LookupProgressEventFlag flag, Err error=errN
     Assert(sizeof(LookupProgressEventData)<=sizeof(event.data));
     LookupProgressEventData* data=reinterpret_cast<LookupProgressEventData*>(&event.data);
     data->flag=flag;
-    data->error=error;
+    if (lookupFinished==flag)
+        data->result=result;
     EvtAddEventToQueue(&event);
 }
 
@@ -92,7 +93,8 @@ static void RenderStatusText(ConnectionData* connData, const Char* baseText)
                 Char formatString[9];
                 StrCopy(formatString, " %d.%d kB");
                 NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
-                Char dontCare;                LocGetNumberSeparators(numFormat, &dontCare, formatString+3); // change decimal separator in place
+                Char dontCare;
+                LocGetNumberSeparators(numFormat, &dontCare, formatString+3); // change decimal separator in place
                 bytesLen=StrPrintF(buffer, formatString, bri, brf);                
             }
             Assert(bytesLen<bytesBufferSize);
@@ -473,7 +475,7 @@ static ConnectionStageHandler* GetConnectionStageHandler(const ConnectionData* c
     return handler;
 }
 
-void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent, Err error)
+void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent, ResponseParsingResult result)
 {
     Assert(appContext);
     ConnectionData* connData=static_cast<ConnectionData*>(appContext->currentLookupData);
@@ -481,7 +483,7 @@ void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent, Err err
     appContext->currentLookupData=NULL;
     FreeConnectionData(connData);
     if (sendNotifyEvent)
-        SendLookupProgressEvent(lookupFinished, error);
+        SendLookupProgressEvent(lookupFinished, result);
 }
 
 void StartLookup(AppContext* appContext, const Char* wordToFind)
@@ -505,7 +507,7 @@ void StartLookup(AppContext* appContext, const Char* wordToFind)
     {
         FreeConnectionData(connData);
         if (wasInProgress)
-            SendLookupProgressEvent(lookupFinished, netErrUserCancel);
+            SendLookupProgressEvent(lookupFinished, responseError);
     }
 }
 
@@ -519,7 +521,7 @@ void PerformLookupTask(AppContext* appContext)
     {
         Err error=(*handler)(connData);
         if (error)
-            AbortCurrentLookup(appContext, true, error);
+            AbortCurrentLookup(appContext, true, responseError);
         else
             SendLookupProgressEvent(lookupProgress);
     }
@@ -527,20 +529,9 @@ void PerformLookupTask(AppContext* appContext)
     {
         const Char* begin=ebufGetDataPointer(&connData->response);
         const Char* end=begin+ebufGetDataSize(&connData->response);
-        Err error=errNone;
-        if (0==StrNCmp(begin, noDefnitionResponse, end-begin))
-        {
-            error=appErrWordNotFound;
-            const Char* word = ebufGetDataPointer(&connData->wordToFind);
-            FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
-        }
-        else
-        {
-            error=PrepareDisplayInfo(appContext, ebufGetDataPointer(&connData->wordToFind), begin, end);
-            if (!error)
-                ebufSwap(&connData->response, &appContext->lastResponse);
-        }            
-        AbortCurrentLookup(appContext, true, error);
+        const Char* word=ebufGetDataPointer(&connData->wordToFind);
+        ResponseParsingResult result=ProcessResponse(appContext, word, begin, end);
+        AbortCurrentLookup(appContext, true, result);
     }
 }
 

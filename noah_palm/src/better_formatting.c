@@ -623,7 +623,7 @@ static void ReformatLastResponse(AppContext* appContext)
     if (word && responseBegin)
     {
         const Char* responseEnd=responseBegin+ebufGetDataSize(&appContext->lastResponse);
-        Err error=PrepareDisplayInfo(appContext, word, responseBegin, responseEnd);
+        Err error=ProcessOneWordResponse(appContext, word, responseBegin, responseEnd);
         Assert(!error);
     }
     else 

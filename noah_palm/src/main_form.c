@@ -134,13 +134,15 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
             Assert(frmInvalidObjectId!=index);
             FrmHideObject(form, index);
 
-            if (!data->error) 
+            if (responseOneWord==data->result) 
+            {
                 appContext->firstDispLine=0;
-            index=FrmGetObjectIndex(form, fieldWordInput);
-            Assert(frmInvalidObjectId!=index);
-            FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
-            Assert(field);
-            FldSelectAllText(field);
+                index=FrmGetObjectIndex(form, fieldWordInput);
+                Assert(frmInvalidObjectId!=index);
+                FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
+                Assert(field);
+                FldSelectAllText(field);
+            }                
         }
         else 
         {
@@ -186,7 +188,7 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
             
         case buttonAbortLookup:
             if (LookupInProgress(appContext))
-                AbortCurrentLookup(appContext, true, netErrUserCancel);
+                AbortCurrentLookup(appContext, true);
             handled=true;
             break;
 
@@ -377,7 +379,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
                 DeleteBookmark(appContext, ebufGetDataPointer(&appContext->currentWordBuf));
             handled=true;
             break;
-           
+
         default:
             Assert(false);
     }

@@ -1,3 +1,8 @@
+/**
+ * @file common.h
+ * Declarations of commonly-used and general functions.
+ */
+ 
 /*
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
@@ -14,6 +19,8 @@
 #include "dynamic_input_area.h"
 
 #define WORD_MAX_LEN 40
+
+typedef Char WordStorageType[WORD_MAX_LEN];
 
 #include "mem_leak.h"
 #include "display_info.h"
@@ -210,7 +217,6 @@ typedef struct _AppContext
 #endif // I_NOAH    
 
     DisplayInfo *      currDispInfo;
-    ExtensibleBuffer * helpDispBuf;
 
 #ifndef I_NOAH    
     long               currentWord;
@@ -242,7 +248,7 @@ typedef struct _AppContext
 
 #endif // I_NOAH
 
-    char               lastWord[WORD_MAX_LEN];
+    WordStorageType               lastWord;
 
     long               ticksEventTimeout;
 #ifndef NOAH_LITE  
@@ -323,6 +329,10 @@ typedef struct _AppContext
     ExtensibleBuffer currentWordBuf;
     void* currentLookupData;
     Boolean lookupStatusBarVisible;
+    
+    WordStorageType* wordsList;
+    UInt16 wordsInListCount;
+    
 #endif      
 
 #ifdef _RECORD_SPEED_
@@ -519,22 +529,66 @@ extern AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name);
 DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type);
 
 /**
- * Calculates the <code>current</code> to <code>total</code> ratio and 
- * renders result as percents, optionally filling <code>buffer</code>
+ * Calculates the @c current to @c total ratio and 
+ * renders result as percents, optionally filling @c buffer
  * with textual representation.
- * @param buffer <code>Char</code> array with space for at least 5 elements, or NULL if not needed.
+ * @param buffer @c Char array with space for at least 5 elements, or NULL if not needed.
  * @return ratio in percents.
  */ 
 extern UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total);
 
 #define MillisecondsToTicks(millis) ((((float)SysTicksPerSecond())*((float)(millis)))/1000.0)
 
+/**
+ * Searches sequence for occurence of subsequence.
+ * @param begin pointer to first character of sequence to search.
+ * @param end pointer to one-past-last character of sequence to search.
+ * @param subStr subseqeunce to find (null-terminated).
+ * @return pointer to first occurence of @c subStr, or @c end if it's not found.
+ */
 extern const Char* StrFind(const Char* begin, const Char* end, const Char* subStr);
+
 extern Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length);
+
+/**
+ * Converts character sequence to it's numeric representation.
+ * @param begin pointer to first character of sequence to convert.
+ * @param end pointer to one-past-last character of sequence to convert.
+ * @param resut on successful completion will contain numeric representation of sequence [<code>begin</code>, <code>end</code>).
+ * @param base base of numeric system used to perform converion, effective range [2, 36).
+ * @return error code, @c errNone if conversion is successful.
+ */
 extern Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base);
-extern Char ToLower(Char in);
+
+/**
+ * Scans sequence for occurence of any of given characters.
+ * @param begin pointer to first character of sequence to search.
+ * @param end pointer to one-past-last character of sequence to search.
+ * @param chars characters to scan for (null-terminated).
+ * @return pointer to first occurence of given characters, or @c end if not found.
+ */
 extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars);
-extern void StrTrimTail(const Char* begin, const Char** end);
+
+/**
+ * Repositions sequence bounduary so that it doesn't contain any trailing whitespace (space, tab, line-feed, carriage-return).
+ * @param begin pointer to first character of sequence to trim.
+ * @param end on entry contains pointer to one-past-last character of sequence, on return will contain pointer one-past-last not-whitespace character.
+ */
+ extern void StrTrimTail(const Char* begin, const Char** end);
+
+/**
+ * Performs URL-encoding according to RFC2396 (URI: Generic Syntax).
+ * Encoded sequence is returned in @c encoded parameter. It should be freed by client using 
+ * @c new_free().
+ * @param begin pointer to first character of sequence to encode.
+ * @param end pointer to one-past-last character of sequence to encode.
+ * @param encoded on successful return contains pointer to encoded sequence (not null-terminated).
+ * @param encodedLength on successful return contains length of encoded sequence.
+ * @return error code, @c errNone on success.
+ * @see RFC2396
+ */
+extern Err StrUrlEncode(const Char* begin, const Char* end, Char** encoded, UInt16* encodedLength);
+
 extern Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID);
 
 extern void CreateNewMemo(char *memoBody, int memoBodySize);

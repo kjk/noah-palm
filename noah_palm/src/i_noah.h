@@ -29,6 +29,11 @@ typedef struct
 
 typedef iNoahPrefs AppPrefs;
 
+#define appVersion 0x0050
+
+#define appVersionMajor (appVersion>>8)
+#define appVersionMinor (appVersion & 0xff)
+
 #define appPreferencesVersion 0x0100
 #define appPreferencesId    0
 

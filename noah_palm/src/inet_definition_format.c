@@ -1,5 +1,9 @@
 #include "inet_definition_format.h"
 
+#define noDefnitionResponse "NO DEFINITION"
+#define wordsListResponse    "WORD_LIST"
+#define messageResponse     "MESSAGE"
+
 static Err ExpandPartOfSpeechSymbol(Char symbol, const Char** partOfSpeech)
 {
     Err error=errNone;
@@ -186,7 +190,7 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     return error;
 }
 
-Err PrepareDisplayInfo(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd)
+Err ProcessOneWordResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
     ExtensibleBuffer buffer;
@@ -217,3 +221,88 @@ Err PrepareDisplayInfo(AppContext* appContext, const Char* word, const Char* res
     return error;
 }
 
+static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEnd, WordStorageType* targetList=NULL)
+{
+    UInt16 wordsCount=0;
+    const Char* wordBegin=StrFind(responseBegin, responseEnd, "\r\n")+2;
+    while (wordBegin<responseEnd)
+    {
+        const Char* wordEnd=StrFind(wordBegin, responseEnd, "\r\n");
+        if (wordBegin!=wordEnd)
+        {
+            if (targetList)
+            {
+                UInt16 charsToCopy=wordEnd-wordBegin;
+                WordStorageType& wordBuffer=targetList[wordsCount];
+                if (charsToCopy>=WORD_MAX_LEN) 
+                    charsToCopy=WORD_MAX_LEN-1;
+                StrNCopy(wordBuffer, wordBegin, charsToCopy);
+                wordBuffer[charsToCopy]=chrNull;
+            }
+            wordsCount++;
+        }
+        if (wordEnd==responseEnd)
+            wordBegin=responseEnd;
+        else
+            wordBegin=StrFind(wordEnd+2, responseEnd, "\r\n")+2;
+    }
+    return wordsCount;
+}
+
+static Err ProcessWordsListResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
+{
+    Err error=errNone;
+    Assert(!appContext->wordsList);
+    UInt16 wordsCount=IterateWordsList(responseBegin, responseEnd);
+    if (wordsCount)
+    {
+        WordStorageType* wordsStorage=static_cast<WordStorageType*>(new_malloc(sizeof(WordStorageType)*wordsCount));
+        if (wordsStorage)
+        {
+            IterateWordsList(responseBegin, responseEnd, wordsStorage);
+            appContext->wordsList=wordsStorage;
+            appContext->wordsInListCount=wordsCount;
+        }
+        else
+            error=memErrNotEnoughSpace;
+    }
+    else
+        error=appErrMalformedResponse;    
+    return error;
+}
+
+ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, const Char* begin, const Char* end)
+{
+    Assert(word);
+    Assert(begin);
+    Assert(end);
+    ResponseParsingResult result=responseError;
+
+    if (0==StrNCmp(begin, noDefnitionResponse, end-begin))
+    {
+        FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
+        result=responseWordNotFound;
+    }
+    else if (0==StrNCmp(begin, wordsListResponse, end-begin))
+    {
+        Err error=ProcessWordsListResponse(appContext, begin, end);
+        result=error?responseMalformed:responseWordsList;
+    }
+    else if (0==StrNCmp(begin, messageResponse, end-begin))
+    {
+        Assert(false);
+    }
+    else
+    {
+        Err error=ProcessOneWordResponse(appContext, word, begin, end);
+        if (!error)
+        {
+            ebufReset(&appContext->lastResponse);
+            ebufAddStrN(&appContext->lastResponse, const_cast<Char*>(begin), end-begin);
+            result=responseOneWord;
+        }
+        else
+            result=responseMalformed;
+    } 
+    return result;           
+}

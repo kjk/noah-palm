@@ -1,3 +1,4 @@
+#define _ADD_BOOKMARKS_ 1
 #define HISTORY_ITEMS 12
 
 #define formDictMain        1000
@@ -18,7 +19,6 @@
 #define menuItemPrefs           1112
 #define menuItemDispPrefs       1115
 #define menuItemAbout           1121
-
 
 #define alertMemError                      2000
 #define alertRomIncompatible               2001

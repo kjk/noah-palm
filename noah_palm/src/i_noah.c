@@ -82,7 +82,6 @@ static Err AppInit(AppContext* appContext)
     ebufInit(&appContext->currentDefinition, 0);
     ebufInit(&appContext->currentWordBuf, 0);
     ebufInit(&appContext->lastResponse, 0);
-    CreateHelpData(appContext);
     
     appContext->currBookmarkDbType = bkmInvalid; // has anybody idea why it isn't 0?
 
@@ -134,10 +133,11 @@ static void AppDispose(AppContext* appContext)
     ebufFreeData(&appContext->currentDefinition);
     ebufFreeData(&appContext->lastResponse);
     
-    if (appContext->helpDispBuf)
+    if (appContext->wordsList)
     {
-        ebufDelete(appContext->helpDispBuf);
-        appContext->helpDispBuf=NULL;
+        new_free(appContext->wordsList);
+        appContext->wordsList=NULL;
+        appContext->wordsInListCount=0;
     }
 }
 
