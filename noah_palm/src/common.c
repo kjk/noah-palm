@@ -64,7 +64,7 @@ void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 #endif
 }
 
-void MyStrToLower(char *txt)
+void strtolower(char *txt)
 {
     while (*txt)
     {

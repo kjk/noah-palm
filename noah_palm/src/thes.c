@@ -412,7 +412,7 @@ int TryClipboard(void)
     MemSet(txt, 30, 0);
     MemMove(txt, clipTxt, (itemLen < 28) ? itemLen : 28);
 
-    MyStrToLower(txt);
+    strtolower(txt);
     idx = 0;
     while (txt[idx] && (txt[idx] == ' '))
     {

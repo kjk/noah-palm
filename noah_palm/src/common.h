@@ -158,7 +158,7 @@ void stress(long step);
 /* those functions are not available for Noah Lite */
 #ifndef NOAH_LITE
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
-void MyStrToLower(char *txt);
+void strtolower(char *txt);
 void AddToHistory(UInt32 wordNo);
 void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, char *txtBuf);
 #endif

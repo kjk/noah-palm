@@ -563,7 +563,7 @@ void TryClipboard(void)
     MemMove(txt, clipTxt, wordLen);
     MemHandleUnlock(clipItemHandle);
 
-    MyStrToLower(txt);
+    strtolower(txt);
     RemoveWhiteSpaces( txt );
 
     wordNo = dictGetFirstMatching(txt);
