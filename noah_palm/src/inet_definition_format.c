@@ -370,9 +370,9 @@ static Err ProcessCookieResponse(AppContext* appContext, const Char* responseBeg
     {
         const Char* cookieEnd=StrFind(cookieBegin, responseEnd, "\n");
         UInt16 cookieLength=cookieEnd-cookieBegin;
-        if (cookieLength>0 && cookieLength<=MAX_COOKIE_LENGTH)
+        if (cookieLength>0 && cookieLength<sizeof(appContext->prefs.cookie))
         {
-            MemMove(appContext->prefs.cookie, cookieBegin, cookieLength);
+            SafeStrNCopy(appContext->prefs.cookie, sizeof(appContext->prefs.cookie), cookieBegin, cookieLength);
             appContext->prefs.cookie[cookieLength]=chrNull;
         }
         else 

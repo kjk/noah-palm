@@ -17,6 +17,9 @@
 // the list so it doesn't make sense giving him thousands of results
 #define MATCHED_WORDS_LIMIT 200
 
+#define WMP_REC_PACK_COUNT 15000     // number of records in one pattern record pack
+#define WMP_REC_SIZE sizeof(long)   // size of a single record in record pack
+
 static Boolean TappedInRect(RectangleType * rect)
 {
     EventType ev;
@@ -66,12 +69,17 @@ Err ClearMatchingPatternDB(AppContext* appContext)
 {
     Err err;
 
+    err = OpenMatchingPatternDB(appContext);
+    if (errNone != err)
+        return err;
+
     while (DmNumRecords(appContext->wmpCacheDb))
     {
         err = DmRemoveRecord(appContext->wmpCacheDb, 0);
         if (err) 
             return err;
     }
+    CloseMatchingPatternDB(appContext);
     return errNone;
 }
 
@@ -336,59 +344,31 @@ void PatternListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     }
 }
 
-// Set topLeft.y coordinate of object objID on form frm to topLeftY.
-// Leave all aother coordinates unchanged
-static void SetObjectTopLeftY(FormType* frm, UInt16 objID, Coord topLeftY)
-{
-    RectangleType  newBounds;
-    UInt16         index=FrmGetObjectIndex(frm, objID);
-
-    Assert(index!=frmInvalidObjectId);
-    FrmGetObjectBounds(frm, index, &newBounds);
-    newBounds.topLeft.y= topLeftY;
-    FrmSetObjectBounds(frm, index, &newBounds);
-}
-
 static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        ListType* list=0;
-        RectangleType newBounds;
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
 
-        Coord screenHeightMinus14 = appContext->screenHeight-14;
+    UpdateFrmBounds(frm);
 
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+    SetListHeight(frm,listMatching,appContext->dispLinesCount);
+    FrmSetObjectBoundsByID(frm, listMatching, -1, -1, appContext->screenWidth, -1);
+    FrmSetObjectPosByID(frm, fieldWord, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonFind, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonCancel, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonOneChar, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonAnyChar, -1, appContext->screenHeight-14);
 
-        index=FrmGetObjectIndex(frm, listMatching);
-        Assert(index!=frmInvalidObjectId);
-        list=(ListType*)FrmGetObjectPtr(frm, index);
-        Assert(list);
-        LstSetHeight(list, appContext->dispLinesCount);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.extent.x=appContext->screenWidth;
-        FrmSetObjectBounds(frm, index, &newBounds);
-
-        SetObjectTopLeftY(frm, fieldWord, screenHeightMinus14);
-        SetObjectTopLeftY(frm, buttonFind, screenHeightMinus14);
-        SetObjectTopLeftY(frm, buttonCancel, screenHeightMinus14);
-        SetObjectTopLeftY(frm, buttonOneChar, screenHeightMinus14);
-        SetObjectTopLeftY(frm, buttonAnyChar, screenHeightMinus14);
-
-        FrmDrawForm(frm);
-        handled=true;
-    }
-    return handled;
+    FrmDrawForm(frm);
+    return true;
 }
 
 static void FindPatternFormFindButtonPressed(AppContext *appContext,FormType *frm)
 {
-    FieldPtr    fld;
-    ListPtr     list;
+    FieldType * fld;
+    ListType *  list;
     char *      pattern;
+    Err         err;
 
     fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
     list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
@@ -396,6 +376,9 @@ static void FindPatternFormFindButtonPressed(AppContext *appContext,FormType *fr
     if (pattern != NULL)
     {
         ClearMatchingPatternDB(appContext);
+        err = OpenMatchingPatternDB(appContext);
+        if (err)
+            return;
         WritePattern(appContext, pattern);
         FillMatchingPatternDB(appContext, pattern);
         LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords(appContext));

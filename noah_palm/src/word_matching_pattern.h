@@ -10,9 +10,6 @@
 
 #include "common.h"
 
-#define WMP_REC_PACK_COUNT 15000     // number of records in one pattern record pack
-#define WMP_REC_SIZE sizeof(long)   // size of a single record in record pack
-
 Err     OpenMatchingPatternDB(AppContext* appContext);
 Err     CloseMatchingPatternDB(AppContext* appContext);
 Err     ClearMatchingPatternDB(AppContext* appContext);

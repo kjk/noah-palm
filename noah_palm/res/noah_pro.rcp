@@ -61,7 +61,7 @@ BEGIN
 #endif
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard     "L"
+    MENUITEM "Lookup clipboard"        ID menuItemLookupClipboard     "L"
   END
 
   PULLDOWN "Bookmarks"
@@ -90,6 +90,7 @@ BEGIN
    SCROLLBAR ID scrollDef AT (152 1 7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    BUTTON "\002" ctlArrowLeft AT (0 148 8 11) FONT 4 NOFRAME
    BUTTON "\003" ctlArrowRight AT (8 148 10 11) FONT 4 NOFRAME
+   FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
    POPUPTRIGGER "" ID popupHistory AT (128 147 17 13) LEFTANCHOR FONT 0
    LIST "" ID listHistory AT (154-HISTORY_LIST_DX 156-(HISTORY_ITEMS*11) HISTORY_LIST_DX HISTORY_ITEMS*11) NONUSABLE FONT 0
    POPUPLIST ID popupHistory listHistory
@@ -104,6 +105,7 @@ BEGIN
    SCROLLBAR         ID scrollDef     AT (152   1  7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    BUTTON "\002"        ctlArrowLeft  AT (  0 148  8  11) FONT 4 NOFRAME
    BUTTON "\003"        ctlArrowRight AT (  8 148 10  11) FONT 4 NOFRAME
+   FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
    FORMBITMAP                         AT (147 147)        BITMAP bmpClose
    BUTTON       ""      buttonClose    AT (146 146 14  14) NOFRAME
    

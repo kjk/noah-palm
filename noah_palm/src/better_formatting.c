@@ -30,45 +30,39 @@ void bfFreePTR(AppContext *appContext)
     appContext->ptrOldDisplayPrefs = NULL;
 }
 
+#define SetBgCol(dep, r, g, b) \
+    (dep)->bgcolR = r; \
+    (dep)->bgcolG = g; \
+    (dep)->bgcolB = b; \
+
+#define SetFgCol(dep, r, g, b) \
+    (dep)->colorR = r; \
+    (dep)->colorG = g; \
+    (dep)->colorB = b; \
+
 /* When we change global background we need to change all backgrounds to global background color */
 static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
 {
-    displayPrefs->pos.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->pos.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->pos.bgcolB = displayPrefs->bgcolB;
-    displayPrefs->word.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->word.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->word.bgcolB = displayPrefs->bgcolB;
-    displayPrefs->definition.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->definition.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->definition.bgcolB = displayPrefs->bgcolB;
-    displayPrefs->example.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->example.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->example.bgcolB = displayPrefs->bgcolB;
-    displayPrefs->synonym.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->synonym.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->synonym.bgcolB = displayPrefs->bgcolB;
-    displayPrefs->defList.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->defList.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->defList.bgcolB = displayPrefs->bgcolB;
-    displayPrefs->posList.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->posList.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->posList.bgcolB = displayPrefs->bgcolB;
-    displayPrefs->pronunciation.bgcolR = displayPrefs->bgcolR;
-    displayPrefs->pronunciation.bgcolG = displayPrefs->bgcolG;
-    displayPrefs->pronunciation.bgcolB = displayPrefs->bgcolB;
+    int r = displayPrefs->bgcolR;
+    int g = displayPrefs->bgcolG;
+    int b = displayPrefs->bgcolB;
+
+    SetBgCol( &displayPrefs->pos, r, g, b);
+    SetBgCol( &displayPrefs->word, r, g, b);
+    SetBgCol( &displayPrefs->definition, r, g, b);
+    SetBgCol( &displayPrefs->example, r, g, b);
+    SetBgCol( &displayPrefs->synonym, r, g, b);
+    SetBgCol( &displayPrefs->defList, r, g, b);
+    SetBgCol( &displayPrefs->posList, r, g, b);
+    SetBgCol( &displayPrefs->pronunciation, r, g, b);
 }
 
 /* Sets &prefs (only used by SetDefaultDisplayParam) */
 static void SetPrefsAs(DisplayElementPrefs *prefs,FontID font, int colR, int colG, int colB, int bgR, int bgG, int bgB)
 {
     prefs->font = font;
-    prefs->colorR = colR;
-    prefs->colorG = colG;
-    prefs->colorB = colB;
-    prefs->bgcolR = bgR;
-    prefs->bgcolG = bgG;
-    prefs->bgcolB = bgB;
+    SetFgCol(prefs, colR, colG, colB);
+    SetBgCol(prefs, bgR, bgG, bgB);
 }
 
 /* Sets rest of display params to actual listStyle */
@@ -117,12 +111,6 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->synonym    = prefsToSet[5];
                     displayPrefs->defList    = prefsToSet[6];
                     displayPrefs->posList    = prefsToSet[7];
-                    displayPrefs->pronunciation = prefsToSet[15];
-                    displayPrefs->bgcolR     = 255;
-                    displayPrefs->bgcolG     = 255;
-                    displayPrefs->bgcolB     = 255;
-                    displayPrefs->enablePronunciation = false;
-                    displayPrefs->enablePronunciationSpecialFonts = false;
                     break;
                 case 2:
                     displayPrefs->word       = prefsToSet[8];
@@ -132,12 +120,6 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->synonym    = prefsToSet[12];
                     displayPrefs->defList    = prefsToSet[13];
                     displayPrefs->posList    = prefsToSet[14];
-                    displayPrefs->pronunciation = prefsToSet[15];
-                    displayPrefs->bgcolR     = 255;
-                    displayPrefs->bgcolG     = 255;
-                    displayPrefs->bgcolB     = 255;
-                    displayPrefs->enablePronunciation = false;
-                    displayPrefs->enablePronunciationSpecialFonts = false;
                     break;
                 case 0:  //without break  
                     default: //if not supported then dafault
@@ -146,47 +128,28 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->definition = prefsToSet[0];
                     displayPrefs->example    = prefsToSet[0];
                     displayPrefs->synonym    = prefsToSet[0];
-                    displayPrefs->defList       = prefsToSet[0];
+                    displayPrefs->defList    = prefsToSet[0];
                     displayPrefs->posList    = prefsToSet[0];
-                    displayPrefs->pronunciation = prefsToSet[15];
-                    displayPrefs->bgcolR     = 255;
-                    displayPrefs->bgcolG     = 255;
-                    displayPrefs->bgcolB     = 255;
-                    displayPrefs->enablePronunciation = false;
-                    displayPrefs->enablePronunciationSpecialFonts = false;
                 break;
             }
+            // settings common to all styles
+            displayPrefs->pronunciation = prefsToSet[15];
+            SetBgCol(displayPrefs, 255, 255, 255);
+            displayPrefs->enablePronunciation = false;
+            displayPrefs->enablePronunciationSpecialFonts = false;
 
             if(!IsColorSupported(GetAppContext())) //we need to set all colors to black&white
             {   
-                    displayPrefs->bgcolR     = 255;
-                    displayPrefs->bgcolG     = 255;
-                    displayPrefs->bgcolB     = 255;
-                    SetAllBackGroundLikeGlobal(displayPrefs);                                            
-                    displayPrefs->pos.colorR        = 0;
-                    displayPrefs->pos.colorG        = 0;
-                    displayPrefs->pos.colorB        = 0;
-                    displayPrefs->word.colorR       = 0;
-                    displayPrefs->word.colorG       = 0;
-                    displayPrefs->word.colorB       = 0;
-                    displayPrefs->definition.colorR = 0;
-                    displayPrefs->definition.colorG = 0;
-                    displayPrefs->definition.colorB = 0;
-                    displayPrefs->example.colorR    = 0;
-                    displayPrefs->example.colorG    = 0;
-                    displayPrefs->example.colorB    = 0;
-                    displayPrefs->synonym.colorR    = 0;
-                    displayPrefs->synonym.colorG    = 0;
-                    displayPrefs->synonym.colorB    = 0;
-                    displayPrefs->defList.colorR    = 0;
-                    displayPrefs->defList.colorG    = 0;
-                    displayPrefs->defList.colorB    = 0;
-                    displayPrefs->posList.colorR    = 0;
-                    displayPrefs->posList.colorG    = 0;
-                    displayPrefs->posList.colorB    = 0;
-                    displayPrefs->pronunciation.colorR = 0;
-                    displayPrefs->pronunciation.colorG = 0;
-                    displayPrefs->pronunciation.colorB = 0;
+                SetBgCol( displayPrefs, 255, 255, 255);
+                SetAllBackGroundLikeGlobal(displayPrefs);                                            
+                SetFgCol( &displayPrefs->pos, 0, 0, 0);
+                SetFgCol( &displayPrefs->word, 0, 0, 0);
+                SetFgCol( &displayPrefs->definition, 0, 0, 0);
+                SetFgCol( &displayPrefs->example, 0, 0, 0);
+                SetFgCol( &displayPrefs->synonym, 0, 0, 0);
+                SetFgCol( &displayPrefs->defList, 0, 0, 0);
+                SetFgCol( &displayPrefs->posList, 0, 0, 0);
+                SetFgCol( &displayPrefs->pronunciation, 0, 0, 0);
             }
     }   
 }
@@ -229,108 +192,85 @@ void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
      }
 }
 
+static void SetFontAndCols(AppContext *appContext, DisplayElementPrefs *displayPrefs)
+{
+    FntSetFont(displayPrefs->font);
+    SetTextColorRGB(appContext,
+                    displayPrefs->colorR,
+                    displayPrefs->colorG,
+                    displayPrefs->colorB);
+    SetBackColorRGB(appContext,
+                    displayPrefs->bgcolR,
+                    displayPrefs->bgcolG,
+                    displayPrefs->bgcolB);
+}
+
 /* used in display */
 void SetDrawParam(char type, DisplayPrefs *displayPrefs, AppContext * appContext)
 {
-     // I use "case (char) FORMAT_POS:" instead of "case FORMAT_POS:" because
-     // FORMAT_POS is greater than 127 and we use signed char!!!
-     // (because if "char z = 150;" and "#define FORMAT_POS 150" then "z != FORMAT_POS" !!!)
-     switch(type)
-     {
-         case (char) FORMAT_POS : 
-             FntSetFont(displayPrefs->pos.font);
-             SetTextColorRGB(displayPrefs->pos.colorR,
-                             displayPrefs->pos.colorG,
-                             displayPrefs->pos.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->pos.bgcolR,
-                             displayPrefs->pos.bgcolG,
-                             displayPrefs->pos.bgcolB,
-                             appContext);
-             break;
-         case (char) FORMAT_WORD : 
-             FntSetFont(displayPrefs->word.font);
-             SetTextColorRGB(displayPrefs->word.colorR,
-                             displayPrefs->word.colorG,
-                             displayPrefs->word.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->word.bgcolR,
-                             displayPrefs->word.bgcolG,
-                             displayPrefs->word.bgcolB,
-                             appContext);
-             break;
-         case (char) FORMAT_DEFINITION : 
-             FntSetFont(displayPrefs->definition.font);
-             SetTextColorRGB(displayPrefs->definition.colorR,
-                             displayPrefs->definition.colorG,
-                             displayPrefs->definition.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->definition.bgcolR,
-                             displayPrefs->definition.bgcolG,
-                             displayPrefs->definition.bgcolB,
-                             appContext);
-             break;
-         case (char) FORMAT_EXAMPLE : 
-             FntSetFont(displayPrefs->example.font);
-             SetTextColorRGB(displayPrefs->example.colorR,
-                             displayPrefs->example.colorG,
-                             displayPrefs->example.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->example.bgcolR,
-                             displayPrefs->example.bgcolG,
-                             displayPrefs->example.bgcolB,
-                             appContext);
-             break;
-         case (char) FORMAT_SYNONYM : 
-             FntSetFont(displayPrefs->synonym.font);
-             SetTextColorRGB(displayPrefs->synonym.colorR,
-                             displayPrefs->synonym.colorG,
-                             displayPrefs->synonym.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->synonym.bgcolR,
-                             displayPrefs->synonym.bgcolG,
-                             displayPrefs->synonym.bgcolB,
-                             appContext);
-             break;
-         case (char) FORMAT_LIST : 
-             FntSetFont(displayPrefs->defList.font);
-             SetTextColorRGB(displayPrefs->defList.colorR,
-                             displayPrefs->defList.colorG,
-                             displayPrefs->defList.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->defList.bgcolR,
-                             displayPrefs->defList.bgcolG,
-                             displayPrefs->defList.bgcolB,
-                             appContext);
-             break;
-         case (char) FORMAT_BIG_LIST : 
-             FntSetFont(displayPrefs->posList.font);
-             SetTextColorRGB(displayPrefs->posList.colorR,
-                             displayPrefs->posList.colorG,
-                             displayPrefs->posList.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->posList.bgcolR,
-                             displayPrefs->posList.bgcolG,
-                             displayPrefs->posList.bgcolB,
-                             appContext);
-             break;
-         case (char) FORMAT_PRONUNCIATION : 
-             FntSetFont(displayPrefs->pronunciation.font);
-             SetTextColorRGB(displayPrefs->pronunciation.colorR,
-                             displayPrefs->pronunciation.colorG,
-                             displayPrefs->pronunciation.colorB,
-                             appContext);
-             SetBackColorRGB(displayPrefs->pronunciation.bgcolR,
-                             displayPrefs->pronunciation.bgcolG,
-                             displayPrefs->pronunciation.bgcolB,
-                             appContext);
-             break;
-         default:
-             FntSetFont((FontID) 0x00);
-             SetBackColorWhite(appContext);
-             SetTextColorBlack(appContext);
-             break;
-     }
+    // I use "case (char) FORMAT_POS:" instead of "case FORMAT_POS:" because
+    // FORMAT_POS is greater than 127 and we use signed char!!!
+    // (because if "char z = 150;" and "#define FORMAT_POS 150" then "z != FORMAT_POS" !!!)
+    switch(type)
+    {
+        case (char) FORMAT_POS:
+            SetFontAndCols(appContext, &(displayPrefs->pos));
+            break;
+        case (char) FORMAT_WORD:
+            SetFontAndCols(appContext, &(displayPrefs->word));
+            break;
+        case (char) FORMAT_DEFINITION:
+            SetFontAndCols(appContext, &(displayPrefs->definition));
+            break;
+        case (char) FORMAT_EXAMPLE:
+            SetFontAndCols(appContext, &(displayPrefs->example));
+            break;
+        case (char) FORMAT_SYNONYM:
+            SetFontAndCols(appContext, &(displayPrefs->synonym));
+            break;
+        case (char) FORMAT_LIST:
+           SetFontAndCols(appContext, &(displayPrefs->defList));
+           break;
+        case (char) FORMAT_BIG_LIST:
+           SetFontAndCols(appContext, &(displayPrefs->posList));
+           break;
+        case (char) FORMAT_PRONUNCIATION:
+           SetFontAndCols(appContext, &(displayPrefs->pronunciation));
+           break;
+        default:
+            FntSetFont((FontID) 0x00);
+            SetBackColorWhite(appContext);
+            SetTextColorBlack(appContext);
+            break;
+    }
+}
+
+
+static DisplayElementPrefs *GetDEPForTag(DisplayPrefs *dp, ActualTag tag)
+{
+    switch(tag)
+    {
+        case actTagPos:
+            return &dp->pos;
+        case actTagWord:
+            return &dp->word;
+        case actTagDefinition:
+            return &dp->definition;
+        case actTagExample:
+            return &dp->example;
+        case actTagSynonym:
+            return &dp->synonym;
+        case actTagDefList:
+            return &dp->defList;
+        case actTagPosList:
+            return &dp->posList;
+        case actTagPronunciation:
+            return &dp->pronunciation;
+        default:
+            Assert(0);
+            return NULL;
+            break;
+    }
 }
 
 static void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
@@ -350,114 +290,40 @@ static void RunColorSetForm(int *Rinout, int *Ginout, int *Binout)
     *Binout = rgb_color.b;
 }
 
+static void RunColorSetFormForTag(DisplayPrefs *dp, ActualTag tag, Boolean bgCol)
+{
+    DisplayElementPrefs *dep;
+    dep = GetDEPForTag(dp, tag);
+    if (bgCol)
+        RunColorSetForm(&dep->bgcolR, &dep->bgcolG, &dep->bgcolB);
+    else
+        RunColorSetForm(&dep->colorR, &dep->colorG, &dep->colorB);
+}
+
+static void GetRGBForTag(DisplayPrefs *dp, ActualTag tag, Boolean fBgCol, RGBColorType *rgb)
+{
+    DisplayElementPrefs *dep;
+
+    dep = GetDEPForTag(dp, tag);
+    if ( !fBgCol )
+    {
+        rgb->r = dep->colorR;
+        rgb->g = dep->colorG;
+        rgb->b = dep->colorB;
+    } else {
+        rgb->r = dep->bgcolR;
+        rgb->g = dep->bgcolG;
+        rgb->b = dep->bgcolB;
+    }
+}
+
 /* Set color to draw buttons */
 static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *displayPrefs,AppContext * appContext)
 {
-    if(!back)
-    switch(actTag)
-    {
-         case actTagPos:
-             SetTextColorRGB(displayPrefs->pos.colorR,
-                          displayPrefs->pos.colorG,
-                          displayPrefs->pos.colorB,
-                          appContext);
-             break;                    
-         case actTagWord:
-             SetTextColorRGB(displayPrefs->word.colorR,
-                          displayPrefs->word.colorG,
-                          displayPrefs->word.colorB,
-                          appContext);
-             break;                    
-         case actTagDefinition:
-             SetTextColorRGB(displayPrefs->definition.colorR,
-                          displayPrefs->definition.colorG,
-                          displayPrefs->definition.colorB,
-                          appContext);
-             break;                    
-         case actTagExample:
-             SetTextColorRGB(displayPrefs->example.colorR,
-                          displayPrefs->example.colorG,
-                          displayPrefs->example.colorB,
-                          appContext);
-             break;                    
-         case actTagSynonym:
-             SetTextColorRGB(displayPrefs->synonym.colorR,
-                          displayPrefs->synonym.colorG,
-                          displayPrefs->synonym.colorB,
-                          appContext);
-             break;                    
-         case actTagDefList:
-             SetTextColorRGB(displayPrefs->defList.colorR,
-                          displayPrefs->defList.colorG,
-                          displayPrefs->defList.colorB,
-                          appContext);
-             break;                    
-         case actTagPosList:
-             SetTextColorRGB(displayPrefs->posList.colorR,
-                          displayPrefs->posList.colorG,
-                          displayPrefs->posList.colorB,
-                          appContext);
-             break;                    
-         case actTagPronunciation:
-             SetTextColorRGB(displayPrefs->pronunciation.colorR,
-                          displayPrefs->pronunciation.colorG,
-                          displayPrefs->pronunciation.colorB,
-                          appContext);
-             break;                    
-    }
-    else
-    switch(actTag)
-    {
-         case actTagPos:
-             SetTextColorRGB(displayPrefs->pos.bgcolR,
-                          displayPrefs->pos.bgcolG,
-                          displayPrefs->pos.bgcolB,
-                          appContext);
-             break;                    
-         case actTagWord:
-             SetTextColorRGB(displayPrefs->word.bgcolR,
-                          displayPrefs->word.bgcolG,
-                          displayPrefs->word.bgcolB,
-                          appContext);
-             break;                    
-         case actTagDefinition:
-             SetTextColorRGB(displayPrefs->definition.bgcolR,
-                          displayPrefs->definition.bgcolG,
-                          displayPrefs->definition.bgcolB,
-                          appContext);
-             break;                    
-         case actTagExample:
-             SetTextColorRGB(displayPrefs->example.bgcolR,
-                          displayPrefs->example.bgcolG,
-                          displayPrefs->example.bgcolB,
-                          appContext);
-             break;                    
-         case actTagSynonym:
-             SetTextColorRGB(displayPrefs->synonym.bgcolR,
-                          displayPrefs->synonym.bgcolG,
-                          displayPrefs->synonym.bgcolB,
-                          appContext);
-             break;                    
-         case actTagDefList:
-             SetTextColorRGB(displayPrefs->defList.bgcolR,
-                          displayPrefs->defList.bgcolG,
-                          displayPrefs->defList.bgcolB,
-                          appContext);
-             break;                    
-         case actTagPosList:
-             SetTextColorRGB(displayPrefs->posList.bgcolR,
-                          displayPrefs->posList.bgcolG,
-                          displayPrefs->posList.bgcolB,
-                          appContext);
-             break;                    
-         case actTagPronunciation:
-             SetTextColorRGB(displayPrefs->pronunciation.bgcolR,
-                          displayPrefs->pronunciation.bgcolG,
-                          displayPrefs->pronunciation.bgcolB,
-                          appContext);
-             break;                    
-    }
-    
+    RGBColorType  rgb;
+
+    GetRGBForTag(displayPrefs, back, actTag, &rgb);
+    SetTextColor(appContext, &rgb);
 }
 
 /* Draw color rectangles over the buttons */
@@ -475,9 +341,10 @@ static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, App
     r.topLeft.y = 16;
     r.extent.x  = 20;
     r.extent.y  = 10;
-    SetTextColorRGB(appContext->prefs.displayPrefs.bgcolR,
+    SetTextColorRGB(appContext,
+                    appContext->prefs.displayPrefs.bgcolR,
                     appContext->prefs.displayPrefs.bgcolG,
-                    appContext->prefs.displayPrefs.bgcolB,appContext);
+                    appContext->prefs.displayPrefs.bgcolB);
     WinDrawRectangle(&r, 4);
 
     r.topLeft.x = 95;
@@ -649,37 +516,17 @@ static void RedrawExampleDefinition(AppContext* appContext)
 
 static Boolean DisplPrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        RectangleType newBounds;
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
-        
-        index=FrmGetObjectIndex(frm, buttonOk);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-1-newBounds.extent.y;
-        FrmSetObjectBounds(frm, index, &newBounds);
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
 
-        index=FrmGetObjectIndex(frm, buttonCancel);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-1-newBounds.extent.y;
-        FrmSetObjectBounds(frm, index, &newBounds);
+    UpdateFrmBounds(frm);
 
-        index=FrmGetObjectIndex(frm, buttonDefault);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-1-newBounds.extent.y;
-        FrmSetObjectBounds(frm, index, &newBounds);
-        
-        FrmDrawForm(frm);
-        
-        handled=true;
-    }
-    return handled;
+    FrmSetObjectPosByID(frm, buttonOk,      -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonCancel,  -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonDefault, -1, appContext->screenHeight-14);
+
+    FrmDrawForm(frm);        
+    return true;
 }
 
 static void InitOldDisplayPrefs(AppContext *appContext)
@@ -722,30 +569,32 @@ static void ReformatLastResponse(AppContext* appContext)
 
 Boolean DisplayPrefFormHandleEvent(EventType * event)
 {
-    int  setColor = 0;
-    ActualTag  actTag = actTagWord;
-    FormType *  frm = NULL;
-    ListType *  list = NULL;
-    char *      listTxt = NULL;
+    int         setColor = 0;
+    ActualTag   actTag = actTagWord;
+    FormType *  frm;
+    ListType *  list;
+    char *      listTxt;
     char        txt[20];
     AppContext* appContext;
+    DisplayElementPrefs *dep;
 #ifdef NOAH_PRO            
     char *tab[10];
 #endif
+
     frm = FrmGetActiveForm();
     appContext=GetAppContext();
     
     switch (event->eType)
     {
         case winDisplayChangedEvent:
-                DisplPrefFormDisplayChanged(appContext, frm);
-                actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
-                SetPopupLabel(frm, listActTag, popupActTag, actTag);
-                RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
-                RedrawExampleDefinition(appContext);
-                return true;
-            break;
+            DisplPrefFormDisplayChanged(appContext, frm);
+            actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
+            SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
+            SetPopupLabel(frm, listActTag, popupActTag, actTag);
+            RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
+            RedrawExampleDefinition(appContext);
+            return true;
+
         case frmOpenEvent:
             cbNoSelection(appContext);
             InitOldDisplayPrefs(appContext);
@@ -777,7 +626,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
             {
                 case listListStyle:
                     appContext->prefs.displayPrefs.listStyle = 2 - (LayoutType) event->data.popSelect.selection;
-                    MemMove(txt, listTxt, StrLen(listTxt) + 1);
+                    SafeStrNCopy(txt, sizeof(txt), listTxt, -1);
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupListStyle)),txt);
                     SetDefaultDisplayParam(&appContext->prefs.displayPrefs,false,false);
                     RedrawExampleDefinition(appContext);
@@ -786,7 +635,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     break;
                 case listActTag:
                     actTag = (ActualTag) event->data.popSelect.selection;
-                    MemMove(txt, listTxt, StrLen(listTxt) + 1);
+                    SafeStrNCopy(txt, sizeof(txt), listTxt, -1);
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupActTag)),txt);
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
                     break;
@@ -805,132 +654,31 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     return false;
                     break;
                 case buttonFpos:
-                    actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                    switch(actTag)
+                    actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag)));
+
+                    if ( actTagPronunciation == actTag )
                     {
-                        case actTagPos:
-                            appContext->prefs.displayPrefs.pos.font = FontSelect (appContext->prefs.displayPrefs.pos.font);
-                            break;                    
-                        case actTagWord:
-                            appContext->prefs.displayPrefs.word.font = FontSelect (appContext->prefs.displayPrefs.word.font);
-                            break;                    
-                        case actTagDefinition:
-                            appContext->prefs.displayPrefs.definition.font = FontSelect (appContext->prefs.displayPrefs.definition.font);
-                            break;                    
-                        case actTagExample:
-                            appContext->prefs.displayPrefs.example.font = FontSelect (appContext->prefs.displayPrefs.example.font);
-                            break;                    
-                        case actTagSynonym:
-                            appContext->prefs.displayPrefs.synonym.font = FontSelect (appContext->prefs.displayPrefs.synonym.font);
-                            break;                    
-                        case actTagDefList:
-                            appContext->prefs.displayPrefs.defList.font = FontSelect (appContext->prefs.displayPrefs.defList.font);
-                            break;                    
-                        case actTagPosList:
-                            appContext->prefs.displayPrefs.posList.font = FontSelect (appContext->prefs.displayPrefs.posList.font);
-                            break;                    
-                        case actTagPronunciation:
-                            if(!appContext->prefs.displayPrefs.enablePronunciationSpecialFonts)
-                                appContext->prefs.displayPrefs.pronunciation.font = FontSelect (appContext->prefs.displayPrefs.pronunciation.font);
-                            break;                    
+                        if(!appContext->prefs.displayPrefs.enablePronunciationSpecialFonts)
+                            appContext->prefs.displayPrefs.pronunciation.font = FontSelect (appContext->prefs.displayPrefs.pronunciation.font);
+                    } else {
+                        dep = GetDEPForTag(&appContext->prefs.displayPrefs, actTag);
+                        dep->font = FontSelect(dep->font);
                     }
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
                     RedrawExampleDefinition(appContext);
                     break;
                 case buttonCOLpos:
-                    actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                    switch(actTag)
-                    {
-                        case actTagPos:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.pos.colorR,
-                                            &appContext->prefs.displayPrefs.pos.colorG,
-                                            &appContext->prefs.displayPrefs.pos.colorB);
-                            break;                    
-                        case actTagWord:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.word.colorR,
-                                            &appContext->prefs.displayPrefs.word.colorG,
-                                            &appContext->prefs.displayPrefs.word.colorB);
-                            break;                    
-                        case actTagDefinition:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.definition.colorR,
-                                            &appContext->prefs.displayPrefs.definition.colorG,
-                                            &appContext->prefs.displayPrefs.definition.colorB);
-                            break;                    
-                        case actTagExample:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.example.colorR,
-                                            &appContext->prefs.displayPrefs.example.colorG,
-                                            &appContext->prefs.displayPrefs.example.colorB);
-                            break;                    
-                        case actTagSynonym:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.synonym.colorR,
-                                            &appContext->prefs.displayPrefs.synonym.colorG,
-                                            &appContext->prefs.displayPrefs.synonym.colorB);
-                            break;                    
-                        case actTagDefList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.defList.colorR,
-                                            &appContext->prefs.displayPrefs.defList.colorG,
-                                            &appContext->prefs.displayPrefs.defList.colorB);
-                            break;                    
-                        case actTagPosList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.posList.colorR,
-                                            &appContext->prefs.displayPrefs.posList.colorG,
-                                            &appContext->prefs.displayPrefs.posList.colorB);
-                            break;                    
-                        case actTagPronunciation:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.pronunciation.colorR,
-                                            &appContext->prefs.displayPrefs.pronunciation.colorG,
-                                            &appContext->prefs.displayPrefs.pronunciation.colorB);
-                            break;                    
-                    }
+                    actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag)));
+                    RunColorSetFormForTag(&appContext->prefs.displayPrefs, actTag, false);
+
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
                     RedrawExampleDefinition(appContext);
                     setColor = 2;
                     break;
                 case buttonBGpos:
-                    actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag))); 
-                    switch(actTag)
-                    {
-                        case actTagPos:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.pos.bgcolR,
-                                            &appContext->prefs.displayPrefs.pos.bgcolG,
-                                            &appContext->prefs.displayPrefs.pos.bgcolB);
-                            break;                    
-                        case actTagWord:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.word.bgcolR,
-                                            &appContext->prefs.displayPrefs.word.bgcolG,
-                                            &appContext->prefs.displayPrefs.word.bgcolB);
-                            break;                    
-                        case actTagDefinition:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.definition.bgcolR,
-                                            &appContext->prefs.displayPrefs.definition.bgcolG,
-                                            &appContext->prefs.displayPrefs.definition.bgcolB);
-                            break;                    
-                        case actTagExample:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.example.bgcolR,
-                                            &appContext->prefs.displayPrefs.example.bgcolG,
-                                            &appContext->prefs.displayPrefs.example.bgcolB);
-                            break;                    
-                        case actTagSynonym:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.synonym.bgcolR,
-                                            &appContext->prefs.displayPrefs.synonym.bgcolG,
-                                            &appContext->prefs.displayPrefs.synonym.bgcolB);
-                            break;                    
-                        case actTagDefList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.defList.bgcolR,
-                                            &appContext->prefs.displayPrefs.defList.bgcolG,
-                                            &appContext->prefs.displayPrefs.defList.bgcolB);
-                            break;                    
-                        case actTagPosList:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.posList.bgcolR,
-                                            &appContext->prefs.displayPrefs.posList.bgcolG,
-                                            &appContext->prefs.displayPrefs.posList.bgcolB);
-                            break;                    
-                        case actTagPronunciation:
-                            RunColorSetForm(&appContext->prefs.displayPrefs.pronunciation.bgcolR,
-                                            &appContext->prefs.displayPrefs.pronunciation.bgcolG,
-                                            &appContext->prefs.displayPrefs.pronunciation.bgcolB);
-                            break;                    
-                    }
+                    actTag = (ActualTag)LstGetSelection ((ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listActTag)));
+                    RunColorSetFormForTag(&appContext->prefs.displayPrefs, actTag, true);
+
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
                     RedrawExampleDefinition(appContext);
                     setColor = 2;
@@ -965,7 +713,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                 case buttonOk:
 #ifdef NOAH_PRO 
                     SavePreferencesNoahPro(appContext);
-#endif                    
+#endif
 #ifdef THESAURUS
                     /*TODO: Andrzej please make SavePreferencesThes() runable 
                         for other modules

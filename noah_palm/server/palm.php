@@ -277,31 +277,26 @@ function serve_recent_lookups($cookie)
 
 function is_valid_di_tag($tag)
 {
-
     if ( strlen($tag)<2 )
         return false;
 
     $tag_name = substr($tag,0,2);
+    $valid_tag_names = array('HS', 'SN', 'PN', 'OC', 'OD');
+
+    $valid_p = false;
+    foreach( $valid_tag_names as $valid_tag_name )
+    {
+        if ( $tag_name == $valid_tag_name )
+        {
+            $valid_p = true;
+            break;
+        }
+    }
+
+    if ( ! $valid_p )
+        return false;
 
     # TODO: also check tag values for corectness ?
-    if ( $tag_name == "HS" )
-        return true;
-
-    if ( $tag_name == "SN" )
-        return true;
-
-    if ( $tag_name == "HS" )
-        return true;
-
-    if ( $tag_name == "PN" )
-        return true;
-
-    if ( $tag_name == "OC" )
-        return true;
-
-    if ( $tag_name == "OD" )
-        return true;
-
     return false;
 }
 

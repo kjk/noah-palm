@@ -173,10 +173,8 @@ char *ebufGetTxtCopy(ExtensibleBuffer *buf)
        guarantee that buf->used also includes 0 at the end of buf->data
        (somehow I should, but... */
     copy = (char *) new_malloc(buf->used + 1);
-    if (!copy)
-        return NULL;
-
-    MemMove(copy, buf->data, buf->used);
+    if (copy)
+        MemMove(copy, buf->data, buf->used);
     return copy;
 }
 

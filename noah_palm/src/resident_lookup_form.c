@@ -14,12 +14,21 @@
 
 static void ResidentLookupFormFindPressed(AppContext* appContext) 
 {
-    long currentWord=appContext->currentWord;
-    Err error=PopupResidentBrowseForm(appContext);
+    Err     error;
+    char *  word;
+    long    currentWord=appContext->currentWord;
+
+    RememberFieldWordMain(appContext, FrmGetActiveForm() );
+
+    error=PopupResidentBrowseForm(appContext);
     if (!error) 
     {
         if (appContext->currentWord!=currentWord)
+        {
+            word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
+            FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
             DrawDescription(appContext, appContext->currentWord);
+        }
     }
     else 
         Assert(false);
@@ -35,10 +44,22 @@ static void ResidentLookupFormFindPressed(AppContext* appContext)
  */
 static void ResidentLookupFormWordNavigate(AppContext* appContext, Boolean next)
 {
+    char *      word;
+    long        prevWord;
+
+    prevWord = appContext->currentWord;
+
     if (next && appContext->currentWord < appContext->wordsCount - 1)
-        DrawDescription(appContext, appContext->currentWord+1);
+        appContext->currentWord++;
     else if (!next && appContext->currentWord > 0)
-        DrawDescription(appContext, appContext->currentWord-1);
+        appContext->currentWord--;
+
+    if (prevWord != appContext->currentWord)
+    {
+        word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord + 1);
+        FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
+        DrawDescription(appContext, appContext->currentWord);
+    }
 }
 
 /**
@@ -86,13 +107,20 @@ static Boolean ResidentLookupFormKeyDown(AppContext* appContext, FormType* form,
         DefScrollDown(appContext, appContext->prefs.hwButtonScrollType);
         handled=true;
     }
-    else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
+    /*else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
              || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
              || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
     {
         appContext->lastWord[0] = event->data.keyDown.chr;
         appContext->lastWord[1] = 0;
         ResidentLookupFormFindPressed(appContext);
+    }*/    
+    else
+    {
+        // notify ourselves that a text field is (possibly) updated
+        SendFieldChanged();
+        // mark as unhandled so that text field will (possibly) get updated
+        handled = false;
     }
     return handled;
 }
@@ -107,26 +135,21 @@ static Boolean ResidentLookupFormKeyDown(AppContext* appContext, FormType* form,
  */
 static Boolean ResidentLookupFormDisplayChanged(AppContext* appContext, FormType* form)
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        RectangleType newBounds;
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(form), &newBounds);
+    if (  !DIA_Supported(&appContext->diaSettings) )
+        return false;
 
-        FrmSetObjectBoundsByID(form, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(form, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
-        FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, 1, 7, appContext->screenHeight-18);
-        FrmSetObjectBoundsByID(form, bmpClose, appContext->screenWidth-13, appContext->screenHeight-13, 13, 13);
-        FrmSetObjectBoundsByID(form, buttonClose, appContext->screenWidth-14, appContext->screenHeight-14, 14, 14);
-        FrmSetObjectBoundsByID(form, bmpFind, appContext->screenWidth-27, appContext->screenHeight-13, 13, 13);
-        FrmSetObjectBoundsByID(form, buttonFind, appContext->screenWidth-28, appContext->screenHeight-14, 14, 14);
+    UpdateFrmBounds(form);
 
-        FrmUpdateForm(formResidentLookup, frmRedrawUpdateCode);
-        handled=true;
-    }        
-    return handled;
+    FrmSetObjectPosByID(form, ctlArrowLeft, -1, appContext->screenHeight-12);
+    FrmSetObjectPosByID(form, ctlArrowRight, -1, appContext->screenHeight-12);
+    FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
+    FrmSetObjectPosByID(form, bmpClose, appContext->screenWidth-13, appContext->screenHeight-13);
+    FrmSetObjectPosByID(form, buttonClose, appContext->screenWidth-14, appContext->screenHeight-14);
+    FrmSetObjectPosByID(form, bmpFind, appContext->screenWidth-27, appContext->screenHeight-13);
+    FrmSetObjectPosByID(form, buttonFind, appContext->screenWidth-28, appContext->screenHeight-14);
+
+    FrmUpdateForm(formResidentLookup, frmRedrawUpdateCode);
+    return true;
 }
 
 /**
@@ -141,22 +164,6 @@ static Boolean ResidentLookupFormDisplayChanged(AppContext* appContext, FormType
 static Boolean ResidentLookupFormPenUp(AppContext* appContext, FormType* form, EventType* event) 
 {
     Boolean handled=false;
-#if 0
-    Assert(appContext->currDispInfo);
-    if (event->screenX <= appContext->screenWidth-FRM_RSV_W && event->screenY <= appContext->screenHeight-FRM_RSV_H)
-    {
-        if (event->screenY > ((appContext->screenHeight-FRM_RSV_H) / 2))
-        {
-            DefScrollDown(appContext, appContext->prefs.tapScrollType);
-            handled = true;
-        }
-        else
-        {
-            DefScrollUp(appContext, appContext->prefs.tapScrollType);
-            handled=true;
-        }
-    } 
-#endif
     return handled;      
 }
 
@@ -285,20 +292,31 @@ static Boolean ResidentLookupFormHandleEvent(EventType* event)
         case ctlSelectEvent:
             handled=ResidentLookupFormControlSelected(appContext, form, event);
             break;
+        case evtFieldChanged:
+            RememberFieldWordMain(appContext, form);
+            ResidentLookupFormFindPressed(appContext);
+            handled = true;
+            break;
     }
     return handled;
 }
 
 Err PopupResidentLookupForm(AppContext* appContext) 
 {
-    Err error=errNone;
-    FormType* form=FrmInitForm(formResidentLookup);
-    UInt16 buttonId=0;
+    Err         error;
+    FormType *  form=FrmInitForm(formResidentLookup);
+    UInt16      buttonId;
+    char *      word;
+
     Assert(form);
     error=DefaultFormInit(appContext, form);
     if (error) 
         goto OnError;
     FrmSetEventHandler(form, ResidentLookupFormHandleEvent);
+
+    word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
+    FldClearInsert(form, fieldWordMain, word);                
+
     buttonId=FrmDoDialog(form);
     Assert(!buttonId || buttonClose==buttonId);
 OnError:

@@ -52,34 +52,24 @@ static Boolean PreferencesFormControlSelected(AppContext* appContext, FormType* 
 
 static Boolean PreferencesFormDisplayChanged(AppContext* appContext, FormType* form) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        RectangleType bounds;
-        WinGetBounds(WinGetDisplayWindow(), &bounds);
-        bounds.topLeft.y+=2;
-        bounds.topLeft.x+=2;
-        bounds.extent.y-=4;
-        bounds.extent.x-=4;
-        WinSetBounds(FrmGetWindowHandle(form), &bounds);
-        
-        index=FrmGetObjectIndex(form, buttonOk);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &bounds);
-        bounds.topLeft.y=appContext->screenHeight-13-bounds.extent.y;
-        FrmSetObjectBounds(form, index, &bounds);
+    RectangleType bounds;
 
-        index=FrmGetObjectIndex(form, buttonCancel);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &bounds);
-        bounds.topLeft.y=appContext->screenHeight-13-bounds.extent.y;
-        FrmSetObjectBounds(form, index, &bounds);
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
 
-        FrmUpdateForm(formPrefs, frmRedrawUpdateCode);        
-        handled=true;
-    }
-    return handled;
+    WinGetBounds(WinGetDisplayWindow(), &bounds);
+    bounds.topLeft.y+=2;
+    bounds.topLeft.x+=2;
+    bounds.extent.y-=4;
+    bounds.extent.x-=4;
+    WinSetBounds(FrmGetWindowHandle(form), &bounds);
+
+    FrmSetObjectPosByID(form, buttonOk,     -1, appContext->screenHeight-13-14);
+    FrmSetObjectPosByID(form, buttonCancel, -1, appContext->screenHeight-13-14);
+
+    FrmUpdateForm(formPrefs, frmRedrawUpdateCode);        
+
+    return true;
 }
 
 

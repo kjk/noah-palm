@@ -15,6 +15,7 @@
 #define   formBookmarks       1009
 
 #define   fieldWord           1200
+#define   fieldWordMain       1210
 
 #define   ctlArrowLeft        1300
 #define   ctlArrowRight       1301
@@ -49,6 +50,7 @@
 #define   menuItemBookmarkWord 2100
 #define   menuItemBookmarkView 2110
 #define   menuItemBookmarkDelete 2120
+#define   menuItemRandomWord   2130
 
 #define   buttonCancel        3001
 #define   buttonFind          3002

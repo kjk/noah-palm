@@ -46,6 +46,12 @@ function aveg($total,$num)
     echo $avg;
 }
 
+function stats_for_a_day($day)
+{
+
+
+}
+
 ?>
 
 iNoah has been published for <?php echo $num_days . " " . day_or_days($num_days) ?>. <br>

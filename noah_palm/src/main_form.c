@@ -474,52 +474,19 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
 
 static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        RectangleType bounds;
-        WinGetBounds(WinGetDisplayWindow(), &bounds);
-        WinSetBounds(FrmGetWindowHandle(form), &bounds);
-        
-        index=FrmGetObjectIndex(form, buttonFind);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &bounds);
-        bounds.topLeft.y=appContext->screenHeight-13;
-        bounds.topLeft.x=appContext->screenWidth-26;
-        FrmSetObjectBounds(form, index, &bounds);
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
 
-        index=FrmGetObjectIndex(form, fieldWordInput);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &bounds);
-        bounds.topLeft.y=appContext->screenHeight-13;
-        bounds.extent.x=appContext->screenWidth-60;
-        FrmSetObjectBounds(form, index, &bounds);
+    UpdateFrmBounds(form);
 
-        index=FrmGetObjectIndex(form, labelWord);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &bounds);
-        bounds.topLeft.y=appContext->screenHeight-13;
-        FrmSetObjectBounds(form, index, &bounds);
+    FrmSetObjectPosByID(form, buttonFind, appContext->screenWidth-26, appContext->screenHeight-13);
+    FrmSetObjectBoundsByID(form, fieldWordInput, -1, appContext->screenHeight-13, appContext->screenWidth-60, -1);
+    FrmSetObjectPosByID(form, labelWord, -1, appContext->screenHeight-13);
+    FrmSetObjectBoundsByID(form, scrollDef, appContext->screenWidth-8, -1, -1, appContext->screenHeight-18);
+    FrmSetObjectPosByID(form, buttonAbortLookup, appContext->screenWidth-13, appContext->screenHeight-13);
 
-        index=FrmGetObjectIndex(form, scrollDef);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &bounds);
-        bounds.topLeft.x=appContext->screenWidth-8;
-        bounds.extent.y=appContext->screenHeight-18;
-        FrmSetObjectBounds(form, index, &bounds);
-
-        index=FrmGetObjectIndex(form, buttonAbortLookup);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &bounds);
-        bounds.topLeft.x=appContext->screenWidth-13;
-        bounds.topLeft.y=appContext->screenHeight-13;
-        FrmSetObjectBounds(form, index, &bounds);
-
-        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
-        handled=true;
-    }
-    return handled;
+    FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
+    return true;
 }
 
 static Boolean MainFormHandleEvent(EventType* event)

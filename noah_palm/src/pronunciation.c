@@ -68,73 +68,45 @@ static char pronRetPronNo(char a, char b)
 	return 0;
 }
 
+#define PRON_DATA "AAAEAHAOAWAYB CHD DHEHEREYF G HHIHIYJHK L M N NG OWOYP R S SHT THUHUWV W Y Z ZH"
+
 /**
  *  Version with AA, AO, ...
  */ 
-static char* pronTranslateDecompresedVer1(struct _AppContext *appContext, unsigned char *decompresed)
+static char* pronTranslateDecompresedVer1(struct _AppContext *appContext, unsigned char *decompressed)
 {
-    ExtensibleBuffer *Buf;
-    int i = 0;
-    char *ret = NULL;
-    
-    Buf = ebufNew();
-    Assert(Buf);
+    ExtensibleBuffer * buf;
+    int                i=0;
+    char *             ret;
+    char *             tmp;
+    int                pos;
+
+    buf = ebufNew();
+    if ( NULL == buf)
+        return NULL;
 
     do
     {
-        switch(decompresed[i])
+        pos = (int)decompressed[i];
+        if ( (0==pos) || (pos>39) )
+            ebufAddChar(buf, '\0');
+        else
         {
-            case  0: ebufAddChar(Buf,'\0'); break;
-            case  1: ebufAddStr(Buf,"AA"); break;
-            case  2: ebufAddStr(Buf,"AE"); break;
-            case  3: ebufAddStr(Buf,"AH"); break;
-            case  4: ebufAddStr(Buf,"AO"); break;
-            case  5: ebufAddStr(Buf,"AW"); break;
-            case  6: ebufAddStr(Buf,"AY"); break;
-            case  7: ebufAddStr(Buf,"B"); break;
-            case  8: ebufAddStr(Buf,"CH"); break;
-            case  9: ebufAddStr(Buf,"D"); break;
-            case 10: ebufAddStr(Buf,"DH"); break;
-            case 11: ebufAddStr(Buf,"EH"); break;
-            case 12: ebufAddStr(Buf,"ER"); break;
-            case 13: ebufAddStr(Buf,"EY"); break;
-            case 14: ebufAddStr(Buf,"F"); break;
-            case 15: ebufAddStr(Buf,"G"); break;
-            case 16: ebufAddStr(Buf,"HH"); break;
-            case 17: ebufAddStr(Buf,"IH"); break;
-            case 18: ebufAddStr(Buf,"IY"); break;
-            case 19: ebufAddStr(Buf,"JH"); break;
-            case 20: ebufAddStr(Buf,"K"); break;
-            case 21: ebufAddStr(Buf,"L"); break;
-            case 22: ebufAddStr(Buf,"M"); break;
-            case 23: ebufAddStr(Buf,"N"); break;
-            case 24: ebufAddStr(Buf,"NG"); break;
-            case 25: ebufAddStr(Buf,"OW"); break;
-            case 26: ebufAddStr(Buf,"OY"); break;
-            case 27: ebufAddStr(Buf,"P"); break;
-            case 28: ebufAddStr(Buf,"R"); break;
-            case 29: ebufAddStr(Buf,"S"); break;
-            case 30: ebufAddStr(Buf,"SH"); break;
-            case 31: ebufAddStr(Buf,"T"); break;
-            case 32: ebufAddStr(Buf,"TH"); break;
-            case 33: ebufAddStr(Buf,"UH"); break;
-            case 34: ebufAddStr(Buf,"UW"); break;
-            case 35: ebufAddStr(Buf,"V"); break;
-            case 36: ebufAddStr(Buf,"W"); break;
-            case 37: ebufAddStr(Buf,"Y"); break;
-            case 38: ebufAddStr(Buf,"Z"); break;
-            case 39: ebufAddStr(Buf,"ZH"); break;
-            default: ebufAddChar(Buf,'\0'); break;
-        }    
-        if(decompresed[i] >= 1 && decompresed[i] <= 39)
-            if(decompresed[i+1] >= 1 && decompresed[i+1] <= 39)
-                ebufAddChar(Buf,' ');
-        
-    }while(decompresed[i++]!=0x00);
+            // position of the pronunciation data in PRON_DATA string
+            pos = (pos-1)*2;
+            Assert( pos <= sizeof(PRON_DATA)-2 );
+            tmp = &PRON_DATA[pos];
+            if ( ' ' == tmp[1])
+                ebufAddStrN(buf,tmp,1);
+            else
+                ebufAddStrN(buf,tmp,2);
+            if(decompressed[i+1] >= 1 && decompressed[i+1] <= 39)
+                ebufAddChar(buf,' ');
+        }
+    } while(decompressed[i++]!=0x00);
 
-    ret = new_malloc_zero(Buf->used);
-    MemMove(ret, Buf->data, Buf->used);
-    ebufDelete(Buf);
+    ret = ebufGetTxtCopy(buf);
+    ebufDelete(buf);
     return ret;
 }
 

@@ -14,45 +14,23 @@
 
 static Boolean ResidentBrowseFormDisplayChanged(AppContext* appContext, FormType* form) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        ListType* list=0;
-        RectangleType newBounds;
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(form), &newBounds);
-        
-        FrmSetObjectBoundsByID(form, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(form, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
-        
-        index=FrmGetObjectIndex(form, listMatching);
-        Assert(index!=frmInvalidObjectId);
-        list=(ListType*)FrmGetObjectPtr(form, index);
-        Assert(list);
-        LstSetHeight(list, appContext->dispLinesCount);
-        FrmGetObjectBounds(form, index, &newBounds);
-        newBounds.extent.x=appContext->screenWidth;
-        FrmSetObjectBounds(form, index, &newBounds);
-        
-        index=FrmGetObjectIndex(form, fieldWord);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-13;
-        newBounds.extent.x=appContext->screenWidth-66;
-        FrmSetObjectBounds(form, index, &newBounds);
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
 
-        index=FrmGetObjectIndex(form, buttonCancel);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(form, index, &newBounds);
-        newBounds.topLeft.x=appContext->screenWidth-40;
-        newBounds.topLeft.y=appContext->screenHeight-14;
-        FrmSetObjectBounds(form, index, &newBounds);
+    UpdateFrmBounds(form);
 
-        FrmUpdateForm(formResidentBrowse, frmRedrawUpdateCode);
-        handled=true; 
-    }
-    return handled;
+    SetListHeight(form, listMatching, appContext->dispLinesCount);
+
+    FrmSetObjectPosByID(form, ctlArrowLeft,  -1, appContext->screenHeight-12);
+    FrmSetObjectPosByID(form, ctlArrowRight, -1, appContext->screenHeight-12);
+
+    FrmSetObjectBoundsByID(form, listMatching, -1, -1, appContext->screenWidth, -1);
+    FrmSetObjectBoundsByID(form, fieldWord, -1, appContext->screenHeight-13, appContext->screenWidth-66, -1);
+    FrmSetObjectPosByID(form, buttonCancel, appContext->screenWidth-40, appContext->screenHeight-14);
+
+    FrmUpdateForm(formResidentBrowse, frmRedrawUpdateCode);
+
+    return true;
 }
 
 static void ResidentBrowseFormChooseWord(AppContext* appContext, FormType* form, UInt32 wordNo)
@@ -91,7 +69,7 @@ static Boolean ResidentBrowseFormControlSelected(AppContext* appContext, FormTyp
             break;      
             
         case buttonCancel:
-            RememberLastWord(appContext, form);
+            RememberLastWord(appContext, form, fieldWord);
             break;
             
         default:

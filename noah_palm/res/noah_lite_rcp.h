@@ -4,6 +4,7 @@
 #define   formSelectDict    1004
 
 #define   fieldWord         1200
+#define   fieldWordMain     1210
 
 #define   ctlArrowLeft      1300
 #define   ctlArrowRight     1301

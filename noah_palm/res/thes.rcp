@@ -22,13 +22,14 @@ BEGIN
 
   PULLDOWN "Main"
   BEGIN
+    MENUITEM "Random word"             ID menuItemRandomWord    "R"
     MENUITEM "Find word"               ID menuItemFind          "F"
 #ifdef _ADD_FIND_WORD_PATTERN_
     MENUITEM "Find word (pattern)"     ID menuItemFindPattern   "P"
 #endif
     MENUITEM "Select database"         ID menuItemSelectDB      "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
-    MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard     "L"
+    MENUITEM "Lookup clipboard"        ID menuItemLookupClipboard    "L"
     MENUITEM "Stress"                  ID menuItemStress        "E"
   END
 
@@ -90,6 +91,7 @@ BEGIN
    SCROLLBAR         ID scrollDef     AT (152   1  7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    BUTTON "\002"        ctlArrowLeft  AT (  0 148  8  11) FONT 4 NOFRAME
    BUTTON "\003"        ctlArrowRight AT (  8 148 10  11) FONT 4 NOFRAME
+   FIELD    fieldWordMain       AT ( 20 147   94 AUTO) UNDERLINED MAXCHARS 20
    POPUPTRIGGER ""   ID popupHistory  AT (128 147 17  13) FONT 0 LEFTANCHOR
    LIST "" ID           listHistory   AT (154-HISTORY_LIST_DX 156-(HISTORY_ITEMS*11) HISTORY_LIST_DX HISTORY_ITEMS*11) NONUSABLE FONT 0
    FORMBITMAP                         AT (147 147)        BITMAP bmpFind

@@ -126,15 +126,14 @@ Boolean FTryClipboard(AppContext* appContext)
     MemHandle   clipItemHandle;
     char        txt[WORD_MAX_LEN+1];
     char *      clipTxt;
+    UInt16      clipTxtLen;
     char *      word;
     UInt32      wordNo;
-    int         idx;
-    UInt16      itemLen;
 
     Assert(GetCurrentFile(appContext));
 
-    clipItemHandle = ClipboardGetItem(clipboardText, &itemLen);
-    if (!clipItemHandle || (0==itemLen))
+    clipItemHandle = ClipboardGetItem(clipboardText, &clipTxtLen);
+    if (!clipItemHandle || (0==clipTxtLen))
             return false;
 
     clipTxt = (char *) MemHandleLock(clipItemHandle);
@@ -144,23 +143,17 @@ Boolean FTryClipboard(AppContext* appContext)
         MemHandleUnlock( clipItemHandle );
         return false;
     }
-
-    MemSet(txt, sizeof(txt), 0);
-    itemLen = (itemLen < sizeof(txt)-1) ? itemLen : sizeof(txt)-1;
-    MemMove(txt, clipTxt, itemLen);
-
-    strtolower(txt);
-    RemoveWhiteSpaces( txt );
-    idx = 0;
-    while (txt[idx] && (txt[idx] == ' '))
-        ++idx;
-
+    
+    SafeStrNCopy(txt, sizeof(txt), clipTxt, clipTxtLen);
     MemHandleUnlock(clipItemHandle);
+
+    RemoveWhiteSpaces(txt);
+    strtolower(txt);
 
     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), txt);
     word = dictGetWord(GetCurrentFile(appContext), wordNo);
 
-    if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
+    if (0 == StrNCaselessCompare((char*)txt, word, StrLen(word) <  StrLen(txt) ? StrLen(word) : StrLen(txt)))
     {
         DrawDescription(appContext, wordNo);
         return true;
@@ -301,7 +294,7 @@ void SetBackColorWhite(AppContext* appContext)
     rgb_color.b = 255;
     SetBackColor( appContext, &rgb_color );
 }
-void SetBackColorRGB(int r, int g, int b,AppContext* appContext)
+void SetBackColorRGB(AppContext* appContext, int r, int g, int b)
 {
     RGBColorType rgb_color;
 
@@ -310,7 +303,7 @@ void SetBackColorRGB(int r, int g, int b,AppContext* appContext)
     rgb_color.b = b;
     SetBackColor( appContext, &rgb_color );
 }
-void SetTextColorRGB(int r, int g, int b,AppContext* appContext)
+void SetTextColorRGB(AppContext* appContext, int r, int g, int b)
 {
     RGBColorType rgb_color;
 
@@ -407,10 +400,25 @@ void DisplayHelp(AppContext* appContext)
 
 extern void DisplayAbout(AppContext* appContext);
 
+/* max width of the word displayed at the bottom */
+#define MAX_WORD_DX        100
+
+static void FldRedrawSelectAllText(FormType *frm, int objId)
+{
+    UInt16       index;
+    FieldType *  field;
+
+    index=FrmGetObjectIndex(frm, objId);
+    Assert(frmInvalidObjectId!=index);
+    FrmShowObject(frm,index);
+    field=(FieldType*)(FrmGetObjectPtr(frm, index));
+    Assert(field);
+    FldSelectAllText(field);
+}
+
 static void RedrawWordDefinition(AppContext* appContext)
 {
-    Int16 wordLen = 0;
-    char *word = NULL;
+    char *       word;
 
     // might happen if there is no word chosen yet, in which case we
     // display about screen
@@ -427,21 +435,25 @@ static void RedrawWordDefinition(AppContext* appContext)
     if ( NULL == GetCurrentFile(appContext) )
         return;
 
-
     /* write the word at the bottom */
     word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
 
     // TODO: replace with SetWordAsLastWord() ?
-    wordLen = StrLen(word);
-    MemSet(appContext->prefs.lastWord, WORD_MAX_LEN, 0);
-    MemMove(appContext->prefs.lastWord, word, wordLen < WORD_MAX_LEN-1 ? wordLen : WORD_MAX_LEN);
+    SafeStrNCopy(appContext->prefs.lastWord, sizeof(appContext->prefs.lastWord), word, -1);
 
     SetBackColorWhite(appContext);
-    DrawWord(word, appContext->screenHeight-FONT_DY);
+    /* DrawWord(word, appContext->screenHeight-FONT_DY); */
+#ifndef I_NOAH    
+    ClearRectangle(21, appContext->screenHeight-FONT_DY - 1, MAX_WORD_DX, FONT_DY);
+#else 
+    ClearRectangle(11, appContext->screenHeight-FONT_DY - 1, MAX_WORD_DX, FONT_DY);
+#endif
     ClearDisplayRectangle(appContext);
     DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
-
+#ifndef I_NOAH
+    FldRedrawSelectAllText(FrmGetActiveForm(),fieldWordMain);
+#endif
 }
 
 #pragma segment Segment2
@@ -458,10 +470,11 @@ void SendNewWordSelected(void)
 
 void RedrawMainScreen(AppContext* appContext)
 {
+    FrmSetFocus(FrmGetActiveForm(), FrmGetObjectIndex(FrmGetActiveForm(), fieldWordMain));
     FrmDrawForm(FrmGetActiveForm());
     WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
     WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
-    RedrawWordDefinition(appContext);
+    RedrawWordDefinition(appContext);   
 }
 
 void DrawDescription(AppContext* appContext, long wordNo)
@@ -556,16 +569,13 @@ void DrawCenteredString(AppContext* appContext, const char *str, int dy)
     WinDrawChars(str, strLen, (appContext->screenWidth - strDx) / 2, dy);
 }
 
-/* max width of the word displayed at the bottom */
-#define MAX_WORD_DX        100
-
 void DrawWord(char *word, int pos_y)
 {
     Int16 wordLen = 0;
     Int16 word_dx = MAX_WORD_DX;
     
 #ifndef I_NOAH    
-    Int16 wordStartX=21;
+    Int16 wordStartX=20;
 #else 
     Int16 wordStartX=1;
 #endif
@@ -1901,57 +1911,59 @@ void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrB
     deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
 }
 
-static void SetWordAsLastWord(AppContext* appContext, char *txt, int wordLen )
+static void SetWordAsLastWord(AppContext* appContext, char *txt, int txtLen )
 {
-    MemSet((void *) &(appContext->lastWord[0]), WORD_MAX_LEN, 0);
-    if ( -1 == wordLen )
-        wordLen = StrLen( txt );
-    if (wordLen >= (WORD_MAX_LEN - 1))
-        wordLen = WORD_MAX_LEN - 1;
-    MemMove((void *) &(appContext->lastWord[0]), txt, wordLen);
+    SafeStrNCopy( &(appContext->lastWord[0]), sizeof(appContext->lastWord), txt, txtLen );
 }
 
-void RememberLastWord(AppContext* appContext, FormType * frm)
+void RememberLastWord(AppContext* appContext, FormType * frm, int objId)
 {
-    char *      word = NULL;
+    char *      word;
     int         wordLen;
     FieldType * fld;
 
+    Assert(appContext);
     Assert(frm);
 
-    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
+    fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, objId));
     word = FldGetTextPtr(fld);
     wordLen = FldGetTextLength(fld);
-    SetWordAsLastWord( appContext, word, wordLen );
-    FldDelete(fld, 0, wordLen - 1);
+    SetWordAsLastWord( appContext, FldGetTextPtr(fld), FldGetTextLength(fld) );
 }
 
 #pragma segment Segment2
 
 void DoFieldChanged(AppContext* appContext)
 {
-    char        *word;
+    char *      prevWord;
+    char *      wordInField;
     FormPtr     frm;
     FieldPtr    fld;
     ListPtr     list;
     long        newSelectedWord;
 
+    // if the word in the text field and the word that was previously in the
+    // text field are the same - do nothing
+    prevWord = appContext->lastWord;
     frm = FrmGetActiveForm();
     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
-    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-    word = FldGetTextPtr(fld);
-    /* DrawWord( word, 149 ); */
+    wordInField = FldGetTextPtr(fld);
+    if ( 0 == StrCompare(prevWord, wordInField) )
+        return;
+
     newSelectedWord = 0;
-    if (word && *word)
+    if (wordInField && *wordInField)
     {
-        newSelectedWord = dictGetFirstMatching(GetCurrentFile(appContext), word);
+        newSelectedWord = dictGetFirstMatching(GetCurrentFile(appContext), wordInField);
     }
     if (appContext->selectedWord != newSelectedWord)
     {
+        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
         appContext->selectedWord = newSelectedWord;
         Assert(appContext->selectedWord < appContext->wordsCount);
         LstSetSelectionMakeVisibleEx(appContext, list, appContext->selectedWord);
     }
+    SetWordAsLastWord(appContext, wordInField, -1);
 }
 
 void SendFieldChanged(void)
@@ -2007,18 +2019,59 @@ long FindCurrentDbIndex(AppContext* appContext)
 
 #endif // I_NOAH
 
-void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey) {
+
+/* Change the size of a given form to the size of the whole screen. Used
+   in response to window size change event. */
+void UpdateFrmBounds(FormType *frm)
+{
+    RectangleType newBounds;
+    WinGetBounds(WinGetDisplayWindow(), &newBounds);
+    WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+}
+
+void SetListHeight(FormType *frm, UInt16 objId, int linesCount)
+{
+    UInt16          index=0;
+    ListType*       list=0;
+
+    index=FrmGetObjectIndex(frm, objId);
+    Assert(index!=frmInvalidObjectId);
+    list=(ListType*)FrmGetObjectPtr(frm, index);
+    Assert(list);
+    LstSetHeight(list, linesCount);
+}
+
+/* Set the position (x,y) and size (ex,ey) of ui object objId in form frm.
+   If x,y,ex,ey is -1 then use the existing value for this ui object
+   (useful for moving gadgets around as a result of display dimension change -
+   usually in this case we only modify x,y without changing ex,ey).
+*/
+void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey)
+{
     UInt16 index;
     RectangleType objBounds;
     Assert(frm);
     index=FrmGetObjectIndex(frm, objId);
     Assert(index!=frmInvalidObjectId);
     FrmGetObjectBounds(frm, index, &objBounds);
-    objBounds.topLeft.x=x,
-    objBounds.topLeft.y=y;
-    objBounds.extent.x=ex;
-    objBounds.extent.y=ey;
+    if ( -1 != x )
+        objBounds.topLeft.x=x;
+    if ( -1 != y )
+        objBounds.topLeft.y=y;
+    if ( -1 != ex )
+        objBounds.extent.x=ex;
+    if ( -1 != ey )
+        objBounds.extent.y=ey;
     FrmSetObjectBounds(frm, index, &objBounds);
+}
+
+/* Set the position (x,y) ui object objId in form frm.
+   Useful for moving gadgets around as a result of display dimension change -
+   usually in this case we only modify position without changing the size.
+*/
+void FrmSetObjectPosByID(FormType* frm, UInt16 objId, Int16 x, Int16 y)
+{
+    FrmSetObjectBoundsByID(frm,objId,x,y,-1,-1);
 }
 
 void SyncScreenSize(AppContext* appContext) 
@@ -2305,7 +2358,7 @@ DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type)
     return NULL;
 }
 
-UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total)
+UInt16 PercentProgress(char* buffer, UInt32 current, UInt32 total)
 {
     current*=100;
     current/=total;
@@ -2316,6 +2369,34 @@ UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total)
         Assert(2<=result && 5>=result);
     }
     return current;
+}
+
+void SafeStrNCopy(char *dst, int dstLen, char *srcStr, int srcStrLen)
+{
+    Assert( dst );
+    Assert( dstLen > 0);
+    Assert( srcStr || srcStrLen==0 );
+
+    if ( -1 == srcStrLen )
+        srcStrLen = StrLen(srcStr);
+
+    if ( srcStrLen + 1 > dstLen )
+    {
+        // the source with terminating null doesn't fit in the buffer,
+        // copy only as much as we can
+
+        Assert(0);  // for now we assert all those cases; in the future there might be a legitimate use for that
+
+        MemMove( dst, srcStr, dstLen-1 );
+
+        // make sure the buffer is always null-terminated
+        dst[dstLen-1] = '\0';
+    }
+    else
+    {
+        MemMove( dst, srcStr, srcStrLen );
+        dst[srcStrLen] = '\0';
+    }
 }
 
 Boolean StrStartsWith(const Char* begin, const Char* end, const Char* subStr)
@@ -2332,10 +2413,10 @@ Boolean StrStartsWith(const Char* begin, const Char* end, const Char* subStr)
 }
 
 
-const Char* StrFind(const Char* begin, const Char* end, const Char* subStr)
+const char* StrFind(const char* begin, const char* end, const char* subStr)
 {
     UInt16 subLen=StrLen(subStr);
-    const Char* result=NULL;
+    const char* result=NULL;
     while (end-begin>=subLen)
     {
         if (!StrStartsWith(begin, end, subStr))
@@ -2350,14 +2431,14 @@ const Char* StrFind(const Char* begin, const Char* end, const Char* subStr)
     return result;         
 }
 
-Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base)
+Err StrAToIEx(const char* begin, const char* end, Int32* result, UInt16 base)
 {
     Err error=errNone;
     Boolean negative=false;
     Int32 res=0;
-    const Char* numbers="0123456789abcdefghijklmnopqrstuvwxyz";
+    const char* numbers="0123456789abcdefghijklmnopqrstuvwxyz";
     UInt16 numLen=StrLen(numbers);
-    Char buffer[2];
+    char buffer[2];
     if (begin>=end || base>numLen)
     {    
         error=memErrInvalidParam;
@@ -2396,10 +2477,10 @@ OnError:
     return error;    
 }
 
-const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars)
+const char* StrFindOneOf(const char* begin, const char* end, const char* chars)
 {
-    Char buffer[2];
-    const Char* charsEnd=chars+StrLen(chars);
+    char buffer[2];
+    const char* charsEnd=chars+StrLen(chars);
     buffer[1]=chrNull;
     while (begin<end) 
     {
@@ -2411,7 +2492,7 @@ const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars)
     return begin;
 }
 
-void StrTrimTail(const Char* begin, const Char** end)
+void StrTrimTail(const char* begin, const char** end)
 {
     while (*end>begin && *end!=StrFindOneOf((*end)-1, *end, " \r\n\t"))
         --(*end);
@@ -2419,9 +2500,9 @@ void StrTrimTail(const Char* begin, const Char** end)
 
 #define uriUnreservedCharacters "-_.!~*'()"
 
-inline static void CharToHexString(Char* buffer, Char chr)
+inline static void CharToHexString(char* buffer, char chr)
 {
-    const Char* numbers="0123456789ABCDEF";
+    const char* numbers="0123456789ABCDEF";
     buffer[0]=numbers[chr/16];
     buffer[1]=numbers[chr%16];
 }
@@ -2525,21 +2606,27 @@ void CreateNewMemo(char *memoBody, int memoBodySize)
 }
 
 #ifdef DEBUG
+#ifdef I_NOAH
 void LogErrorToMemo_(const Char* message, Err error)
 {
+    ExtensibleBuffer  buffer;
+    char *            errorCodeBuffer;
+    Int16             length;
+
     Assert(message);
     Assert(error);    
-    ExtensibleBuffer buffer;
+
     ebufInitWithStr(&buffer, const_cast<Char*>(message));
     UInt16 messageLength=ebufGetDataSize(&buffer);
     ebufAddStr(&buffer, " (0x0000)"); // Provide space for error code
     ebufAddChar(&buffer, chrNull);
-    Char* errorCodeBuffer=ebufGetDataPointer(&buffer)+messageLength; // Should now point at start of " (0x0000)" text
-    Int16 length=StrPrintF(errorCodeBuffer, " (0x%hx)", (UInt16)error); // Yep, I know it's already UInt16, but that way we won't get buffer overflow if it ever changes
+    errorCodeBuffer=ebufGetDataPointer(&buffer)+messageLength; // Should now point at start of " (0x0000)" text
+    length=StrPrintF(errorCodeBuffer, " (0x%hx)", (UInt16)error); // Yep, I know it's already UInt16, but that way we won't get buffer overflow if it ever changes
     Assert(9==length);
     CreateNewMemo(errorCodeBuffer-messageLength, messageLength+9);
     ebufFreeData(&buffer);
 }
+#endif
 #endif
 
 Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
@@ -2552,5 +2639,59 @@ Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
     list=(ListType*)FrmGetObjectPtr(form, index);
     Assert(list);
     return LstGetSelection(list);
+}
+
+void FldClearInsert(FormType *frm, int fldId, char *txt)
+{
+    FieldType *  fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fldId));
+    int          len = FldGetTextLength(fld);
+
+    FldDelete(fld, 0, len);
+
+    if ( StrLen(txt) > 0 )
+        FldInsert(fld, txt, StrLen(txt));
+}
+
+void RememberFieldWordMain(AppContext *appContext, FormType *frm)
+{
+    FieldType *fld;
+    fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWordMain));
+    appContext->fldInsPt = FldGetInsPtPosition(fld);
+    RememberLastWord(appContext, frm, fieldWordMain);
+}
+
+void GoToFindWordForm(AppContext *appContext, FormType *frm)
+{
+    RememberFieldWordMain(appContext, frm);
+    FrmPopupForm(formDictFind);
+}
+
+/* Generates a random long in the range 0..range-1. SysRandom() returns value
+   between 0..sysRandomMax which is 0x7FFF. We have to construct a long out of
+   that.
+*/
+long  GenRandomLong(long range)
+{
+    UInt32  result;
+    Int16   rand1, rand2;
+
+    /* the idea is that to get better randomness we'll seed SysRandom() every
+       fourth time with the number of current ticks. I don't know if it matters
+       and don't care much. */
+    rand1 = SysRandom(0);
+    if ( 2 == (rand1 % 3) )
+        rand1 = SysRandom(TimGetTicks());
+
+    rand2 = SysRandom(0);
+    if ( 2 == (rand2 % 3) )
+        rand2 = SysRandom(TimGetTicks());
+
+    result = rand1*sysRandomMax + rand2;
+
+    result = result % range;
+
+    Assert( result<range );
+
+    return (long)result;
 }
 

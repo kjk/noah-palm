@@ -20,7 +20,7 @@
 
 #define WORD_MAX_LEN 40
 
-typedef Char WordStorageType[WORD_MAX_LEN];
+typedef char WordStorageType[WORD_MAX_LEN];
 
 #include "mem_leak.h"
 #include "display_info.h"
@@ -260,7 +260,8 @@ typedef struct _AppContext
 
 #endif // I_NOAH
 
-    WordStorageType               lastWord;
+    WordStorageType    lastWord;
+    UInt16             fldInsPt;
 
     long               ticksEventTimeout;
 #ifndef NOAH_LITE  
@@ -425,8 +426,8 @@ void SetTextColorBlack(AppContext* appContext);
 void SetTextColorRed(AppContext* appContext);
 void SetBackColor(AppContext* appContext,RGBColorType *color);
 void SetBackColorWhite(AppContext* appContext);
-void SetBackColorRGB(int r, int g, int b,AppContext* appContext);
-void SetTextColorRGB(int r, int g, int b,AppContext* appContext);
+void SetBackColorRGB(AppContext* appContext, int r, int g, int b);
+void SetTextColorRGB(AppContext* appContext, int r, int g, int b);
 void SetGlobalBackColor(AppContext* appContext);
 
 Boolean CreateHelpData(AppContext* appContext);
@@ -497,7 +498,8 @@ void            serString  (char *str, char *prefsBlob, long *pCurrBlobSize);
 char *          deserString(unsigned char **data, long *pCurrBlobSize);
 void            deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrBlobSize);
 
-void            RememberLastWord(AppContext* appContext, FormType * frm);
+void            RememberLastWord(AppContext* appContext, FormType * frm, int objId);
+
 void            DoFieldChanged(AppContext* appContext);
 void            SendFieldChanged(void);
 void            SendNewDatabaseSelected(int db);
@@ -515,6 +517,12 @@ long            FindCurrentDbIndex(AppContext* appContext);
  * @param ey new extent.y (height).
  */
 extern void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey);
+
+extern void FrmSetObjectPosByID(FormType* frm, UInt16 objId, Int16 x, Int16 y);
+
+extern void UpdateFrmBounds(FormType *frm);
+
+extern void SetListHeight(FormType *frm, UInt16 objId, int linesCount);
 
 /**
  * Synchronizes screen resolution cached in @c appContext with actual screen resolution.
@@ -549,7 +557,9 @@ DmOpenRef OpenDbByNameCreatorType(char *dbName, UInt32 creator, UInt32 type);
  * @param buffer @c Char array with space for at least 5 elements, or NULL if not needed.
  * @return ratio in percents.
  */ 
-extern UInt16 PercentProgress(Char* buffer, UInt32 current, UInt32 total);
+extern UInt16 PercentProgress(char* buffer, UInt32 current, UInt32 total);
+
+extern void SafeStrNCopy(char *dst, int dstLen, char *srcStr, int srcStrLen);
 
 #define MillisecondsToTicks(millis) ((((float)SysTicksPerSecond())*((float)(millis)))/1000.0)
 
@@ -629,5 +639,10 @@ extern void LogErrorToMemo_(const Char* message, Err error);
 void StartTiming(AppContext* appContext, char * description);
 void StopTiming(AppContext* appContext);
 #endif
+
+void FldClearInsert(FormType *frm, int fldId, char *txt);
+void RememberFieldWordMain(AppContext *appContext, FormType *frm);
+void GoToFindWordForm(AppContext *appContext, FormType *frm);
+long GenRandomLong(long range);
 
 #endif

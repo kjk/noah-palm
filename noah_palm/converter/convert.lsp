@@ -17,9 +17,10 @@
 
 (if (eq *file-sets* 'win)
   (progn
-    (defconstant *wordnet-dir*       "c:\\kjk\\src\\mine\\noah_dicts\\wordnet16\\")
-    (defconstant *eng-pol-file-name* "c:\\kjk\\src\\mine\\noah_dicts\\eng_pol.txt")
-    (defconstant *eng-pol-words-cache-file-name* "c:\\kjk\\src\\mine\\noah_dicts\\eng_pol_words.txt")
+    ;;(defconstant *wordnet-dir*       "c:\\kjk\\src\\mine\\dicts_data\\WordNet-20\\dict\\")
+    (defconstant *wordnet-dir*       "c:\\kjk\\src\\mine\\dicts_data\\wordnet16\\")
+    (defconstant *eng-pol-file-name* "c:\\kjk\\src\\mine\\dicts_data\\eng_pol.txt")
+    (defconstant *eng-pol-words-cache-file-name* "c:\\kjk\\src\\mine\\dicts_data\\eng_pol_words.txt")
     ))
 
 (defun file-exists-p (path) (probe-file path))
@@ -251,7 +252,7 @@ format to an output stream"
 	    (incf (aref freq el1 el2))
 	    (setq el1 el2))))
 
-(defun pack-info-char->code (pack-info char-as-int)
+(defun pack-info-char-to-code (pack-info char-as-int)
   "map a given character to a code, create new mapping if doesn't exist yet"
   (let* ((char->code (pack-info-char->code pack-info))
 	 (code (aref char->code char-as-int)))
@@ -399,13 +400,13 @@ build the actual data to do compression"
 	 (char-list (map 'list #'char->int str))
 	 (index -1))
     (dolist (char char-list)
-	    (setf (aref str-out (incf index)) (int->char (pack-info-char->code pack-info char))))
+	    (setf (aref str-out (incf index)) (int->char (pack-info-char-to-code pack-info char))))
     str-out))
 
 ; given a string return string that is build by
 ; replacing chars with codes. 
 ; (defun code-string2 (pack-info str)
-;   (let* ((code-list (map 'list #'(lambda (x) (pack-info-char->code pack-info (char->int x))) str)))
+;   (let* ((code-list (map 'list #'(lambda (x) (pack-info-char-to-code pack-info (char->int x))) str)))
 ;     (int-list->string code-list)))
 
 ; given a coded string return string that is built by
@@ -1815,7 +1816,7 @@ in a record"
     (setq cur-record (+ cur-record (length (wn-records-defs-records wn-recs))))
 
     (if (wn-datasource-fast-p wn-source)
-	(pdb-add-record pdb (make-fast-record (datasource-get-sorted-lemmas wn-source))))
+	    (pdb-add-record pdb (make-fast-record (datasource-get-sorted-lemmas wn-source))))
 
     (format t "~& rec ~D last+1 ~%" cur-record)
     (write-pdb out-file-name pdb)
@@ -2040,3 +2041,6 @@ in a record"
 (defun do-french ()
   (let ((ds (make-simple-datasource :file-name "french.txt")))
     (do-simple ds "French" "french.pdb" "simp")))
+
+(defun do-wn-full ()
+  (do-wordnet-full "WN full" "wn_full.pdb" nil 't))

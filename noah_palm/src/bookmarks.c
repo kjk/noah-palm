@@ -141,6 +141,25 @@ UInt16 GetBookmarksCount(AppContext *appContext)
     return bookmarksCount;
 }
 
+static Boolean BookmarksFormDisplayChanged(AppContext* appContext, FormType* frm) 
+{
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
+
+    UpdateFrmBounds(frm);
+
+    SetListHeight(frm, listBookmarks, appContext->dispLinesCount);
+
+    FrmSetObjectPosByID(frm, labelBkmSortBy, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, popupSortBy, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, listSortBy, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonCancel, appContext->screenWidth-40, appContext->screenHeight-14);
+
+    FrmDrawForm(frm);
+    return true;
+}
+
+
 Boolean BookmarksFormHandleEvent(EventType * event)
 {
     Boolean     handled = false;
@@ -172,6 +191,10 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             FrmDrawForm(frm);
 
             handled = true;
+            break;
+
+        case winDisplayChangedEvent:
+            handled= BookmarksFormDisplayChanged(appContext, frm);
             break;
 
         case ctlSelectEvent:

@@ -300,64 +300,23 @@ void DoWord(AppContext* appContext, char *word)
 
 static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        RectangleType newBounds;
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+    if ( !DIA_Supported(&appContext->diaSettings))
+        return false;
 
-        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
-        FrmSetObjectBoundsByID(frm, scrollDef, appContext->screenWidth-8, 1, 7, appContext->screenHeight-18);
-        FrmSetObjectBoundsByID(frm, bmpFind, appContext->screenWidth-13, appContext->screenHeight-13, 13, 13);
-        FrmSetObjectBoundsByID(frm, buttonFind, appContext->screenWidth-14, appContext->screenHeight-14, 14, 14);
-        FrmSetObjectBoundsByID(frm, popupHistory, appContext->screenWidth-32, appContext->screenHeight-13, 17, 13);
+    UpdateFrmBounds(frm);
 
-        index=FrmGetObjectIndex(frm, listHistory);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.x=appContext->screenWidth-80;
-        newBounds.topLeft.y=appContext->screenHeight-60;
-        FrmSetObjectBounds(frm, index, &newBounds);
-        
-        RedrawMainScreen(appContext);
-        handled=true;
-    }
-    return handled;
+    FrmSetObjectPosByID(frm, ctlArrowLeft, -1, appContext->screenHeight-12);
+    FrmSetObjectPosByID(frm, ctlArrowRight, -1, appContext->screenHeight-12);
+    FrmSetObjectBoundsByID(frm, scrollDef, -1, -1, -1, appContext->screenHeight-18);
+    FrmSetObjectPosByID(frm, bmpFind, -1, appContext->screenHeight-13);
+    FrmSetObjectPosByID(frm, buttonFind, -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, popupHistory, -1, appContext->screenHeight-13);
+    FrmSetObjectPosByID(frm, fieldWordMain, -1, appContext->screenHeight-13);
+    FrmSetObjectPosByID(frm, listHistory, -1, appContext->screenHeight-60);
+
+    RedrawMainScreen(appContext);
+    return true;
 }
-
-
-/* Generates a random long in the range 0..range-1. SysRandom() returns value
-   between 0..sysRandomMax which is 0x7FFF. We have to construct a long out of
-   that.
-*/
-static long  GenRandomLong(long range)
-{
-    UInt32  result;
-    Int16   rand1, rand2;
-
-    /* the idea is that to get better randomness we'll seed SysRandom() every
-       fourth time with the number of current ticks. I don't know if it matters
-       and don't care much. */
-    rand1 = SysRandom(0);
-    if ( 2 == (rand1 % 3) )
-        rand1 = SysRandom(TimGetTicks());
-
-    rand2 = SysRandom(0);
-    if ( 2 == (rand2 % 3) )
-        rand2 = SysRandom(TimGetTicks());
-
-    result = rand1*sysRandomMax + rand2;
-
-    result = result % range;
-
-    Assert( result<range );
-
-    return (long)result;
-}
-
 
 static Boolean MainFormHandleEventNoahPro(EventType * event)
 {
@@ -372,6 +331,7 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
     char *          lastDbUsedName;
     char *          word;
     AppContext*     appContext=GetAppContext();
+
     Assert(appContext);
 
     frm = FrmGetActiveForm();
@@ -388,7 +348,6 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
             break;
             
         case frmUpdateEvent:
-            LogG( "mainFrm - frmUpdateEvent" );
             RedrawMainScreen(appContext);
             handled = true;
             break;
@@ -491,6 +450,7 @@ ChooseDatabase:
             {
                 DoWord(appContext, (char *)appContext->prefs.lastWord);
             }
+            FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
             handled = true;
             break;
 
@@ -520,17 +480,23 @@ ChooseDatabase:
                 case ctlArrowLeft:
                     if (appContext->currentWord > 0)
                     {
-                        DrawDescription(appContext, appContext->currentWord - 1);
+                        --appContext->currentWord;
+                        word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
+                        FldClearInsert(frm, fieldWordMain, word);
+                        DrawDescription(appContext, appContext->currentWord);
                     }
                     break;
                 case ctlArrowRight:
                     if (appContext->currentWord < appContext->wordsCount - 1)
                     {
-                        DrawDescription(appContext, appContext->currentWord + 1);
+                        ++appContext->currentWord;
+                        word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
+                        FldClearInsert(frm, fieldWordMain, word);
+                        DrawDescription(appContext, appContext->currentWord);
                     }
                     break;
                 case buttonFind:
-                    FrmPopupForm(formDictFind);
+                    GoToFindWordForm(appContext,frm);
                     break;
                 case popupHistory:
                     // need to propagate the event down to popus
@@ -544,12 +510,16 @@ ChooseDatabase:
             break;
 
         case evtNewWordSelected:
+            word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
+            FldClearInsert(frm, fieldWordMain, word);
+
             AddToHistory(appContext, appContext->currentWord);
             HistoryListSetState(appContext, frm);
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
+            // WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+            // WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
             DrawDescription(appContext, appContext->currentWord);
             appContext->penUpsToConsume = 1;
+
             handled = true;
             break;
 
@@ -602,12 +572,9 @@ ChooseDatabase:
                 }
             }
 
-            OpenMatchingPatternDB(appContext);
             ClearMatchingPatternDB(appContext);
-            CloseMatchingPatternDB(appContext);
 
             RedrawMainScreen(appContext);
-            
 
             if ( startupActionClipboard == appContext->prefs.startupAction )
             {
@@ -673,14 +640,29 @@ ChooseDatabase:
             {
                 DefScrollDown(appContext, appContext->prefs.hwButtonScrollType);
             }
-            else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
+/*            else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
                      || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
                      || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
             {
                 appContext->lastWord[0] = event->data.keyDown.chr;
                 appContext->lastWord[1] = 0;
                 FrmPopupForm(formDictFind);
+                return false;
             }
+            handled = true; */
+            else
+            {
+                // notify ourselves that a text field is (possibly) updated
+                SendFieldChanged();
+                // mark as unhandled so that text field will (possibly) get updated
+                handled = false;
+            }
+            break;
+
+        case evtFieldChanged:
+            // TODO: should compare with the previous ->lastWord and only do
+            // stuff if different
+            GoToFindWordForm(appContext,frm);
             handled = true;
             break;
 
@@ -721,7 +703,8 @@ ChooseDatabase:
                 break;
             }
 
-            if (0 != appContext->penUpsToConsume)
+            Assert( appContext->penUpsToConsume >= 0);
+            if (appContext->penUpsToConsume > 0)
             {
                 --appContext->penUpsToConsume;
                 handled = true;
@@ -734,16 +717,6 @@ ChooseDatabase:
                 break;
             }
 
-#if 0
-            if (event->screenY > ((appContext->screenHeight-FRM_RSV_H) / 2))
-            {
-                DefScrollDown(appContext, appContext->prefs.tapScrollType);
-            }
-            else
-            {
-                DefScrollUp(appContext, appContext->prefs.tapScrollType);
-            }
-#endif
             handled = true;
             break;
 
@@ -751,7 +724,7 @@ ChooseDatabase:
             switch (event->data.menu.itemID)
             {
                 case menuItemFind:
-                    FrmPopupForm(formDictFind);
+                    GoToFindWordForm(appContext,frm);
                     break;
                 case menuItemFindPattern:
                     FrmPopupForm(formDictFindPattern);
@@ -790,6 +763,8 @@ ChooseDatabase:
                 case menuItemRandomWord:
                     {
                         wordNo = GenRandomLong(appContext->wordsCount);
+                        word = dictGetWord(GetCurrentFile(appContext), wordNo);
+                        FldClearInsert(frm, fieldWordMain, word);
                         AddToHistory(appContext, wordNo);
                         HistoryListSetState(appContext, frm);
                         DrawDescription(appContext, wordNo);
@@ -840,32 +815,6 @@ ChooseDatabase:
             handled = true;
             break;
 
-#if 0
-        case nilEvent:
-            if (-1 != appContext->start_seconds_count)
-            {
-                /* we're still displaying About info, check
-                   if it's time to switch to info */
-                Assert(appContext->start_seconds_count <= TimGetSeconds());
-                if (NULL == appContext->currDispInfo)
-                {
-                    if (TimGetSeconds() - appContext->start_seconds_count > 5)
-                    {
-                        DisplayHelp();
-                        /* we don't need evtNil events anymore */
-                        appContext->start_seconds_count = -1;
-                        appContext->current_timeout = -1;
-                    }
-                }
-                else
-                {
-                    appContext->start_seconds_count = -1;
-                    appContext->current_timeout = -1;
-                }
-            }
-            handled = true;
-            break;
-#endif
         default:
             break;
     }
@@ -874,45 +823,21 @@ ChooseDatabase:
 
 static Boolean FindFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        ListType* list=0;
-        RectangleType newBounds;
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
+    if ( !DIA_Supported(&appContext->diaSettings))
+        return false;
 
-        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
-        
-        index=FrmGetObjectIndex(frm, listMatching);
-        Assert(index!=frmInvalidObjectId);
-        list=(ListType*)FrmGetObjectPtr(frm, index);
-        Assert(list);
-        LstSetHeight(list, appContext->dispLinesCount);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.extent.x=appContext->screenWidth;
-        FrmSetObjectBounds(frm, index, &newBounds);
-        
-        index=FrmGetObjectIndex(frm, fieldWord);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-13;
-        newBounds.extent.x=appContext->screenWidth-66;
-        FrmSetObjectBounds(frm, index, &newBounds);
+    UpdateFrmBounds(frm);
 
-        index=FrmGetObjectIndex(frm, buttonCancel);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.x=appContext->screenWidth-40;
-        newBounds.topLeft.y=appContext->screenHeight-14;
-        FrmSetObjectBounds(frm, index, &newBounds);
+    SetListHeight(frm, listMatching, appContext->dispLinesCount);
 
-        FrmDrawForm(frm);
-        handled=true;
-    }
-    return handled;
+    FrmSetObjectPosByID(frm, ctlArrowLeft, -1, appContext->screenHeight-12);
+    FrmSetObjectPosByID(frm, ctlArrowRight, -1, appContext->screenHeight-12);
+    FrmSetObjectBoundsByID(frm, listMatching, -1, -1, appContext->screenWidth, -1);
+    FrmSetObjectBoundsByID(frm, fieldWord, -1, appContext->screenHeight-13, appContext->screenWidth-66, -1);
+    FrmSetObjectPosByID(frm, buttonCancel, appContext->screenWidth-40, appContext->screenHeight-14);
+
+    FrmDrawForm(frm);
+    return true;
 }
 
 // Event handler proc for the find word dialog
@@ -924,9 +849,6 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
     FieldPtr    fld;
     ListPtr     list;
     AppContext* appContext=GetAppContext();
-    
-    if (event->eType == nilEvent)
-        return true;
 
     frm = FrmGetActiveForm();
     switch (event->eType)
@@ -934,7 +856,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
         case winDisplayChangedEvent:
             handled= FindFormDisplayChanged(appContext, frm);
             break;
-                        
+
         case frmOpenEvent:
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
@@ -949,20 +871,23 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
             {
                 // no word so focus on first word
                 LstSetSelectionEx(appContext, list, appContext->selectedWord);
+                FrmDrawForm(frm);
             }
             else
             {
                 FldInsert(fld, word, StrLen(word));
+                FldSetInsPtPosition(fld,appContext->fldInsPt);
+                // force detecting a change in DoFieldChange()
+                appContext->lastWord[0]='\0';
                 SendFieldChanged();
             }
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
-            FrmDrawForm(frm);
             return true;
 
         case lstSelectEvent:
             /* copy word from text field to a buffer, so next time we
                come back here, we'll come back to the same place */
-            RememberLastWord(appContext, frm);
+            // RememberLastWord(appContext, frm, fieldWord);
             /* set the selected word as current word */
             appContext->currentWord = appContext->listItemOffset + (UInt32) event->data.lstSelect.selection;
             /* send a msg to yourself telling that a new word
@@ -975,17 +900,14 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
 
         case keyDownEvent:
 
-            /* kind of ugly trick: there is no event that says, that
-               text field has changed, so I generate this event myself
-               every time I get keyDownEvent (since I assume, that it
-               comes when field has focus). To be more correct I should
-               store the old content of field and compare it with a new
-               content and do stuff only when they differ */
+            /* ugly trick: there is no event that says that
+               text field has changed, so I have to generate it myself
+               every time I get keyDownEvent */
             switch (event->data.keyDown.chr)
             {
                 case returnChr:
                 case linefeedChr:
-                    RememberLastWord(appContext, frm);
+                    RememberLastWord(appContext, frm, fieldWord);
                     appContext->currentWord = appContext->selectedWord;
                     Assert(appContext->currentWord < appContext->wordsCount);
                     SendNewWordSelected();
@@ -1011,7 +933,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
                     {
                         if (FiveWayCenterPressed(appContext, event))
                         {
-                            RememberLastWord(appContext, frm);
+                            RememberLastWord(appContext, frm, fieldWord);
                             appContext->currentWord = appContext->selectedWord;
                             Assert(appContext->currentWord < appContext->wordsCount);
                             SendNewWordSelected();
@@ -1043,10 +965,13 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
                     }
                     break;
             }
+            // add a message to the queue to inform about the possible change
+            // of text field. We can't do the processing here because text
+            // field has not yet been updated
             SendFieldChanged();
+            // mark as not handled so that the event will get handled by a text field
             return false;
 
-        case fldChangedEvent:
         case evtFieldChanged:
             DoFieldChanged(appContext);
             return true;
@@ -1055,7 +980,7 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
-                    RememberLastWord(appContext, frm);
+                    RememberLastWord(appContext, frm, fieldWord);
                     FrmReturnToForm(0);
                     break;
                 case ctlArrowLeft:
@@ -1078,16 +1003,13 @@ static Boolean FindFormHandleEventNoahPro(EventType * event)
 
 static Boolean SelectDictFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        RectangleType newBounds;
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
-        FrmDrawForm(frm);
-        handled=true;
-    }
-    return handled;
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
+
+    UpdateFrmBounds(frm);
+    FrmDrawForm(frm);
+
+    return true;
 }
 
 static Boolean SelectDictFormHandleEventNoahPro(EventType * event)
@@ -1181,30 +1103,16 @@ static void PrefsToGUI(AppContext* appContext, FormType * frm)
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
-    Boolean handled=false;
-    if (DIA_Supported(&appContext->diaSettings))
-    {
-        UInt16 index=0;
-        RectangleType newBounds;
-        WinGetBounds(WinGetDisplayWindow(), &newBounds);
-        WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
-        
-        index=FrmGetObjectIndex(frm, buttonOk);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-13-newBounds.extent.y;
-        FrmSetObjectBounds(frm, index, &newBounds);
+    if ( !DIA_Supported(&appContext->diaSettings) )
+        return false;
 
-        index=FrmGetObjectIndex(frm, buttonCancel);
-        Assert(index!=frmInvalidObjectId);
-        FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=appContext->screenHeight-13-newBounds.extent.y;
-        FrmSetObjectBounds(frm, index, &newBounds);
+    UpdateFrmBounds(frm);
+
+    FrmSetObjectPosByID(frm, buttonOk,      -1, appContext->screenHeight-14);
+    FrmSetObjectPosByID(frm, buttonCancel,  -1, appContext->screenHeight-14);
         
-        FrmDrawForm(frm);
-        handled=true;
-    }
-    return handled;
+    FrmDrawForm(frm);
+    return true;
 }
 
 static Boolean PrefFormHandleEventNoahPro(EventType * event)

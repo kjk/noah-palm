@@ -1,15 +1,20 @@
 #include "inet_connection.h"
 #include "http_response.h"
 
-// #define USE_TEST_SERVER 1
+//#define USE_TEST_SERVER 1
+#define USE_TEST_SERVER2 1
 
 #ifdef USE_TEST_SERVER
 #define serverAddress                "dict-pc.arslexis.com"
 #define serverPort                   3000
 #else
-#define serverAddress                "dict.arslexis.com"
-//#define serverAddress                "www.arslexis.com"
-#define serverPort                   80
+ #ifdef USE_TEST_SERVER2
+  #define serverAddress                "dict-pc.local.org"
+  #define serverPort                   80
+ #else
+   #define serverAddress                "dict.arslexis.com"
+   #define serverPort                   80
+ #endif
 #endif
 
 #define maxResponseLength         8192               // reasonable limit so malicious response won't use all available memory

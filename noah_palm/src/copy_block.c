@@ -107,12 +107,8 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
     char *      word;
     UInt32      wordNo;
 #endif
-    int         idx;
-    UInt16      itemLen;
 
-    MemSet(txt, sizeof(txt), 0);
-    itemLen = (StrLen(wordInput) < sizeof(txt)-1) ? StrLen(wordInput) : sizeof(txt)-1;
-    MemMove(txt, wordInput, itemLen);
+    SafeStrNCopy( txt, sizeof(txt), wordInput, -1);
 
 #ifdef NOAH_PRO
 #ifndef DONT_DO_PRONUNCIATION
@@ -126,20 +122,16 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
 
 #ifndef I_NOAH
 #ifndef NOAH_LITE
-    strtolower(txt);
     RemoveWhiteSpaces( txt );
+    strtolower(txt);
 #endif
 #endif
-
-    idx = 0;
-    while (txt[idx] && (txt[idx] == ' '))
-        ++idx;
 
 #ifndef I_NOAH
     wordNo = dictGetFirstMatching(GetCurrentFile(appContext), txt);
     word = dictGetWord(GetCurrentFile(appContext), wordNo);
 
-    if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
+    if (0 == StrNCaselessCompare(txt, word, StrLen(word) <  StrLen(txt) ? StrLen(word) : StrLen(txt)))
     {
         appContext->currentWord = wordNo;
         SendNewWordSelected();
@@ -147,7 +139,7 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
     }
     else
     {
-        MemMove(appContext->lastWord, txt, StrLen(txt));
+        SafeStrNCopy( appContext->lastWord, sizeof(appContext->lastWord), txt, -1);
         FrmPopupForm(formDictFind);
         return true;
     }
