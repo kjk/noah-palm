@@ -50,7 +50,9 @@ static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelo
 
 static void GetDisplayElementPrefs(PrefsStoreReader *store, DisplayElementPrefs *dep, int uniqueIdStart)
 {
-    Err err = store->ErrGetInt(uniqueIdStart+depFont_off, (int*)&dep->font);
+    int fontId;
+    Err err = store->ErrGetInt(uniqueIdStart+depFont_off, &fontId);
+    dep->font = (FontID) fontId;
     err = store->ErrGetUInt32(uniqueIdStart+depColor_off, &dep->color);
     err = store->ErrGetUInt32(uniqueIdStart+depBgCol_off, &dep->bgCol);
 }
@@ -113,6 +115,8 @@ static void LoadPreferencesInoah(AppContext* appContext)
 
     SetDefaultDisplayParam(dp, false, false);
 
+    err = store.ErrGetUInt32(dpBgCol_id, &dp->bgCol);
+
     err = store.ErrGetBool(dpfEnablePron_id,&dp->fEnablePronunciation);
     err = store.ErrGetBool(dpfEnablePronFont_id,&dp->fEnablePronunciationSpecialFonts);
 
@@ -139,7 +143,8 @@ static void LoadPreferencesInoah(AppContext* appContext)
 // be at least 0x10 id apart
 static void SetDisplayElementPrefs(PrefsStoreWriter *store, DisplayElementPrefs *dep, int uniqueIdStart)
 {
-    Err err = store->ErrSetInt(uniqueIdStart+depFont_off, (int)dep->font);
+    int fontId = (int)dep->font;
+    Err err = store->ErrSetInt(uniqueIdStart+depFont_off, fontId);
     Assert(!err);
     err = store->ErrSetUInt32(uniqueIdStart+depColor_off, dep->color);
     Assert(!err);
