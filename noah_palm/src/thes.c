@@ -175,6 +175,8 @@ Err InitThesaurus(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
 
+    LogInit( &g_Log, "c:\\thes_log.txt" );
+
 /*     gd.current_timeout = -1; */
     gd.prevSelectedWord = 0xfffff;
 
@@ -206,11 +208,12 @@ Boolean DictInit(AbstractFile *file)
     if ( !dictNew() )
         return false;
 
+    LogG( "DictInit() after dictNew()" );
     // TODO: save last used database in preferences
     gd.wordsCount = dictGetWordsCount();
+    LogG( "DictInit() after dictGetWordsCount()" );
     gd.currentWord = 0;
     gd.listItemOffset = 0;
-
     return true;
 }
 

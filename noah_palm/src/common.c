@@ -29,6 +29,11 @@ extern GlobalData gd;
 
 #include "roget_support.h"
 
+#ifdef DEBUG
+LogInfo g_Log;
+char    g_logBuf[512];
+#endif
+
 /* return a copy of the string. Caller needs to free the memory */
 char *strdup( char *str )
 {
@@ -385,17 +390,6 @@ void DrawDebug2(char *txt1, char *txt2)
 
 #endif
 
-void OutToFileDbg(char *filename, char *text)
-{
-    HostFILE *hf = NULL;
-    Assert(filename);
-    Assert(text);
-
-    hf = HostFOpen(filename, "a");
-    HostFPrintF(hf, "%s", text);
-    HostFClose(hf);
-}
-
 void ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey)
 {
     RectangleType r;
@@ -713,14 +707,23 @@ UInt32 CurrFileDictType(void)
 
 Boolean dictNew(void)
 {
-    AbstractFile *file = GetCurrentFile();
+    AbstractFile *file;
+
+    LogG( "dictNew() 1" );
+    file = GetCurrentFile();
+    LogG( "dictNew() 2" );
 
     switch (CurrFileDictType())
     {
         case ROGET_TYPE:
+            LogG( "dictNew(): roget 1" );
             file->dictData.roget = RogetNew();
+            LogG( "dictNew(): roget 2" );
             if (NULL == file->dictData.roget)
+            {
+                LogG( "dictNew(): RogetNew() failed" );
                 return false;
+            }
             break;
 #if 0
         case WORDNET_PRO_TYPE:
@@ -728,8 +731,11 @@ Boolean dictNew(void)
             break;
 #endif
         default:
+            LogG( "dictNew(): assert" );
             Assert(0);
+            break;
     }
+    LogG( "dictNew() finished ok" );
     return true;
 }
 
@@ -1123,9 +1129,7 @@ void ssInit( StringStack *ss )
 
 void ssDeinit( StringStack *ss )
 {
-    // pop all the strings from the stack
-    while ( NULL != ssPop(ss) )
-        ;
+    Assert( 0 == ss->stackedCount );
     if ( ss->strings )
         new_free( ss->strings );
     ssInit( ss );
@@ -1186,3 +1190,38 @@ char *ssPop( StringStack *ss )
     ss->freeSlots += 1;
     return toReturn;
 }
+
+void LogInitFile(LogInfo *logInfo)
+{
+    HostFILE        *hf = NULL;
+
+    if (logInfo->fCreated)
+        return;
+
+    hf = HostFOpen(logInfo->fileName, "w");
+    if (hf)
+    {
+        HostFClose(hf);
+    }
+    logInfo->fCreated = true;
+}
+
+void LogInit( LogInfo *logInfo, char *fileName )
+{
+    logInfo->fCreated = false;
+    logInfo->fileName = fileName;
+}
+
+void Log(LogInfo *logInfo, char *txt)
+{
+    HostFILE        *hf = NULL;
+
+    LogInitFile(logInfo);
+    hf = HostFOpen(logInfo->fileName, "a");
+    if (hf)
+    {
+        HostFPrintF(hf, "%s\n", txt );
+        HostFClose(hf);
+    }
+}
+

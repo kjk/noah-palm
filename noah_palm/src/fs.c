@@ -19,7 +19,7 @@
 #include "fs_mem.h"
 #include "fs_vfs.h"
 
-static AbstractFile *currFile=NULL;
+AbstractFile *currFile=NULL;
 
 void SetCurrentFile(AbstractFile *file)
 {

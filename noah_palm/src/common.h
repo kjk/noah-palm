@@ -110,7 +110,6 @@ void    dh_display_string(const char *str, int font, int dy);
 
 void    ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey);
 void    DrawCenteredString(const char *str, int dy);
-void    OutToFileDbg(char *filename, char *text);
 void    DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x,
                      Int16 y, int maxLines);
 void    DrawWord(char *word, int pos_y);
@@ -193,5 +192,25 @@ void    ssInit  ( StringStack *ss );
 void    ssDeinit( StringStack *ss );
 Boolean ssPush  ( StringStack *ss, char *str );
 char    *ssPop  ( StringStack *ss );
+
+#ifdef DEBUG
+
+typedef struct
+{
+    Boolean fCreated;
+    char    *fileName;
+} LogInfo;
+
+extern LogInfo g_Log;
+extern char    g_logBuf[512];
+
+void LogInit( LogInfo *logInfo, char *fileName);
+void Log(LogInfo *logInfo, char *txt);
+
+#define LogG(f) Log(&g_Log,f)
+#else
+#define LogG(f)
+#define LogInit(f)
+#endif
 
 #endif

@@ -86,6 +86,6 @@ typedef struct
     long               selectedWord;
     NoahPrefs          prefs;
     NoahDBPrefs        dbPrefs;
-}GlobalData;
+} GlobalData;
 
 #endif

@@ -11,7 +11,7 @@
 
 #define MAX_VFS_VOLUMES 3
 static Boolean g_fVfsPresent = false;
-static Boolean g_VfsVolumeCount = 0;
+static int     g_VfsVolumeCount = 0;
 static UInt16  g_VfsVolumeRef[MAX_VFS_VOLUMES];
 
 typedef struct
@@ -43,7 +43,7 @@ typedef struct
 Should only be called once */
 Boolean FsVfsInit(void)
 {
-    Boolean   fPresent = false;
+    Boolean   fPresent = true;
     Err       err;
     UInt32    vfsMgrVersion;
     UInt16    volRef;
@@ -55,6 +55,7 @@ Boolean FsVfsInit(void)
     if (err)
     {
         fPresent = false;
+        LogG( "FsVfsInit(): FtrGet() failed, no VFS" );
         goto Exit;
     }
 
@@ -74,12 +75,32 @@ Boolean FsVfsInit(void)
     }
 Exit:
     g_fVfsPresent = fPresent;
+#ifdef DEBUG
+    if ( fPresent )
+    {
+        StrPrintF( g_logBuf, "VFS present, %d volumes", g_VfsVolumeCount );    
+        LogG( g_logBuf );
+    }
+    else
+    {
+        LogG( "VFS not present");
+    }
+#endif
     return fPresent;
 }
 
 /* De-initialize vfs, should only be called once */
 void FsVfsDeinit(void)
 {
+#ifdef DEBUG
+    if ( g_fVfsPresent )
+        LogG( "FsVfsDeinit(): VFS not present");
+    else
+    {
+        StrPrintF( g_logBuf, "VFS present, %d volumes", g_VfsVolumeCount );    
+        LogG( g_logBuf );
+    }
+#endif
     g_fVfsPresent = false;
 }
 
@@ -196,7 +217,11 @@ void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
     AbstractFile    *file;
     int             currVolume;
 
-    if (!FFsVfsPresent()) return;
+    if (!FFsVfsPresent())
+    {
+        LogG( "FsVfsFindDb(): VFS not present" );
+        return;
+    }        
 
     MemSet( &fileInfo, 0, sizeof(fileInfo) );
     fileInfo.nameBufLen = VFS_MAX_PATH_SIZE;
@@ -284,7 +309,8 @@ NoMoreFiles:
     }
 
     if ( fileInfo.nameP )
-        new_free(fileInfo.nameP);    
+        new_free(fileInfo.nameP);
+    ssDeinit(&dirsToVisit);
 }
 
 /* get the size of the file, 0 means a failure */
