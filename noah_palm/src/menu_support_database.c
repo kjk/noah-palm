@@ -6,33 +6,37 @@
 
 static Err OpenSupportDatabase(DmOpenRef* dbRef)
 {
-    Err error=errNone;
-    DmOpenRef db=DmOpenDatabaseByTypeCreator(supportDatabaseType, APP_CREATOR, dmModeReadWrite|dmModeLeaveOpen);
-    if (!db) {
+    Err         error;
+    DmOpenRef   db=DmOpenDatabaseByTypeCreator(supportDatabaseType, APP_CREATOR, dmModeReadWrite|dmModeLeaveOpen);
+
+    if (!db)
+    {
         error=DmGetLastErr();
         Assert(error);
+        return error;
     }
-    else {
-        if (dbRef) 
-            *dbRef=db;
-        error=FtrSet(APP_CREATOR, appFtrMenuSupportDbRefNum, (UInt32)db);
-    }
+
+    if (dbRef) 
+        *dbRef=db;
+    error=FtrSet(APP_CREATOR, appFtrMenuSupportDbRefNum, (UInt32)db);
+
 OnError:
     return error;
 }
 
-static Err CreateSupportDatabase(const Char* name, UInt16 bitmapId)
+static Err CreateSupportDatabase(const char* name, UInt16 bitmapId)
 {
-    DmOpenRef db=0;
-    MemHandle trgBmp=0;
-    UInt32 bmpSize=0;
-    Err error=errNone;
-    MemPtr srcBmpPtr=0;
-    MemPtr trgBmpPtr=0;
-    Err nError=errNone;
-    MemHandle srcBmp=0;
+    DmOpenRef   db=0;
+    MemHandle   trgBmp;
+    UInt32      bmpSize;
+    Err         error;
+    MemPtr      srcBmpPtr;
+    MemPtr      trgBmpPtr;
+    Err         nError;
+    MemHandle   srcBmp;
+
     error=DmCreateDatabase(0, name, APP_CREATOR, supportDatabaseType, true);
-    if (error) 
+    if (error)
         goto OnError;
 
     srcBmp=DmGet1Resource(bitmapResourceType, bitmapId);
@@ -80,47 +84,49 @@ OnError:
     return error;
 }
 
-Err PrepareSupportDatabase(const Char* name, UInt16 bitmapId) 
+Err PrepareSupportDatabase(const char* name, UInt16 bitmapId) 
 {
-    UInt32 value=0;
-    Err error=errNone;
+    UInt32  value;
+    Err     error;
     LocalID localId=DmFindDatabase(0, name);
+
     if (localId) 
     {
         error=FtrGet(APP_CREATOR, appFtrMenuSupportDbRefNum, &value);
         if (ftrErrNoSuchFeature==error || (!error && !value)) 
             error=OpenSupportDatabase(NULL);
     }
-    else 	
+    else
         error=CreateSupportDatabase(name, bitmapId);
     return error;
 }
 
-Err DisposeSupportDatabase(const Char* name) 
+Err DisposeSupportDatabase(const char* name) 
 {
-    Err error=errNone;
-    UInt32 value=0;
-    DmOpenRef db=0;
-    LocalID localId=0;
+    Err         error;
+    UInt32      value=0;
+    DmOpenRef   db=0;
+    LocalID     localId=0;
+
     error=FtrGet(APP_CREATOR, appFtrMenuSupportDbRefNum, &value);
-    if (!error) 
+    if (errNone!=error)
+        return error;
+
+    if (value) 
     {
-        if (value) 
-        {
-            db=(DmOpenRef)value;
-            error=DmCloseDatabase(db);
-            if (error) 
-                goto OnError;
-            localId=DmFindDatabase(0, name);
-            Assert(localId);
+        db=(DmOpenRef)value;
+        error=DmCloseDatabase(db);
+        if (error) 
+            goto OnError;
+        localId=DmFindDatabase(0, name);
+        Assert(localId);
+        error=DmDeleteDatabase(0, localId);
+    }
+    else 
+    {
+        localId=DmFindDatabase(0, name);
+        if (localId) 
             error=DmDeleteDatabase(0, localId);
-        }
-        else 
-        {
-            localId=DmFindDatabase(0, name);
-            if (localId) 
-                error=DmDeleteDatabase(0, localId);
-        }
     }
 OnError:
     return error;

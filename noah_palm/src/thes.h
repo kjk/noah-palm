@@ -34,9 +34,9 @@
 // id for Thes v 1.1 preferences
 //#define Thes11Pref      0x43212216
 
-#define Thes20Pref 0x43212218
+//#define Thes20Pref 0x43212218
 
-#define AppPrefId Thes20Pref
+#define AppPrefId 0x4321221a
 
 /* structure of the general preferences record */
 typedef struct
@@ -45,6 +45,7 @@ typedef struct
     ScrollType              hwButtonScrollType;
     ScrollType              navButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
+    Boolean                 fResidentModeEnabled;
     char                    lastDbName[dmDBNameLength];
     char                    lastWord[WORD_MAX_LEN];
     char *                  lastDbUsedName;

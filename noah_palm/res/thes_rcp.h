@@ -47,6 +47,7 @@
 #define   menuItemSelectDB    2070
 #define   menuItemCopy        2080
 #define   menuItemLookupClipboard   2090
+#define   menuItemExit        2095
 #define   menuItemBookmarkWord 2100
 #define   menuItemBookmarkView 2110
 #define   menuItemBookmarkDelete 2120
@@ -78,6 +79,7 @@
 #define   popupSortBy             6006
 
 #define   labelBkmSortBy          6500
+#define   checkResidentMode       6510
 
 #define   helpPrefs               7001
 

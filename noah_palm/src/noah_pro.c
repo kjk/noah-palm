@@ -47,8 +47,6 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     Assert( prefsBlob );
     Assert( blobSize > 8 );
 
-    LogG( "DeserializePreferencesNoahPro()" );
-
     prefs = &appContext->prefs;
     /* skip the 4-byte signature of the preferences record */
     Assert( IsValidPrefRecord( prefsBlob ) );
@@ -61,6 +59,7 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     prefs->navButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
     prefs->bookmarksSortType = (BookmarkSortType) deserByte( &prefsBlob, &blobSize );
+    prefs->fResidentModeEnabled = (Boolean) deserByte( &prefsBlob, &blobSize );
 
     Assert( blobSize > 0);
 
@@ -98,7 +97,6 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
 
     /* 5. last word */
     deserStringToBuf( (char*)appContext->prefs.lastWord, WORD_MAX_LEN, &prefsBlob, &blobSize );
-    LogV1( "DeserilizePreferencesNoahPro(), lastWord=%s", appContext->prefs.lastWord );
 
     /* 6. number of words in the history */
     appContext->historyCount = deserInt( &prefsBlob, &blobSize );
@@ -242,8 +240,7 @@ void ScanForDictsNoahPro(AppContext* appContext, Boolean fAlwaysScanExternal)
 
 Err AppCommonInit(AppContext* appContext)
 {
-    Err     error=errNone;
-    UInt32  value=0;
+    Err     error;
 
     MemSet(appContext, sizeof(*appContext), 0);
     error=FtrSet(APP_CREATOR, appFtrContext, (UInt32)appContext);
@@ -303,6 +300,7 @@ OnError:
 void DictCurrentFree(AppContext* appContext)
 {
     AbstractFile* file=GetCurrentFile(appContext);
+
     if ( NULL != file )
     {
         dictDelete(file);
@@ -334,9 +332,7 @@ Boolean DictInit(AppContext* appContext, AbstractFile *file)
 
 Err AppCommonFree(AppContext* appContext)
 {
-    Err error=errNone;
-
-    Assert(true==appContext->prefs.fResidentModeEnabled);
+    Err error;
 
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
@@ -359,8 +355,6 @@ Err AppCommonFree(AppContext* appContext)
 
     FsDeinit(&appContext->fsSettings);
 
-    Assert(true==appContext->prefs.fResidentModeEnabled);
-
     return error;
 }
 
@@ -371,8 +365,8 @@ Returns true if there is a char that falls within, false otherwise.
 */
 static Boolean GetCharBounds(AppContext* appContext, UInt16 x, UInt16 y, RectangleType * r, int *line, int *charPos)
 {
-    DisplayInfo *di = NULL;
-    int lineOnScreen;
+    DisplayInfo *  di;
+    int            lineOnScreen;
 
     Assert(r);
     Assert(line);
@@ -396,7 +390,7 @@ static Boolean GetCharBounds(AppContext* appContext, UInt16 x, UInt16 y, Rectang
 
 Err AppPerformResidentLookup(char* term)
 {
-    Err             error=errNone;
+    Err             error;
     AppContext*     appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
     AbstractFile *  chosenDb;
 
@@ -456,13 +450,13 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     Err err=errNone;
     switch (cmd)
     {
-    case sysAppLaunchCmdNormalLaunch:
-        err=AppLaunch(cmdPBP);
-        break;
-        
-    case sysAppLaunchCmdNotify:
-        AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
-        break;
+        case sysAppLaunchCmdNormalLaunch:
+            err=AppLaunch(cmdPBP);
+            break;
+            
+        case sysAppLaunchCmdNotify:
+            AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
+            break;
     }
 
     return err;

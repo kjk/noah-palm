@@ -17,9 +17,10 @@
 //#define Noah21Pref      0x43212208
 
 // id for Noah Pro >=v3.0 preferences
-#define Noah30Pref      0x43212209
+// #define Noah30Pref      0x43212209
 
-#define AppPrefId Noah30Pref
+// id for Noah Pro >=v3.1 preferences
+#define AppPrefId       0x4321220a
 
 /* id for Noah Pro v 1.0 per-database preferences, no longer used */
 /* #define NoahDB10Pref    0x43212213 */
@@ -41,12 +42,12 @@ typedef struct
     ScrollType              hwButtonScrollType;
     ScrollType              navButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
+    Boolean                 fResidentModeEnabled;
     char                    lastWord[WORD_MAX_LEN];
     char *                  lastDbUsedName;
     DisplayPrefs            displayPrefs;
     // how do we sort bookmarks
     BookmarkSortType        bookmarksSortType;
-    Boolean                 fResidentModeEnabled;
 } NoahPrefs;
 
 typedef NoahPrefs AppPrefs;

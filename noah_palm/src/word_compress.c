@@ -12,6 +12,8 @@ typedef struct
     UInt16  offset;
 } WordCacheEntry;
 
+#pragma warn_a5_access off
+
 static void word_cache_init(WordCache * wc)
 {
     int i;

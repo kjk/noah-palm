@@ -5,7 +5,7 @@
  */
 #include "dynamic_input_area.h"
 #include <SonyCLIE.h>
-#include <assert.h>
+#include "common.h"
 
 /**
  * Performs detection and initialization of Sony CLIE-specific features.
@@ -14,8 +14,9 @@
  */
 static Err SonySilkLibInit(DIA_Settings* diaSettings) 
 {
-    UInt32 vskVersion=0;
-    Err error=SysLibFind(sonySysLibNameSilk, &diaSettings->sonySilkLibRefNum);
+    UInt32  vskVersion=0;
+    Err     error=SysLibFind(sonySysLibNameSilk, &diaSettings->sonySilkLibRefNum);
+
     if (sysErrLibNotFound==error) {
         error=SysLibLoad('libr', sonySysFileCSilkLib, &diaSettings->sonySilkLibRefNum);
         if (!error) DIA_SetFlag(diaSettings, diaLoadedSonySilkLib);
@@ -49,41 +50,47 @@ OnError:
  */
 static Err SonySilkLibFree(DIA_Settings* diaSettings) 
 {
-    UInt32 vskVersion=0;
-    Err error=errNone;
-    assert(diaSettings);
-    assert(DIA_HasSonySilkLib(diaSettings));
-    assert(diaSettings->sonySilkLibRefNum);
+    UInt32  vskVersion=0;
+    Err     error;
+
+    Assert(diaSettings);
+    Assert(DIA_HasSonySilkLib(diaSettings));
+    Assert(diaSettings->sonySilkLibRefNum);
+
     error=FtrGet(sonySysFtrCreator, sonySysFtrNumVskVersion, &vskVersion);
-    if (error) {
+    if (error)
+    {
         SilkLibDisableResize(diaSettings->sonySilkLibRefNum);
         error=SilkLibClose(diaSettings->sonySilkLibRefNum);
         if (silkLibErrStillOpen==error) error=errNone;
         if (error) goto OnErrorFreeLib;
     }
-    else {
+    else
+    {
         error=VskClose(diaSettings->sonySilkLibRefNum);
         if (vskErrStillOpen==error) error=errNone;
         if (error) goto OnErrorFreeLib;
     }
 
 OnErrorFreeLib:
-    if (DIA_TestFlag(diaSettings, diaLoadedSonySilkLib)) {
+    if (DIA_TestFlag(diaSettings, diaLoadedSonySilkLib))
+    {
         Err tmpErr=SysLibRemove(diaSettings->sonySilkLibRefNum);
         if (tmpErr) error=tmpErr;
-    }		
+    }
     diaSettings->sonySilkLibRefNum=0;
     return error;
 }
 
 Err DIA_Init(DIA_Settings* diaSettings) 
 {
-    UInt16 cardNo;
-    LocalID localId;
-    UInt32 value=0;
-    Err error=errNone;
-    Err tmpErr=errNone;
-    assert(diaSettings);
+    UInt16      cardNo;
+    LocalID     localId;
+    UInt32      value=0;
+    Err         error=errNone;
+    Err         tmpErr;
+
+    Assert(diaSettings);
     MemSet(diaSettings, sizeof(*diaSettings), 0);
     
 #ifndef _DONT_DO_SONY_DIA_SUPPORT_
@@ -108,34 +115,43 @@ Err DIA_Init(DIA_Settings* diaSettings)
         if (DIA_HasPenInputMgr(diaSettings)) 
         {
             error=SysNotifyRegister(cardNo, localId, sysNotifyDisplayResizedEvent, NULL, sysNotifyNormalPriority, NULL);
-            if (!error) DIA_SetFlag(diaSettings, diaRegisteredDisplayResizeNotify);
-            else goto OnError;
+            if (sysNotifyErrDuplicateEntry==error) 
+                error=errNone;
+            if (error)
+                goto OnError;
+            DIA_SetFlag(diaSettings, diaRegisteredDisplayResizeNotify);
         }
 
-        if (DIA_HasSonySilkLib(diaSettings)) {
+        if (DIA_HasSonySilkLib(diaSettings))
+        {
             error=SysNotifyRegister(cardNo, localId, sysNotifyDisplayChangeEvent, NULL, sysNotifyNormalPriority, NULL);
-            if (!error) DIA_SetFlag(diaSettings, diaRegisteredDisplayChangeNotify);
-            else goto OnError;
+            if (sysNotifyErrDuplicateEntry==error) 
+                error=errNone;
+            if (error)
+                goto OnError;
+            DIA_SetFlag(diaSettings, diaRegisteredDisplayChangeNotify);
         }
 
     }
 Exit:
     return error;
 OnError:
-    if (DIA_HasSonySilkLib(diaSettings)) {
+    if (DIA_HasSonySilkLib(diaSettings))
+    {
         tmpErr=SonySilkLibFree(diaSettings);
         if (tmpErr) error=tmpErr;
-    }	
+    }
     goto Exit;
 }
 
 Err DIA_Free(DIA_Settings* diaSettings) 
 {
-    UInt16 cardNo;
+    UInt16  cardNo;
     LocalID localId;
-    Err error=errNone;
-    Err tmpErr=errNone;
-    assert(diaSettings);
+    Err     error=errNone;
+    Err     tmpErr;
+
+    Assert(diaSettings);
     if (DIA_TestFlag(diaSettings, diaRegisteredDisplayResizeNotify) || DIA_TestFlag(diaSettings, diaRegisteredDisplayChangeNotify)) {
         error=SysCurAppDatabase(&cardNo, &localId);
         if (error) goto OnErrorFreeLib;
@@ -171,27 +187,33 @@ void DIA_HandleResizeEvent()
 
 Err DIA_FrmEnableDIA(const DIA_Settings* diaSettings, FormType* form, Coord minH, Coord prefH, Coord maxH, Coord minW, Coord prefW, Coord maxW) 
 {
-    Err error=errNone;
-    WinHandle wh=0;
-    assert(diaSettings);
-    assert(form);
-    if (DIA_HasSonySilkLib(diaSettings)) {
-        DIA_HandleResizeEvent();
-    }
+    Err         error;
+    WinHandle   wh;
 
-    if (DIA_HasPenInputMgr(diaSettings))
-    {
-        error=FrmSetDIAPolicyAttr(form, frmDIAPolicyCustom);
-        if (error) goto OnError;
-        error=PINSetInputTriggerState(pinInputTriggerEnabled);
-        if (error) goto OnError;
-        wh=FrmGetWindowHandle(form);
-        assert(wh);
-        error=WinSetConstraintsSize(wh, minH, prefH, maxH, minW, prefW, maxW);
-        if (error) goto OnError;
-        error=PINSetInputAreaState(pinInputAreaUser);
-    }
+    Assert(diaSettings);
+    Assert(form);
+
+    if (DIA_HasSonySilkLib(diaSettings))
+        DIA_HandleResizeEvent();
+
+    if (!DIA_HasPenInputMgr(diaSettings))
+        return errNone;
+
+    error=FrmSetDIAPolicyAttr(form, frmDIAPolicyCustom);
+    if (error) 
+        goto OnError;
+    error=PINSetInputTriggerState(pinInputTriggerEnabled);
+    if (error) 
+        goto OnError;
+
+    wh=FrmGetWindowHandle(form);
+    Assert(wh);
+    error=WinSetConstraintsSize(wh, minH, prefH, maxH, minW, prefW, maxW);
+    if (error) 
+        goto OnError;
+    error=PINSetInputAreaState(pinInputAreaUser);
 OnError:
-    if (error==pinErrNoSoftInputArea) error=errNone;
+    if (error==pinErrNoSoftInputArea) 
+        error=errNone;
     return error;
 }

@@ -67,6 +67,7 @@ static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
         serByte( prefs->navButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
         serByte( prefs->bookmarksSortType, prefsBlob, &blobSize );
+        serByte( prefs->fResidentModeEnabled, prefsBlob, &blobSize );
 
         // 2. number of databases found      
         serByte( appContext->dictsCount, prefsBlob, &blobSize );
@@ -167,7 +168,7 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
     prefs->navButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
     prefs->bookmarksSortType = (BookmarkSortType) deserByte( &prefsBlob, &blobSize );
-
+    prefs->fResidentModeEnabled = (Boolean) deserByte( &prefsBlob, &blobSize );
 
     // 2. number of databases detected
     dbCount = deserByte( &prefsBlob, &blobSize );
@@ -401,10 +402,12 @@ static void ScanForDictsThes(AppContext* appContext, Boolean fAlwaysScanExternal
         FsVfsFindDb(&appContext->fsSettings, &VfsFindCbThes, appContext );
 }
 
-static Err AppCommonInit(AppContext* appContext)
+extern Err AppCommonInit(AppContext* appContext);
+
+Err AppCommonInit(AppContext* appContext)
 {
-    Err error=errNone;
-    UInt32 value=0;
+    Err     error;
+
     MemSet(appContext, sizeof(*appContext), 0);
     error=FtrSet(APP_CREATOR, appFtrContext, (UInt32)appContext);
     if (error) 
@@ -434,6 +437,7 @@ static Err AppCommonInit(AppContext* appContext)
     appContext->prefs.dbStartupAction    = dbStartupActionLast;
     appContext->prefs.lastDbUsedName     = NULL;
     appContext->prefs.bookmarksSortType  = bkmSortByTime;
+    appContext->prefs.fResidentModeEnabled = true;
 
     // fill out the default display preferences
     appContext->prefs.displayPrefs.listStyle = 2;
@@ -613,15 +617,6 @@ void DisplayAbout(AppContext* appContext)
         WinPopDrawState();    
 }
 
-static void DoWord(AppContext* appContext, char *word)
-{
-    long wordNo;
-
-    Assert( word );
-    wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
-    DrawDescription(appContext, wordNo);
-}
-
 /*
 Given a point on the screen calculate the bounds of the character that 
 this point belongs to and also line & position in the line of this character.
@@ -671,17 +666,119 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
     return true;
 }
 
+static Boolean MainFormOpen(AppContext *appContext, FormType *frm)
+{    
+    AbstractFile *  fileToOpen;
+    char *          lastDbUsedName;
+    int             i;
+
+    FrmDrawForm(frm);
+    HistoryListInit(appContext, frm);
+
+    RemoveNonexistingDatabases(appContext);
+    ScanForDictsThes(appContext, false);
+
+    if (0 == appContext->dictsCount)
+    {
+        FrmAlert(alertNoDB);
+        SendStopEvent();
+        return true;
+    }
+
+ChooseDatabase:
+    fileToOpen = NULL;
+    if (1 == appContext->dictsCount )
+        fileToOpen = appContext->dicts[0];
+    else
+    {
+        lastDbUsedName = appContext->prefs.lastDbUsedName;
+        if ( NULL != lastDbUsedName )
+        {
+            LogV1("db name from prefs: %s", lastDbUsedName );
+        }
+        else
+        {
+            LogG("no db name from prefs" );
+        }
+
+        if ( (NULL != lastDbUsedName) && (dbStartupActionLast == appContext->prefs.dbStartupAction) )
+            fileToOpen=FindOpenDatabase(appContext, lastDbUsedName);
+    }
+
+    if (NULL == fileToOpen)
+    {
+        // ask the user which database to use
+        FrmPopupForm(formSelectDict);
+        return true;
+    }
+    else
+    {
+        if ( !DictInit(appContext, fileToOpen) )
+        {
+            // failed to initialize dictionary. If we have more - retry,
+            // if not - just quit
+            if ( appContext->dictsCount > 1 )
+            {
+                i = 0;
+                while ( fileToOpen != appContext->dicts[i] )
+                {
+                    ++i;
+                    Assert( i<appContext->dictsCount );
+                }
+                AbstractFileFree( appContext->dicts[i] );
+                while ( i<appContext->dictsCount )
+                {
+                    appContext->dicts[i] = appContext->dicts[i+1];
+                    ++i;
+                }
+                --appContext->dictsCount;
+                FrmAlert( alertDbFailed);
+                goto ChooseDatabase;
+            }
+            else
+            {
+                FrmAlert( alertDbFailed);
+                SendStopEvent();
+                return true;                    
+            }
+        }
+    }
+    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
+
+    if ( appContext->residentWordLookup )
+    {
+        DoWord(appContext, appContext->residentWordLookup);
+        return true;
+    }
+
+    if ( startupActionClipboard == appContext->prefs.startupAction )
+    {
+        if (!FTryClipboard(appContext))
+            DisplayAbout(appContext);
+    }
+    else
+        DisplayAbout(appContext);
+
+    if ( (startupActionLast == appContext->prefs.startupAction) &&
+        appContext->prefs.lastWord[0] )
+    {
+        DoWord(appContext, (char *)appContext->prefs.lastWord );
+    }
+    FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
+    return true;
+}
+
 static Boolean MainFormHandleEventThes(EventType * event)
 {
     Boolean         handled = false;
     FormType *      frm;
     Short           newValue;
-    ListType *      list=NULL;
+    ListType *      list;
     long            wordNo;
     int             i;
     int             selectedDb;
     AbstractFile *  fileToOpen;
-    char *          lastDbUsedName;
     char *          word;
     AppContext*     appContext=GetAppContext();
 
@@ -707,95 +804,7 @@ static Boolean MainFormHandleEventThes(EventType * event)
             break;
 
         case frmOpenEvent:
-            FrmDrawForm(frm);
-            HistoryListInit(appContext, frm);
-
-            RemoveNonexistingDatabases(appContext);
-            ScanForDictsThes(appContext, false);
-
-            if (0 == appContext->dictsCount)
-            {
-                FrmAlert(alertNoDB);
-                SendStopEvent();
-                return true;
-            }
-
-ChooseDatabase:
-            fileToOpen = NULL;
-            if (1 == appContext->dictsCount )
-                fileToOpen = appContext->dicts[0];
-            else
-            {
-                lastDbUsedName = appContext->prefs.lastDbUsedName;
-                if ( NULL != lastDbUsedName )
-                {
-                    LogV1("db name from prefs: %s", lastDbUsedName );
-                }
-                else
-                {
-                    LogG("no db name from prefs" );
-                }
-
-                if ( (NULL != lastDbUsedName) && (dbStartupActionLast == appContext->prefs.dbStartupAction) )
-                    fileToOpen=FindOpenDatabase(appContext, lastDbUsedName);
-            }
-
-            if (NULL == fileToOpen)
-            {
-                // ask the user which database to use
-                FrmPopupForm(formSelectDict);
-                return true;
-            }
-            else
-            {
-                if ( !DictInit(appContext, fileToOpen) )
-                {
-                    // failed to initialize dictionary. If we have more - retry,
-                    // if not - just quit
-                    if ( appContext->dictsCount > 1 )
-                    {
-                        i = 0;
-                        while ( fileToOpen != appContext->dicts[i] )
-                        {
-                            ++i;
-                            Assert( i<appContext->dictsCount );
-                        }
-                        AbstractFileFree( appContext->dicts[i] );
-                        while ( i<appContext->dictsCount )
-                        {
-                            appContext->dicts[i] = appContext->dicts[i+1];
-                            ++i;
-                        }
-                        --appContext->dictsCount;
-                        FrmAlert( alertDbFailed);
-                        goto ChooseDatabase;
-                    }
-                    else
-                    {
-                        FrmAlert( alertDbFailed);
-                        SendStopEvent();
-                        return true;                    
-                    }
-                }
-            }
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
-
-            if ( startupActionClipboard == appContext->prefs.startupAction )
-            {
-                if (!FTryClipboard(appContext))
-                    DisplayAbout(appContext);
-            }
-            else
-                DisplayAbout(appContext);
-
-            if ( (startupActionLast == appContext->prefs.startupAction) &&
-                appContext->prefs.lastWord[0] )
-            {
-                DoWord(appContext, (char *)appContext->prefs.lastWord );
-            }
-            FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWordMain));
-            handled = true;
+            handled = MainFormOpen(appContext, frm);
             break;
 
         case popSelectEvent:
@@ -1084,6 +1093,9 @@ ChooseDatabase:
                     break;
                 case menuItemLookupClipboard:
                     FTryClipboard(appContext);
+                    break;
+                case menuItemExit:
+                    SendStopEvent();
                     break;
 #ifdef DEBUG
                 case menuItemStress:
@@ -1454,13 +1466,14 @@ static Boolean SelectDictFormHandleEventThes(EventType * event)
     return false;
 }
 
-static void PrefsToGUI(AppContext* appContext, FormType * frm)
+static void PrefsToGUI(AppPrefs* prefs, FormType * frm)
 {
     Assert(frm);
-    SetPopupLabel(frm, listStartupAction, popupStartupAction, appContext->prefs.startupAction);
-    SetPopupLabel(frm, listStartupDB, popupStartupDB, appContext->prefs.dbStartupAction);
-    SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, appContext->prefs.hwButtonScrollType);
-    SetPopupLabel(frm, listNavButtonsAction, popupNavButtonsAction, appContext->prefs.navButtonScrollType);
+    SetPopupLabel(frm, listStartupAction, popupStartupAction, prefs->startupAction);
+    SetPopupLabel(frm, listStartupDB, popupStartupDB, prefs->dbStartupAction);
+    SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, prefs->hwButtonScrollType);
+    SetPopupLabel(frm, listNavButtonsAction, popupNavButtonsAction, prefs->navButtonScrollType);
+    CtlSetValue( FrmGetObjectPtr( frm, FrmGetObjectIndex(frm, checkResidentMode) ), prefs->fResidentModeEnabled );
 }
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -1480,12 +1493,12 @@ static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm)
 static Boolean PrefFormHandleEventThes(EventType * event)
 {
     Boolean     handled = false;
-    FormType *  frm = NULL;
-    ListType *  list = NULL;
-    char *      listTxt = NULL;
+    FormType *  frm;
+    ListType *  list;
+    char *      listTxt;
     AppContext* appContext=GetAppContext();
+
     Assert(appContext);
-    
 
     frm = FrmGetActiveForm();
     switch (event->eType)
@@ -1495,7 +1508,8 @@ static Boolean PrefFormHandleEventThes(EventType * event)
             break;
 
         case frmOpenEvent:
-            PrefsToGUI(appContext, frm);
+            PrefsToGUI(&(appContext->prefs), frm);
+            appContext->tmpPrefs = appContext->prefs;
             FrmDrawForm(frm);
             handled = true;
             break;
@@ -1506,19 +1520,19 @@ static Boolean PrefFormHandleEventThes(EventType * event)
             switch (event->data.popSelect.listID)
             {
                 case listStartupAction:
-                    appContext->prefs.startupAction = (StartupAction) event->data.popSelect.selection;
+                    appContext->tmpPrefs.startupAction = (StartupAction) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm, popupStartupAction)), listTxt);
                     break;
                 case listStartupDB:
-                    appContext->prefs.dbStartupAction = event->data.popSelect.selection;
+                    appContext->tmpPrefs.dbStartupAction = event->data.popSelect.selection;
                     CtlSetLabel(FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupDB)), listTxt);
                     break;
                 case listhwButtonsAction:
-                    appContext->prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
+                    appContext->tmpPrefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popuphwButtonsAction)), listTxt);
                     break;
                 case listNavButtonsAction:
-                    appContext->prefs.navButtonScrollType = (ScrollType) event->data.popSelect.selection;
+                    appContext->tmpPrefs.navButtonScrollType = (ScrollType) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupNavButtonsAction)), listTxt);
                     break;
                 default:
@@ -1531,6 +1545,10 @@ static Boolean PrefFormHandleEventThes(EventType * event)
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
+                case checkResidentMode:
+                    appContext->tmpPrefs.fResidentModeEnabled = (Boolean) event->data.ctlSelect.on;
+                    handled = true;
+                    break;
                 case popupStartupAction:
                 case popupStartupDB:
                 case popuphwButtonsAction:
@@ -1539,6 +1557,7 @@ static Boolean PrefFormHandleEventThes(EventType * event)
                     handled = false;
                     break;
                 case buttonOk:
+                    appContext->prefs = appContext->tmpPrefs;
                     SavePreferencesThes(appContext);
                     // pass through
                 case buttonCancel:
@@ -1633,10 +1652,10 @@ static void EventLoopThes(AppContext* appContext)
 
 Err AppPerformResidentLookup(Char* term)
 {
-    Err error=errNone;
-    AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
-    AbstractFile *  chosenDb=NULL;
-    long wordNo=0;
+    Err             error;
+    AbstractFile *  chosenDb;
+    AppContext *    appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
+
     if (!appContext)
     {
         error=memErrNotEnoughSpace;
@@ -1651,8 +1670,8 @@ Err AppPerformResidentLookup(Char* term)
     {
         if (1 == appContext->dictsCount )
             chosenDb = appContext->dicts[0];
-        else 
-        {            
+        else
+        {
             // because we can't start resident mode without previously gracefully exiting at least one time
             Assert(appContext->prefs.lastDbUsedName); 
             chosenDb=FindOpenDatabase(appContext, appContext->prefs.lastDbUsedName);
@@ -1684,7 +1703,7 @@ OnError:
 
 #pragma segment Segment2
 
-static Err AppLaunch() 
+static Err AppLaunch(char *cmdPBP) 
 {
     Err error=errNone;
     AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
@@ -1696,6 +1715,10 @@ static Err AppLaunch()
     error=InitThesaurus(appContext);
     if (error) 
         goto OnError;
+
+    if (cmdPBP)
+        ParseResidentWord(appContext, cmdPBP);
+
     FrmGotoForm(formDictMain);
     EventLoopThes(appContext);
     StopThesaurus(appContext);
@@ -1713,7 +1736,7 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     switch (cmd)
     {
     case sysAppLaunchCmdNormalLaunch:
-        err=AppLaunch();
+        err=AppLaunch(cmdPBP);
         break;
         
     case sysAppLaunchCmdNotify:

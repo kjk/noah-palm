@@ -1350,33 +1350,33 @@ long CalcListOffset(long itemsCount, long itemNo)
 
 void DefScrollUp(AppContext* appContext, ScrollType scroll_type)
 {
-    DisplayInfo *di = NULL;
-    int to_scroll = 0;
+    DisplayInfo *   di;
+    int             toScroll = 0;
 
     di = appContext->currDispInfo;
     if ((scrollNone == scroll_type) || (NULL == di) || (0 == appContext->firstDispLine))
         return;
 
-    to_scroll = appContext->lastDispLine - appContext->firstDispLine;
+    toScroll = appContext->lastDispLine - appContext->firstDispLine;
 
     switch (scroll_type)
     {
     case scrollLine:
-        to_scroll = 1;
+        toScroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = to_scroll / 2;
+        toScroll = toScroll / 2;
         break;
     case scrollPage:
-        to_scroll = to_scroll;
+        toScroll = toScroll;
         break;
     default:
         Assert(0);
         break;
     }
 
-    if (appContext->firstDispLine >= to_scroll)
-        appContext->firstDispLine -= to_scroll;
+    if (appContext->firstDispLine >= toScroll)
+        appContext->firstDispLine -= toScroll;
     else
         appContext->firstDispLine = 0;
 
@@ -1388,41 +1388,41 @@ void DefScrollUp(AppContext* appContext, ScrollType scroll_type)
 
 void DefScrollDown(AppContext* appContext, ScrollType scroll_type)
 {
-    DisplayInfo *di;
-    int invisible_lines = 0;
-    int to_scroll = 0;
+    DisplayInfo * di;
+    int           invisibleLines;
+    int           toScroll;
 
     di = appContext->currDispInfo;
 
     if ((scrollNone == scroll_type) || (NULL == di))
         return;
 
-    invisible_lines = diGetLinesCount(di) - appContext->lastDispLine - 1;
-    if (invisible_lines <= 0)
+    invisibleLines = diGetLinesCount(di) - appContext->lastDispLine - 1;
+    if (invisibleLines <= 0)
         return;
 
-    to_scroll = appContext->lastDispLine - appContext->firstDispLine;
+    toScroll = appContext->lastDispLine - appContext->firstDispLine;
 
     switch (scroll_type)
     {
     case scrollLine:
-        to_scroll = 1;
+        toScroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = to_scroll / 2;
+        toScroll = toScroll / 2;
         break;
     case scrollPage:
-        to_scroll = to_scroll;
+        toScroll = toScroll;
         break;
     default:
         Assert(0);
         break;
     }
 
-    if (invisible_lines >= to_scroll)
-        appContext->firstDispLine += to_scroll;
+    if (invisibleLines >= toScroll)
+        appContext->firstDispLine += toScroll;
     else
-        appContext->firstDispLine += invisible_lines;
+        appContext->firstDispLine += invisibleLines;
 
     SetGlobalBackColor(appContext); //global back color
     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H);
@@ -2146,9 +2146,8 @@ static Err AppHandleResidentLookup()
         goto Exit;
 
     error=SysNotifyUnregister(cardNo, localId, appNotifyResidentLookupEvent, sysNotifyNormalPriority);
-    Assert (sysNotifyErrEntryNotFound!=error);
-    if (error) 
-        goto Exit;
+    Assert(errNone==error);
+    // we shouldn't get an error but if we do, we just ignore it
 
     fieldIndex=FrmGetFocus(form);
     if (noFocus == fieldIndex)
@@ -2174,6 +2173,7 @@ static Err AppHandleResidentLookup()
 
     wordLen=FldGetSelectedText(field, word, wordLen+1);
     Assert(wordLen==StrLen(word));
+    RemoveWhiteSpaces(word);
 /*    error=AppPerformResidentLookup(buffer);*/
     LaunchMyselfWithWord(buffer);
     MemPtrFree(buffer);
@@ -2187,20 +2187,54 @@ NoWordSelected:
     goto Exit;
 }
 
+extern Err AppCommonInit(AppContext* appContext);
+
+static Boolean FResidentModeEnabled()
+{
+    Err             err;
+    Boolean         fEnabled=false;
+    AppContext *    appContext;
+
+    // assumption: this is being called in the case where we don't have
+    // AppContext yet
+
+    appContext = (AppContext*)MemPtrNew(sizeof(AppContext));
+    if (NULL==appContext)
+        goto Exit;
+
+    err=AppCommonInit(appContext);
+    if (err)
+        goto Exit;
+
+    fEnabled = appContext->prefs.fResidentModeEnabled;
+
+Exit:
+    if (NULL==appContext)
+        MemPtrFree(appContext);
+    return fEnabled;
+}
+
 static Err AppHandleMenuCmdBarOpen() 
 {
-    Err error=errNone;
-    UInt16 cardNo;
+    Err     error;
+    UInt16  cardNo;
     LocalID localId;
+
+    if (!FResidentModeEnabled())
+        return errNone;
+
     error=PrepareSupportDatabase(SUPPORT_DATABASE_NAME, bmpMenuBarIcon);
     if (error)
         goto OnError;
+
     error=MenuCmdBarAddButton(menuCmdBarOnLeft, bmpMenuBarIcon, menuCmdBarResultNotify, appNotifyResidentLookupEvent, APP_NAME);
     if (error) 
         goto OnError;
+
     error=SysCurAppDatabase(&cardNo, &localId);
     if (error) 
         goto OnError;
+
     error=SysNotifyRegister(cardNo, localId, appNotifyResidentLookupEvent, NULL, sysNotifyNormalPriority, NULL);
     if (sysNotifyErrDuplicateEntry==error) 
         error=errNone;
@@ -2228,20 +2262,12 @@ Err AppHandleSysNotify(SysNotifyParamType* param)
 
 #if !(defined(NOAH_LITE) || defined(I_NOAH))
         case sysNotifyMenuCmdBarOpenEvent:
-            //TODO: add ability to disable resident mode
-            //Assert(true==appContext->prefs.fResidentModeEnabled);
-            //if (appContext->prefs.fResidentModeEnabled)
-                error=AppHandleMenuCmdBarOpen();
+            error=AppHandleMenuCmdBarOpen();
             break;
 
         case appNotifyResidentLookupEvent:
-            //TODO: add ability to disable resident mode
-            //Assert(true==appContext->prefs.fResidentModeEnabled);
-            //if (appContext->prefs.fResidentModeEnabled)
-            {
-                error=AppHandleResidentLookup();
-                param->handled=true;
-            }
+            error=AppHandleResidentLookup();
+            param->handled=true;
             break;
 #endif
 
@@ -2340,6 +2366,8 @@ Err AppNotifyFree(AppContext* appContext, Boolean beResident)
         if (40<=GetOsVersion(appContext))
         {
             error=SysNotifyRegister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, NULL, sysNotifyNormalPriority, NULL);	
+            if (sysNotifyErrDuplicateEntry==error) 
+                error=errNone;
             if (error) 
                 goto OnError;
         }                
@@ -2749,4 +2777,33 @@ long  GenRandomLong(long range)
     return (long)result;
 }
 
+void ParseResidentWord(AppContext *appContext, char *cmdPBP)
+{
+    Assert( cmdPBP );
+
+    if (StrLen(cmdPBP)<MAGIC_RESIDENT_LOOKUP_PREFIX_LEN)
+        goto NoResidentLaunch;
+
+    if ( 0 != StrNCompare(cmdPBP, MAGIC_RESIDENT_LOOKUP_PREFIX, MAGIC_RESIDENT_LOOKUP_PREFIX_LEN) )
+        goto NoResidentLaunch;
+
+    // the real word is after the prefix
+    appContext->residentWordLookup = cmdPBP+MAGIC_RESIDENT_LOOKUP_PREFIX_LEN;
+    return;
+NoResidentLaunch:
+    // we have not been launched by ourselves. don't know what it might mean
+    // but don't mark this launch as resident mode launch
+    appContext->residentWordLookup = NULL;
+    return;
+}
+
+void DoWord(AppContext* appContext, char *word)
+{
+    long wordNo;
+
+    Assert( word );
+    wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
+    FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
+    DrawDescription(appContext, wordNo);
+}
 

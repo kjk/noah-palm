@@ -49,6 +49,7 @@ void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
         serByte( prefs->navButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
         serByte( prefs->bookmarksSortType, prefsBlob, &blobSize );
+        serByte( prefs->fResidentModeEnabled, prefsBlob, &blobSize );
 
         /* 2. number of databases found */
         serByte( appContext->dictsCount, prefsBlob, &blobSize );
@@ -132,7 +133,8 @@ void SavePreferencesNoahPro(AppContext* appContext)
 
 
     prefsBlob = SerializePreferencesNoahPro( appContext, &blobSize );
-    if ( NULL == prefsBlob ) return;
+    if ( NULL == prefsBlob ) 
+        return;
 
     db = DmOpenDatabaseByTypeCreator(NOAH_PREF_TYPE, NOAH_PRO_CREATOR, dmModeReadWrite);
     if (!db)
@@ -204,8 +206,9 @@ CloseDbExit:
 
 Err InitNoahPro(AppContext* appContext)
 {
-    Err error=errNone;
-    Boolean res=false;
+    Err         error;
+    Boolean     res;
+
     error=AppCommonInit(appContext);
     if (error) 
         goto OnError;
@@ -285,16 +288,6 @@ void DisplayAbout(AppContext* appContext)
 
     if (GetOsVersion(appContext)>=35)
         WinPopDrawState();    
-}
-
-void DoWord(AppContext* appContext, char *word)
-{
-    long wordNo;
-
-    Assert( word );
-    wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
-    FldClearInsert(FrmGetActiveForm(), fieldWordMain, word);
-    DrawDescription(appContext, wordNo);
 }
 
 static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -1038,6 +1031,7 @@ static Boolean SelectDictFormHandleEventNoahPro(EventType * event)
     ListPtr list;
     long    selectedDb;
     AppContext* appContext=GetAppContext();
+
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
@@ -1112,13 +1106,14 @@ static Boolean SelectDictFormHandleEventNoahPro(EventType * event)
     return false;
 }
 
-static void PrefsToGUI(AppContext* appContext, FormType * frm)
+static void PrefsToGUI(AppPrefs *prefs, FormType * frm)
 {
     Assert(frm);
-    SetPopupLabel(frm, listStartupAction, popupStartupAction, appContext->prefs.startupAction);
-    SetPopupLabel(frm, listStartupDB, popupStartupDB, appContext->prefs.dbStartupAction);
-    SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, appContext->prefs.hwButtonScrollType);
-    SetPopupLabel(frm, listNavButtonsAction, popupNavButtonsAction, appContext->prefs.navButtonScrollType);
+    SetPopupLabel(frm, listStartupAction, popupStartupAction, prefs->startupAction);
+    SetPopupLabel(frm, listStartupDB, popupStartupDB, prefs->dbStartupAction);
+    SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, prefs->hwButtonScrollType);
+    SetPopupLabel(frm, listNavButtonsAction, popupNavButtonsAction, prefs->navButtonScrollType);
+    CtlSetValue( FrmGetObjectPtr( frm, FrmGetObjectIndex(frm, checkResidentMode) ), prefs->fResidentModeEnabled );
 }
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -1138,9 +1133,9 @@ static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm)
 static Boolean PrefFormHandleEventNoahPro(EventType * event)
 {
     Boolean     handled = true;
-    FormType *  frm = NULL;
-    ListType *  list = NULL;
-    char *      listTxt = NULL;
+    FormType *  frm;
+    ListType *  list;
+    char *      listTxt;
     AppContext* appContext=GetAppContext();
 
     frm = FrmGetActiveForm();
@@ -1152,7 +1147,8 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
 
         case frmOpenEvent:
             FrmDrawForm(frm);
-            PrefsToGUI(appContext, frm);
+            PrefsToGUI(&(appContext->prefs), frm);
+            appContext->tmpPrefs = appContext->prefs;
             return true;
 
         case popSelectEvent:
@@ -1161,19 +1157,19 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
             switch (event->data.popSelect.listID)
             {
                 case listStartupAction:
-                    appContext->prefs.startupAction = (StartupAction) event->data.popSelect.selection;
+                    appContext->tmpPrefs.startupAction = (StartupAction) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupAction)), listTxt);
                     break;
                 case listStartupDB:
-                    appContext->prefs.dbStartupAction = (DatabaseStartupAction) event->data.popSelect.selection;
+                    appContext->tmpPrefs.dbStartupAction = (DatabaseStartupAction) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm,FrmGetObjectIndex(frm, popupStartupDB)), listTxt);
                     break;
                 case listhwButtonsAction:
-                    appContext->prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
+                    appContext->tmpPrefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popuphwButtonsAction)), listTxt);
                     break;
                 case listNavButtonsAction:
-                    appContext->prefs.navButtonScrollType = (ScrollType) event->data.popSelect.selection;
+                    appContext->tmpPrefs.navButtonScrollType = (ScrollType) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupNavButtonsAction)), listTxt);
                     break;
                 default:
@@ -1184,6 +1180,10 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
+                case checkResidentMode:
+                    appContext->tmpPrefs.fResidentModeEnabled = (Boolean) event->data.ctlSelect.on;
+                    handled = true;
+                    break;
                 case popupStartupAction:
                 case popupStartupDB:
                 case popuphwButtonsAction:
@@ -1192,6 +1192,7 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
                     handled = false;
                     break;
                 case buttonOk:
+                    appContext->prefs = appContext->tmpPrefs;
                     SavePreferencesNoahPro(appContext);
                     // pass through
                 case buttonCancel:
@@ -1293,26 +1294,6 @@ static void EventLoopNoahPro(AppContext* appContext)
             FrmAlert( alertGenericError );
     }
 #endif
-}
-
-static void ParseResidentWord(AppContext *appContext, char *cmdPBP)
-{
-    Assert( cmdPBP );
-
-    if (StrLen(cmdPBP)<MAGIC_RESIDENT_LOOKUP_PREFIX_LEN)
-        goto NoResidentLaunch;
-
-    if ( 0 != StrNCompare(cmdPBP, MAGIC_RESIDENT_LOOKUP_PREFIX, MAGIC_RESIDENT_LOOKUP_PREFIX_LEN) )
-        goto NoResidentLaunch;
-
-    // the real word is after the prefix
-    appContext->residentWordLookup = cmdPBP+MAGIC_RESIDENT_LOOKUP_PREFIX_LEN;
-    return;
-NoResidentLaunch:
-    // we have not been launched by ourselves. don't know what it might mean
-    // but don't mark this launch as resident mode launch
-    appContext->residentWordLookup = NULL;
-    return;
 }
 
 Err AppLaunch(char *cmdPBP) 

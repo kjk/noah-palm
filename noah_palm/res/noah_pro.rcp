@@ -164,7 +164,7 @@ BEGIN
    BUTTON ""             buttonBGpos        AT (RIGHT@160 - 2     PrevTop    20   AUTO) FONT 0
    LABEL "Bg:"                       AUTOID AT (RIGHT@PrevLeft-2  PrevTop) FONT 0
 
-   BUTTON "Ok"           buttonOk           AT (center@30  BOTTOM@160-1 40 AUTO)  FONT 0
+   BUTTON "OK"           buttonOk           AT (center@30  BOTTOM@160-1 40 AUTO)  FONT 0
    BUTTON "Cancel"       buttonCancel       AT (center@80  BOTTOM@160-1 40 AUTO)  FONT 0
    BUTTON "Default"      buttonDefault      AT (center@130 BOTTOM@160-1 40 AUTO)  FONT 0
 END 
@@ -234,8 +234,10 @@ BEGIN
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listNavButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popupNavButtonsAction listNavButtonsAction
 
-   BUTTON "Ok"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
-   BUTTON "CANCEL" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
+   CHECKBOX "Enable resident mode" ID checkResidentMode AT (2 PREVTOP+14 AUTO AUTO) LEFTANCHOR USABLE
+
+   BUTTON "OK"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
+   BUTTON "Cancel" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
 END
 
 ALERT alertMemError

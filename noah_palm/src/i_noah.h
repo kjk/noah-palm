@@ -36,8 +36,7 @@ typedef struct
 
 typedef iNoahPrefs AppPrefs;
 
-#define iNoah10Pref   0x341272a9
-#define AppPrefId     iNoah10Pref
+#define AppPrefId     0x341272a9
 
 #define PREF_REC_MIN_SIZE 4
 

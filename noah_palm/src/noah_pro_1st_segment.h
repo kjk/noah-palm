@@ -3,7 +3,7 @@
  * Declarations of functions called from noah_pro_2nd_segment.c that are contained in noah_pro.c
  */
  
- #include "common.h"
+#include "common.h"
  
 extern Err AppCommonInit(AppContext* appContext);
 extern Err AppCommonFree(AppContext* appContext);

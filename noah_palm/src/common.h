@@ -276,6 +276,7 @@ typedef struct _AppContext
     
 #endif    
     AppPrefs           prefs;
+    AppPrefs           tmpPrefs;
     
 #ifndef I_NOAH    
 #ifdef DEBUG
@@ -647,5 +648,6 @@ void RememberFieldWordMain(AppContext *appContext, FormType *frm);
 void GoToFindWordForm(AppContext *appContext, FormType *frm);
 void RedisplayWord(AppContext *appContext);
 long GenRandomLong(long range);
-
+void ParseResidentWord(AppContext *appContext, char *cmdPBP);
+void DoWord(AppContext* appContext, char *word);
 #endif
