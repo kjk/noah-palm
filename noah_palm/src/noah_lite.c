@@ -531,7 +531,6 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
                             return true;
                         }
                     }
-                    return false;
                     break;
             }
             SendFieldChanged();

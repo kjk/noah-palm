@@ -1133,7 +1133,6 @@ Boolean FindFormHandleEventThes(EventType * event)
                             return true;
                         }
                     }
-                    return false;
                     break;
 
             }

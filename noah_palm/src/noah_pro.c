@@ -1175,8 +1175,8 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
                             ScrollWordListByDx( frm, 1 );
                             return true;
                         }
+                        return false;
                     }
-                    return false;
                     break;
             }
             SendFieldChanged();
