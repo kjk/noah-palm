@@ -1,4 +1,4 @@
-Simpe data format
+Simple data format
 
 Record 0:
   0  4 long wordsCount
