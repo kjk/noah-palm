@@ -462,14 +462,17 @@ function serve_recent_lookups($cookie)
     $words = "";
     $query = "SELECT DISTINCT word FROM request_log WHERE cookie='$cookie' ORDER BY query_time;";
     $rows = $dict_db->get_results($query);
-    $words_count = 0;
-    foreach ( $rows as $row )
+    if ($rows)
     {
-        $word = $row->word;
-        $words .= "$word\n";
-        $words_count += 1;
-        if ( $words_count > MAX_RECENT_LOOKUPS )
-            break;        
+        $words_count = 0;
+        foreach ( $rows as $row )
+        {
+            $word = $row->word;
+            $words .= "$word\n";
+            $words_count += 1;
+            if ( $words_count > MAX_RECENT_LOOKUPS )
+                break;        
+        }
     }
     write_WORDLIST($words);
     exit;
