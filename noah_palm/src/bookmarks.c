@@ -241,7 +241,7 @@ Boolean BookmarksFormHandleEvent(EventType * event)
                 SendNewWordSelected();
 #else
                 FrmReturnToForm(0);
-                StartLookup(appContext, word);
+                StartWordLookup(appContext, word);
                 MemHandleUnlock(recHandle);
 #endif                
             }

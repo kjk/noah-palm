@@ -329,7 +329,7 @@ typedef struct _AppContext
     ExtensibleBuffer lastResponse;
     ExtensibleBuffer currentDefinition;
     ExtensibleBuffer currentWordBuf;
-    void* currentLookupData;
+    void* currentConnectionData;
     Boolean lookupStatusBarVisible;
     ExtensibleBuffer lastMessage;
     

@@ -153,7 +153,7 @@ inline static void WordsListFormSelectProposal(AppContext* appContext, UInt16 pr
     Assert(proposal>=0 && proposal<appContext->wordsInListCount);
     const Char* selectedWord=appContext->wordsList[proposal];
     FrmReturnToForm(0);
-    StartLookup(appContext, selectedWord);
+//    StartLookup(appContext, selectedWord);
     WordsListFormCleanup(appContext);
 }
 

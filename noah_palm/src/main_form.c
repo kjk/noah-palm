@@ -7,6 +7,7 @@
 
 #include "main_form.h"
 #include "inet_word_lookup.h"
+#include "inet_connection.h"
 #include "five_way_nav.h"
 #include "bookmarks.h"
 
@@ -69,7 +70,7 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
     SetGlobalBackColor(appContext);
     ClearRectangle(0, 0, appContext->screenWidth, lookupStatusBarHeight);
     WinDrawLine(0, lookupStatusBarHeight, appContext->screenWidth, lookupStatusBarHeight);
-    const Char* text=GetLookupStatusText(appContext);
+    const Char* text=GetConnectionStatusText(appContext);
     Assert(text);
     UInt16 textLen=StrLen(text);    
     WinDrawTruncChars(text, textLen, 1, 1, appContext->screenWidth - 14);
@@ -131,11 +132,11 @@ static void MainFormSelectWholeInputText(const FormType* form)
     FldSelectAllText(field);
 }
 
-static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form, EventType* event)
+static void MainFormHandleConnectionProgress(AppContext* appContext, FormType* form, EventType* event)
 {
     Assert(event);
-    LookupProgressEventData* data=reinterpret_cast<LookupProgressEventData*>(&event->data);
-    if (lookupProgress==data->flag) 
+    ConnectionProgressEventData* data=reinterpret_cast<ConnectionProgressEventData*>(&event->data);
+    if (connectionProgress==data->flag) 
         FrmUpdateForm(formDictMain, redrawLookupStatusBar);
     else
     {
@@ -144,7 +145,7 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
         RectangleType bounds;
         FrmGetObjectBounds(form, index, &bounds);
         
-        if (lookupFinished==data->flag)
+        if (connectionFinished==data->flag)
         {
             appContext->lookupStatusBarVisible=false;
             
@@ -156,36 +157,11 @@ static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form,
             Assert(frmInvalidObjectId!=index);
             FrmHideObject(form, index);
             
-            switch (data->result)
-            {
-                case responseOneWord:
-                    appContext->mainFormContent=mainFormShowsDefinition;
-                    appContext->firstDispLine=0;
-                    MainFormSelectWholeInputText(form);
-                    break;
-                    
-                case responseMessage:
-                    appContext->mainFormContent=mainFormShowsMessage;
-                    appContext->firstDispLine=0;
-                    MainFormSelectWholeInputText(form);
-                    break;
-                    
-                case responseWordsList:
-                    FrmPopupForm(formWordsList);
-                    
-                case responseError:
-                case responseWordNotFound:
-                    MainFormSelectWholeInputText(form);
-                    break;
-                    
-                default:
-                    Assert(false);
-            }
-            
+            MainFormSelectWholeInputText(form);
         }
         else 
         {
-            Assert(lookupStarted==data->flag);
+            Assert(connectionStarted==data->flag);
             appContext->lookupStatusBarVisible=true;
             
             bounds.topLeft.y+=lookupStatusBarHeight;
@@ -211,7 +187,7 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
         Assert(field);
         newWord=FldGetTextPtr(field);
         if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
-            StartLookup(appContext, newWord);
+            StartWordLookup(appContext, newWord);
         else if (mainFormShowsDefinition!=appContext->mainFormContent)
         {
             cbNoSelection(appContext);
@@ -235,8 +211,8 @@ static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, E
             break;
             
         case buttonAbortLookup:
-            if (LookupInProgress(appContext))
-                AbortCurrentLookup(appContext, true);
+            if (ConnectionInProgress(appContext))
+                AbortCurrentConnection(appContext, true);
             handled=true;
             break;
 
@@ -264,7 +240,7 @@ static void MainFormLookupClipboard(AppContext* appContext)
     if (ebufGetDataSize(&buffer))
     {
         ebufAddChar(&buffer, chrNull);
-        StartLookup(appContext, ebufGetDataPointer(&buffer));
+        StartWordLookup(appContext, ebufGetDataPointer(&buffer));
     }
     ebufFreeData(&buffer);
 }
@@ -289,10 +265,10 @@ static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* e
         case startupActionClipboard:
             MainFormLookupClipboard(appContext);
             break;
-        
+
         case startupActionLast:
             if (StrLen(appContext->prefs.lastWord))
-                StartLookup(appContext, appContext->prefs.lastWord);
+                StartWordLookup(appContext, appContext->prefs.lastWord);
             break;
     }
     
@@ -533,8 +509,8 @@ static Boolean MainFormHandleEvent(EventType* event)
             handled = true;
             break;
             
-        case lookupProgressEvent:
-            MainFormHandleLookupProgress(appContext, form, event);
+        case connectionProgressEvent:
+            MainFormHandleConnectionProgress(appContext, form, event);
             handled=true;
             break;            
     

@@ -1,7 +1,9 @@
 /**
  * @file blowfish.h
  * Interface to Blowfish cipher algorithm using single class @c BlowfishCipher.
+ *
  * Copyright (C) 2000-2003 Krzysztof Kowalczyk
+ *
  * @author Andrzej Ciarkowski (a.ciarkowski@interia.pl)
  * @see http://www.schneier.com/blowfish.html
  */
@@ -21,8 +23,11 @@ typedef unsigned __int8  UInt8;
 
 /**
  * Blowfish cipher implementation.
- * Be aware that single object of class @c BlowfishCipher is slightly larger than 1kB, 
+ * @note Be aware that single object of class @c BlowfishCipher is slightly larger than 1kB, 
  * so don't try to allocate it on stack as it may easily lead to overflow.
+ * @note Blowfish operates on 64-bit (8 bytes) wide chunks of data, so data you pass for encryption
+ * should be padded to the nearest 8 multiply. If data to decrypt is shorter it indicates probable 
+ * corruption in lower-layer protocol.
  */
 class BlowfishCipher {
     
@@ -41,6 +46,7 @@ public:
     enum {
         /**
          * Maximum key length in bytes.
+         * @showinitializer
          */
         maxKeyBytes=56,
     };
@@ -51,7 +57,20 @@ private:
     
     UInt32 f(UInt32 x);
     
+    /**
+     * @internal 
+     * Encrypts in place 64-bit chunk of data.
+     * @param l left part of chunk (more significant).
+     * @param r right part of chunk (less significant).
+     */
     void encrypt(UInt32& l, UInt32& r);
+    
+    /**
+     * @internal
+     * Decrypts in place 64-bit chunk of data.
+     * @param l left part of chunk (more significant).
+     * @param r right part of chunk (less significant).
+     */
     void decrypt(UInt32& l, UInt32& r);
     
 public:

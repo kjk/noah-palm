@@ -7,7 +7,7 @@
 #include "five_way_nav.h"
 #include "main_form.h"
 #include "preferences_form.h"
-#include "inet_word_lookup.h"
+#include "inet_connection.h"
 #include "bookmarks.h"
 #include "words_list_form.h"
 #include "blowfish.h"
@@ -132,8 +132,8 @@ static void AppDispose(AppContext* appContext)
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
     
-    if (appContext->currentLookupData)
-        AbortCurrentLookup(appContext, false);
+    if (ConnectionInProgress(appContext))
+        AbortCurrentConnection(appContext, false);
     
     if (appContext->currDispInfo)
     {
@@ -209,13 +209,13 @@ static void AppEventLoop(AppContext* appContext)
     do 
     {
         Int32 timeout=evtWaitForever;
-        if (LookupInProgress(appContext)) 
+        if (ConnectionInProgress(appContext)) 
             timeout=0;
         EvtGetEvent(&event, timeout);
         if (appStopEvent!=event.eType)
         {
-            if (nilEvent==event.eType && LookupInProgress(appContext))
-                PerformLookupTask(appContext);
+            if (nilEvent==event.eType && ConnectionInProgress(appContext))
+                PerformConnectionTask(appContext);
             else 
             {                
                 if (!SysHandleEvent(&event))

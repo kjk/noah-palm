@@ -1,7 +1,9 @@
 /**
  * @file blowfish.cpp
- * Implementation of Blowfish cipher algorithm on PalmOS.
+ * Implementation of @c BlowfishCipher class.
+ *
  * Copyright (C) 2000-2003 Krzysztof Kowalczyk
+ *
  * @author Andrzej Ciarkowski (a.ciarkowski@interia.pl)
  * @see http://www.schneier.com/blowfish.html
  */

@@ -34,7 +34,7 @@ typedef iNoahPrefs AppPrefs;
 
 typedef enum AppEvent_
 {
-    lookupProgressEvent=firstUserEvent,
+    connectionProgressEvent=firstUserEvent,
 } AppEvent;
 
 typedef enum MainFormContent_

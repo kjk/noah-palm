@@ -205,8 +205,6 @@ Err ProcessOneWordResponse(AppContext* appContext, const Char* word, const Char*
         ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
         ebufAddChar(&appContext->currentWordBuf, chrNull);
     }
-    else
-        FrmAlert(alertMalformedResponse);
     ebufFreeData(&buffer);
     return error;
 }
@@ -301,10 +299,7 @@ ResponseParsingResult ProcessResponse(AppContext* appContext, const Char* word, 
     ResponseParsingResult result=responseError;
     Err error=errNone;
     if (StrStartsWith(begin, end, noDefnitionResponse))
-    {
-        FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
         result=responseWordNotFound;
-    }
     else if (StrStartsWith(begin, end, wordsListResponse))
     {
         error=ProcessWordsListResponse(appContext, begin, end);
