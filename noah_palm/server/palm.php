@@ -274,39 +274,6 @@ function serve_recent_lookups($cookie)
     exit;
 }
 
-# each di tag consists of tag name and tag value
-# known tag names are:
-#  HS - hex-bin encoded hotsync name
-#  SN - hex-bin encoded device serial number (if exists)
-#  PN - hex-bin encoded phone number (if exists)
-#  OC - hex-bin encoded OEM company ID
-#  OD - hex-bin encoded OEM device ID
-
-function is_valid_di_tag($tag)
-{
-    if ( strlen($tag)<2 )
-        return false;
-
-    $tag_name = substr($tag,0,2);
-    $valid_tag_names = array('HS', 'SN', 'PN', 'OC', 'OD');
-
-    $valid_p = false;
-    foreach( $valid_tag_names as $valid_tag_name )
-    {
-        if ( $tag_name == $valid_tag_name )
-        {
-            $valid_p = true;
-            break;
-        }
-    }
-
-    if ( ! $valid_p )
-        return false;
-
-    # TODO: also check tag values for corectness ?
-    return false;
-}
-
 # check if $device_id is in proper format
 function validate_di($device_id)
 {
@@ -344,11 +311,15 @@ function validate_cookie($cookie)
     # everything went fine so the cookie is ok
 }
 
+if ( !isset($HTTP_GET_VARS['pv']) )
+    report_error(ERR_NO_PV);
 $protocol_version = $HTTP_GET_VARS['pv'];
 if ( empty($protocol_version) )
     report_error(ERR_NO_PV);
 validate_protocol_version($protocol_version);
 
+if ( !isset($HTTP_GET_VARS['cv']) )
+    report_error(ERR_NO_CV);
 $client_version = $HTTP_GET_VARS['cv'];
 if ( empty($client_version) )
     report_error(ERR_NO_CV);
@@ -357,6 +328,8 @@ validate_client_version($client_version);
 # the only request that doesnt require cookie
 if ( isset( $HTTP_GET_VARS['get_cookie'] ) )
 {
+    if ( !isset($HTTP_GET_VARS['di']) )
+        report_error(ERR_NO_DI);
     $device_id = $HTTP_GET_VARS['di'];
     if ( empty($device_id) )
         report_error(ERR_NO_DI);
@@ -365,34 +338,40 @@ if ( isset( $HTTP_GET_VARS['get_cookie'] ) )
 }
 
 # all other requests require cookie to be present
+if ( !isset($HTTP_GET_VARS['c']) )
+    report_error(ERR_NO_COOKIE);
 $cookie = $HTTP_GET_VARS['c'];
 if ( empty($cookie) )
     report_error(ERR_NO_COOKIE);
 validate_cookie($cookie);
 
-$reg_code = $HTTP_GET_VARS['register'];
-if ( !is_null($reg_code) )
-    serve_register($reg_code);
-
-$get_random_word = $HTTP_GET_VARS['get_random_word'];
-if ( !is_null($get_random_word) )
+if ( isset($HTTP_GET_VARS['register']) )
 {
+    $reg_code = $HTTP_GET_VARS['register'];
+    serve_register($reg_code);
+}
+
+if ( isset($HTTP_GET_VAR['get_random_word'] ) )
+{
+    $get_random_word = $HTTP_GET_VARS['get_random_word'];
     if ($get_random_word != "")
         report_error(ERR_RANDOM_NOT_EMPTY);
     serve_get_random_word();
 }
 
-$recent_lookups = $HTTP_GET_VARS['recent_lookups'];
-if ( !is_null( $recent_lookups ) )
+if ( isset($HTTP_GET_VARS['recent_lookups'] ) )
 {
+    $recent_lookups = $HTTP_GET_VARS['recent_lookups'];
     if ($recent_lookups != "")
         report_error(ERR_RECENT_LOOKUPS_NOT_EMPTY);
     serve_recent_lookups($cookie);
 }
 
-$get_word = $HTTP_GET_VARS['get_word'];
-if ( !is_null($get_word) )
+if ( isset($HTTP_GET_VARS['get_word']) )
+{
+    $get_word = $HTTP_GET_VARS['get_word'];
     serve_get_word($cookie,$get_word);
+}
 
 report_error(ERR_UKNOWN_REQUEST);
 ?>

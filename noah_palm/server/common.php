@@ -51,24 +51,10 @@ function is_valid_di_tag($tag)
         return false;
 
     $tag_name  = substr($tag,0,2);
+    $valid_tag_names = array('HS', 'SN', 'PN', 'OC', 'OD');
 
-    if ( $tag_name == "HS" )
-        return true;
-
-    if ( $tag_name == "SN" )
-        return true;
-
-    if ( $tag_name == "HS" )
-        return true;
-
-    if ( $tag_name == "PN" )
-        return true;
-
-    if ( $tag_name == "OC" )
-        return true;
-
-    if ( $tag_name == "OD" )
-        return true;
+    if ( !in_array($tag_name, $valid_tag_names) )
+        return false;
 
     $tag_value_encoded = substr($tag,2);
     $tag_value = decode_di_tag_value($tag_value_encoded);
@@ -159,6 +145,9 @@ function get_device_name_by_oc_od($oc, $od)
         $name =  "Tapwave Zodiac 1/2";
 
     # PALM devices 
+    if ( $oc=='palm' && $od=='ecty' )
+        $name =  "Palm m505";
+
     if ( $oc=='palm' && $od=='MT64' )
         $name =  "Tungsten C";
 
@@ -182,6 +171,8 @@ function get_device_name_by_oc_od($oc, $od)
 
     if ( $oc=='Palm' && $od=='Cct1' )
         $name =  "Tungsten E";
+
+
 
     return $name;
 }
