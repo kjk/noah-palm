@@ -280,9 +280,9 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             /* start the timer, so we'll switch to info
                text after a few seconds */
     /*      gd.start_seconds_count = TimGetSeconds();
-          gd.current_timeout = 50; */
+          gd.current_       timeout = 50; */
             handled = true;
-            break;
+            break;      
 
         case keyDownEvent:
             if (pageUpChr == event->data.keyDown.chr)
@@ -530,6 +530,7 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
                             ScrollWordListByDx( frm, 1 );
                             return true;
                         }
+                        return false;
                     }
                     break;
             }

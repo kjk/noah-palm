@@ -1132,9 +1132,9 @@ Boolean FindFormHandleEventThes(EventType * event)
                             ScrollWordListByDx( frm, 1 );
                             return true;
                         }
+                        return false;
                     }
                     break;
-
             }
             SendFieldChanged();
             handled = false;
