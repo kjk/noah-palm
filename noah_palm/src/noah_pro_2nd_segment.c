@@ -320,6 +320,36 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm)
 }
 
 
+/* Generates a random long in the range 0..range-1. SysRandom() returns value
+   between 0..sysRandomMax which is 0x7FFF. We have to construct a long out of
+   that.
+*/
+static long  GenRandomLong(long range)
+{
+    long    result;
+    Int16   rand1, rand2;
+
+    /* the idea is that to get better randomness we'll seed SysRandom() every
+       fourth time with the number of current ticks. I don't know if it matters
+       and don't care much. */
+    rand1 = SysRandom(0);
+    if ( 2 == (rand1 % 3) )
+        rand1 = SysRandom(TimGetTicks());
+
+    rand2 = SysRandom(0);
+    if ( 2 == (rand2 % 3) )
+        rand2 = SysRandom(TimGetTicks());
+
+    result = rand1*sysRandomMax + rand2;
+
+    result = result % range;
+
+    Assert( (result>=0) && (result<range) );
+
+    return result;
+} 
+
+
 static Boolean MainFormHandleEventNoahPro(EventType * event)
 {
     Boolean         handled = false;
@@ -332,7 +362,7 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
     AbstractFile *  fileToOpen;
     char *          lastDbUsedName;
     char *          word;
-    AppContext* appContext=GetAppContext();
+    AppContext*     appContext=GetAppContext();
     Assert(appContext);
 
     frm = FrmGetActiveForm();
@@ -742,6 +772,14 @@ ChooseDatabase:
                     break;
                 case menuItemDispPrefs:
                     FrmPopupForm(formDisplayPrefs);
+                    break;
+                case menuItemRandomWord:
+                    {
+                        long wordNo = GenRandomLong(appContext->wordsCount);
+                        AddToHistory(appContext, wordNo);
+                        HistoryListSetState(appContext, frm);
+                        DrawDescription(appContext, wordNo);
+                    }
                     break;
                 case menuItemCopy:
                     if (NULL != appContext->currDispInfo)

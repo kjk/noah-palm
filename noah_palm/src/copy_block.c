@@ -111,6 +111,8 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
 
     if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
     {
+        AddToHistory(appContext, wordNo);
+        HistoryListSetState(appContext, FrmGetActiveForm());
         DrawDescription(appContext, wordNo);
         return true;
     }

@@ -194,7 +194,7 @@ void FsVfsFindDb( FS_Settings* fsSettings, FIND_DB_CB *cbCheckFile, void* contex
         return;
     }        
 
-    MemSet( &fileInfo, 0, sizeof(fileInfo) );
+    MemSet( &fileInfo, sizeof(fileInfo), 0 );
     fileInfo.nameBufLen = VFS_MAX_PATH_SIZE;
     fileInfo.nameP = (char*)new_malloc_zero(fileInfo.nameBufLen);
     if ( NULL == fileInfo.nameP ) return;
