@@ -534,6 +534,7 @@ Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 respo
         default:
             Assert(false);
     } */
-    ebufAddStr(&statusBuffer, const_cast<Char*>(baseText));
+    ebufAddStr(&statusBuffer, const_cast<char*>(baseText));
+    ebufAddChar(&statusBuffer, chrNull);
     return errNone;
 }

@@ -18,42 +18,40 @@ inline static Err WordLookupRenderStatusText(const char* word, ConnectionStage s
 {
     Err error=errNone;
     char* text=TxtParamString(baseText, word, NULL, NULL, NULL);
-    if (text)
+    if (NULL==text)
+        return memErrNotEnoughSpace;
+
+    ebufResetWithStr(&statusText, text);
+    MemPtrFree(text);
+    if (stageReceivingResponse==stage)
     {
-        ebufResetWithStr(&statusText, text);
-        MemPtrFree(text);
-        if (stageReceivingResponse==stage)
+        static const UInt16 bytesBufferSize=28; // it will be placed in code segment, so no worry about globals
+        char buffer[bytesBufferSize];
+        Int16 bytesLen=0;
+        if (bytesReceived<1024)
+            bytesLen=StrPrintF(buffer, " %d bytes", bytesReceived);
+        else
         {
-            static const UInt16 bytesBufferSize=28; // it will be placed in code segment, so no worry about globals
-            char buffer[bytesBufferSize];
-            Int16 bytesLen=0;
-            if (bytesReceived<1024)
-                bytesLen=StrPrintF(buffer, " %d bytes", bytesReceived);
-            else
+            UInt16 bri=bytesReceived/1024;
+            UInt16 brf=((bytesReceived%1024)+51)/102; // round to 1/10
+            Assert(brf<=10);
+            if (brf==10)
             {
-                UInt16 bri=bytesReceived/1024;
-                UInt16 brf=((bytesReceived%1024)+51)/102; // round to 1/10
-                Assert(brf<=10);
-                if (brf==10)
-                {
-                    bri++;
-                    brf=0;
-                }
-                char formatString[10];
-                StrCopy(formatString, " %d.%d kB");
-                NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
-                char dontCare;
-                LocGetNumberSeparators(numFormat, &dontCare, formatString+3); // change decimal separator in place
-                bytesLen=StrPrintF(buffer, formatString, bri, brf);                
+                bri++;
+                brf=0;
             }
-            Assert(bytesLen<bytesBufferSize);
-            if (bytesLen>0)
-                ebufAddStrN(&statusText, buffer, bytesLen);
+            char formatString[10];
+            StrCopy(formatString, " %d.%d kB");
+            NumberFormatType numFormat=static_cast<NumberFormatType>(PrefGetPreference(prefNumberFormat));
+            char dontCare;
+            LocGetNumberSeparators(numFormat, &dontCare, formatString+3); // change decimal separator in place
+            bytesLen=StrPrintF(buffer, formatString, bri, brf);                
         }
-        ebufAddChar(&statusText, chrNull);
+        Assert(bytesLen<bytesBufferSize);
+        if (bytesLen>0)
+            ebufAddStrN(&statusText, buffer, bytesLen);
     }
-    else 
-        error=memErrNotEnoughSpace;
+    ebufAddChar(&statusText, chrNull);
     return error;
 }
 
