@@ -955,11 +955,10 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         if(appContext->pronData.isPronInUsedDictionary
             /*&& appContext->prefs.displayPrefs.enablePronunciation*/
         )
-        
         {
             ebufAddChar(&wi->buffer, FORMAT_TAG);
             ebufAddChar(&wi->buffer, FORMAT_PRONUNCIATION);
-            if(pronAddPronunciationToBuffer(appContext, &wi->buffer, wi->file, wordNo))
+            if(pronAddPronunciationToBuffer(appContext, &wi->buffer, wi->file, wordNo, word))
                 ebufAddChar(&wi->buffer, '\n');
         }
     }

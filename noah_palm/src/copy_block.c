@@ -114,6 +114,16 @@ static Boolean cbTryWord(AppContext* appContext, char *wordInput)
     itemLen = (StrLen(wordInput) < sizeof(txt)-1) ? StrLen(wordInput) : sizeof(txt)-1;
     MemMove(txt, wordInput, itemLen);
 
+#ifdef NOAH_PRO
+#ifndef DONT_DO_PRONUNCIATION
+    if((char)(appContext->copyBlock.actTag) == (char)FORMAT_PRONUNCIATION)
+    {
+        pronDisplayHelp(appContext, wordInput);
+        return true;
+    }
+#endif
+#endif
+
 #ifndef I_NOAH
 #ifndef NOAH_LITE
     strtolower(txt);

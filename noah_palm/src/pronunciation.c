@@ -19,6 +19,56 @@
 //#define DONT_DO_PRONUNCIATION 1
 
 /**
+ *  Get from {AA, AO, ... } numbers... 
+ */ 
+static char pronRetPronNo(char a, char b)
+{
+    if(a == 0)  return 0;
+    //find what pron is that
+	if(a == 'A' && b == 'A') return 1;
+	if(a == 'A' && b == 'E') return 2;
+	if(a == 'A' && b == 'H') return 3;
+	if(a == 'A' && b == 'O') return 4;
+	if(a == 'A' && b == 'W') return 5;
+	if(a == 'A' && b == 'Y') return 6;
+	if(a == 'B' && b ==  0 ) return 7;
+	if(a == 'C' && b == 'H') return 8;
+	if(a == 'D' && b ==  0 ) return 9;
+	if(a == 'D' && b == 'H') return 10;
+	if(a == 'E' && b == 'H') return 11;
+	if(a == 'E' && b == 'R') return 12;
+	if(a == 'E' && b == 'Y') return 13;
+	if(a == 'F' && b ==  0 ) return 14;
+	if(a == 'G' && b ==  0 ) return 15;
+	if(a == 'H' && b == 'H') return 16;
+	if(a == 'I' && b == 'H') return 17;
+	if(a == 'I' && b == 'Y') return 18;
+	if(a == 'J' && b == 'H') return 19;
+	if(a == 'K' && b ==  0 ) return 20;
+	if(a == 'L' && b ==  0 ) return 21;
+	if(a == 'M' && b ==  0 ) return 22;
+	if(a == 'N' && b ==  0 ) return 23;
+	if(a == 'N' && b == 'G') return 24;
+	if(a == 'O' && b == 'W') return 25;
+	if(a == 'O' && b == 'Y') return 26;
+	if(a == 'P' && b ==  0 ) return 27;
+	if(a == 'R' && b ==  0 ) return 28;
+	if(a == 'S' && b ==  0 ) return 29;
+	if(a == 'S' && b == 'H') return 30;
+	if(a == 'T' && b ==  0 ) return 31;
+	if(a == 'T' && b == 'H') return 32;
+	if(a == 'U' && b == 'H') return 33;
+	if(a == 'U' && b == 'W') return 34;
+	if(a == 'V' && b ==  0 ) return 35;
+	if(a == 'W' && b ==  0 ) return 36;
+	if(a == 'Y' && b ==  0 ) return 37;
+	if(a == 'Z' && b ==  0 ) return 38;
+	if(a == 'Z' && b == 'H') return 39;
+    //default
+	return 0;
+}
+
+/**
  *  Version with AA, AO, ...
  */ 
 static char* pronTranslateDecompresedVer1(struct _AppContext *appContext, unsigned char *decompresed)
@@ -403,6 +453,8 @@ static void pronFillHelpBuffer(struct _AppContext *appContext, ExtensibleBuffer 
     decompresed[3] = 12;
     decompresed[4] = 0;
     pronFillOneWord(appContext,buf,i++, "seizure", decompresed);
+
+    ebufAddChar(buf,'\0');
 }
 
 /**
@@ -410,7 +462,7 @@ static void pronFillHelpBuffer(struct _AppContext *appContext, ExtensibleBuffer 
  *  Works like "DisplayHelp(AppContext* appContext)"
  */
 
-void pronDisplayHelp(AppContext* appContext)
+void pronDisplayHelp(AppContext* appContext, char* pronHitted)
 {
     char *rawTxt;
     ExtensibleBuffer *Buf;
@@ -434,11 +486,15 @@ void pronDisplayHelp(AppContext* appContext)
     rawTxt = ebufGetDataPointer(Buf);
     
     diSetRawTxt(appContext->currDispInfo, rawTxt);
-    appContext->firstDispLine = 0;
+    //after double click on pronunciation
+    appContext->firstDispLine = pronRetPronNo(pronHitted[0], pronHitted[1]) - 1;
+    if(appContext->firstDispLine > 35)
+        appContext->firstDispLine = 35;
+    
     ClearDisplayRectangle(appContext);
     cbNoSelection(appContext);    
 
-    DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
     ebufDelete(Buf);
 }
@@ -495,16 +551,6 @@ static Boolean pronGetCompresedWord(struct _AppContext *appContext, AbstractFile
     UInt16   recordWithPron;
     unsigned char i;
     unsigned char *data;
-
-    //eh    
-    //set it:)
-    //appContext->pronData.recordWithPronIndex = 34;
-    //appContext->pronData.firstRecordWithPron = 34 + 1;
-    //appContext->pronData.numberOfPronRecords = 2;
-
-
-
-
    
     //find index...
     pronGetIndex(&prIndex, file, appContext->pronData.recordWithPronIndex, wordNo);
@@ -537,19 +583,87 @@ static Boolean pronGetCompresedWord(struct _AppContext *appContext, AbstractFile
  *  we don't add '\n'!!!
  *  return true if pronunciation found
  *  else return false (no pronunciation in DB, no pronunciation for word with wordNo)
+ *
+ *  we use "char *word" in case we can't find pronunciation, but the word is complex
  */
-Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf, AbstractFile *file, long wordNo)
+Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf, AbstractFile *file, long wordNo, char *word)
 {
     unsigned char compresed[PRON_COMPRESED_MAX_LEN];
     unsigned char decompresed[PRON_DECOMPRESED_MAX_LEN];
+   	char wordPart[WORD_MAX_LEN + 2];
+   	char *wordTest;
     char *pron;
+    int  bufferPosition;
+   	int  i,j;
+   	long wordNoPart;
+   	Boolean findSth = false;
     
 #ifdef DONT_DO_PRONUNCIATION
     return false;
 #endif    
     
     if(!pronGetCompresedWord(appContext,file,compresed,wordNo))
+    {
+        //TODO: complex pronunciation! ignore ' ', '-' and "(p)"
+        bufferPosition = buf->used;
+        
+        ebufAddChar(buf,'[');
+        
+        //WinDrawChars(word,StrLen(word),20,140);
+        
+    	j = 0;
+    	while(word[j] != 0)
+    	{
+    		i = 0;
+    		while(word[j]!=0 && word[j]!=' ' && word[j]!='-' && word[j]!='(')
+    		{
+    			wordPart[i] = word[j];
+    			i++;
+    			j++;
+    		}
+    		wordPart[i] = 0;
+    
+    		if(word[j] == '(')
+    			while(word[j++] != ')')
+                    ;; //asm nop;
+                        
+            if(word[j]==0 && !findSth)
+                goto PronExitComplexFalse;
+            
+            wordNoPart = dictGetFirstMatching(GetCurrentFile(appContext), wordPart);
+            wordTest = dictGetWord(GetCurrentFile(appContext), wordNoPart);
+
+            if (0 != StrNCaselessCompare(wordTest, wordPart,  (StrLen(wordPart) >= StrLen(wordTest)) ? StrLen(wordPart) : StrLen(wordTest)))
+                goto PronExitComplexFalse;
+            
+            if(!pronGetCompresedWord(appContext,file,compresed,wordNoPart))
+                goto PronExitComplexFalse;
+            
+            if(findSth)
+                ebufAddStr(buf,"     ");
+            findSth = true;
+            
+            pronDecomprese(decompresed,compresed);
+            pron = pronTranslateDecompresed(appContext, decompresed);
+            if(pron!=NULL)
+            {
+                ebufAddStr(buf,pron);
+                new_free(pron);
+            }
+            else
+                goto PronExitComplexFalse;
+
+    		while(word[j]!=0 && (word[j]==' ' || word[j]=='-'))
+    			j++;
+    	}
+
+        ebufAddChar(buf,']');
+        return true;
+PronExitComplexFalse:
+        while(bufferPosition != buf->used)
+            ebufDeleteChar(buf, bufferPosition);
         return false;
+    }
       
     pronDecomprese(decompresed,compresed);
     
