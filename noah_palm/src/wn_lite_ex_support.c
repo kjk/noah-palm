@@ -80,14 +80,18 @@ void *wnlex_new(void)
     wi = (WnLiteInfo *) new_malloc(sizeof(WnLiteInfo));
     if (NULL == wi)
     {
-        DrawDebug("no mem for WnLiteInfo");
+        LogG("wnlex_new(), new_malloc(sizeof(WnLiteInfo)) failed" );
         goto Error;
     }
 
     firstRecord = (WnLiteFirstRecord *) CurrFileLockRecord(0);
+    if ( NULL == firstRecord )
+    {
+        LogG("wnlex_new(), CurrFileLockRecord(0) failed" );
+    }
 
     wi->recordsCount = CurrFileGetRecordsCount();
-    DrawDebug2Num("recs count:", wi->recordsCount);
+    LogV1("wnlex_new(), recs count=%ld", (long)wi->recordsCount);
     wi->wordsCount = firstRecord->wordsCount;
     wi->synsetsCount = firstRecord->synsetsCount;
     wi->wordsRecordsCount = firstRecord->wordsRecordsCount;
@@ -99,13 +103,13 @@ void *wnlex_new(void)
     wi->maxComprDefLen = firstRecord->maxComprDefLen;
     wi->maxSynsetsForWord = firstRecord->maxSynsetsForWord;
 
-    DrawDebug2Num("words count:", wi->wordsCount);
+    LogV1("wnlex_new(), words count=%ld", (long)wi->wordsCount);
 
     wi->firstLemmaInWordInfoRec = (long *) new_malloc((1 + wi->wordsInfoRecordsCount) * sizeof(long));
 
     if (NULL == wi->firstLemmaInWordInfoRec)
     {
-        DrawDebug2Num("NM words_info_rec_count", wi->wordsInfoRecordsCount);
+        LogV1("wnlex_new(), new_mallloc() failed, wi->firstLemmaInWordInfoRec is NULL, wi->wordsInfoRecordsCount=%ld", (long)wi->wordsInfoRecordsCount);
         goto Error;
     }
 
@@ -119,13 +123,13 @@ void *wnlex_new(void)
     wi->synsets = (SynsetDef *) new_malloc(wi->maxSynsetsForWord * sizeof(SynsetDef));
     if (NULL == wi->synsets)
     {
-        DrawDebug2Num("NM: wirc", wi->maxSynsetsForWord * sizeof(SynsetDef));
+        LogG("wnlex_new(), new_mallloc() failed, wi->synsets is NULL");
         goto Error;
     }
     wi->curDefData = (unsigned char *) new_malloc(wi->maxDefLen + 2);
     if (NULL == wi->curDefData)
     {
-        DrawDebug2Num("no mem for maxDefLen", wi->maxDefLen + 2);
+        LogG("wnlex_new(), new_mallloc() failed, wi->curDefData is NULL");
         goto Error;
     }
 
@@ -137,7 +141,7 @@ void *wnlex_new(void)
     recsToCache = (UInt16 *) new_malloc(recsToCacheCount * sizeof(UInt16));
     if (NULL == recsToCache)
     {
-        DrawDebug2Num("no mem for recsToCache", wi->maxDefLen + 2);
+        LogG("wnlex_new(), new_mallloc() failed, recsToCache is NULL");
         goto Error;
     }
 
@@ -163,22 +167,22 @@ void *wnlex_new(void)
 
     if (NULL == wi->wci)
     {
-        DrawDebug("no mem for wci");
+        LogG("wnlex_new(), wcInit() failed");
         goto Error;
     }
 
     if ( !pcInit(&wi->defPackContext, 3) )
     {
-        DrawDebug("no mem for packContext");
+        LogG("wnlex_new(), pcInit() failed");
         goto Error;
     }
 
-  Exit:
+Exit:
     CurrFileUnlockRecord(0);
+    LogG( "wnlex_new() ok" );
     return (void *) wi;
-  Error:
-    DrawDebug("wnlex_new error");
-    //MyPause(4);
+Error:
+    LogG( "wnlex_new() failed" );
     if (wi)
         wnlex_delete((void *) wi);
     wi = NULL;

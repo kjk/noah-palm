@@ -80,9 +80,9 @@ USABLE
 FRAME
 BEGIN
    TITLE "Select database"
-   LIST "" listOfDicts AT (10 24 140 80) USABLE
-   BUTTON "Select" buttonSelect AT (40 120 AUTO AUTO) FONT 0
-   BUTTON "Cancel" buttonCancel AT (80 120 AUTO AUTO) NONUSABLE FONT 0
+   LIST "" listOfDicts AT (1 24 158 96) USABLE
+   BUTTON "Select" buttonSelect AT (40 124 AUTO AUTO) FONT 0
+   BUTTON "Cancel" buttonCancel AT (80 124 AUTO AUTO) NONUSABLE FONT 0
 END
 
 FORM formDisplayPrefs AT (0 0 160 160)

@@ -81,8 +81,8 @@ void *wn_new(void)
     recWithWordCache = 1;
     firstRecWithWords = 4;
 #ifndef DEMO
-    rec_with_words_compr_data = 2;
     rec_with_defs_compr_data = 3;
+    rec_with_words_compr_data = 2;
 #endif
 #ifdef DEMO
     rec_with_defs_compr_data = 2;

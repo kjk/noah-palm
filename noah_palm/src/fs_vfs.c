@@ -257,7 +257,7 @@ ScanNextDir:
         err = VFSDirEntryEnumerate(dirRef, &dirIter, &fileInfo);
         if (err != errNone)
         {
-            LogV1("VFSDirEnum() failed with err=%d", err );
+            // LogV1("VFSDirEnum() failed with err=%d", err );
             goto FailedDirEnum;
         }
 
@@ -332,6 +332,7 @@ static UInt32 vfsGetFileSize(FileRef fileRef)
     err = VFSFileSize(fileRef, &fileSize);
     if (err)
     {
+        LogV1( "vfsGetFileSize(), VFSFileSize() failed with err=%d", err );
         return 0;
     }
     return fileSize;
@@ -473,11 +474,11 @@ Boolean vfsInitCacheData(AbstractFile *file, struct DbCacheData *cacheData)
 
     for (i = 0; i < cacheData->recsCount; i++)
     {
-
         err = VFSFileRead(fileRef, sizeof(PdbRecordHeader), (void *) &pdbRecHeader, &bytesRead);
         if ((err != errNone) || (bytesRead != sizeof(PdbRecordHeader)))
         {
             // that's ok, the file on external memory card doesn't have to be *pdb file
+            LogV1("vfsInitCacheData(), VFSFileRead() failed with err=%d", err );
             goto Error;
         }
         cacheData->recsInfo[i].offset = pdbRecHeader.recOffset;
@@ -493,6 +494,7 @@ Boolean vfsInitCacheData(AbstractFile *file, struct DbCacheData *cacheData)
     fileSize = vfsGetFileSize(fileRef);
     if (0 == fileSize)
     {
+        LogG("vfsInitCacheData(), vfsGetFileSize() returned 0" );
         goto Error;
     }
     i = cacheData->recsCount - 1;
@@ -505,8 +507,10 @@ Boolean vfsInitCacheData(AbstractFile *file, struct DbCacheData *cacheData)
         cacheData->recsInfo[i].lockCount = 0;
     }
 
-    if (errNone != VFSFileClose(fileRef))
+    err = VFSFileClose(fileRef);
+    if (errNone != err)
     {
+        LogV1( "vfsInitCacheData(), VFSFileClose() failed with err=%", err );
         goto Error;
     }
 

@@ -26,11 +26,11 @@ void SetCurrentFile(AbstractFile *file)
 #ifdef DEBUG
     if ( NULL == file )
     {
-        LogG( "SetCurrentFile() called with NULL" );
+        LogG( "SetCurrentFile(NULL)" );
     }
     else
     {
-        LogG( "SetCurrentFile() called with non-NULL" );
+        LogV1( "SetCurrentFile(%s)", file->fileName);
     }
 #endif       
     currFile = file;
@@ -202,8 +202,11 @@ Boolean FsFileOpen(AbstractFile *file)
 #ifdef NOAH_LITE_CREATOR
             file->data.cacheData = dcNew(file, NOAH_LITE_CREATOR);
 #endif
-            if ( !file->data.cacheData )
+            if ( NULL == file->data.cacheData )
+            {
+                LogG( "FsFileOpen(%s) dcNew failed, file->data.cacheData is NULL" );
                 return false;
+            }
             break;
         default:
             Assert(0);

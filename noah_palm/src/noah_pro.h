@@ -54,7 +54,7 @@
 /* structure of the general preferences record */
 typedef struct
 {
-    int                      delVfsCacheOnExitP;
+    int                      fDelVfsCacheOnExit;
     StartupAction            startupAction;
     ScrollType               tapScrollType;
     ScrollType               hwButtonScrollType;

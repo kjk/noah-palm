@@ -79,11 +79,11 @@ CFLAGS = -O2 -Wall -I res -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMP
     if fDoDebug:
         txt += """
 noah_pro.prc: $(OBJS) obj/noah_pro.res
-	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH obj/*.o"""
+	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH -segmentsize 29k obj/*.o"""
     else:
         txt += """
 noah_pro.prc: $(OBJS) obj/noah_pro.res
-	m68k-palmos-multilink -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH obj/*.o"""
+	m68k-palmos-multilink -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH -segmentsize 29k obj/*.o"""
     txt += """
 	mv *.grc obj
 	mv *.out obj
@@ -133,7 +133,7 @@ CFLAGS = %s -Wall -DTHESAURUS %s -I res
     txt += GenObjDepend(objList)
     txt += """
 thes.prc: obj/thes.res $(OBJS)
-	m68k-palmos-multilink -gdb-script script.gdb %s -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid TheS obj/*.o""" % LNFLAG
+	m68k-palmos-multilink -gdb-script script.gdb %s -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid TheS -segmentsize 29k obj/*.o""" % LNFLAG
     txt += """
 	mv *.grc obj
 	mv *.out obj

@@ -786,7 +786,7 @@ Boolean dictNew(void)
             Assert(0);
             break;
     }
-    LogG( "dictNew() ok" );
+    LogV1( "dictNew(%s) ok", file->fileName );
     return true;
 }
 
@@ -1244,7 +1244,7 @@ void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char    *str;
-    Int16   strDx = 120;
+    Int16   strDx = bounds->extent.x - bounds->topLeft.x;
     Int16   strLen;
     Boolean truncatedP = false;
 

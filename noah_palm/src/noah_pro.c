@@ -209,7 +209,7 @@ Err InitNoahPro(void)
 
     /* fill out the default values for Noah preferences
        and try to load them from pref database */
-    gd.prefs.delVfsCacheOnExitP = 0;
+    gd.prefs.fDelVfsCacheOnExit = 1;
     gd.prefs.startupAction = startupActionNone;
     gd.prefs.tapScrollType = scrollLine;
     gd.prefs.hwButtonScrollType = scrollPage;
@@ -221,7 +221,10 @@ Err InitNoahPro(void)
 /*    LoadPreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs)); */
 
     if (!CreateInfoData())
+    {
+        // LogG( "InitNoahPro(): CreateInfoData() failed" );
         return !errNone;
+    }
     return errNone;
 }
 
@@ -234,19 +237,22 @@ void DictCurrentFree(void)
 Boolean DictInit(AbstractFile *file)
 {
     if ( !FsFileOpen( file ) )
-        return false;
-
-    if ( !dictNew() )
     {
+        LogV1( "DictInit(%s), FsFileOpen() failed", file->fileName );
         return false;
     }
 
-    LogG( "DictInit() after dictNew()" );
+    if ( !dictNew() )
+    {
+        LogV1( "DictInit(%s), FsFileOpen() failed", file->fileName );
+        return false;
+    }
+
     // TODO: save last used database in preferences
     gd.wordsCount = dictGetWordsCount();
-    LogG( "DictInit() after dictGetWordsCount()" );
     gd.currentWord = 0;
     gd.listItemOffset = 0;
+    LogV1( "DictInit(%s) ok", file->fileName );
     return true;
 }
 
@@ -265,7 +271,7 @@ void StopNoahPro(void)
     DictCurrentFree();
     FreeDicts();
     FreeInfoData();
-    if ( gd.prefs.delVfsCacheOnExitP )
+    if ( gd.prefs.fDelVfsCacheOnExit)
     {
         dcDelCacheDb();
     }
@@ -1198,7 +1204,7 @@ void PrefsToGUI(FormType * frm)
     SetPopupLabel(frm, listStartupDB, popupStartupDB, gd.prefs.dbStartupAction, (char *) sdb_txt);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, gd.prefs.hwButtonScrollType, (char *) but_txt);
     SetPopupLabel(frm, listTapAction, popupTapAction, gd.prefs.tapScrollType, (char *) tap_txt);
-    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.delVfsCacheOnExitP );
+    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.fDelVfsCacheOnExit );
 }
 
 Boolean PrefFormHandleEventNoahPro(EventType * event)
@@ -1262,7 +1268,7 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
             FrmReturnToForm(0);
             break;
         case checkDeleteVfs:
-            gd.prefs.delVfsCacheOnExitP = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
+            gd.prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
             break;
         default:
             Assert(0);

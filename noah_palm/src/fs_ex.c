@@ -66,6 +66,7 @@ void dcDeinit(struct DbCacheData *cache)
     }
 
     dcCloseCacheDb(cache);
+    LogG( "dcDeinit() ok" );
 }
 
 #define LOCK_REGION_REC_SIZE 4096
@@ -98,18 +99,21 @@ LocalID dcCreateCacheDb(struct DbCacheData *cache)
     err = DmCreateDatabase(0, VFS_CACHE_DB_NAME, cache->cacheCreator, VFS_CACHE_TYPE, false);
     if (err)
     {
+        LogV1( "dcCreateCacheDb(), DmCreateDatabase() failed with err=%d", err );
         goto Error;
     }
 
     dbId = DmFindDatabase(0, VFS_CACHE_DB_NAME);
     if (0 == dbId)
     {
+        LogG( "dcCreateCacheDb(), DmFindDatabase() failed");
         goto Error;
     }
 
     cache->cacheDbRef = DmOpenDatabase(0, dbId, dmModeReadWrite);
     if (0 == cache->cacheDbRef)
     {
+        LogG( "dcCreateCacheDb(), DmOpenDatabase() failed");
         goto Error;
     }
 
@@ -118,6 +122,7 @@ LocalID dcCreateCacheDb(struct DbCacheData *cache)
 
     if (NULL == dbFirstRec)
     {
+        LogG( "dcCreateCacheDb(), new_malloc(firstRecSize) failed" );
         goto Error;
     }
 
@@ -128,6 +133,7 @@ LocalID dcCreateCacheDb(struct DbCacheData *cache)
     recHandle = DmNewRecord(cache->cacheDbRef, &recPos, firstRecSize);
     if (0 == recHandle)
     {
+        LogG( "dcCreateCacheDb(), DmNewRecord() failed");
         goto Error;
     }
 
@@ -136,6 +142,7 @@ LocalID dcCreateCacheDb(struct DbCacheData *cache)
     err = DmReleaseRecord(cache->cacheDbRef, recPos, false);
     if (err)
     {
+        LogV1( "dcCreateCacheDb(), DmReleaseRecord() failed with err=%d", err );
         goto Error;
     }
 
@@ -145,6 +152,7 @@ LocalID dcCreateCacheDb(struct DbCacheData *cache)
     err = dcUpdateFirstCacheRec(cache, dbFirstRec);
     if (err)
     {
+        LogV1( "dcCreateCacheDb(), dcUpdateFirstCacheRec() failed with err=%d", err );
         goto Error;
     }
 
@@ -221,6 +229,7 @@ Err dcCacheDbRef(struct DbCacheData *cache)
         err = dcCreateCacheDb(cache);
         if (errNone != err)
         {
+            LogV1("dcCacheDbRef(), dcCreateCacheDb() failed with err=%d", err );
             goto Error;
         }
         return errNone;
@@ -229,12 +238,14 @@ Err dcCacheDbRef(struct DbCacheData *cache)
     cache->cacheDbRef = DmOpenDatabase(0, dbId, dmModeReadWrite);
     if (0 == cache->cacheDbRef)
     {
+        LogG("dcCacheDbRef(), DmOpenDatabase() failed" );
         goto Error;
     }
     recHandle = DmQueryRecord(cache->cacheDbRef, 0);
     dbFirstRec = (CacheDBInfoRec*) MemHandleLock(recHandle);
     if (NULL == dbFirstRec)
     {
+        LogG("dcCacheDbRef(), MemHandleLock(recHandle) failed" );
         goto Error;
     }
     reslFirstRecSize = MemHandleSize(recHandle);
@@ -249,6 +260,7 @@ Err dcCacheDbRef(struct DbCacheData *cache)
         firstRecMem = (CacheDBInfoRec *) new_malloc(firstRecSize);
         if (NULL == firstRecMem)
         {
+            LogV1("dcCacheDbRef(), new_malloc(firstRecSize=%ld) failed", (long) firstRecSize );
             goto Error;
         }
         MemMove(firstRecMem, dbFirstRec, firstRecSize);
@@ -265,11 +277,13 @@ Err dcCacheDbRef(struct DbCacheData *cache)
         err = DmDeleteDatabase(0, dbId);
         if (err)
         {
+            LogV1("dcCacheDbRef(), DmDeleteDatabase() failed with err=%d", err );
             goto Error;
         }
         err = dcCreateCacheDb(cache);
         if (errNone != err)
         {
+            LogV1("dcCacheDbRef(), dcCreateCacheDb() failed with err=%d", err );
             goto Error;
         }
     }
@@ -450,9 +464,12 @@ void *dcLockRecord(struct DbCacheData *cache, UInt16 recNo)
     UInt16      cachedRecNo;
     MemHandle   recHandle;
     UInt32      cachedRecSize = 0;
+    Err         err = errNone;
 
-    if (errNone != dcCacheDbRef(cache))
+    err = dcCacheDbRef(cache);
+    if (errNone != err)
     {
+        LogV1( "dcLockRecord(), dcCacheDbRef() failed with err=%d", err );
         return NULL;
     }
 
@@ -468,9 +485,11 @@ void *dcLockRecord(struct DbCacheData *cache, UInt16 recNo)
     if (0 == cache->recRealCachedNoMap[recNo])
     {
         /* not cached yet, so cache it */
-        if (errNone != dcCacheRecord(cache,recNo))
+        err = dcCacheRecord(cache,recNo);
+        if (errNone != err)
         {
             /* bad, bad, bad */
+            LogV1( "dcLockRecord(), dcCacheRecord() failed with err=%d", err );
             return NULL;
         }
     }
