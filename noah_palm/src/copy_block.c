@@ -833,8 +833,14 @@ void cbInvertSelection(AppContext *appContext)
         return;
     }
 #else
+    //no word in buffer?
+    if(appContext->currentWordBuf.used <= 0)
+    {
+        cbNoSelection(appContext);
+        return;
+    }    
     //in I_noah. detect when word was changed
-    if(StrCompare(appContext->copyBlock.wordTxtOld,ebufGetDataPointer(&appContext->currentWordBuf))!=0)
+    if(StrNCaselessCompare(appContext->copyBlock.wordTxtOld,ebufGetDataPointer(&appContext->currentWordBuf),WORD_MAX_LEN-1)!=0)
     {
         StrNCopy(appContext->copyBlock.wordTxtOld,ebufGetDataPointer(&appContext->currentWordBuf),WORD_MAX_LEN-1);
         cbNoSelection(appContext);
