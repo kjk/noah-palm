@@ -126,13 +126,16 @@ void    DrawCacheRec(int recNum);
 void stress(long step);
 #endif
 
-/* those functions are not available for Noah Lite */
+// those functions are not available for Noah Lite
 #ifndef NOAH_LITE
-void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
-void strtolower(char *txt);
-void AddToHistory(UInt32 wordNo);
-void FreeHistory(void);
-void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, char *txtBuf);
+void    HistoryListInit(FormType *frm);
+void    HistoryListSetState(FormType *frm);
+void    HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
+void    strtolower(char *txt);
+void    AddToHistory(UInt32 wordNo);
+void    FreeHistory(void);
+void    SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, char *txtBuf);
+Boolean FTryClipboard(void);
 #endif
 
 Boolean dictNew(void);

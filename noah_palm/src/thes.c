@@ -14,17 +14,21 @@
 
 #ifdef DEMO
 char helpText[] =
-    " This is a demo version. It's fully\n functional but has only 10% of\n the thesaurus data.\n"
-    \
-    " Go to www.arslexis.com to get the\n full version and find out about\n latest developments.";
+    " This is a demo version. It's fully\n functional but has only 10% of\n the thesaurus data.\n" \
+    " Go to www.arslexis.com to get the\n full version and find out about\n latest developments.\n";
 #endif
 
 #ifndef DEMO
 char helpText[] =
-    "Instructions:\n\255 to lookup a definition of a word\n  press the spyglass icon in the right\n  lower corner and select the word\n\255 you can scroll the definition using\n  hardware buttons, tapping on the\n  screen or using a scrollbar\n\255 left/right arrow moves to next\n  or previous word\n\255 for more information go to\n  WWW.ARSLEXIS.COM";
+    "Instructions:\n\255 to lookup a definition of a word\n  press the spyglass icon in the right\n" \
+    " lower corner and select the word\n\255 you can scroll the definition using\n" \
+    " hardware buttons, tapping on the\n  screen or using a scrollbar\n\255" \
+    " left/right arrow moves to next\n  or previous word\n\255 for more information go to\n" \
+    " WWW.ARSLEXIS.COM\n";
 #endif
 
 static char sa_txt[20];
+static char sdb_txt[10];
 static char but_txt[20];
 static char tap_txt[20];
 
@@ -435,9 +439,10 @@ Err InitThesaurus(void)
     gd.firstDispLine = -1;
     gd.prevSelectedWord = -1;
 
-    // fill out the default values for Noah preferences
+    // fill out the default values for Thesaurus preferences
     // and try to load them from pref database
-    gd.prefs.startupAction = startupActionClipboard;
+    gd.prefs.fDelVfsCacheOnExit = true;
+    gd.prefs.startupAction = startupActionNone;
     gd.prefs.tapScrollType = scrollLine;
     gd.prefs.hwButtonScrollType = scrollPage;
     gd.prefs.dbStartupAction = dbStartupActionAsk;
@@ -546,61 +551,6 @@ void DoWord(char *word)
     DrawDescription(wordNo);
 }
 
-// return false if didn't find anything in clipboard, true if 
-// got word from clipboard
-Boolean FTryClipboard(void)
-{
-    MemHandle   clipItemHandle = 0;
-    UInt16      itemLen;
-    char        txt[30];
-    char *      clipTxt;
-    char *      word;
-    long        wordNo;
-    int         idx;
-
-    if (startupActionNone == gd.prefs.startupAction)
-        return false;
-
-    if ((startupActionLast == gd.prefs.startupAction) && gd.prefs.lastWord[0])
-    {
-        clipTxt = gd.prefs.lastWord;
-    }
-    else
-    {
-        clipItemHandle = ClipboardGetItem(clipboardText, &itemLen);
-        if (!clipItemHandle)
-            return false;
-        if (0 == itemLen)
-            return false;
-        clipTxt = (char *) MemHandleLock(clipItemHandle);
-        if (!clipTxt)
-            return false;
-    }
-
-    MemSet(txt, 30, 0);
-    MemMove(txt, clipTxt, (itemLen < 28) ? itemLen : 28);
-
-    strtolower(txt);
-    RemoveWhiteSpaces( txt );
-
-    idx = 0;
-    while (txt[idx] && (txt[idx] == ' '))
-        ++idx;
-
-    if (clipItemHandle)
-        MemHandleUnlock(clipItemHandle);
-
-    wordNo = dictGetFirstMatching(&(txt[idx]));
-    word = dictGetWord(wordNo);
-
-    if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
-    {
-        DrawDescription(wordNo);
-        return true;
-    }
-    return false;
-}
-
 /*
 Given a point on the screen calculate the bounds of the character that 
 this point belongs to and also line & position in the line of this character.
@@ -659,6 +609,7 @@ Boolean MainFormHandleEventThes(EventType * event)
 
         case frmOpenEvent:
             FrmDrawForm(frm);
+            HistoryListInit(frm);
 
             RemoveNonexistingDatabases();
             ScanForDictsThes(false);
@@ -756,17 +707,6 @@ ChooseDatabase:
                 DoWord( (char *)gd.prefs.lastWord );
             }
             handled = true;
-
-#if 0
-            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listHistory));
-            LstSetListChoices(list, NULL, gd.historyCount);
-            LstSetDrawFunction(list, HistoryListDrawFunc);
-            if (0 == gd.historyCount)
-            {
-                CtlHideControlEx(frm,popupHistory);
-            }
-#endif
-            handled = true;
             break;
 
         case popSelectEvent:
@@ -808,6 +748,7 @@ ChooseDatabase:
                     handled = true;
                     break;
                 case popupHistory:
+                    // need to propagate the event down to popus
                     handled = false;
                     break;
                 default:
@@ -818,18 +759,8 @@ ChooseDatabase:
 
         case evtNewWordSelected:
             AddToHistory(gd.currentWord);
-            if (1 == gd.historyCount)
-            {
-                CtlShowControlEx(frm,popupHistory);
-                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                LstSetListChoices(list, NULL, gd.historyCount);
-                LstSetDrawFunction(list, HistoryListDrawFunc);
-            }
-            if (gd.historyCount < 6)
-            {
-                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                LstSetListChoices(list, NULL, gd.historyCount);
-            }
+            HistoryListSetState(frm);
+
             WinDrawLine(0, 145, 160, 145);
             WinDrawLine(0, 144, 160, 144);
             DrawDescription(gd.currentWord);
@@ -899,18 +830,6 @@ ChooseDatabase:
                 gd.prefs.lastWord[0] )
             {
                 DoWord( (char *)gd.prefs.lastWord );
-            }
-
-            if (gd.historyCount > 0)
-            {
-                CtlShowControlEx(frm, popupHistory);
-                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                LstSetListChoices(list, NULL, gd.historyCount);
-                LstSetDrawFunction(list, HistoryListDrawFunc);
-            }
-            else
-            {
-                CtlHideControlEx(frm, popupHistory);
             }
 
             handled = true;
@@ -1341,83 +1260,88 @@ void PrefsToGUI(FormType * frm)
 {
     Assert(frm);
     SetPopupLabel(frm, listStartupAction, popupStartupAction, gd.prefs.startupAction, (char *) sa_txt);
+    SetPopupLabel(frm, listStartupDB, popupStartupDB, gd.prefs.dbStartupAction, (char *) sdb_txt);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, gd.prefs.hwButtonScrollType, (char *) but_txt);
     SetPopupLabel(frm, listTapAction, popupTapAction, gd.prefs.tapScrollType, (char *) tap_txt);
+    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.fDelVfsCacheOnExit );
 }
 
 Boolean PrefFormHandleEventThes(EventType * event)
 {
-    Boolean handled = false;
-    FormType *frm = NULL;
-    ListType *list = NULL;
-    char *listTxt = NULL;
+    Boolean     handled = false;
+    FormType *  frm = NULL;
+    ListType *  list = NULL;
+    char *      listTxt = NULL;
 
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
-    case frmOpenEvent:
-        PrefsToGUI(frm);
-        FrmDrawForm(frm);
-        handled = true;
-        break;
-
-    case popSelectEvent:
-        list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,event->data.popSelect.listID));
-        listTxt = LstGetSelectionText(list, event->data.popSelect.selection);
-        switch (event->data.popSelect.listID)
-        {
-        case listStartupAction:
-            gd.prefs.startupAction = (StartupAction) event->data.popSelect.selection;
-            MemMove(sa_txt, listTxt, StrLen(listTxt) + 1);
-            CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm, popupStartupAction)), sa_txt);
-            break;
-/*       case listStartupDB: */
-/*            gd.prefs.dbStartupAction = event->data.popSelect.selection; */
-/*            MemMove(sdb_txt,listTxt,StrLen(listTxt)+1); */
-/*            CtlSetLabel(FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupDB)),sdb_txt); */
-/*            break; */
-        case listhwButtonsAction:
-            gd.prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
-            MemMove(but_txt, listTxt, StrLen(listTxt) + 1);
-            CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popuphwButtonsAction)), but_txt);
-            break;
-        case listTapAction:
-            gd.prefs.tapScrollType = (ScrollType) event->data.popSelect.selection;
-            MemMove(tap_txt, listTxt, StrLen(listTxt) + 1);
-            CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupTapAction)), tap_txt);
-            break;
-        default:
-            Assert(0);
-            break;
-        }
-        handled = true;
-        break;
-
-    case ctlSelectEvent:
-        switch (event->data.ctlSelect.controlID)
-        {
-        case popupStartupAction:
-/*       case popupStartupDB: */
-        case popuphwButtonsAction:
-        case popupTapAction:
-            handled = false;
-            break;
-        case buttonOk:
-            SavePreferencesThes();
-            // pass through
-        case buttonCancel:
-            Assert( NULL != GetCurrentFile() );
-            FrmReturnToForm(0);
+        case frmOpenEvent:
+            PrefsToGUI(frm);
+            FrmDrawForm(frm);
             handled = true;
             break;
-        default:
-            Assert(0);
+
+        case popSelectEvent:
+            list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,event->data.popSelect.listID));
+            listTxt = LstGetSelectionText(list, event->data.popSelect.selection);
+            switch (event->data.popSelect.listID)
+            {
+                case listStartupAction:
+                    gd.prefs.startupAction = (StartupAction) event->data.popSelect.selection;
+                    MemMove(sa_txt, listTxt, StrLen(listTxt) + 1);
+                    CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm, popupStartupAction)), sa_txt);
+                    break;
+                case listStartupDB:
+                    gd.prefs.dbStartupAction = event->data.popSelect.selection;
+                    MemMove(sdb_txt,listTxt,StrLen(listTxt)+1);
+                    CtlSetLabel(FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupDB)),sdb_txt);
+                    break;
+                case listhwButtonsAction:
+                    gd.prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
+                    MemMove(but_txt, listTxt, StrLen(listTxt) + 1);
+                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popuphwButtonsAction)), but_txt);
+                    break;
+                case listTapAction:
+                    gd.prefs.tapScrollType = (ScrollType) event->data.popSelect.selection;
+                    MemMove(tap_txt, listTxt, StrLen(listTxt) + 1);
+                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupTapAction)), tap_txt);
+                    break;
+                default:
+                    Assert(0);
+                    break;
+            }
+            handled = true;
             break;
-        }
-        break;
-    default:
-        handled = false;
-        break;
+
+        case ctlSelectEvent:
+            switch (event->data.ctlSelect.controlID)
+            {
+                case popupStartupAction:
+                case popupStartupDB:
+                case popuphwButtonsAction:
+                case popupTapAction:
+                    // need to propagate the event down to popus
+                    handled = false;
+                    break;
+                case buttonOk:
+                    SavePreferencesThes();
+                    // pass through
+                case buttonCancel:
+                    FrmReturnToForm(0);
+                    handled = true;
+                    break;
+                case checkDeleteVfs:
+                    gd.prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
+                    break;
+                default:
+                    Assert(0);
+                    break;
+            }
+            break;
+        default:
+            handled = false;
+            break;
     }
     return handled;
 }

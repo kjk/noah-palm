@@ -56,6 +56,31 @@ char    g_logBuf[512];
 /* those functions are not available for Noah Lite */
 #ifndef NOAH_LITE
 
+void HistoryListInit(FormType *frm)
+{
+    ListType *  list;
+
+    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+    LstSetListChoices(list, NULL, gd.historyCount);
+    LstSetDrawFunction(list, HistoryListDrawFunc);
+    HistoryListSetState(frm);
+}
+
+void HistoryListSetState(FormType *frm)
+{
+    ListType *  list;
+
+    list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
+    if (0 == gd.historyCount)
+        CtlHideControlEx(frm,popupHistory);
+    else
+    {
+        LstSetListChoices(list, NULL, gd.historyCount);
+        CtlShowControlEx(frm,popupHistory);
+    }
+}
+
+
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char *  str;
@@ -124,6 +149,59 @@ void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, 
     MemMove(txtBuf, listTxt, StrLen(listTxt) + 1);
     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupID)), txtBuf);
 }
+
+
+// return false if didn't find anything in clipboard, true if 
+// got word from clipboard
+Boolean FTryClipboard(void)
+{
+    MemHandle   clipItemHandle;
+    char        txt[30];
+    char *      clipTxt;
+    char *      word;
+    UInt32      wordNo;
+    int         idx;
+    UInt16      itemLen;
+
+    Assert( GetCurrentFile() );
+
+    clipItemHandle = ClipboardGetItem(clipboardText, &itemLen);
+    if (!clipItemHandle || (0==itemLen))
+            return false;
+
+    clipTxt = (char *) MemHandleLock(clipItemHandle);
+
+    if (!clipTxt)
+    {
+        MemHandleUnlock( clipItemHandle );
+        return false;
+    }
+
+    MemSet(txt, 30, 0);
+    itemLen = (itemLen < 28) ? itemLen : 28;
+    MemMove(txt, clipTxt, itemLen);
+
+    strtolower(txt);
+    RemoveWhiteSpaces( txt );
+    idx = 0;
+    while (txt[idx] && (txt[idx] == ' '))
+        ++idx;
+
+    if (clipItemHandle)
+        MemHandleUnlock(clipItemHandle);
+
+    wordNo = dictGetFirstMatching(txt);
+    word = dictGetWord(wordNo);
+
+    if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
+    {
+        DrawDescription(wordNo);
+        return true;
+    }
+    return false;
+}
+
+
 #endif
 
 void FreeDicts(void)

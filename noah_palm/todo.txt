@@ -1,14 +1,11 @@
-* cache the list of databases on CF in order to avoid rescaning the card (slow)
-* improve the way the word is displayed on the main form (use full length and
-  add "..." if doesn't fit fully)
-* restore/add word history to Thesaurus
 * register with PDA Green http://www.pdagreen.com/dev_apply.asp
-* thes prefs: last used db
 * nl marketing improvements: only give one database (say more in Noah Pro)
 * "Timo Laitinen" <timolai@utu.fi> can beta-test MemPlug version (e-mail 4 Nov
 2002)
 
 For the next version:
+* improve the way the word is displayed on the main form (use full length and
+  add "..." if doesn't fit fully)
 * color support (TBD what that means)
 * hi-res support (TBD what that means)
 
@@ -69,6 +66,9 @@ bug:
 > > 
 > > Michael
 
+* [DONE 2003/07/07] restore/add word history to Thesaurus
+* [DONE 2003/07/07] thes prefs: last used db
+* [DONE 2003/07/07] cache the list of databases on CF in order to avoid rescaning the card (slow)
 * [DONE 2003/06/30] (didn't figure out but removed) figure out why do I have
   fListDisabled and remove if not needed
 * [DONE 2003/04/26] test caching in low memory scenario

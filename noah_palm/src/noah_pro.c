@@ -569,56 +569,6 @@ void DisplayAbout(void)
     dh_restore_font();
 }
 
-// return false if didn't find anything in clipboard, true if 
-// got word from clipboard
-Boolean FTryClipboard(void)
-{
-    MemHandle   clipItemHandle;
-    char        txt[30];
-    char *      clipTxt;
-    char *      word;
-    UInt32      wordNo;
-    int         idx;
-    UInt16      itemLen;
-
-    Assert( GetCurrentFile() );
-
-    clipItemHandle = ClipboardGetItem(clipboardText, &itemLen);
-    if (!clipItemHandle || (0==itemLen))
-            return false;
-
-    clipTxt = (char *) MemHandleLock(clipItemHandle);
-
-    if (!clipTxt)
-    {
-        MemHandleUnlock( clipItemHandle );
-        return false;
-    }
-
-    MemSet(txt, 30, 0);
-    itemLen = (itemLen < 28) ? itemLen : 28;
-    MemMove(txt, clipTxt, itemLen);
-
-    strtolower(txt);
-    RemoveWhiteSpaces( txt );
-    idx = 0;
-    while (txt[idx] && (txt[idx] == ' '))
-        ++idx;
-
-    if (clipItemHandle)
-        MemHandleUnlock(clipItemHandle);
-
-    wordNo = dictGetFirstMatching(txt);
-    word = dictGetWord(wordNo);
-
-    if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
-    {
-        DrawDescription(wordNo);
-        return true;
-    }
-    return false;
-}
-
 void DoWord(char *word)
 {
     long wordNo;
@@ -686,7 +636,7 @@ Boolean MainFormHandleEventNoahPro(EventType * event)
             break;
 
         case frmOpenEvent:
-            LogG( "mainFrm - frmOpenEvent" );
+            HistoryListInit(frm);
             FrmDrawForm(frm);
 
             RemoveNonexistingDatabases();
@@ -825,7 +775,7 @@ ChooseDatabase:
                     FrmPopupForm(formDictFind);
                     break;
                 case popupHistory:
-                    // UNDONE: why false???
+                    // need to propagate the event down to popus
                     return false;
                     break;
                 default:
@@ -837,18 +787,8 @@ ChooseDatabase:
 
         case evtNewWordSelected:
             AddToHistory(gd.currentWord);
-            if (1 == gd.historyCount)
-            {
-                CtlShowControlEx(frm, popupHistory);
-                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                LstSetListChoices(list, NULL, gd.historyCount);
-                LstSetDrawFunction(list, HistoryListDrawFunc);
-            }
-            if (gd.historyCount < 6)
-            {
-                list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listHistory));
-                LstSetListChoices(list, NULL, gd.historyCount);
-            }
+            HistoryListSetState(frm);
+
             WinDrawLine(0, 145, 160, 145);
             WinDrawLine(0, 144, 160, 144);
             DrawDescription(gd.currentWord);
@@ -1358,10 +1298,10 @@ void PrefsToGUI(FormType * frm)
 
 Boolean PrefFormHandleEventNoahPro(EventType * event)
 {
-    Boolean handled = true;
-    FormType *frm = NULL;
-    ListType *list = NULL;
-    char *listTxt = NULL;
+    Boolean     handled = true;
+    FormType *  frm = NULL;
+    ListType *  list = NULL;
+    char *      listTxt = NULL;
 
     frm = FrmGetActiveForm();
     switch (event->eType)
@@ -1369,6 +1309,7 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
         case frmOpenEvent:
             PrefsToGUI(frm);
             FrmDrawForm(frm);
+            handled = true;
             break;
 
         case popSelectEvent:
@@ -1408,13 +1349,15 @@ Boolean PrefFormHandleEventNoahPro(EventType * event)
                 case popupStartupDB:
                 case popuphwButtonsAction:
                 case popupTapAction:
-                    handled = false; /* why ??? */
+                    // need to propagate the event down to popus
+                    handled = false;
                     break;
                 case buttonOk:
                     SavePreferencesNoahPro();
                     // pass through
                 case buttonCancel:
                     FrmReturnToForm(0);
+                    handled = true;
                     break;
                 case checkDeleteVfs:
                     gd.prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));

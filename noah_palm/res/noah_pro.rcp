@@ -31,15 +31,15 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Select database"         ID menuItemSelectDB "S"
-    MENUITEM "Copy to clipboard"       ID menuItemCopy "C"
-    MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
-    MENUITEM "Preferences"             ID menuItemPrefs "P"
-/*    MENUITEM "Display Prefs"           ID menuItemDispPrefs "D" */
-    MENUITEM "Help"                    ID menuItemHelp "I"
-    MENUITEM "About"                   ID menuItemAbout "A"
-    MENUITEM "Stress"                  ID menuItemStress "T"
+    MENUITEM "Find word"               ID menuItemFind          "F"
+    MENUITEM "Select database"         ID menuItemSelectDB      "S"
+    MENUITEM "Copy to clipboard"       ID menuItemCopy          "C"
+    MENUITEM "Translate clipboard"     ID menuItemTranslate     "T"
+    MENUITEM "Preferences"             ID menuItemPrefs         "P"
+/*    MENUITEM "Display Prefs"           ID menuItemDispPrefs    "D" */
+    MENUITEM "Help"                    ID menuItemHelp          "H"
+    MENUITEM "About"                   ID menuItemAbout         "A"
+    MENUITEM "Stress"                  ID menuItemStress        "T"
   END
 END
 #else
@@ -47,14 +47,14 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Select database"         ID menuItemSelectDB "S"
-    MENUITEM "Copy to clipboard"       ID menuItemCopy "C"
-    MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
-    MENUITEM "Preferences"             ID menuItemPrefs "P"
+    MENUITEM "Find word"               ID menuItemFind         "F"
+    MENUITEM "Select database"         ID menuItemSelectDB     "S"
+    MENUITEM "Copy to clipboard"       ID menuItemCopy         "C"
+    MENUITEM "Translate clipboard"     ID menuItemTranslate    "T"
+    MENUITEM "Preferences"             ID menuItemPrefs        "P"
 /*    MENUITEM "Display Prefs"           ID menuItemDispPrefs "D" */
-    MENUITEM "Help"                    ID menuItemHelp "I"
-    MENUITEM "About"                   ID menuItemAbout "A"
+    MENUITEM "Help"                    ID menuItemHelp         "H"
+    MENUITEM "About"                   ID menuItemAbout        "A"
   END
 END
 #endif

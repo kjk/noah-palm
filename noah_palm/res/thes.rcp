@@ -23,12 +23,14 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Preferences"             ID menuItemPrefs    "P"
-    MENUITEM "Find word"               ID menuItemFind     "F"
-    MENUITEM "Select database"         ID menuItemSelectDB "S"
-    MENUITEM "Info"                    ID menuItemHelp     "I"
-    MENUITEM "About"                   ID menuItemAbout    "A"
-    MENUITEM "Stress"                  ID menuItemStress   "T"
+    MENUITEM "Find word"               ID menuItemFind      "F"
+    MENUITEM "Select database"         ID menuItemSelectDB  "S"
+    MENUITEM "Copy to clipboard"       ID menuItemCopy      "C"
+    MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
+    MENUITEM "Preferences"             ID menuItemPrefs     "P"
+    MENUITEM "Help"                    ID menuItemHelp      "H"
+    MENUITEM "About"                   ID menuItemAbout     "A"
+    MENUITEM "Stress"                  ID menuItemStress    "T"
   END
 END
 #else
@@ -36,11 +38,13 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Preferences"             ID menuItemPrefs "P"
-    MENUITEM "Find word"               ID menuItemFind  "F"
-    MENUITEM "Select database"         ID menuItemSelectDB "S"
-    MENUITEM "Info"                    ID menuItemHelp  "I"
-    MENUITEM "About"                   ID menuItemAbout "A"
+    MENUITEM "Find word"               ID menuItemFind      "F"
+    MENUITEM "Select database"         ID menuItemSelectDB  "S"
+    MENUITEM "Copy to clipboard"       ID menuItemCopy      "C"
+    MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
+    MENUITEM "Preferences"             ID menuItemPrefs     "P"
+    MENUITEM "Help"                    ID menuItemHelp      "H"
+    MENUITEM "About"                   ID menuItemAbout     "A"
   END
 END
 #endif
@@ -95,6 +99,11 @@ BEGIN
    LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
    POPUPLIST popupStartupAction listStartupAction
 
+   LABEL "Startup database:" AUTOID AT (5 PREVTOP+14) FONT 1
+   POPUPTRIGGER  "Last" popupStartupDB AT (PREVRIGHT+4 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST  "Ask" "Last" ID listStartupDB AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 2
+   POPUPLIST popupStartupDB listStartupDB
+
    LABEL "Up/Down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
    POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (PREVRIGHT-28 PREVTOP+14 AUTO AUTO) LEFTANCHOR
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
@@ -104,6 +113,8 @@ BEGIN
    POPUPTRIGGER  "1/2 Page Scroll" popupTapAction AT (PREVRIGHT+43 PREVTOP AUTO AUTO) LEFTANCHOR
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listTapAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popupTapAction listTapAction
+
+   CHECKBOX "Delete vfs cache on exit" ID checkDeleteVfs AT (5 PREVTOP+14 AUTO AUTO) FONT 1
 
    BUTTON "Ok"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
    BUTTON "CANCEL" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
