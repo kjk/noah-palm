@@ -54,6 +54,9 @@ static void SetAllBackGroundLikeGlobal(DisplayPrefs *displayPrefs)
     displayPrefs->posList.bgcolR = displayPrefs->bgcolR;
     displayPrefs->posList.bgcolG = displayPrefs->bgcolG;
     displayPrefs->posList.bgcolB = displayPrefs->bgcolB;
+    displayPrefs->pronunciation.bgcolR = displayPrefs->bgcolR;
+    displayPrefs->pronunciation.bgcolG = displayPrefs->bgcolG;
+    displayPrefs->pronunciation.bgcolB = displayPrefs->bgcolB;
 }
 
 /* Sets &prefs (only used by SetDefaultDisplayParam) */
@@ -71,7 +74,7 @@ static void SetPrefsAs(DisplayElementPrefs *prefs,FontID font, int colR, int col
 /* Sets rest of display params to actual listStyle */
 void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolean onlyColor)
 {
-    DisplayElementPrefs prefs[15];
+    DisplayElementPrefs prefs[16];
     DisplayElementPrefs *prefsToSet;
 
     // format 3(0): (old)
@@ -97,6 +100,9 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
     SetPrefsAs(&prefs[13], stdFont,    0,  0,  0, 255,255,255 );    // definition list
     SetPrefsAs(&prefs[14], boldFont,   0,220,  0, 255,255,255 );    // pos list
 
+    //pronunciation for both
+    SetPrefsAs(&prefs[15], largeBoldFont,  80, 160,  0, 255,255,255 );    //pronunciation
+    
     prefsToSet = &prefs[0];
 
     if(!onlyFont && !onlyColor)
@@ -111,9 +117,12 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->synonym    = prefsToSet[5];
                     displayPrefs->defList    = prefsToSet[6];
                     displayPrefs->posList    = prefsToSet[7];
+                    displayPrefs->pronunciation = prefsToSet[15];
                     displayPrefs->bgcolR     = 255;
                     displayPrefs->bgcolG     = 255;
                     displayPrefs->bgcolB     = 255;
+                    displayPrefs->enablePronunciation = false;
+                    displayPrefs->enablePronunciationSpecialFonts = false;
                     break;
                 case 2:
                     displayPrefs->word       = prefsToSet[8];
@@ -123,9 +132,12 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->synonym    = prefsToSet[12];
                     displayPrefs->defList    = prefsToSet[13];
                     displayPrefs->posList    = prefsToSet[14];
+                    displayPrefs->pronunciation = prefsToSet[15];
                     displayPrefs->bgcolR     = 255;
                     displayPrefs->bgcolG     = 255;
                     displayPrefs->bgcolB     = 255;
+                    displayPrefs->enablePronunciation = false;
+                    displayPrefs->enablePronunciationSpecialFonts = false;
                     break;
                 case 0:  //without break  
                     default: //if not supported then dafault
@@ -136,9 +148,12 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->synonym    = prefsToSet[0];
                     displayPrefs->defList       = prefsToSet[0];
                     displayPrefs->posList    = prefsToSet[0];
+                    displayPrefs->pronunciation = prefsToSet[15];
                     displayPrefs->bgcolR     = 255;
                     displayPrefs->bgcolG     = 255;
                     displayPrefs->bgcolB     = 255;
+                    displayPrefs->enablePronunciation = false;
+                    displayPrefs->enablePronunciationSpecialFonts = false;
                 break;
             }
 
@@ -169,6 +184,9 @@ void SetDefaultDisplayParam(DisplayPrefs *displayPrefs, Boolean onlyFont, Boolea
                     displayPrefs->posList.colorR    = 0;
                     displayPrefs->posList.colorG    = 0;
                     displayPrefs->posList.colorB    = 0;
+                    displayPrefs->pronunciation.colorR = 0;
+                    displayPrefs->pronunciation.colorG = 0;
+                    displayPrefs->pronunciation.colorB = 0;
             }
     }   
 }
@@ -201,6 +219,9 @@ void SetOnlyFont(char type,DisplayPrefs *displayPrefs)
              break;
          case (char) FORMAT_BIG_LIST : 
              FntSetFont(displayPrefs->posList.font);
+             break;
+         case (char) FORMAT_PRONUNCIATION : 
+             FntSetFont(displayPrefs->pronunciation.font);
              break;
          default:
              FntSetFont((FontID) 0x00);
@@ -293,6 +314,17 @@ void SetDrawParam(char type, DisplayPrefs *displayPrefs, AppContext * appContext
                              displayPrefs->posList.bgcolB,
                              appContext);
              break;
+         case (char) FORMAT_PRONUNCIATION : 
+             FntSetFont(displayPrefs->pronunciation.font);
+             SetTextColorRGB(displayPrefs->pronunciation.colorR,
+                             displayPrefs->pronunciation.colorG,
+                             displayPrefs->pronunciation.colorB,
+                             appContext);
+             SetBackColorRGB(displayPrefs->pronunciation.bgcolR,
+                             displayPrefs->pronunciation.bgcolG,
+                             displayPrefs->pronunciation.bgcolB,
+                             appContext);
+             break;
          default:
              FntSetFont((FontID) 0x00);
              SetBackColorWhite(appContext);
@@ -366,6 +398,12 @@ static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *display
                           displayPrefs->posList.colorB,
                           appContext);
              break;                    
+         case actTagPronunciation:
+             SetTextColorRGB(displayPrefs->pronunciation.colorR,
+                          displayPrefs->pronunciation.colorG,
+                          displayPrefs->pronunciation.colorB,
+                          appContext);
+             break;                    
     }
     else
     switch(actTag)
@@ -410,6 +448,12 @@ static void SetColorButton(ActualTag actTag, Boolean back, DisplayPrefs *display
              SetTextColorRGB(displayPrefs->posList.bgcolR,
                           displayPrefs->posList.bgcolG,
                           displayPrefs->posList.bgcolB,
+                          appContext);
+             break;                    
+         case actTagPronunciation:
+             SetTextColorRGB(displayPrefs->pronunciation.bgcolR,
+                          displayPrefs->pronunciation.bgcolG,
+                          displayPrefs->pronunciation.bgcolB,
                           appContext);
              break;                    
     }
@@ -613,6 +657,7 @@ static void CopyParamsFromTo(DisplayPrefs *src, DisplayPrefs *dst)
     dst->synonym = src->synonym;
     dst->defList = src->defList;
     dst->posList = src->posList;
+    dst->pronunciation = src->pronunciation;
 }
 
 #ifdef I_NOAH
@@ -730,6 +775,10 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                         case actTagPosList:
                             appContext->prefs.displayPrefs.posList.font = FontSelect (appContext->prefs.displayPrefs.posList.font);
                             break;                    
+                        case actTagPronunciation:
+                            if(!appContext->prefs.displayPrefs.enablePronunciationSpecialFonts)
+                                appContext->prefs.displayPrefs.pronunciation.font = FontSelect (appContext->prefs.displayPrefs.pronunciation.font);
+                            break;                    
                     }
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
                     RedrawExampleDefinition(appContext);
@@ -772,6 +821,11 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                             RunColorSetForm(&appContext->prefs.displayPrefs.posList.colorR,
                                             &appContext->prefs.displayPrefs.posList.colorG,
                                             &appContext->prefs.displayPrefs.posList.colorB);
+                            break;                    
+                        case actTagPronunciation:
+                            RunColorSetForm(&appContext->prefs.displayPrefs.pronunciation.colorR,
+                                            &appContext->prefs.displayPrefs.pronunciation.colorG,
+                                            &appContext->prefs.displayPrefs.pronunciation.colorB);
                             break;                    
                     }
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
@@ -816,6 +870,11 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                             RunColorSetForm(&appContext->prefs.displayPrefs.posList.bgcolR,
                                             &appContext->prefs.displayPrefs.posList.bgcolG,
                                             &appContext->prefs.displayPrefs.posList.bgcolB);
+                            break;                    
+                        case actTagPronunciation:
+                            RunColorSetForm(&appContext->prefs.displayPrefs.pronunciation.bgcolR,
+                                            &appContext->prefs.displayPrefs.pronunciation.bgcolG,
+                                            &appContext->prefs.displayPrefs.pronunciation.bgcolB);
                             break;                    
                     }
                     RedrawFormElements(actTag,&appContext->prefs.displayPrefs,appContext);
@@ -928,6 +987,7 @@ Boolean IsTag(char a, char b)
         case (char)FORMAT_BIG_LIST:
         case (char)FORMAT_SYNONYM:
         case (char)FORMAT_EXAMPLE: 
+        case (char)FORMAT_PRONUNCIATION: 
             return true;
         default: 
             return false;
