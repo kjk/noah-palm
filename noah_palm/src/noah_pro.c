@@ -31,8 +31,6 @@
 
 char helpText[] = "Instructions:\n\255 to lookup a definition of a word \npress the find icon in the right \nlower corner and select the word \n\255 you can scroll the definition using \nhardware buttons, tapping on the \nscreen or using a scrollbar \n\255 left/right arrow moves to next \nor previous word\n";
 
-// #define WAIT_TXT     "Please wait..."
-
 GlobalData gd;
 
 Boolean FIsPrefRecord(void *recData)
@@ -40,7 +38,10 @@ Boolean FIsPrefRecord(void *recData)
     long    sig;
     Assert( recData );
     sig = ((long*)recData)[0];
-    return (Noah21Pref == sig) ? true : false;
+	if ( Noah21Pref == sig )
+		return true;
+	else
+		return false;
 }
 
 /* Create a blob containing 

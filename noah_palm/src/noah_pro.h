@@ -30,18 +30,16 @@
 #define DRAW_DI_Y 0
 #define DRAW_DI_LINES 13
 
-/* id for Noah Pro v1.0/v2.0 preferences, no longer used */
-/* #define Noah10Pref      0x43212205 */
+#if 0
+// old ids for preference records
+#define Noah10Pref      0x43212205
+#endif
 
 /* id for Noah Pro >v2.0 preferences */
-#define Noah21Pref      0x43212206
+#define Noah21Pref      0x43212208
 
 /* id for Noah Pro v 1.0 per-database preferences, no longer used */
 /* #define NoahDB10Pref    0x43212213 */
-
-
-#define MAX_DBS  8
-
 
 /* Preferences database consists of multiple records.
    Every record contains preferences for a given module

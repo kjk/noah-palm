@@ -15,10 +15,7 @@
 #include "fs.h"
 #include "fs_mem.h"
 
-#define MAX_DBS  4
-
 #define  NOAH_LITE_CREATOR     'NoaH'
-
 
 /* information about the area for displaying definitions:
    start x, start y, number of lines (dy).

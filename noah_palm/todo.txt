@@ -2,7 +2,6 @@
 * register with PDA Green http://www.pdagreen.com/dev_apply.asp
 * bug np: VFS for wn pro doesn't work when we no longer have mem for cache
 * bug nl: no screen refresh when going back from word search
-* add high-res icon for word search
 * test caching in low memory scenario
 * add a color icon for Noah Pro
 * add a hi-res icon for Noah Pro (4bpp and 8bpp)
@@ -16,27 +15,85 @@ For the next version:
 * color support (TBD what that means)
 * hi-res support (TBD what that means)
 
+bug:
+> Thank you for the reply.  I did a little more investigation after I
+> received your email.  Here is what I discovered.
+> 
+> The PPrs file is created by Palm Reader Pro v.2.2.2.  The conflict with
+> Noah occurs when an ebook is stored on the memory stick.  The PPrs
+> appears to be a bookmark file that is created when a book is opened and
+> then closed.  The work around that I have found is to store all ebooks
+> on internal memory instead of the memory stick.
+> 
+> Perhaps you can come up with a better solution on the next release of
+> Noah Pro.
+> 
+> Best regards,
+> 
+> Michael 
+> 
+> -----Original Message-----
+> From: arslexis@pobox.com [mailto:arslexis@pobox.com] 
+> Sent: Friday, March 07, 2003 11:29 PM
+> To: Michael Humphress
+> Subject: Re: Problem with Noah Pro 2.0
+> 
+> 
+> I'm afraid we have no idea - it doesn't come from Noah itself. At
+> startup Noah tries to find databases with a given creator type/id. In
+> theory no-one should use the creator type/id that we use for our
+> applications but there's no technological way to forbid that so it's
+> possible that you had a database that, by pure chance, had the same
+> creator type/id as Noah's databases and that's why it shows up in the
+> list. A way to get rid of it would be to find out which database it is
+> and delete it.
+> 
+> Did you try selecting this database? What happened?
+> 
+> Regards,
+> 
+> Yon Derek
+> 
+> http://www.arslexis.com
+> 
+> On Fri, 7 Mar 2003 10:48:14 -0800, "Michael Humphress"
+> <michhu@earthlink.net> said:
+> > I recently upgraded to a Clie NR-70.  I installed Noah Pro database on
+> 
+> > the memory stick.
+> > 
+> > When I start Noah Pro, the first screen I see reads:  Select database,
+> 
+> > and I have two choices: PPrs and Wordnet ex full.  This is a nuisance.
+> > 
+> > What is PPrs and how do I get rid of it?
+> > 
+> > TIA,
+> > 
+> > Michael
+
+* [DONE 2003/03/03] add high-res icon for word search
 * [DONE 2002/12/26] np: restore word history
 * [DONE 2002/12/26] np prefs: last word
 * [DONE 2002/12/26] np: disable display preferences
 * [DONE 2002/12/26] np prefs: last used db
 * [DONE 2002/12/26] bug np: returning from preferences screen clutters def display
 * [DONE 2002/12/24] test Handango trial version
-* [DONE 2002/10/07] make thesaurus compile
-* [DONE 2002/11/24] make vfs_ex compile
-* [DONE 2002/11/24] change the way we iterate over dbs
-* [DONE 2002/11/24] add vfs support for Thes
-* [DONE 2002/11/25] bring Noah Pro to using only vfs/mem
-* [DONE 2002/11/25] bug: the line separating definition window and navigation is missing
-* [DONE 2002/11/25] bug: in Noah Pro when you start and press the looking glass icon, the list of 
-words is empty. Possible solution: write "a" in gd.lastWord on startup?
-* [DONE 2002/11/29] np: make the box with list of databases bigger (the whole screen)
-* [DONE 2002/11/29] np: add option "delete cache on exit", on by default
-* [DONE 2002/11/29] bug: second opening of a db that uses a cache is an error
-* [DONE 2002/12/02] make Noah Lite compile
+* [DONE 2002/12/15] make a new trial version for Handango (30 days to do it, till dec 22)
 * [DONE 2002/12/03] bug: noah lite doesn't work
 * [DONE 2002/12/03] change icon for Thesaurus
 * [DONE 2002/12/03] nl marketing improvements: detect dbs in vfs, message that not supported
   (go to Noah Pro for support)
-* [DONE 2002/12/15] make a new trial version for Handango (30 days to do it, till dec 22)
+* [DONE 2002/12/02] make Noah Lite compile
+* [DONE 2002/11/29] np: make the box with list of databases bigger (the whole screen)
+* [DONE 2002/11/29] np: add option "delete cache on exit", on by default
+* [DONE 2002/11/29] bug: second opening of a db that uses a cache is an error
+* [DONE 2002/11/25] bring Noah Pro to using only vfs/mem
+* [DONE 2002/11/25] bug: the line separating definition window and navigation is missing
+* [DONE 2002/11/25] bug: in Noah Pro when you start and press the looking glass icon, the list of 
+words is empty. Possible solution: write "a" in gd.lastWord on startup?
+* [DONE 2002/11/24] make vfs_ex compile
+* [DONE 2002/11/24] change the way we iterate over dbs
+* [DONE 2002/11/24] add vfs support for Thes
+* [DONE 2002/10/07] make thesaurus compile
 

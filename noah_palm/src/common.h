@@ -19,14 +19,14 @@
 
 #define strlen StrLen
 
-#define  SIMPLE_TYPE      'simp'
+#define  SIMPLE_TYPE      		'simp'
 
 #define  WORDNET_LITE_TYPE      'wnet'
 
 #ifndef DEMO
-#define  WORDNET_PRO_TYPE      'wn20'
+#define  WORDNET_PRO_TYPE      	'wn20'
 #else
-#define  WORDNET_PRO_TYPE      'wnde'
+#define  WORDNET_PRO_TYPE      	'wnde'
 #endif
 
 
