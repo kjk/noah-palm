@@ -201,7 +201,7 @@ void ebufAddStr(ExtensibleBuffer * buf, char *str)
 //we will not free memory!!!
 void ebufDeleteChar(ExtensibleBuffer *buf, int pos)
 {
-    if (pos > buf->used || pos < 0) 
+    if (pos > buf->used || pos < 0)
         return;
     if (pos < buf->used - 1)
         MemMove(&(buf->data[pos]), &(buf->data[pos+1]), buf->used - pos - 1);
@@ -227,7 +227,8 @@ void ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src)
             return;
         if(dst->data)
             new_free(dst->data);
-        dst->data = newData;    
+        dst->data = newData;
+        dst->allocated = src->allocated;
     }
     MemMove(dst->data, src->data, src->allocated);
     dst->used = src->used;
@@ -236,7 +237,7 @@ void ebufCopyBuffer(ExtensibleBuffer *dst, ExtensibleBuffer *src)
   if a give line doesn't fit in one line on a display, wrap it
   into as many lines as needed
  */
-/* 
+/*
 void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start)
 {
     char *txt;
@@ -259,7 +260,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
     FntCharsInWidth(txt, &string_dx, &string_len, &fits);
     if (fits)
         return;
- 
+
     pos = string_len - 1;
     found = false;
     while ((pos > 0) && (found == false))
@@ -317,7 +318,7 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
             ShakeSortExtBuf(buf);
         Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
         Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
-    }    
+    }
     txt = ebufGetDataPointer(buf);
     len = ebufGetDataSize(buf);
 
