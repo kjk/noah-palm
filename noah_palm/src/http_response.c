@@ -356,6 +356,10 @@ HTTPErr HttpResponse::parseResponse()
     }
     
 OnError:
+#ifdef DEBUG
+    if (err)
+        LogStrN(GetAppContext(), _data, _dataSize);
+#endif
     return err;
 }
 

@@ -23,7 +23,7 @@
 #define psErrDatabaseCorrupted  psErrorClass+5
 
 enum PrefItemType {
-    pitBool = 0,
+    pitBool = 1,
     pitInt,
     pitLong,
     pitUInt16,

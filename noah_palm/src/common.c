@@ -1757,6 +1757,20 @@ void Log(AppContext* appContext, const char *txt)
         HostFClose(hf);
     }
 }
+
+void LogStrN(AppContext* appContext, const char *txt, long size)
+{
+    HostFILE        *hf = NULL;
+    LogInitFile(&appContext->log);
+    hf = HostFOpen(appContext->log.fileName, "a");
+    if (hf)
+    {
+        HostFWrite((const void*)txt, 0, size, hf);
+        HostFPrintF(hf, "\n");
+        HostFClose(hf);
+    }
+}
+
 #endif
 
 void EvtSetInt( EventType *event, int i)

@@ -44,6 +44,7 @@ Serialization of an item:
   by string characters (also including terminating 0)
 */
 
+// devnote: could be optimized
 void serData(char *data, long dataSize, char *prefsBlob, long *pCurrBlobSize)
 {
     long i;
@@ -118,11 +119,8 @@ void serLong(long val, char *prefsBlob, long *pCurrBlobSize)
 
 static Boolean deserBool(unsigned char **data, long *pBlobSizeLeft)
 {
-    Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=1));
-    unsigned char *d = *data;
-    unsigned char val = *d++;
+    unsigned char val = deserByte(data, pBlobSizeLeft);
     Assert( (1==val) || (0==val) );
-    *pBlobSizeLeft -= 1;
     if (1==val)
         return true;
     else
@@ -151,11 +149,10 @@ static int getInt(unsigned char *data)
 int deserInt(unsigned char **data, long *pBlobSizeLeft)
 {
     int val;
-    unsigned char *d = *data;
 
     Assert( data && *data && pBlobSizeLeft && (*pBlobSizeLeft>=2) );
-    val = getInt( d );
-    *data = d+2;
+    val = getInt( *data );
+    *data += 2;
     *pBlobSizeLeft -= 2;
     return val;
 }
@@ -223,7 +220,7 @@ static char *deserStringInPlace(unsigned char **data, long *pCurrBlobSize)
     int strLen = deserInt( data, pCurrBlobSize );
     Assert(0 == (*data)[strLen-1]);
     if (0!=(*data)[strLen-1])
-        return NULL;
+        return NULL;      // this means blob corruption
     char * str = (char*)*data;
     *data += strLen;
     *pCurrBlobSize -= strLen;
@@ -308,6 +305,11 @@ ExitAndMarkNotFound:
     return err;
 }
 
+// devnote: not very optimal implementation, we reparse the blob every
+// time. We could deserialize things once and store in a buffer or optimize for
+// a common pattern: reading in the same sequence as the data was written in which
+// case we could remember the current place in the blob and start from there when
+// we're called again (and re-start from the beginning if we don't find data)
 Err PrefsStoreReader::ErrGetPrefItemWithId(int uniqueId, PrefItem *prefItem)
 {
     Assert(prefItem);

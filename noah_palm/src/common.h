@@ -467,6 +467,7 @@ char *  ssPop   ( StringStack *ss );
 
 void LogInit(AppContext* appContext, char* fileName);
 void Log(AppContext* appContext, const char* txt);
+void LogStrN(AppContext* appContext, const char *txt, long size);
 
 #define LogG(f) Log(GetAppContext(), f)
 

@@ -19,7 +19,7 @@ static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelo
 #define PREFS_DB_NAME "iNoah Prefs"
 
 #define startupAction_id         0
-#define hwButtonScrolType_id     1
+#define hwButtonScrollType_id    1
 #define navButtonScrollType_id   2
 #define lastWord_id              3
 #define bookmarksSortType_id     4
@@ -54,6 +54,11 @@ static void GetDisplayElementPrefs(PrefsStoreReader *store, DisplayElementPrefs 
     err = store->ErrGetUInt32(uniqueIdStart+depBgCol_off, &dep->bgCol);
 }
 
+#define GET_ENUM(enumName,varName,defaultValue) \
+    tmpInt = (int)(defaultValue); \
+    err = store.ErrGetInt(varName##_id, &tmpInt); \
+    prefs->varName = (enumName) tmpInt;
+
 // General idea is to load all the preferences setting from the database,
 // set a default value if setting is not in the database
 static void LoadPreferencesInoah(AppContext* appContext)
@@ -62,14 +67,22 @@ static void LoadPreferencesInoah(AppContext* appContext)
     AppPrefs *        prefs = &(appContext->prefs);
     PrefsStoreReader  store(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
     char *            tmpStr;
+    int               tmpInt;
 
     // general pattern: set a given setting, try to read it from the database
     // ignore errors (they could be due to database not being there (first run)
     // or a given setting not being there (pref settings changed between program
     // versions)
 
-    prefs->startupAction = startupActionNone;
-    err = store.ErrGetInt(startupAction_id, (int*)&prefs->startupAction);
+    // for enums we have to do tricks because even though we store them as
+    // int, CodeWarrior C++ compiler stores them as bytes, so we can't just
+    // pass the address of the variable because it might be of wrong size
+    // C++ standard, as opposed to C, doesn't require enums to be ints
+    // There's a compiler switch but to be save we'll implement it portably
+
+/*    tmpInt = (int)startupActionNone;
+    err = store.ErrGetInt(startupAction_id, &tmpInt);
+    prefs->startupAction = (StartupAction) tmpInt;
 
     prefs->hwButtonScrollType = scrollPage;
     err = store.ErrGetInt(hwButtonScrolType_id, (int*)&prefs->hwButtonScrollType);
@@ -79,6 +92,13 @@ static void LoadPreferencesInoah(AppContext* appContext)
 
     prefs->bookmarksSortType = bkmSortByTime;
     err = store.ErrGetInt(bookmarksSortType_id, (int*)&prefs->bookmarksSortType);
+*/
+
+    // evil macros
+    GET_ENUM(StartupAction,startupAction,startupActionNone)
+    GET_ENUM(ScrollType,hwButtonScrollType,scrollPage)
+    GET_ENUM(ScrollType,navButtonScrollType,scrollPage)
+    GET_ENUM(BookmarkSortType,bookmarksSortType,bkmSortByTime)
 
     MemSet(prefs->lastWord, sizeof(prefs->lastWord), 0);
     err = store.ErrGetStr(lastWord_id, &tmpStr);
@@ -140,7 +160,7 @@ static void SavePreferencesInoah(AppContext* appContext)
     // ignore all errors, we can't do much about them anyway
     Err err = store.ErrSetInt(startupAction_id, prefs->startupAction );
     Assert(!err);
-    err = store.ErrSetInt(hwButtonScrolType_id, (int)prefs->hwButtonScrollType);
+    err = store.ErrSetInt(hwButtonScrollType_id, (int)prefs->hwButtonScrollType);
     Assert(!err);
     err = store.ErrSetInt(navButtonScrollType_id, (int)prefs->navButtonScrollType);
     Assert(!err);
@@ -154,7 +174,7 @@ static void SavePreferencesInoah(AppContext* appContext)
     Assert(!err);
 
     DisplayPrefs *dp=&(prefs->displayPrefs);
-    err = store.ErrSetInt(dpListStyle_id,(int)dp->listStyle);
+    err = store.ErrSetInt(dpListStyle_id,dp->listStyle);
     Assert(!err);
     err = store.ErrSetUInt32(dpBgCol_id,dp->bgCol);
     Assert(!err);
