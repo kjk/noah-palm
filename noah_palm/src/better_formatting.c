@@ -665,12 +665,10 @@ static void ReformatLastResponse(AppContext* appContext)
 {
     if (mainFormShowsDefinition==appContext->mainFormContent)
     {
-        const Char* word=ebufGetDataPointer(&appContext->currentWordBuf);
-        const Char* responseBegin=ebufGetDataPointer(&appContext->lastResponse);
-        Assert(word);
+        const char* responseBegin=ebufGetDataPointer(&appContext->lastResponse);
         Assert(responseBegin);
-        const Char* responseEnd=responseBegin+ebufGetDataSize(&appContext->lastResponse);
-        Err error=ProcessDefinitionResponse(appContext, word, responseBegin, responseEnd);
+        const char* responseEnd=responseBegin+ebufGetDataSize(&appContext->lastResponse);
+        Err error=ProcessDefinitionResponse(appContext, responseBegin, responseEnd);
         Assert(!error);
     }        
 }

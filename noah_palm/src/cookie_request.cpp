@@ -25,23 +25,20 @@
  */
 static Err CookieRequestResponseProcessor(AppContext* appContext, void* context, const char* responseBegin, const char* responseEnd)
 {
-    const char*             word=NULL;
     ResponseParsingResult   result;
-
-    if (context)
-    {
-        ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
-        Assert(wordBuffer);
-        word=ebufGetDataPointer(wordBuffer);
-    }
-    Err error=ProcessResponse(appContext, word, responseBegin, responseEnd, result);
+    Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
     if (!error)
     {
         if (responseCookie==result)
         {
             Assert(HasCookie(appContext->prefs));
-            if (word)
+            if (context)
+            {
+                ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
+                const char* word=ebufGetDataPointer(wordBuffer);
+                Assert(word);
                 StartWordLookup(appContext, word);
+            }
             else
                 StartRandomWordLookup(appContext);
         }

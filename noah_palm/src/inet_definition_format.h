@@ -5,7 +5,6 @@
 
 typedef enum ResponseParsingResult_
 {
-    responseWordNotFound,
     responseDefinition,
     responseWordsList,
     responseMessage,
@@ -13,7 +12,7 @@ typedef enum ResponseParsingResult_
     responseCookie,
 } ResponseParsingResult;    
 
-extern Err ProcessResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd, ResponseParsingResult& result);
-extern Err ProcessDefinitionResponse(AppContext* appContext, const Char* word, const Char* responseBegin, const Char* responseEnd);
+extern Err ProcessResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd, ResponseParsingResult& result);
+extern Err ProcessDefinitionResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd);
 
 #endif

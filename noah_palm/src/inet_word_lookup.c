@@ -157,12 +157,8 @@ OnError:
 
 static Err WordLookupResponseProcessor(AppContext* appContext, void* context, const Char* responseBegin, const Char* responseEnd)
 {
-    ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
-    Assert(wordBuffer);
-    const Char* word=ebufGetDataPointer(wordBuffer);
-    Assert(word);
     ResponseParsingResult result;
-    Err error=ProcessResponse(appContext, word, responseBegin, responseEnd, result);
+    Err error=ProcessResponse(appContext, responseBegin, responseEnd, result);
     if (!error) 
     {
         switch (result)
@@ -180,10 +176,6 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
                 
             case responseWordsList:
                 FrmPopupForm(formWordsList);
-                break;
-                
-            case responseWordNotFound:
-                FrmCustomAlert(alertWordNotFound, word, NULL, NULL);
                 break;
                 
             case responseCookie:

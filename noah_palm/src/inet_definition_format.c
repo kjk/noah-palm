@@ -1,11 +1,11 @@
 #include "inet_definition_format.h"
 #include "blowfish.h"
 
-#define wordsListResponse       "WORDLIST"
-#define wordsListResponseLen    8
-#define messageResponse         "MESSAGE"
-#define messageResponseLen      7
-#define errorMessageResponse    "ERROR"
+#define wordsListResponse       "WORDLIST\n"
+#define wordsListResponseLen    9
+#define messageResponse         "MESSAGE\n"
+#define messageResponseLen      8
+#define errorMessageResponse    "ERROR\n"
 #define errorMessageResponseLen 6
 #define cookieResponse          "COOKIE\n"
 #define cookieResponseLen       7
@@ -199,36 +199,47 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     return error;
 }
 
-Err ProcessDefinitionResponse(AppContext* appContext, const char* word, const char* responseBegin, const char* responseEnd)
+Err ProcessDefinitionResponse(AppContext* appContext, const char* responseBegin, const char* responseEnd)
 {
     Err error=errNone;
     responseBegin+=definitionResponseLen;
-    if (responseBegin<responseEnd)
+    const char* wordEnd=StrFind(responseBegin, responseEnd, "\n");
+    if (wordEnd>responseBegin)
     {
-        ExtensibleBuffer buffer;
-        ebufInit(&buffer, 0);
-        error=ConvertInetToDisplayableFormat(appContext, word, responseBegin, responseEnd, &buffer);
-        if (!error)
+        ExtensibleBuffer wordBuffer;
+        ebufInitWithStrN(&wordBuffer, const_cast<char*>(responseBegin), wordEnd-responseBegin);
+        ebufAddChar(&wordBuffer, chrNull);
+        const char* word=ebufGetDataPointer(&wordBuffer);
+        responseBegin=wordEnd+1;
+        if (responseBegin<responseEnd)
         {
-            ebufAddChar(&buffer, chrNull);
-            ebufWrapBigLines(&buffer);
-            ebufSwap(&buffer, &appContext->currentDefinition);
-            diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
-            ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
-            ebufAddChar(&appContext->currentWordBuf, chrNull);
+            ExtensibleBuffer buffer;
+            ebufInit(&buffer, 0);
+            error=ConvertInetToDisplayableFormat(appContext, word, responseBegin, responseEnd, &buffer);
+            if (!error)
+            {
+                ebufAddChar(&buffer, chrNull);
+                ebufWrapBigLines(&buffer);
+                ebufSwap(&buffer, &appContext->currentDefinition);
+                diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->currentDefinition));
+                ebufResetWithStr(&appContext->currentWordBuf, (Char*)word);
+                ebufAddChar(&appContext->currentWordBuf, chrNull);
+            }
+            ebufFreeData(&buffer);
         }
-        ebufFreeData(&buffer);
+        else
+            error=appErrMalformedResponse;
+        ebufFreeData(&wordBuffer);
     }
     else
-        error=appErrMalformedResponse;        
+        error=appErrMalformedResponse;
     return error;
 }
 
 static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEnd, Char** targetList=NULL)
 {
     UInt16 wordsCount=0;
-//    const Char* wordBegin=StrFind(responseBegin, responseEnd, "\n")+1;
-    const Char* wordBegin=responseBegin+8;
+    const Char* wordBegin=responseBegin+wordsListResponseLen;
     while (wordBegin<responseEnd)
     {
         const Char* wordEnd=StrFind(wordBegin, responseEnd, "\n");
@@ -283,8 +294,7 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
 static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
-//    const Char* messageBegin=StrFind(responseBegin, responseEnd, "\n")+1;
-    const Char* messageBegin=responseBegin+7;
+    const Char* messageBegin=responseBegin+messageResponseLen;
     if (messageBegin<responseEnd)
     {
         ExtensibleBuffer buffer;
@@ -336,9 +346,8 @@ static Err ProcessCookieResponse(AppContext* appContext, const Char* responseBeg
     return error;
 }
 
-Err ProcessResponse(AppContext* appContext, const char* word, const char* begin, const char* end, ResponseParsingResult& result)
+Err ProcessResponse(AppContext* appContext, const char* begin, const char* end, ResponseParsingResult& result)
 {
-    Assert(word);
     Assert(begin);
     Assert(end);
     Err error=errNone;
@@ -368,7 +377,7 @@ Err ProcessResponse(AppContext* appContext, const char* word, const char* begin,
     }
     else if (StrStartsWith(begin, end, definitionResponse))
     {
-        error=ProcessDefinitionResponse(appContext, word, begin, end);
+        error=ProcessDefinitionResponse(appContext, begin, end);
         if (!error)
             result=responseDefinition;
     } 
