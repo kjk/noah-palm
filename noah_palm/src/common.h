@@ -223,8 +223,11 @@ typedef struct _AppContext
 
     DisplayInfo *      currDispInfo;
 
-#ifndef I_NOAH    
+#ifdef NOAH_LITE
     ExtensibleBuffer * helpDispBuf;
+#endif
+
+#ifndef I_NOAH    
     long               currentWord;
     long               wordsCount;
 #endif // I_NOAH

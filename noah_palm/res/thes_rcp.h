@@ -43,7 +43,6 @@
 #define   menuMain            2000
 #define   menuItemFind        2020
 #define   menuItemFindPattern 2005
-#define   menuItemHelp        2030
 #define   menuItemAbout       2040
 #define   menuItemPrefs       2050
 #define   menuItemStress      2060

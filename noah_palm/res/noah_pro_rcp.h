@@ -48,7 +48,6 @@
 #define   menuItemSelectDB          2002
 #define   menuItemFind              2004
 #define   menuItemFindPattern       2005
-#define   menuItemHelp              2006
 #define   menuItemStress            2008
 #define   menuItemAbout             2010
 #define   menuItemPrefs             2012

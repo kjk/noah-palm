@@ -30,7 +30,6 @@ BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
     MENUITEM "Display Prefs"           ID menuItemDispPrefs     "D" 
     MENUITEM SEPARATOR
-    MENUITEM "Help"                    ID menuItemHelp          "H"
     MENUITEM "About"                   ID menuItemAbout         "A"
   END
 
@@ -62,7 +61,6 @@ BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
     MENUITEM "Display Prefs"           ID menuItemDispPrefs     "D" 
     MENUITEM SEPARATOR
-    MENUITEM "Help"                    ID menuItemHelp          "H"
     MENUITEM "About"                   ID menuItemAbout         "A"
   END
 

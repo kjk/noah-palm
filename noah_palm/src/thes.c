@@ -466,7 +466,7 @@ static Err AppCommonFree(AppContext* appContext);
 static Err InitThesaurus(AppContext* appContext)
 {
     Err error=errNone;
-    Boolean res=false;
+
     error=AppCommonInit(appContext);
     if (error) 
         goto OnError;
@@ -474,9 +474,6 @@ static Err InitThesaurus(AppContext* appContext)
     error=AppNotifyInit(appContext);
     if (error)
         goto OnErrorCommonFree;
-
-    res=CreateHelpData(appContext);
-    Assert(res);
 
 OnError:
     return error;
@@ -1053,9 +1050,6 @@ static Boolean MainFormHandleEventThes(EventType * event)
                     break;
                 case menuItemSelectDB:
                     FrmPopupForm(formSelectDict);
-                    break;
-                case menuItemHelp:
-                    DisplayHelp(appContext);
                     break;
                 case menuItemCopy:
                     if (NULL != appContext->currDispInfo)

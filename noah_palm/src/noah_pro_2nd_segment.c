@@ -207,7 +207,6 @@ CloseDbExit:
 Err InitNoahPro(AppContext* appContext)
 {
     Err         error;
-    Boolean     res;
 
     error=AppCommonInit(appContext);
     if (error) 
@@ -216,9 +215,6 @@ Err InitNoahPro(AppContext* appContext)
     error=AppNotifyInit(appContext);
     if (error)
         goto OnErrorCommonFree;
-
-    res=CreateHelpData(appContext);
-    Assert(res);
 
 OnError:
     return error;
@@ -751,9 +747,6 @@ static Boolean MainFormHandleEventNoahPro(EventType * event)
                     }
                     cbNoSelection(appContext);
                     DisplayAbout(appContext);
-                    break;
-                case menuItemHelp:
-                    DisplayHelp(appContext);
                     break;
                 case menuItemSelectDB:
                     FrmPopupForm(formSelectDict);

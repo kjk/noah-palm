@@ -79,7 +79,7 @@ function weekly_daily_stats($header, $regs_q, $lookups_q, $limit)
 <?php
   echo "<td>$header</td>\n";
 ?>
-  <td>Registrations</td>
+  <td>Regs</td>
   <td>Lookups</td>
 </tr>
 <?php

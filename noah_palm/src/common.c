@@ -370,7 +370,7 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
 
 #pragma segment Segment2
 
-#ifndef I_NOAH
+#ifdef NOAH_LITE
 void DisplayHelp(AppContext* appContext)
 {
     char *rawTxt;
@@ -397,7 +397,7 @@ void DisplayHelp(AppContext* appContext)
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
 }
-#endif
+#endif  // NOAH_LITE
 
 #pragma segment Segment1
 
@@ -1264,6 +1264,7 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
     return 0;
 }
 
+#ifdef NOAH_LITE
 #define helpText \
     " Instructions:\n" \
     "\255 to lookup a definition of a word\n" \
@@ -1287,14 +1288,17 @@ Boolean CreateHelpData(AppContext* appContext)
     ebufWrapBigLines(appContext->helpDispBuf,false);
     return true;
 }
+#endif
 
 void FreeInfoData(AppContext* appContext)
 {
+#ifdef NOAH_LITE
     if (appContext->helpDispBuf)
     {
         ebufDelete(appContext->helpDispBuf);
         appContext->helpDispBuf = NULL;
     }
+#endif
     if (appContext->currDispInfo)
     {
         diFree(appContext->currDispInfo);
