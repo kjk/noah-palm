@@ -18,6 +18,7 @@
 #define menuItemBookmarkWord    1124
 #define menuItemBookmarkDelete  1127
 #define menuItemBookmarkView    1130
+#define menuItemGotoWebsite     1133
 
 #define menuItemPrefs           1112
 #define menuItemDispPrefs       1115

@@ -2732,3 +2732,83 @@ void DoWord(AppContext* appContext, char *word)
 }
 #endif
 
+// detect a web browser app and return cardNo and dbID of its *.prc.
+// returns true if detected some viewer, false if none was found
+static Boolean fDetectViewer(UInt16 *cardNoOut, LocalID *dbIDOut)
+{
+    DmSearchStateType searchState;
+
+    // NetFront
+    Err error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, 'NF3T', true, cardNoOut, dbIDOut);
+    if (!error)
+        goto FoundBrowser;
+    // xiino
+    error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, 'PScp', true, cardNoOut, dbIDOut);
+    if (!error)
+        goto FoundBrowser;
+    // Blazer browser on Treo 600
+    error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, 'BLZ5', true, cardNoOut, dbIDOut);
+    if (!error)
+        goto FoundBrowser;
+    // Blazer browser on Treo 180/270/300
+    error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, 'BLZ1', true, cardNoOut, dbIDOut);
+    if (!error)
+        goto FoundBrowser;
+    // WebBrowser 2.0
+    error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, 'NF3P', true, cardNoOut, dbIDOut);
+    if (!error)
+        goto FoundBrowser;
+    // Web Pro (Tungsten T) 
+    error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, 'NOVR', true, cardNoOut, dbIDOut);
+    if (!error)
+        goto FoundBrowser;
+    // Web Broser 1.0 (Palm m505)
+    error = DmGetNextDatabaseByTypeCreator(true, &searchState, sysFileTApplication, sysFileCClipper, true, cardNoOut, dbIDOut);
+    if (!error)
+        goto FoundBrowser;
+    return false;
+FoundBrowser:
+    return true;
+}
+
+Err WebBrowserCommand(Boolean subLaunch, UInt16 launchFlags, UInt16 command, char *parameterP, UInt32 *resultP)
+{
+    UInt16  cardNo;
+    LocalID dbID;
+    UInt32  result;
+    Err     error;
+
+    if (resultP)
+        *resultP = errNone;
+
+    if (!fDetectViewer(&cardNo,&dbID))
+        return 1;
+
+    if (subLaunch)
+    {
+        SysAppLaunch(cardNo, dbID, launchFlags, command, parameterP, &result);
+        if (resultP) 
+            *resultP = result;
+    }
+    else
+    {
+        char *newParamP = NULL;
+        if (parameterP)
+        {
+            newParamP=(char*)MemPtrNew( StrLen(parameterP) +1 );
+            if (newParamP == NULL) 
+                error = memErrNotEnoughSpace;
+            else
+            {
+                StrCopy(newParamP, parameterP);
+                MemPtrSetOwner(newParamP, 0); // The OS now owns this memory
+            }
+        }
+        if (error == errNone)
+        {
+            SysUIAppSwitch(cardNo, dbID, command, newParamP);
+        }
+    }
+    return error;
+} 
+

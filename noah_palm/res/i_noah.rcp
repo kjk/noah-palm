@@ -7,7 +7,7 @@ BEGIN
     MENUITEM "Random word"          ID menuItemRandomWord        "R"
     MENUITEM "Copy to clipboard"    ID menuItemCopy              "C"
     MENUITEM "Lookup clipboard"     ID menuItemLookupClipboard   "L"
-    MENUITEM "Recent lookups"       ID menuItemRecentLookups    "S"
+    MENUITEM "Recent lookups"       ID menuItemRecentLookups     "S"
   END
 
   PULLDOWN "Bookmarks"
@@ -22,9 +22,10 @@ BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs         "P"
     MENUITEM "Display prefs"           ID menuItemDispPrefs     "D" 
 
-/*    MENUITEM SEPARATOR
-    MENUITEM "Register"                ID menuItemRegister      "G" */
     MENUITEM SEPARATOR
+    MENUITEM "Register"                ID menuItemRegister      "G"
+    MENUITEM SEPARATOR
+    MENUITEM "ArsLexis website"        ID menuItemGotoWebsite   "W"
     MENUITEM "About"                   ID menuItemAbout         "A"
   END
 END

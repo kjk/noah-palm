@@ -465,6 +465,11 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
             handled=true;
             break;
 
+        case menuItemGotoWebsite:
+            WebBrowserCommand(false, 0, sysAppLaunchCmdGoToURL, "http://www.arslexis.com",NULL);
+            handled=true;
+            break;
+            
         case sysEditMenuCopyCmd:
         case sysEditMenuCutCmd:
         case sysEditMenuPasteCmd:
