@@ -57,7 +57,7 @@ typedef struct {
  */
 typedef struct _CopyBlock{
     cbState     state;
-    
+   
     cbSelectionPoint    startClick;     //first Click
     cbSelectionPoint    actPosition;    
     cbSelectionPoint    left;           //left end of selection
@@ -69,7 +69,10 @@ typedef struct _CopyBlock{
     Int16   nextDy[CB_MAX_DISPLAY_LINES + 1];   
     char    firstTag;                   //to store format of first displayed line
     char    actTag;                     //format of actPosition char
-    
+
+    // x/y coordinates of the pen during last penDown event
+    int     penDownX;
+    int     penDownY;
 #ifndef I_NOAH
     long    wordNoOld;    
 #else

@@ -2036,6 +2036,10 @@ Err AppNotifyFree(AppContext* appContext, Boolean beResident)
         error=SysCurAppDatabase(&cardNo, &localId);
         if (error) 
             goto OnError;
+        // HACK! - disable resident mode in OS <40 since under emulator with
+        // 3.5 OS we hang right after displaying word definition and:
+        // - we don't know how to fix it
+        // - we don't know if it happens on real devices so we disable it just to be sure
         if (40<=GetOsVersion(appContext))
         {
             error=SysNotifyRegister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, NULL, sysNotifyNormalPriority, NULL);	

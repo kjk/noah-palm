@@ -11,6 +11,8 @@
  * @author Szymon Knitter (szknitter@wp.pl) 
  */
 
+#include <stdlib.h> // for abs()
+
 #include "common.h"
 
 #ifdef I_NOAH
@@ -216,7 +218,7 @@ static void cbGetWordFromSelectionAndTranslate(AppContext *appContext,cbSelectio
 /**
  *  Return true if X,Y is in txt. Set actPosition to X,Y.
  */
-static Boolean cbIsTextHitted(AppContext *appContext, Int16 screenX, Int16 screenY)
+static Boolean cbIsTextHit(AppContext *appContext, Int16 screenX, Int16 screenY)
 {
     int i,j;
     char *line;
@@ -565,9 +567,12 @@ Boolean cbPenDownEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
     return false;
 #endif
 
+    appContext->copyBlock.penDownX = screenX;
+    appContext->copyBlock.penDownY = screenY;
+
     cbInvertSelection(appContext);
 
-    if(cbIsTextHitted(appContext, screenX, screenY))
+    if(cbIsTextHit(appContext, screenX, screenY))
     {
         appContext->copyBlock.startClick = appContext->copyBlock.actPosition;
         if(cbIsActBetweenLR(appContext))
@@ -656,6 +661,9 @@ Boolean cbPenUpEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
     return true;    
 }
 
+#define PEN_MOVE_IGNORE_THRESH_X 1
+#define PEN_MOVE_IGNORE_THRESH_Y 1
+
 /**
  * Handle penMoveEvent
  * return true if handled
@@ -672,6 +680,15 @@ Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
 #endif
 
     if(appContext->copyBlock.state == cbNothingSelected)
+        return true;
+
+    // depending on the device/emulator penMove migth be generated right after
+    // penDown with the same/close coordinates. We just ignore penMove events
+    // if they fall within very close range of penDown that started this
+    // processing. without this double-click on word is totally broken
+    if (abs(appContext->copyBlock.penDownX - screenX) <= PEN_MOVE_IGNORE_THRESH_X)
+        return true;
+    if (abs(appContext->copyBlock.penDownY - screenY) <= PEN_MOVE_IGNORE_THRESH_Y)
         return true;
 
     if(screenY > appContext->copyBlock.nextDy[appContext->lastDispLine - appContext->firstDispLine + 1]
@@ -704,7 +721,7 @@ Boolean cbPenMoveEvent(AppContext *appContext, Int16 screenX, Int16 screenY)
             sp2 = appContext->copyBlock.right;    
         }    
     
-    cbIsTextHitted(appContext, screenX, screenY);
+    cbIsTextHit(appContext, screenX, screenY);
     
     cbSetLRonActAndStart(appContext);
     if(cbIsLNotEqualR(appContext))
