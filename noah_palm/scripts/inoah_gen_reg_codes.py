@@ -28,7 +28,11 @@
 # We also generate a *.txt file with serial numbers ready to be uploaded to
 # eSellerate/PalmGear/Handango. The format of this file:
 #  eSellerate: serial number per line, at least 500 serial numbers
-#  TODO: PalmGear, Handango
+#
+#
+#  TODO:
+#    - generate files for PalmGear, Handango
+#    - don't generate multiple special codes for the same special thing
 #
 # Usage:
 #  -special who: a special code. the idea is to give out codes to some people
@@ -48,7 +52,25 @@
 #  2004-04-15  created
 #  2004-06-20  more work done
 
-import sys,os,csv,random,time,StringIO
+import sys,os,random,time,string,StringIO
+
+def csvQuote(txt):
+    if -1 != txt.find(","):
+        txt = '"%s"' % txt
+    return txt
+
+def csvUnquote(txt):
+    if len(txt)>2 and txt[0]=='"' and txt[-1]=='"':
+        return txt[1:-1]
+    return txt
+
+# note: those are very primitive and likely to fail on ony non-standard data
+def csvRowToTxt(row):
+    rowQuoted = [csvQuote(el) for el in row]
+    return string.join(rowQuoted,",")
+
+def csvTxtToRow(txt):
+    return [csvUnquote(el) for el in txt.split(",")]
 
 g_regCodesFileName        = "reg_codes.csv"
 REG_CODE_LEN = 12
@@ -137,21 +159,24 @@ def readPreviousCodes():
     except:
         # file doesn't exist - that's ok
         pass
-    if fo:
-        reader = csv.reader(fo)
-        for row in reader:
-            prevCodes[row[0]] = row[1:]
-        fo.close()
+    if None == fo:
+        return prevCodes
+
+    for line in fo.readlines():
+        line = line.strip()
+        row = csvTxtToRow(line)
+        prevCodes[row[0]] = row[1:]
+    fo.close()
     return prevCodes
 
 def saveNewCodesToCsv(newCodes):
     global g_regCodesFileName
     csvFile = StringIO.StringIO()
-    csvWriter = csv.writer(csvFile)
     # csvRow is: [regCode, purpose, when_generated]
     for regCode in newCodes.keys():
         csvRow = [regCode, newCodes[regCode][0], newCodes[regCode][1]]
-        csvWriter.writerow(csvRow)
+        txt = csvRowToTxt(csvRow)
+        csvFile.write(txt+"\n")
     csvTxt = csvFile.getvalue()
     csvFile.close()
     fo = open(g_regCodesFileName, "ab")

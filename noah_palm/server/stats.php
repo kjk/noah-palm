@@ -70,13 +70,13 @@ function get_word_row_try_stemming($word)
     return 0;
 }
 
-
 # each di tag consists of tag name and tag value
 # known tag names are:
 #  HS - hex-bin-encoded hotsync name
-#  SN - hex-bin-encoded device serial number (if exists)
+#  SN - hex-bin-encoded device serial number (if exists). Different for palm, sidekick, smartphone
 #  HN - hex-bin-encoded handspring device serial number (if exists)
 #  PN - hex-bin-encoded phone number (if exists)
+#  PL - hex-bin-encoded platform ("Palm", "Smartphone", "SideKick", "PocketPC")
 #  OC - hex-bin-encoded OEM company ID
 #  OD - hex-bin-encoded OEM device ID
 function is_valid_di_tag($tag)
@@ -86,7 +86,7 @@ function is_valid_di_tag($tag)
         return false;
 
     $tag_name  = substr($tag,0,2);
-    $valid_tag_names = array('HS', 'SN', 'HN', 'PN', 'OC', 'OD', 'DN');
+    $valid_tag_names = array('HS', 'SN', 'HN', 'PN', 'PL', 'OC', 'OD');
 
     if ( !in_array($tag_name, $valid_tag_names) )
         return false;

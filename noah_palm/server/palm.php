@@ -307,9 +307,6 @@ function is_valid_di_tag($tag)
     if ( $tag_name == "SN" )
         return true;
 
-    if ( $tag_name == "HS" )
-        return true;
-
     if ( $tag_name == "PN" )
         return true;
 

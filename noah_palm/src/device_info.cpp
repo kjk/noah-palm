@@ -94,6 +94,12 @@ Err GetOEMDeviceId(ExtensibleBuffer* out)
     return errNone;
 }
 
+static Err GetPlatform(ExtensibleBuffer* out)
+{
+    ebufAddStr(out,"Palm");
+    return errNone;
+}
+
 Err GetHotSyncName(ExtensibleBuffer* out)
 {
     Err   error;
@@ -271,6 +277,7 @@ void RenderDeviceIdentifier(ExtensibleBuffer* out)
     RenderDeviceIdentifierToken(out, "SN", GetDeviceSerialNumber);
     RenderDeviceIdentifierToken(out, "HN", GetHsSerialNum);
     RenderDeviceIdentifierToken(out, "PN", GetPhoneNumber);
+    RenderDeviceIdentifierToken(out, "PL", GetPlatform);
     RenderDeviceIdentifierToken(out, "OC", GetOEMCompanyId);
     RenderDeviceIdentifierToken(out, "OD", GetOEMDeviceId);
 }
