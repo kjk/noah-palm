@@ -1,5 +1,16 @@
 /******************************************************************************
  *
+ *  I M P O R T A N T
+ *
+ *  If you want to test program on simulator remember to
+ *  copy armlet.dll to your simulator directory
+ *
+ *  You can create dll using noah_palm/armlet/palmsimarmlet.dsp
+ *
+ *****************************************************************************/
+
+/******************************************************************************
+ *
  * File: armlet-simple.c
  *
  * Description:
@@ -19,10 +30,11 @@
  *
  ****************************************************/
 
+#include <stdio.h>
 #include "PceNativeCall.h"
+
 #ifdef WIN32
 	#include "SimNative.h"
-	#include <stdio.h>
 #endif
 
 #include "../../src/armlet_structures.h"
@@ -39,24 +51,6 @@ unsigned long NativeFunction(const void *emulStateP, void *userData68KP, Call68K
 	return NativeFunctionAtTheEnd(emulStateP, userData68KP, call68KFuncP);
 }
 
-
-#ifndef WIN32
-
-#include <stdio.h>
-#include <string.h>
-
-/*
-void memmove(char *dst,char *src,int n)
-{
-
-}
-
-int strlen(char *str)
-{
-
-}
-*/
-#endif
 /*FROM THIS POINT YOU CAN ADD YOUR OWN FUNCTIONS*/
 void Function1(void *funData)
 {            
