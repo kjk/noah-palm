@@ -49,6 +49,12 @@ void testParseResponse(char *txt)
 
 #endif
 
+struct WordLookupContext 
+{
+    ExtensibleBuffer word;
+    Boolean usedAuthentication;
+};
+
 inline static Err WordLookupRenderStatusText(const Char* word, ConnectionStage stage, UInt16 bytesReceived, const Char* baseText, ExtensibleBuffer& statusText)
 {
     Err error=errNone;

@@ -32,7 +32,7 @@ void MainFormPressFindButton(const FormType* form)
 
 static void MainFormDisplayAbout(AppContext* appContext)
 {
-    UInt16 currentY=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
+    UInt16 currentY=0;
     WinPushDrawState();
     SetGlobalBackColor(appContext);
     ClearRectangle(0, currentY, appContext->screenWidth, appContext->screenHeight - currentY - FRM_RSV_H);
@@ -68,23 +68,22 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
 {
     WinPushDrawState();
     SetGlobalBackColor(appContext);
-    ClearRectangle(0, 0, appContext->screenWidth, lookupStatusBarHeight);
-    WinDrawLine(0, lookupStatusBarHeight, appContext->screenWidth, lookupStatusBarHeight);
+    UInt16 statusBarStartY=appContext->screenHeight-lookupStatusBarHeight;
+    ClearRectangle(0, statusBarStartY, appContext->screenWidth, lookupStatusBarHeight);
+    WinDrawLine(0, statusBarStartY, appContext->screenWidth, statusBarStartY);
     const Char* text=GetConnectionStatusText(appContext);
     Assert(text);
     UInt16 textLen=StrLen(text);    
-    WinDrawTruncChars(text, textLen, 1, 1, appContext->screenWidth - 14);
+    WinDrawTruncChars(text, textLen, 1, statusBarStartY+1, appContext->screenWidth - 14);
     WinPopDrawState();
 }
 
 static void MainFormDrawCurrentDisplayInfo(AppContext* appContext)
 {
-    UInt16 top=appContext->lookupStatusBarVisible?lookupStatusBarHeight+1:0;
-    UInt16 linesCount=(appContext->screenHeight-FRM_RSV_H-top)/FONT_DY;
     WinPushDrawState();
     SetBackColorWhite(appContext);
-    ClearRectangle(0, top, appContext->screenWidth, appContext->screenHeight - top - FRM_RSV_H);
-    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, 0, top, linesCount);
+    ClearRectangle(0, 0, appContext->screenWidth, appContext->screenHeight - FRM_RSV_H);
+    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, 0, 0, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
     WinPopDrawState();
 }
@@ -140,37 +139,26 @@ static void MainFormHandleConnectionProgress(AppContext* appContext, FormType* f
         FrmUpdateForm(formDictMain, redrawLookupStatusBar);
     else
     {
-        UInt16 index=FrmGetObjectIndex(form, scrollDef);
+        UInt16 index=FrmGetObjectIndex(form, buttonAbortLookup);
         Assert(frmInvalidObjectId!=index);
-        RectangleType bounds;
-        FrmGetObjectBounds(form, index, &bounds);
         
         if (connectionFinished==data->flag)
         {
             appContext->lookupStatusBarVisible=false;
-            
-            bounds.topLeft.y-=lookupStatusBarHeight;
-            bounds.extent.y+=lookupStatusBarHeight;
-            FrmSetObjectBounds(form, index, &bounds);
-
-            index=FrmGetObjectIndex(form, buttonAbortLookup);
-            Assert(frmInvalidObjectId!=index);
             FrmHideObject(form, index);
-            
+            index=FrmGetObjectIndex(form, buttonFind);
+            Assert(frmInvalidObjectId!=index);
+            FrmShowObject(form, index);
             MainFormSelectWholeInputText(form);
         }
         else 
         {
             Assert(connectionStarted==data->flag);
             appContext->lookupStatusBarVisible=true;
-            
-            bounds.topLeft.y+=lookupStatusBarHeight;
-            bounds.extent.y-=lookupStatusBarHeight;
-            FrmSetObjectBounds(form, index, &bounds);
-
-            index=FrmGetObjectIndex(form, buttonAbortLookup);
-            Assert(frmInvalidObjectId!=index);
             FrmShowObject(form, index);
+            index=FrmGetObjectIndex(form, buttonFind);
+            Assert(frmInvalidObjectId!=index);
+            FrmHideObject(form, index);
         }
         FrmUpdateForm(formDictMain, redrawAll); 
     }        
@@ -440,14 +428,13 @@ static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* form)
         FrmGetObjectBounds(form, index, &bounds);
         bounds.topLeft.x=appContext->screenWidth-8;
         bounds.extent.y=appContext->screenHeight-18;
-        if (appContext->lookupStatusBarVisible)
-            bounds.extent.y-=lookupStatusBarHeight;
         FrmSetObjectBounds(form, index, &bounds);
 
         index=FrmGetObjectIndex(form, buttonAbortLookup);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(form, index, &bounds);
         bounds.topLeft.x=appContext->screenWidth-13;
+        bounds.topLeft.y=appContext->screenHeight-13;
         FrmSetObjectBounds(form, index, &bounds);
 
         FrmUpdateForm(formDictMain, frmRedrawUpdateCode);        
