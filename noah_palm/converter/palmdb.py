@@ -2,6 +2,9 @@
 # Pages describing the format of PDB/PRC files:
 #   http://www.pda-parade.com/prog/palm/doc/pdb.html
 #   http://web.mit.edu/tytso/www/pilot/prc-format.html
+#   http://www.palmos.com/dev/support/docs/fileformats/FileFormatsTOC.html
+#   http://www.thinkmobile.com/Resource/Top/Palmtops_and_Handhelds/Palm_OS/Programming/File_Formats/
+#   http://www.eecs.harvard.edu/~nr/pilot/pdb/
 
 # Author: Krzysztof Kowalczyk krzysztofk@pobox.com
 # History:
@@ -17,7 +20,7 @@ def _getFileSizeFromFileObject(fo):
 
 (REC_FLAG_DELETE, REC_FLAG_DIRTY, REC_FLAG_BUSY, REC_FLAG_SECRET) = 0x10, 0x20, 0x40, 0x80
 
-class PDBRecord:
+class PDBRecord(object):
     def __init__(self): raise ValueError("cannot instantiate directly")
 
     def _getSize(self):
@@ -115,7 +118,7 @@ class PDBRecordFromDisk(PDBRecord):
             fo.close()
         return self._data
 
-class PDB:
+class PDB(object):
     def __init__(self,fileName=None):
         self._fileName = fileName
         self._name = None
@@ -193,13 +196,14 @@ class PDB:
             #   The least significant four bits are used to represent the category values.
             # 5, 3, uniqueId, set to 0 (we don't care about it and don't expose it to users)
             recHeaderList.append( struct.unpack(">LB3s", fo.read(8) ) )
+            if recHeaderList[n][_OFFSET] >= fileSize:
+                self._raiseInvalidFile()
 
         for n in range(recordsCount):
             if n < recordsCount-1:
                 recSize = recHeaderList[n+1][_OFFSET] - recHeaderList[n][_OFFSET];
             else:
                 recSize = fileSize - recHeaderList[n][_OFFSET]
-            # sanity check
             if recSize <= 0:
                 self._raiseInvalidFile()
             self._records.append( PDBRecordFromDisk(self._fileName,
@@ -217,9 +221,38 @@ class PDB:
 
     name = property(_getName,_setName)
 
+    def _getCreator(self):
+        assert len(self._creatorId) == 4
+        return self._creatorId
+
+    def _setCreator(self, creator):
+        assert len(creator) == 4
+        if len(creator) != 4:
+            raise ValueError("creator must be exactly 4 bytes in length, and is '%s' (%d bytes)" % (creator,len(creator)))
+        self._creatorId = creator
+    creator = property(_getCreator,_setCreator)
+
+    def _getType(self):
+        assert len(self._dbType) == 4
+        return self._dbType
+
+    def _setType(self,type):
+        assert len(type) == 4
+        if len(type) != 4:
+            raise ValueError("type must be exactly 4 bytes in length, and is '%s' (%d bytes)" % (type,len(type)))
+        self._dbType = type
+    dbType = property(_getType,_setType)
+
     def _getRecords(self):
         return self._records
     records = property(_getRecords)
+
+    def _checkRecords(self):
+        """All records should be of proper type"""
+        for rec in self.records:
+            assert isinstance(rec,PDBRecordFromDisk) or isinstance(rec,PDBRecordFromData)
+            if not (isinstance(rec,PDBRecordFromDisk) or isinstance(rec,PDBRecordFromData)):
+                raise ValueError("all records must be of type PDBRecordFromDisk or PDBRecordFromData")
 
     def saveAs(self,fileName,overwrite=False):
         assert fileName != None
@@ -231,4 +264,5 @@ class PDB:
             for rec in self._records:
                 # TODO: only if this is instance of PDBRecordFromDisk
                 d = rec.data  # force reading data into memory
+        self._checkRecords()
         raise NotImplementedError
