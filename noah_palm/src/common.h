@@ -497,6 +497,8 @@ void            DoFieldChanged(AppContext* appContext);
 void            SendFieldChanged(void);
 void            SendNewDatabaseSelected(int db);
 void            SendStopEvent(void);
+void            SendPenDownEvent(Int16 x, Int16 y);
+void            SendPenUpEvent(Int16 x, Int16 y, Int16 sx, Int16 sy, Int16 ex, Int16 ey);
 char *          strdup(char *s);
 long            FindCurrentDbIndex(AppContext* appContext);
 

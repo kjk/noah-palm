@@ -44,7 +44,7 @@ CREATE TABLE reg_codes
   user_email    VARCHAR(255),
   order_id      VARCHAR(255),
   when_entered  TIMESTAMP NOT NULL,
-  disabled_p    CHAR(1) NOT NULL DEFAULT 'f',  -- is this code disabled (e.g. because we decided people shared it)
+  disabled_p    CHAR(1) NOT NULL DEFAULT 'f',  -- is this reg code disabled (e.g. because we decided people shared it)
 
   PRIMARY KEY (reg_code)
 );

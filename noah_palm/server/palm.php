@@ -121,15 +121,38 @@ function user_registered_p($cookie)
         return false;
 }
 
-function serve_register($reg_code)
+# return true if a given registration code is valid (i.e. is in our reg_code
+# table and is not flagged as disabled)
+function f_reg_code_valid($reg_code)
 {
     global $dict_db;
 
     $reg_code = $dict_db->escape($reg_code);
-    $query = "SELECT reg_code FROM reg_codes WHERE reg_code='$reg_code';";
+    $query = "SELECT reg_code FROM reg_codes WHERE reg_code='$reg_code' AND disabled_p='f';";
     $reg_code = $dict_db->get_var($query);
     if ( $reg_code )
-        write_MSG("Registration has been succesful. We hope you'll enjoy using Noah.");
+        return true;
+    else
+        return false;
+}
+
+# check if a registration code is valid. If it isn't, send a messag to the client
+# and exit. if it is valid, do nothing - caller assumes it works
+function check_reg_code($reg_code)
+{
+    if ( ! f_reg_code_valid($reg_code) )
+    {
+        write_MSG("Registration code $reg_code is not valid. Please re-enter registration code. In case of problems please contact support@arslexis.com" );
+        exit;
+    }
+}
+
+# check if reg_code is valid. Return apropriate response to the client
+# (a MSG to be displayed)
+function serve_register($reg_code)
+{
+    if ( f_reg_code_valid($reg_code) )
+        write_MSG("Registration code $reg_code is not valid. Please re-enter registration code. In case of problems please contact support@arslexis.com" );
     else
         write_MSG("Registration failed");
     exit;
@@ -297,6 +320,16 @@ if ( isset($HTTP_GET_VARS['register']) )
     $reg_code = $HTTP_GET_VARS['register'];
     serve_register($reg_code);
 }
+
+$fRegistered = false;
+
+if ( isset($HTTP_GET_VARS['rc']) )
+{
+    $reg_code = $HTTP_GET_VARS['rc'];
+    check_reg_code($reg_code);
+    $fRegistered = true;
+}
+
 
 if ( isset($HTTP_GET_VARS['get_random_word'] ) )
 {
