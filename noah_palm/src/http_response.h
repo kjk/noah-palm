@@ -36,6 +36,7 @@ private:
     char **  _headersKeysValues;
     char *   _body;
     int      _bodySize;
+    ExtensibleBuffer _chunkedBody;
 
 public:
     HttpResponse(char *data, int dataSize);

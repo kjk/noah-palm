@@ -175,12 +175,6 @@ typedef struct
 
 #ifdef I_NOAH
 #include "i_noah.h"
-
-typedef enum _MainFormMode 
-{
-    mainFormShowingWord,
-    mainFormShowingField
-} MainFormMode;
 #endif
 
 typedef enum _AppFeature
@@ -327,7 +321,6 @@ typedef struct _AppContext
     NetIPAddr serverIpAddress;
     ExtensibleBuffer currentDefinition;
     ExtensibleBuffer currentWord;
-    MainFormMode mainFormMode;
 #endif      
 } AppContext;
 

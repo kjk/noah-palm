@@ -73,7 +73,6 @@ static void MainFormDraw(AppContext* appContext, FormType* form)
     else 
     {
         WinPushDrawState();
-
         SetBackColorWhite(appContext);
         ClearDisplayRectangle(appContext);
         DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
@@ -103,23 +102,12 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
         const Char* prevWord=ebufGetDataPointer(&appContext->currentWord);
         Assert(field);
         newWord=FldGetTextPtr(field);
-        appContext->mainFormMode=mainFormShowingWord;
         if (newWord && (StrLen(newWord)>0) && (!prevWord || 0!=StrCompare(newWord, prevWord)))
         {
             Err error=LookupWord(appContext, newWord);
             FldSelectAllText(field);
             if (!error)
-            {
-                FrmHideObject(form, index);
-                appContext->mainFormMode=mainFormShowingWord;
                 FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
-            }                
-        }
-        else
-        {
-            FrmHideObject(form, index);
-            appContext->mainFormMode=mainFormShowingWord;
-            DrawWord((Char*)newWord, appContext->screenHeight-FONT_DY);
         }
     }
 }
@@ -145,7 +133,6 @@ static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* e
     UInt16 index;
     MainFormDraw(appContext, form);
 
-    appContext->mainFormMode=mainFormShowingField;
     index=FrmGetObjectIndex(form, fieldWordInput);
     FrmSetFocus(form, index);
 
@@ -220,6 +207,22 @@ static Boolean MainFormKeyDown(AppContext* appContext, FormType* form, EventType
     return handled;
 }
 
+static Boolean MainFormScrollExit(AppContext* appContext, FormType* form, EventType* event)
+{
+    Int16 newValue = event->data.sclRepeat.newValue;
+    if (newValue != appContext->firstDispLine)
+    {
+        appContext->firstDispLine = newValue;
+        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
+    }
+    return true;
+}
+
+static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, EventType* event)
+{
+    return false;
+}
+
 static Boolean MainFormHandleEvent(EventType* event)
 {
     AppContext* appContext=GetAppContext();
@@ -243,6 +246,15 @@ static Boolean MainFormHandleEvent(EventType* event)
         case keyDownEvent:
             handled = MainFormKeyDown(appContext, form, event);
             break;
+            
+        case sclExitEvent:
+            handled=MainFormScrollExit(appContext, form, event);
+            break;
+            
+        case menuEvent:
+            handled=MainFormMenuCommand(appContext, form, event);
+            break;
+            
 
 /*            
         case winEnterEvent:

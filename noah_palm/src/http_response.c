@@ -151,6 +151,7 @@ HttpResponse::HttpResponse(char *data, int dataSize)
     _fResponseParsed   = false;
     _responseCode      = -1;
     _headersKeysValues = NULL;
+    ebufInit(&_chunkedBody, 0);
 }
 
 HttpResponse::~HttpResponse()
@@ -166,6 +167,7 @@ HttpResponse::~HttpResponse()
         }
         new_free(_headersKeysValues);
     }
+    ebufFreeData(&_chunkedBody);
 }
 
 /* Parse HTTP header in form "key: value", allocate memory for both
@@ -215,6 +217,60 @@ static HTTPErr SplitHttpHeader(char *hdr, char **keyOut, char **valueOut )
     return HTTPErr_OK;
 }
 
+static Err ParseChunkHeader(const Char* headerBegin, const Char* headerEnd, UInt16* chunkSize)
+{
+    Err error=errNone;
+    const Char* end=StrFind(headerBegin, headerEnd, " ");
+    Int32 size=0;
+    error=StrAToIEx(headerBegin, end, &size, 16);
+    if (error)
+    {
+        error=appErrMalformedResponse;
+        goto OnError;
+    }
+    Assert(size>=0);
+    *chunkSize=size;
+
+OnError:
+    return error;                
+}
+
+static Err ParseChunkedBody(const Char* bodyBegin, const Char* bodyEnd, ExtensibleBuffer* buffer)
+{
+    Err error=errNone;
+    const Char* lineBegin=bodyBegin;
+    UInt16 chunkSize=0;
+    do 
+    {
+        const Char* lineEnd=StrFind(lineBegin, bodyEnd, HTTP_LINE_ENDING);
+        if (lineBegin<bodyEnd && lineEnd<bodyEnd && lineBegin<lineEnd)
+        {
+            const Char* chunkBegin=lineEnd+2;
+            const Char* chunkEnd=NULL;
+            error=ParseChunkHeader(lineBegin, lineEnd, &chunkSize);
+            if (error)
+                break;                
+            chunkEnd=chunkBegin+chunkSize;
+            if (chunkBegin<bodyEnd && chunkEnd<bodyEnd)
+            {
+                ebufAddStrN(buffer, (char*)chunkBegin, chunkSize);
+                lineBegin=chunkEnd+2;             
+            }
+            else
+            {
+                error=appErrMalformedResponse;
+                break;
+            }                
+        }
+        else 
+        {
+            error=appErrMalformedResponse;
+            break;
+        }            
+    } while (chunkSize);
+OnError:    
+    return error;
+}
 
 /* parse HTTP response i.e. extract response code and headers */
 HTTPErr HttpResponse::parseResponse()
@@ -285,10 +341,20 @@ HTTPErr HttpResponse::parseResponse()
     Assert( 0==currLineSize ); // must be empty line == end of headers
 
     // so the rest should be just body
-    // TODO: doesn't do chunked
     _body = txtParse.getRest(&_bodySize);
-
+    
     _fResponseParsed = true;
+    if (fChunked())
+    {
+        Err error=ParseChunkedBody(_body, _body+_bodySize, &_chunkedBody);
+        if (error)
+        {
+            err=HTTPErr_ParsingError;
+            _fResponseParsed = false;
+            goto OnError;
+        }               
+    }
+    
 OnError:
     return err;
 }
@@ -328,11 +394,11 @@ char *HttpResponse::getBody(int *bodySize)
         *bodySize = _bodySize;
         return _body;
     }
-
-    Assert(false); // NOT YET IMPLEMENTED
-    // parse the chunked response
-
-    return NULL;
+    else
+    {
+        *bodySize = ebufGetDataSize(&_chunkedBody);
+        return ebufGetDataPointer(&_chunkedBody);            
+    }    
 }
 
 /* Given hdrKey for the key part of the HTTP header,

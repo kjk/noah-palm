@@ -344,61 +344,6 @@ OnError:
     return error;    
 }
 
-static Err ParseChunkHeader(const Char* headerBegin, const Char* headerEnd, UInt16* chunkSize)
-{
-    Err error=errNone;
-    const Char* end=StrFind(headerBegin, headerEnd, " ");
-    Int32 size=0;
-    error=StrAToIEx(headerBegin, end, &size, 16);
-    if (error)
-    {
-        error=appErrMalformedResponse;
-        goto OnError;
-    }
-    Assert(size>=0);
-    *chunkSize=size;
-
-OnError:
-    return error;                
-}
-
-static Err ParseChunkedBody(const Char* bodyBegin, const Char* bodyEnd, ExtensibleBuffer* buffer)
-{
-    Err error=errNone;
-    const Char* lineBegin=bodyBegin;
-    UInt16 chunkSize=0;
-    do 
-    {
-        const Char* lineEnd=StrFind(lineBegin, bodyEnd, HTTP_LINE_ENDING);
-        if (lineBegin<bodyEnd && lineEnd<bodyEnd && lineBegin<lineEnd)
-        {
-            const Char* chunkBegin=lineEnd+2;
-            const Char* chunkEnd=NULL;
-            error=ParseChunkHeader(lineBegin, lineEnd, &chunkSize);
-            if (error)
-                break;                
-            chunkEnd=chunkBegin+chunkSize;
-            if (chunkBegin<bodyEnd && chunkEnd<bodyEnd)
-            {
-                ebufAddStrN(buffer, (char*)chunkBegin, chunkSize);
-                lineBegin=chunkEnd+2;             
-            }
-            else
-            {
-                error=appErrMalformedResponse;
-                break;
-            }                
-        }
-        else 
-        {
-            error=appErrMalformedResponse;
-            break;
-        }            
-    } while (chunkSize);
-OnError:    
-    return error;
-}
-
 static Err ParseResponse(ConnectionData* connData)
 {
     Err              error=errNone;
