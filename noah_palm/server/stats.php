@@ -228,6 +228,10 @@ function summary()
 {
     global $dict_db;
 
+    echo "<b>Summary</b>&nbsp;|&nbsp;";
+    echo "<a href=\"stats.php?active_users=1\">Active users</a>";
+    echo "<p>";
+
     $unique_cookies_query = "SELECT COUNT(DISTINCT cookie) FROM cookies;";
     $unique_devices_query = "SELECT COUNT(DISTINCT dev_info) FROM cookies;";
 
@@ -458,6 +462,85 @@ function daily_stats($date)
     exit;
 }
 
+function active_users_stats()
+{
+    global $dict_db;
+
+    echo '<a href="stats.php">Summary</a>&nbsp;|&nbsp;';
+    echo "<b>Active users</b>";
+    echo "<p>";
+
+    $active_users_q = "SELECT COUNT(cookie) AS cnt, cookie FROM request_log GROUP BY cookie HAVING cnt>9;";
+    $active_users_rows = $dict_db->get_results($active_users_q);
+    $active_users = count($active_users_rows);
+
+    echo "Active users (made than 9 requests): $active_users \n<p>";
+?>
+    <table id="stats" cellspacing="0">
+    <tr class="header">
+      <td>User</td>
+      <td>Device</td>
+      <td>Total</td>
+      <td>Days registered</td>
+      <td>Lookups per day</td>
+    </tr>
+
+<?php
+    $today_day_no_q = "SELECT TO_DAYS(NOW());";
+    $today_day_no = $dict_db->get_var($today_day_no_q);
+
+    $user_lookups_q = "SELECT COUNT(cookie) AS cnt,cookie FROM request_log GROUP BY cookie ORDER BY cnt DESC;";
+    $user_lookups_rows = $dict_db->get_results($user_lookups_q);
+
+    $selected = false;
+    foreach ( $user_lookups_rows as $row )
+    {
+        $total_lookups_count = $row->cnt;
+        $cookie = $row->cookie;
+
+        if ( $total_lookups_count < 10 )
+            break;
+
+        $dev_info_q = "SELECT dev_info,TO_DAYS(when_created) AS reg_day_no FROM cookies WHERE cookie='$cookie'";
+        $rows = $dict_db->get_results($dev_info_q);
+        $dev_info = $rows[0]->dev_info;
+        $reg_day_no = $rows[0]->reg_day_no;
+
+        $days_registered = $today_day_no-$reg_day_no+1;
+
+        $dev_info_decoded = decode_di($dev_info);
+        $device_name = $dev_info_decoded['device_name'];
+        $hotsync_name = 'Unavailable';
+        if (isset($dev_info_decoded['HS']))
+            $hotsync_name = $dev_info_decoded['HS'];
+
+        $total_lookups_q = "SELECT COUNT(*) FROM request_log WHERE cookie='$cookie'";
+        $total_lookups_count = $dict_db->get_var($total_lookups_q);
+
+        $lookups_per_day = aveg_txt($total_lookups_count,$days_registered);
+
+        if ($selected)
+            echo "<tr class=\"selected\">\n";
+        else
+            echo "<tr>\n";
+
+        echo "  <td><a href=\"stats.php?user=$cookie\">$hotsync_name</a></td>\n";
+        echo "  <td>$device_name</td>\n";
+        echo "  <td>$total_lookups_count</td>\n";
+        echo "  <td>$days_registered</td>\n";
+        echo "  <td>$lookups_per_day</td>\n";
+        echo "</tr>\n";
+        if ($selected)
+            $selected = false;
+        else
+            $selected = true;
+    }
+
+    echo "</table>\n";
+    exit;
+}
+
+
 function user_stats($cookie)
 {
     global $dict_db;
@@ -467,6 +550,7 @@ function user_stats($cookie)
     echo "<p>";
     exit;
 }
+
 
 $action = 'summary';
 if ( isset( $HTTP_GET_VARS['daily'] ) )
@@ -487,6 +571,11 @@ if ( isset( $HTTP_GET_VARS['user'] ) )
     $cookie = $HTTP_GET_VARS['user'];
 }
 
+if ( isset( $HTTP_GET_VARS['active_users'] ) )
+{
+    $action = 'active_users';
+}
+
 $dict_db = new inoah_db(DBUSER, '', DBNAME, DBHOST);
 
 if ($action == 'summary')
@@ -497,6 +586,8 @@ elseif ($action == 'daily_lookups')
     daily_lookups_stats($date);
 elseif ($action == 'user')
     user_stats($cookie);
+elseif ($action == 'active_users')
+    active_users_stats();
 else
 {
     # shouldnt happen
