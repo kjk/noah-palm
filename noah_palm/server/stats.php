@@ -60,12 +60,6 @@ function aveg($total,$num)
     echo $avg;
 }
 
-function stats_for_a_day($day)
-{
-
-
-}
-
 function find_lookups_for_date($weekly_lookups_rows, $date)
 {
     foreach( $weekly_lookups_rows as $row )
@@ -148,14 +142,45 @@ function recent_registrations($limit)
         else
             echo "<tr>\n";
         echo "  <td>$when_created</td>\n";
-        $device_name = 'Unavailable';
-        if (isset($dev_info_decoded['device_name']) )
-            $device_name = $dev_info_decoded['device_name'];
+        $device_name = $dev_info_decoded['device_name'];
         $hotsync_name = 'Unavailable';
         if (isset($dev_info_decoded['HS']))
             $hotsync_name = $dev_info_decoded['HS'];
         echo "  <td>$hotsync_name</td>\n";
         echo "  <td>$device_name</td>\n";
+        echo "</tr>\n";
+        if ($selected)
+            $selected = false;
+        else
+            $selected = true;
+    }
+    echo "</table>\n";
+}
+
+function show_device_stats()
+{
+?>
+<table id="stats" cellspacing="0">
+<tr class="header">
+  <td>Device name</td>
+  <td>Count</td>
+</tr>
+
+<?php
+    $stats = get_device_stats();
+    $selected = false;
+
+    foreach ( $stats as $stat )
+    {
+        $device_name = $stat[0];
+        $count = $stat[1];
+
+        if ($selected)
+            echo "<tr class=\"selected\">\n";
+        else
+            echo "<tr>\n";
+        echo "  <td>$device_name</td>\n";
+        echo "  <td>$count</td>\n";
         echo "</tr>\n";
         if ($selected)
             $selected = false;
@@ -214,7 +239,6 @@ function recent_lookups($limit)
 }
 ?>
 
-
 iNoah has been published for <?php echo $num_days . " " . day_or_days($num_days) ?>. <br>
 Unique cookies created: <?php total_and_day_avg($unique_cookies) ?>. <br>
 Unique devices registered: <?php total_and_day_avg($unique_devices) ?>. <br>
@@ -260,10 +284,14 @@ Total requests: <?php total_and_day_avg($total_requests) ?> which is
     echo "<td>\n";
     recent_lookups($limit);
     echo "</td>\n";
-
 ?>
 </tr>
 </table>
+
+<?php
+    show_device_stats();
+?>
+
 </body>
 </html>
 
