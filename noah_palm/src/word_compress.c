@@ -260,7 +260,7 @@ WcInfo *wcInit(UInt32 wordsCount, int recWithComprData,
     WcInfo *wci;
     UInt16 recordSize;
 
-    wci = (WcInfo *) new_malloc(sizeof(WcInfo));
+    wci = (WcInfo *) new_malloc_zero(sizeof(WcInfo));
     if (NULL == wci)
         goto Error;
 

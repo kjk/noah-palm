@@ -65,7 +65,7 @@ void *wnlex_new(void)
     int                 firstRecWithWords;
     int                 i;
 
-    wi = (WnLiteInfo *) new_malloc(sizeof(WnLiteInfo));
+    wi = (WnLiteInfo *) new_malloc_zero(sizeof(WnLiteInfo));
     if (NULL == wi)
     {
         LogG("wnlex_new(), new_malloc(sizeof(WnLiteInfo)) failed" );

@@ -14,7 +14,7 @@ static void diCreateLinesInfo(DisplayInfo * di);
 DisplayInfo *
 diNew(void)
 {
-    return (DisplayInfo *) new_malloc(sizeof(DisplayInfo));
+    return (DisplayInfo *) new_malloc_zero(sizeof(DisplayInfo));
 }
 
 void

@@ -46,7 +46,7 @@ void *wn_new(void)
     int recWithWordCache;
     int firstRecWithWords;
 
-    wi = (WnInfo *) new_malloc(sizeof(WnInfo));
+    wi = (WnInfo *) new_malloc_zero(sizeof(WnInfo));
     if (NULL == wi)
     {
         LogG("wn_new() new_malloc(sizeof(WnInfo)) failed" );
@@ -206,9 +206,7 @@ SynWordCountCache *si_create_cache(SynsetsInfo * si)
     Assert(si);
 
     cacheEntries = (si->synsetsCount / CACHE_SPAN) + 1;
-    swcc =
-        (SynWordCountCache *) new_malloc(cacheEntries *
-                                         sizeof(SynWordCountCache));
+    swcc = (SynWordCountCache *) new_malloc(cacheEntries * sizeof(SynWordCountCache));
 
     if (NULL == swcc)
         return NULL;
@@ -234,7 +232,7 @@ SynsetsInfo *si_new(long synsetsCount, int firstWordsNumRec,  int firstSynsetInf
 {
     SynsetsInfo *si = NULL;
 
-    si = (SynsetsInfo *) new_malloc(sizeof(SynsetsInfo));
+    si = (SynsetsInfo *) new_malloc_zero(sizeof(SynsetsInfo));
     if (NULL == si)
         return NULL;
     si_init(si, firstWordsNumRec, firstSynsetInfoRec,

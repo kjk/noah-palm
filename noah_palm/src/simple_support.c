@@ -49,7 +49,7 @@ void *simple_new(void)
     int recWithWordCache;
     int firstRecWithWords;
 
-    si = (SimpleInfo *) new_malloc(sizeof(SimpleInfo));
+    si = (SimpleInfo *) new_malloc_zero(sizeof(SimpleInfo));
     if (NULL == si)
         goto Error;
 

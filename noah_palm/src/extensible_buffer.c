@@ -11,7 +11,7 @@
 ExtensibleBuffer *ebufNew(void)
 {
     ExtensibleBuffer *buf = NULL;
-    buf = (ExtensibleBuffer *) new_malloc(sizeof(ExtensibleBuffer));
+    buf = (ExtensibleBuffer *) new_malloc_zero(sizeof(ExtensibleBuffer));
     if (NULL == buf)
         return NULL;
     ebufInit(buf,0);

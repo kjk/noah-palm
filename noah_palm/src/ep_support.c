@@ -80,7 +80,7 @@ void *epNew(void)
 /*       StrCopy(polishChars, "±êæ³ñó¶¼¿" ); */
 /*       StrCopy(latinChars, "aeclnószz" ); */
 
-    epi = (EngPolInfo *) new_malloc(sizeof(EngPolInfo));
+    epi = (EngPolInfo *) new_malloc_zero(sizeof(EngPolInfo));
     if (NULL == epi)
         return NULL;
 
