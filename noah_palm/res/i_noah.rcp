@@ -47,6 +47,33 @@ BEGIN
     BUTTONS "OK"
 END
 
+ALERT ID alertRegistrationSuccessful
+    DEFAULTBUTTON 0
+    INFORMATION
+BEGIN
+    TITLE "Success"
+    MESSAGE "Registration was completed successfully."
+    BUTTONS "OK"
+END
+
+ALERT ID alertAlreadyRegistered
+    DEFAULTBUTTON 0
+    WARNING
+BEGIN
+    TITLE "Already registered"
+    MESSAGE "You are already registered on this device with the same serial number."
+    BUTTONS "OK"
+END
+
+ALERT ID alertMultipleRegistration
+    DEFAULTBUTTON 0
+    ERROR
+BEGIN
+    TITLE "Error"
+    MESSAGE "The serial number you entered is already registered on another device. To transfer your license visit www.arslexis.com."
+    BUTTONS "OK"
+END
+
 ALERT ID alertUnableToInitializeNetLibrary
     DEFAULTBUTTON 0
     ERROR

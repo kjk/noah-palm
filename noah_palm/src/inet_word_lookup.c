@@ -193,7 +193,8 @@ static Err WordLookupResponseProcessor(AppContext* appContext, void* context, co
 void StartWordLookup(AppContext* appContext, const Char* word)
 {
     ExtensibleBuffer urlBuffer;
-    ebufInit(&urlBuffer, 0);    Err error=WordLookupPrepareRequest(word, urlBuffer);
+    ebufInit(&urlBuffer, 0);
+    Err error=WordLookupPrepareRequest(word, urlBuffer);
     if (!error) 
     {
         const Char* requestUrl=ebufGetDataPointer(&urlBuffer);
@@ -201,7 +202,8 @@ void StartWordLookup(AppContext* appContext, const Char* word)
         if (context)
         {
             ebufInitWithStr(context, const_cast<Char*>(word));
-            StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,                WordLookupResponseProcessor, WordLookupContextDestructor);
+            StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
+                WordLookupResponseProcessor, WordLookupContextDestructor);
         }
         else 
             FrmAlert(alertMemError);            

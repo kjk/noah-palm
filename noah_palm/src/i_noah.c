@@ -10,7 +10,6 @@
 #include "inet_connection.h"
 #include "bookmarks.h"
 #include "words_list_form.h"
-#include "blowfish.h"
 
 #ifdef DEBUG
 // This is a full HTTP response we get on device when asking for word "glib"
@@ -240,7 +239,6 @@ static Err AppLaunch()
     if (error) 
         goto OnError;
     FrmGotoForm(formDictMain);
-
 #if 0
     testParseResponse((char*)deviceGlibResponse);
 #endif

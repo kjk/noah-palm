@@ -2179,7 +2179,7 @@ Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base)
         buffer[0]=*(begin++);
         StrToLower(buffer, buffer); 
         num=StrFind(numbers, numbers+numLen, buffer)-numbers;
-        if (num==numLen)
+        if (num>=base)
         {   
             error=memErrInvalidParam;
             break;
@@ -2352,5 +2352,31 @@ Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
     list=(ListType*)FrmGetObjectPtr(form, index);
     Assert(list);
     return LstGetSelection(list);
+}
+
+Err SysGetDeviceId(UInt8** data, UInt16* length)
+{
+    Err error=SysGetROMToken(0, sysROMTokenSnum, data, length);
+    if (!error)
+    {
+        if (NULL==*data || 0xff==**data) 
+            error=sysErrNotAllowed;
+    }
+    return error;
+}
+
+Err SysGetDeviceIdAsNumber(UInt32* retVal)
+{
+    const Char* deviceIdText=0;
+    UInt16 deviceIdLength=0;
+    Err error=SysGetDeviceId(reinterpret_cast<UInt8**>(const_cast<Char**>(&deviceIdText)), &deviceIdLength);
+    if (!error)
+    {
+        Int32 deviceId=0;
+        error=StrAToIEx(deviceIdText, deviceIdText+deviceIdLength, &deviceId, 10);
+        if (!error)
+            *retVal=deviceId;
+    }
+    return error;
 }
 
