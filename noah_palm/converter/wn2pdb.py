@@ -206,8 +206,8 @@ class WordCompressor:
         self.prevWord = word
         if prefixLen==0:
             #UNDONE: not sure which one is correct
-            #return chr(0) + word
-            return word
+            return chr(0) + word
+            #return word
         else:
             #Undone: which one is faster?
             #return struct.pack("c%ds"%(len(w)-prefixLen),chr(prefixLen),w[prefixLen:])
@@ -302,7 +302,7 @@ class StringCompressor:
         # the whole string matched
         if lastValidCode == -1:
             print "Couldn't compress string '%s' (char %d,%s)" % (str,ord(c),c)
-            print self.mainTable[' ']
+            print self.mainTable
             if self.mainTable.has_key(c):
                 print "self.mainTable has key %s" % c
                 print self.mainTable[c]
@@ -586,11 +586,14 @@ class CompInfoGen:
     def __init__(self,strList):
         self.strList = strList
         self.table = None
-        self.reservedCodes = 32
+        self.reservedCodes = 0
         self.FREQ_IDX = 0
         self.NEXT_TABLE_IDX = 1
         self.FULL_STR_IDX = 2
         self.STR_MAX_LEN = 5
+
+    def reserveCodes(self,codes):
+        self.reservedCodes = codes
 
     def _incStr(self,s):
         currTable = self.table
@@ -658,6 +661,8 @@ class CompInfoGen:
 class CompInfoNoCompression:
     def __init__(self,strList):
         pass
+    def reserveCodes(self,codes):
+        pass
     def buildPackStrings(self):
         packStrings = [chr(c) for c in range(256)]
         return packStrings
@@ -669,6 +674,9 @@ class CompInfoGenWeak:
         self.freqTable = Freq(256,256)
         self.strList = strList
         self.reservedCodes = 32
+
+    def reserveCodes(self,codes):
+        self.reservedCodes = codes
 
     def buildPackStrings(self):
         self.freqTable.buildFreqForStrings(self.strList)
@@ -752,7 +760,10 @@ class CompInfoGenNew:
     is slow but should be the most efficient version."""
     def __init__(self,strList):
         self.strList = strList
-        self.reservedCodes = 32
+        self.reservedCodes = 0
+
+    def reserveCodes(self,codes):
+        self.reservedCodes = codes
 
     def buildPackStrings(self):
         freqTable = Freq(256,256)
@@ -816,8 +827,11 @@ class CompInfoGenOrig:
         self.codeToChar = [[0,0] for i in range(256)]
         self.strToCode = ['' for i in range(256)]
         self.compressionTable = [[0 for i in range(256)] for t in range(256)]
-        self.reservedCodes = 32
+        self.reservedCodes = 0
         self.origStrings = strList
+
+    def reserveCodes(self,codes):
+        self.reservedCodes = codes
 
     def _codeStrings(self):
         self.strList = [self._codeString(s) for s in self.origStrings]
@@ -931,15 +945,15 @@ class CompInfoGenOrig:
         self._codeStrings()
         return self._buildPackData()
 
-def buildStringCompressor(strList):
+def buildStringCompressor(strList,codesToReserve=0):
     """Given a list of strings, build compressor object optimal for compressing
     those strings"""
-    #_testCodeTable()
-    #ft = CompInfoGenWeak(strList)
-    #ft = CompInfoGen(strList)
     #ft = CompInfoGenOrig(strList)
     #ft = CompInfoNoCompression(strList)
+    #ft = CompInfoGenWeak(strList)
+    #ft = CompInfoGen(strList)
     ft = CompInfoGenNew(strList)
+    ft.reserveCodes(codesToReserve)
     packStrings = ft.buildPackStrings()
     #print packStrings
     assert 256 == len(packStrings)
@@ -967,7 +981,7 @@ def buildWordsRecs(words):
     record with words cache"""
     print "buildWordsRecs start"
     wordComp = WordCompressor()
-    strComp = buildStringCompressor(words)
+    strComp = buildStringCompressor(words,32)
     currRecDataLen = 0
     currRecData = []
     wordsRecsData = []

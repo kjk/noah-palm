@@ -15,6 +15,8 @@
 #include "fs.h"
 #include "fs_ex.h"
 
+Boolean ReadPdbHeader(UInt16 volRef, char *fileName, PdbHeader *hdr);
+
 Boolean FVfsPresent(void);
 
 Boolean FsVfsInit(void);
