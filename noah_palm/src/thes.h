@@ -41,7 +41,6 @@ typedef struct
 {
     Boolean                 fDelVfsCacheOnExit;
     StartupAction           startupAction;
-    ScrollType              tapScrollType;
     ScrollType              hwButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
     char                    lastDbName[dmDBNameLength];

@@ -46,7 +46,7 @@ void* SerializePreferencesNoahPro(AppContext* appContext, long *pBlobSize)
         serData( (char*)&prefRecordId, (long)sizeof(prefRecordId), prefsBlob, &blobSize );
         serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
-        serByte( prefs->tapScrollType, prefsBlob, &blobSize );
+        serByte( 0, prefsBlob, &blobSize ); // used to be prefs->tapScrollType property
         serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
 
@@ -730,6 +730,7 @@ ChooseDatabase:
                 break;
             }
 
+#if 0
             if (event->screenY > ((appContext->screenHeight-FRM_RSV_H) / 2))
             {
                 DefScrollDown(appContext, appContext->prefs.tapScrollType);
@@ -738,6 +739,7 @@ ChooseDatabase:
             {
                 DefScrollUp(appContext, appContext->prefs.tapScrollType);
             }
+#endif
             handled = true;
             break;
 
@@ -1314,10 +1316,6 @@ static void PrefsToGUI(AppContext* appContext, FormType * frm)
     SetPopupLabel(frm, listStartupAction, popupStartupAction, appContext->prefs.startupAction);
     SetPopupLabel(frm, listStartupDB, popupStartupDB, appContext->prefs.dbStartupAction);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, appContext->prefs.hwButtonScrollType);
-    SetPopupLabel(frm, listTapAction, popupTapAction, appContext->prefs.tapScrollType);
-#if 0
-    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), appContext->prefs.fDelVfsCacheOnExit );
-#endif
 }
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -1385,10 +1383,6 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
                     appContext->prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popuphwButtonsAction)), listTxt);
                     break;
-                case listTapAction:
-                    appContext->prefs.tapScrollType = (ScrollType) event->data.popSelect.selection;
-                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupTapAction)), listTxt);
-                    break;
                 default:
                     Assert(0);
                     break;
@@ -1400,7 +1394,6 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
                 case popupStartupAction:
                 case popupStartupDB:
                 case popuphwButtonsAction:
-                case popupTapAction:
                     // need to propagate the event down to popus
                     handled = false;
                     break;
@@ -1411,11 +1404,6 @@ static Boolean PrefFormHandleEventNoahPro(EventType * event)
                     FrmReturnToForm(0);
                     handled = true;
                     break;
-#if 0
-                case checkDeleteVfs:
-                    appContext->prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
-                    break;
-#endif
                 default:
                     Assert(0);
                     break;

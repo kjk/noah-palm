@@ -64,7 +64,7 @@ static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
         serData( (char*)&prefRecordId, (long)sizeof(prefRecordId), prefsBlob, &blobSize );
         serByte( prefs->fDelVfsCacheOnExit, prefsBlob, &blobSize );
         serByte( prefs->startupAction, prefsBlob, &blobSize );
-        serByte( prefs->tapScrollType, prefsBlob, &blobSize );
+        serByte( 0, prefsBlob, &blobSize );  // used to be prefs->tapScrollType property
         serByte( prefs->hwButtonScrollType, prefsBlob, &blobSize );
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
 
@@ -149,6 +149,7 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
     unsigned char   dbCount;
     unsigned char   currDb;
     AbstractFile *  file;
+    unsigned char   dummy;
 
     Assert( prefsBlob );
     Assert( blobSize > 8 );
@@ -164,7 +165,7 @@ static void DeserializePreferencesThes(AppContext* appContext, unsigned char *pr
     // 1. preferences
     prefs->fDelVfsCacheOnExit = (Boolean) deserByte( &prefsBlob, &blobSize );
     prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
-    prefs->tapScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
+    dummy = deserByte( &prefsBlob, &blobSize );  // used to be prefs->tapScrollType property
     prefs->hwButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
 
@@ -429,7 +430,6 @@ static Err AppCommonInit(AppContext* appContext)
     // and try to load them from pref database
     appContext->prefs.fDelVfsCacheOnExit = true;
     appContext->prefs.startupAction = startupActionNone;
-    appContext->prefs.tapScrollType = scrollLine;
     appContext->prefs.hwButtonScrollType = scrollPage;
     appContext->prefs.dbStartupAction = dbStartupActionAsk;
     appContext->prefs.lastDbUsedName = NULL;
@@ -1035,6 +1035,7 @@ ChooseDatabase:
                 break;
             }
 
+#if 0
             if (event->screenY > ((appContext->screenHeight-FRM_RSV_H) / 2))
             {
                 DefScrollDown(appContext, appContext->prefs.tapScrollType);
@@ -1043,6 +1044,7 @@ ChooseDatabase:
             {
                 DefScrollUp(appContext, appContext->prefs.tapScrollType);
             }
+#endif
             handled = true;
             break;
 
@@ -1634,10 +1636,6 @@ static void PrefsToGUI(AppContext* appContext, FormType * frm)
     SetPopupLabel(frm, listStartupAction, popupStartupAction, appContext->prefs.startupAction);
     SetPopupLabel(frm, listStartupDB, popupStartupDB, appContext->prefs.dbStartupAction);
     SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, appContext->prefs.hwButtonScrollType);
-    SetPopupLabel(frm, listTapAction, popupTapAction, appContext->prefs.tapScrollType);
-#if 0
-    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), appContext->prefs.fDelVfsCacheOnExit );
-#endif
 }
 
 static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -1708,10 +1706,6 @@ static Boolean PrefFormHandleEventThes(EventType * event)
                     appContext->prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
                     CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popuphwButtonsAction)), listTxt);
                     break;
-                case listTapAction:
-                    appContext->prefs.tapScrollType = (ScrollType) event->data.popSelect.selection;
-                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupTapAction)), listTxt);
-                    break;
                 default:
                     Assert(0);
                     break;
@@ -1725,7 +1719,6 @@ static Boolean PrefFormHandleEventThes(EventType * event)
                 case popupStartupAction:
                 case popupStartupDB:
                 case popuphwButtonsAction:
-                case popupTapAction:
                     // need to propagate the event down to popus
                     handled = false;
                     break;
@@ -1736,11 +1729,6 @@ static Boolean PrefFormHandleEventThes(EventType * event)
                     FrmReturnToForm(0);
                     handled = true;
                     break;
-#if 0
-                case checkDeleteVfs:
-                    appContext->prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
-                    break;
-#endif
                 default:
                     Assert(0);
                     break;

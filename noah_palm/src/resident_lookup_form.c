@@ -141,6 +141,7 @@ static Boolean ResidentLookupFormDisplayChanged(AppContext* appContext, FormType
 static Boolean ResidentLookupFormPenUp(AppContext* appContext, FormType* form, EventType* event) 
 {
     Boolean handled=false;
+#if 0
     Assert(appContext->currDispInfo);
     if (event->screenX <= appContext->screenWidth-FRM_RSV_W && event->screenY <= appContext->screenHeight-FRM_RSV_H)
     {
@@ -155,6 +156,7 @@ static Boolean ResidentLookupFormPenUp(AppContext* appContext, FormType* form, E
             handled=true;
         }
     } 
+#endif
     return handled;      
 }
 

@@ -43,6 +43,7 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     unsigned char   dbCount;
     unsigned char   currDb;
     AbstractFile *  file;
+    unsigned char   dummy;
 
     Assert( prefsBlob );
     Assert( blobSize > 8 );
@@ -58,7 +59,7 @@ static void DeserializePreferencesNoahPro(AppContext* appContext, unsigned char 
     /* 1. preferences */
     prefs->fDelVfsCacheOnExit = (Boolean) deserByte( &prefsBlob, &blobSize );
     prefs->startupAction = (StartupAction) deserByte( &prefsBlob, &blobSize );
-    prefs->tapScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
+    dummy = deserByte( &prefsBlob, &blobSize );  // used to be prefs->tapScrollType
     prefs->hwButtonScrollType = (ScrollType) deserByte( &prefsBlob, &blobSize );
     prefs->dbStartupAction = (DatabaseStartupAction) deserByte( &prefsBlob, &blobSize );
 
@@ -266,7 +267,6 @@ Err AppCommonInit(AppContext* appContext)
     // and try to load them from pref database
     appContext->prefs.fDelVfsCacheOnExit = true;
     appContext->prefs.startupAction = startupActionNone;
-    appContext->prefs.tapScrollType = scrollLine;
     appContext->prefs.hwButtonScrollType = scrollPage;
     appContext->prefs.dbStartupAction = dbStartupActionAsk;
     appContext->prefs.lastDbUsedName = NULL;

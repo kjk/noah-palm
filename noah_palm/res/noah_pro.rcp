@@ -239,13 +239,6 @@ BEGIN
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popuphwButtonsAction listhwButtonsAction
 
-   LABEL "Tap:" AUTOID                            AT (5            PREVTOP+14) FONT 1
-   POPUPTRIGGER  "1/2 Page Scroll" popupTapAction AT (PREVRIGHT+43 PREVTOP AUTO AUTO) LEFTANCHOR
-   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listTapAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
-   POPUPLIST popupTapAction listTapAction
-
-/*   CHECKBOX "Delete vfs cache on exit" ID checkDeleteVfs AT (5 PREVTOP+18 AUTO AUTO) FONT 1 */
-
    BUTTON "Ok"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
    BUTTON "CANCEL" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
 END

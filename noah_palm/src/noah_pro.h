@@ -37,7 +37,6 @@ typedef struct
 {
     Boolean                 fDelVfsCacheOnExit;
     StartupAction           startupAction;
-    ScrollType              tapScrollType;
     ScrollType              hwButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
     char                    lastWord[WORD_MAX_LEN];

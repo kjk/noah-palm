@@ -126,7 +126,7 @@ INFORMATION
 BEGIN
     TITLE "Error"
     MESSAGE "Database installed on external memory card. Noah Lite can't use it. Please move " \
-"database to internal memory or upgrade to Noah Pro. See http://www.arslexis.com for more " \
+"database to internal memory or upgrade to Noah Pro. See www.arslexis.com for more " \
 "information."
     BUTTONS "OK"
 END
