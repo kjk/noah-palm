@@ -28,12 +28,12 @@ unparsed = []
 # wordnet_data_dir = "/home/kjk/src/wn10-10-00/"
 # wordnet_data_dir = "c:\\kjk\src\wn10-10-00\\"
 #wordnet_data_dir = "C:\\kjk\\src\\mine\\dict_data\\wordnet16\\"
-wordnet_data_dir = "C:\\kjk\\src\\mine\\noah_dicts\\wordnet16\\"
+wordnet_data_dir = "C:\\kjk\\src\\mine\\dicts_data\\wordnet16\\"
 
 # we'll use this file to create a subset of synsets for Noah Lite
 #engpolFileName = "c:\\kjk\\src\\mine\\dict_data\\eng_pol.txt"
 
-engpolFileName = "c:\\kjk\\src\\mine\\noah_dicts\\eng_pol.txt"
+engpolFileName = "c:\\kjk\\src\\mine\\dicts_data\\eng_pol.txt"
 
 #dataFiles = [ "data.adv" ]
 dataFiles = [ "data.adv", "data.adj", "data.noun", "data.verb" ]
