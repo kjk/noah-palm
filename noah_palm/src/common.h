@@ -23,6 +23,10 @@
 #include "copy_block.h"
 #include "bookmarks.h"
 
+
+// define for a special build of i_noah which uses internal server for access
+#define INTERNAL_BUILD 1
+
 #define _RECORD_SPEED_ 1
 
 #ifdef DEBUG

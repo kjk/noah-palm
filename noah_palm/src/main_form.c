@@ -43,11 +43,16 @@ static void MainFormDisplayAbout(AppContext* appContext)
     FntSetFont(largeFont);
     DrawCenteredString(appContext, "ArsLexis iNoah", currentY);
     currentY+=16;
-#ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 1.0 (debug)", currentY);
+
+#ifdef INTERNAL_BUILD
+DrawCenteredString(appContext, "Ver 1.0 (internal)", currentY);
 #else
+ #ifdef DEBUG
+    DrawCenteredString(appContext, "Ver 1.0 (debug)", currentY);
+ #else
     DrawCenteredString(appContext, "Ver 1.0", currentY);
-#endif
+ #endif // DEBUG
+#endif // INTERNAL_BUILD
     currentY+=20;
     
     FntSetFont(boldFont);
@@ -514,7 +519,7 @@ static Boolean MainFormMenuCommand(AppContext* appContext, FormType* form, Event
         case menuItemPrefs:
             FrmPopupForm(formPrefs);
             handled=true;
-            break;            
+            break;
 
         case menuItemDispPrefs:
             FrmPopupForm(formDisplayPrefs);

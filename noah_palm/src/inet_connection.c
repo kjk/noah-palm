@@ -1,13 +1,15 @@
 #include "inet_connection.h"
 #include "http_response.h"
 
+#ifdef INTERNAL_BUILD
 // this is a test server running on my pc, accessible from internet
 #define serverAddress                "dict-pc.arslexis.com"
 #define serverPort                   4080
-
+#else
 // this is an official server running on arslexis.com
-//#define serverAddress                "dict.arslexis.com"
-//#define serverPort                   80
+#define serverAddress                "dict.arslexis.com"
+#define serverPort                   80
+#endif
 
 #define maxResponseLength         8192           // reasonable limit so malicious response won't use all available memory
 #define responseBufferSize         256           // size of single chunk used to retrieve server response
