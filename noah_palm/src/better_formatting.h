@@ -71,7 +71,7 @@ Boolean DisplayPrefFormHandleEvent(EventType * event);
 Boolean ShakeSortExtBuf(ExtensibleBuffer *buf);
 void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf);
 void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf);
-void ebufWrapLine(ExtensibleBuffer *buf, int lineStart, int lineLen, int spacesAtStart, struct _AppContext *appContext);
+int  ebufWrapLine(ExtensibleBuffer *buf, int lineStart, int lineLen, int spacesAtStart, struct _AppContext *appContext);
 void DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x, Int16 y, int maxLines);
 
 void bfFreePTR(struct _AppContext *appContext);

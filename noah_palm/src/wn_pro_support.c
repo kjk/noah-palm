@@ -429,7 +429,7 @@ long si_total_words_count(AbstractFile* file, SynsetsInfo * si, long synset)
     {
         swcc = si->swcc;
     }
-
+    
     while (synset > swcc[i].synsetNo)
     {
         total_words_count = swcc[i].wordsCount;
@@ -477,7 +477,6 @@ void si_position_at_word(AbstractFile* file, SynsetsInfo * si, long synset, int 
         rec = si->firstWordsNumRec;
         total_words_count = si_total_words_count(file, si, synset) + word_idx;
         rec_idx = total_words_count * si->bytesPerWordNum;
-
         while (rec_idx >= fsGetRecordSize(file, rec))
         {
             rec_idx -= fsGetRecordSize(file, rec);
@@ -1069,19 +1068,11 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             wordsCount = si_get_words_count(wi->file, si, syn);
             Assert(wordsCount > 0);
 
-            if(wordsCount > 1 && FormatWantsWord(appContext))
-            {
-                ebufAddChar(&wi->buffer, FORMAT_TAG);
-                ebufAddChar(&wi->buffer, FORMAT_WORD);
-            }
-            else
-            if(!FormatWantsWord(appContext))
-            {
-                ebufAddChar(&wi->buffer, FORMAT_TAG);
-                ebufAddChar(&wi->buffer, FORMAT_WORD);
-            }
             //all words
             if(!FormatWantsWord(appContext))
+            {
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_WORD);
                 for (w = 0; w < wordsCount; w++)
                 {
                     wordNumFound = si_get_word_no(wi->file, si, syn, w);
@@ -1098,10 +1089,13 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
                     }
                     ebufAddStr(&wi->buffer, txt);
                 }
+            }    
             else
             //only synonyms!
             if(wordsCount > 1)
             {  
+                ebufAddChar(&wi->buffer, FORMAT_TAG);
+                ebufAddChar(&wi->buffer, FORMAT_WORD);
                 wordsCount--;
                 for (w = 0; w < wordsCount; w++)
                 {
@@ -1207,10 +1201,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             ebufCopyBuffer(&wi->bufferTemp, &wi->buffer);
             ebufAddChar(&wi->bufferTemp, '\0');
 
-//speed = TimGetTicks();
             ebufWrapBigLines(&wi->bufferTemp,false);
-//        
-//appContext->recordSpeedTicksCount += TimGetTicks()-speed;
 
             rawTxt = ebufGetDataPointer(&wi->bufferTemp);
             diSetRawTxt(&wi->displayInfo, rawTxt);

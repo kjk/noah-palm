@@ -237,17 +237,17 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
 {
     int len;
     char *txt;
+    char *txt2;
+    char *txt3;
     int curr_pos;
     int spaces;
     int line_len;
-    Boolean line_start;
     AppContext* appContext=GetAppContext();
     FontID prevfont;
 
     prevfont = FntGetFont();
 
     curr_pos = 0;
-
     if(appContext->prefs.displayPrefs.listStyle!=0)
     {
         if(sort)
@@ -255,20 +255,35 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
         Format1OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
         Format2OnSortedBuf(appContext->prefs.displayPrefs.listStyle, buf);
     }
-    txt = ebufGetDataPointer(buf);
-    len = ebufGetDataSize(buf);
-//    txt = buf->data;
-//    len = buf->used;
+    txt = buf->data;
+    len = buf->used;
 
     /* find every line, calculate the number of spaces at its
        beginning & fetch this to a proc that will wrap this line
        so it'll fit into a screen */
     /* this is the first line */
-    line_start = true;
+    line_len = curr_pos;
+    while ((line_len < len)
+        && (txt[line_len] == ' '))
+        ++line_len;
+    spaces = line_len - curr_pos;
+    while ((line_len < len)
+        && (txt[line_len] != '\n'))
+        ++line_len;
+    line_len -= curr_pos;    
+    curr_pos += ebufWrapLine(buf, curr_pos, line_len, spaces, appContext);
+    txt = buf->data;
+    len = buf->used;
+    /* this is the rest */
+    ++curr_pos;
+    txt2 = txt + curr_pos;    
+    txt3 = txt + len;
     do
     {
-        if (line_start)
+        if (txt2[0] == '\n')
         {
+            curr_pos = txt2 - txt;
+            ++curr_pos;
             line_len = curr_pos;
             while ((line_len < len)
                    && (txt[line_len] == ' '))
@@ -278,18 +293,16 @@ void ebufWrapBigLines(ExtensibleBuffer *buf, Boolean sort)
                    && (txt[line_len] != '\n'))
                 ++line_len;
             line_len -= curr_pos;    
-            ebufWrapLine(buf, curr_pos, line_len, spaces, appContext);
+            curr_pos += ebufWrapLine(buf, curr_pos, line_len, spaces, appContext);
             /* this might have changed our buffer, so we have to re-get it */
             txt = buf->data;
             len = buf->used;
-            line_start = false;
+            txt2 = txt + curr_pos;    
+            txt3 = txt + len;
         }
-        /* find another line */ /*len is > 0*/
-        if (/*(len > 0) && */(txt[curr_pos] == '\n'))
-            line_start = true;
-        ++curr_pos;
+        txt2++;
     }
-    while (curr_pos < len);
+    while (txt2 < txt3);
     FntSetFont(prevfont);
 }
 

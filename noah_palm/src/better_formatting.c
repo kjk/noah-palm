@@ -1270,27 +1270,6 @@ Boolean ShakeSortExtBuf(ExtensibleBuffer *buf)
             }
         r = k - 1;
     }while(L <= r);
-    //buffer is sorted!!!
-/*
-#ifdef WN_PRO_DICT  //we need to detect when we add "1) " or "I " in PRO!
-    if(!ret)
-    {
-        if(CmpPos(&txt[array[n-1]], &txt[array[n-2]]) == 0)
-        {
-            if(n <= 2)  
-                ret = true; //we added 2nd word and it have the same POS ("1) " and "2) " added)
-            else
-                if(CmpPos(&txt[array[n-3]], &txt[array[n-2]]) != 0)
-                    ret = true; //we added 2nd with the same POS ("1) " and "2) " added)
-        }
-        else
-        {
-            if(CmpPos(&txt[array[0]], &txt[array[n-2]]) == 0)
-                ret = true; //we added 2nd diffrent POS ("I " and "II " added)
-        }
-    }       
-#endif
-*/
     //free array!!!!!!!!!
     new_free((int *)array);
     return ret;
@@ -1309,6 +1288,10 @@ static void ebufDeletePos(ExtensibleBuffer *buf, int pos)
 static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
 {
     int  i, j, k;
+    int  used;
+    char *data;
+    char *dataCurr;
+    char *dataEnd;
 
     i = 0;
     if(buf->data[1] == (char)FORMAT_SYNONYM || buf->data[1] == (char)FORMAT_WORD)
@@ -1318,41 +1301,52 @@ static void XchgWordsWithSynonyms(ExtensibleBuffer *buf)
     }
     else
         return; //we dont have "word" at the begining. This is not Format1 or Format2...
-    
-    while(i < buf->used)
+
+    used = buf->used;
+    data = buf->data;
+    while(i < used)
     {
         //set i on word tag
-        while(i < buf->used && !(buf->data[i]==(char)FORMAT_TAG && buf->data[i+1]==(char)FORMAT_WORD))
+        while(i < used && !(data[i]==(char)FORMAT_TAG && data[i+1]==(char)FORMAT_WORD))
             i++;
-        if(i < buf->used)    
+            
+        if(i < used)    
         {
             ebufReplaceChar(buf, FORMAT_SYNONYM, i + 1);
 #ifndef THESAURUS   //why? think :)
             ebufInsertStringOnPos(buf, "Synonyms: ", i + 2);
+            used = buf->used;
+            data = buf->data;
 #endif
         }
         //set j on next tag
         j = i+2;
-        while(j < buf->used && !IsTagInLine(buf->data[j],buf->data[j+1]))
-            j++;
+        dataCurr = data+j;
+        dataEnd = data+used;
+        while(dataCurr < dataEnd && !IsTagInLine(dataCurr[0],dataCurr[1]))
+            dataCurr++;
+        j = dataCurr-data;
     
         //some problems with unformated data
-        if(!(j+1 < buf->used))
+        if(!(j+1 < used))
             return; 
         k = j;
         //set k on pos //but not if its reached
-        if(buf->data[j+1] != (char)FORMAT_POS)
+        if(data[j+1] != (char)FORMAT_POS)
         {
             k = j+2;
-            if(!(k+1 < buf->used))
+            if(!(k+1 < used))
                 return; 
         }    
-        while(k < buf->used && buf->data[k]!='\0' && !(buf->data[k]==(char)FORMAT_TAG && buf->data[k+1]==(char)FORMAT_POS))
-            k++;
+
+        dataCurr = data+k;
+        while(dataCurr < dataEnd && dataCurr[0]!='\0' && !(dataCurr[0]==(char)FORMAT_TAG && dataCurr[1]==(char)FORMAT_POS))
+            dataCurr++;
             
+        k = dataCurr - data;    
         //(i,j)(j,k) ---> (j,k)(i,j)
-        if(j < buf->used && j!=k)
-            XchgInBuffer(buf->data, i, j, k);
+        if(j < used && j!=k)
+            XchgInBuffer(data, i, j, k);
         i = k+2;        
     }
 }
@@ -1485,6 +1479,7 @@ void Format1OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     ebufInsertChar(buf, ' ', j + 3);
 }
 //format 2
+
 void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 {
     int  i, j;
@@ -1525,15 +1520,15 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
     
     data = buf->data;
     data += i;
-    dataTest = (buf->data) + (buf->used);
+    dataTest = (buf->data) + (buf->used) - 1;
     
-    while(data +1 < dataTest)
+    while(data < dataTest)
     {
         if(data[0] == (char)FORMAT_TAG)
         {
             if(data[1] == (char)FORMAT_POS)
             {
-                i = buf->used - (dataTest-data);
+                i = buf->used - (dataTest+1-data);
                 
                 i += 2;
             
@@ -1541,8 +1536,8 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
                 {
                     //add numbers to buff (2. 3. 4. etc)
                     ebufDeletePos(buf, i);
-                    number++;                
-                    StrPrintF(str_number,"%d) \0",number);                     
+                    number++;
+                    StrPrintF(str_number,"%d) \0",number);
                     
                     j = 0;
                     while(str_number[j] != '\0')
@@ -1573,7 +1568,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
                             j--;
                             i--;
                         }
-                        j++;                
+                        j++;
                     }
     
                     ebufInsertChar(buf, '\n', j);
@@ -1590,7 +1585,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
                         i += 5;
                     }
                     
-                    StrPrintF(str_number,"%c%c%s \0", FORMAT_TAG, FORMAT_BIG_LIST, roman[bignumber%10]);                     
+                    StrPrintF(str_number,"%c%c%s \0", FORMAT_TAG, FORMAT_BIG_LIST, roman[bignumber%10]);
                     j = 0;
                     while(str_number[j] != '\0')
                     {
@@ -1607,7 +1602,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
                 }
         
                 data = buf->data + i;
-                dataTest = (buf->data) + (buf->used);
+                dataTest = (buf->data) + (buf->used) - 1;
             }
             else
                 data++;            
@@ -1664,7 +1659,7 @@ void Format2OnSortedBuf(int format_id, ExtensibleBuffer *buf)
 }
 
 //from "extensible_buffer.c" cut lines to smaller ones
-void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start, AppContext* appContext)
+int  ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int spaces_at_start, AppContext* appContext)
 {
     char *txt;
     Int16 string_dx;
@@ -1680,7 +1675,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
 
     txt = buf->data;
     if (NULL == txt)
-        return;
+        return 0;
 
     string_dx = 152;
     pos_dx = 152;
@@ -1695,16 +1690,12 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
         tagOffset += 2;
     }
     
-    //we need to put as many as we can in one line    
+    //we need to put as many as we can in one line
     fits = false;
     
     //is there more than one tag in his line???
-    j = 1;    
+    j = 1;
 
-/*  old lines    
-    while(j < string_len && !IsTagInLine(txt[j],txt[j+1]))
-        j++;
-*/
     while(j < string_len)
         if(txt[j] != (char)FORMAT_TAG)
             j++;
@@ -1714,7 +1705,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
             else
                 j++;
      
-    //more than one tag in line!!!    
+    //more than one tag in line!!!
     if(j < string_len)
     {
         pos_dx = 0; 
@@ -1748,7 +1739,7 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
                 {
                     //j = string_len
                     //and it fits perfect
-                    return;
+                    return string_len-1;
                 }
             }
         };//end while
@@ -1758,51 +1749,41 @@ void ebufWrapLine(ExtensibleBuffer *buf, int line_start, int line_len, int space
         //only one(at the begining) or zero tags in line
         FntCharsInWidth(&txt[tagOffset], &string_dx, &string_len, &fits);
         if (fits)
-            return;
+            return string_len-1;
         pos = string_len - 1 + tagOffset;
         breakLine = string_len - 1 + tagOffset;
     }        
         
-    if (fits)
-        return;
-
     /* doesn't fit, so we have to cut it */
     /* find last space or some other charactar that is save
        to wrap around */
 
-    found = false;
-    while ((pos > 0) && (found == false))
+    while (pos > 0)
     {
         switch (txt[pos])
         {
         case ' ':
-            found = true;
             txt[pos] = '\n';
             for (i = 0; i < spaces_at_start; i++)
             {
                 ebufInsertChar(buf, ' ', line_start + pos + i + 1);
             }
-            pos += spaces_at_start;
-            break;
+            return pos-1; 
         case ';':
         case ',':
-            found = true;
             ebufInsertChar(buf, '\n', line_start + pos + 1);
             for (i = 0; i < spaces_at_start; i++)
             {
                 ebufInsertChar(buf, ' ', line_start + pos + i + 2);
             }
-            pos += spaces_at_start + 1;
-            break;
+            return pos-1;
         }
         --pos;
     }
 
-    if (found == false)
-    {
-        /* didn't find so just brutally insert a newline */
-        ebufInsertChar(buf, '\n', line_start + breakLine);
-    }
+    /* didn't find so just brutally insert a newline */
+    ebufInsertChar(buf, '\n', line_start + breakLine);
+    return breakLine-1;
 }
 
 //from "common.c"

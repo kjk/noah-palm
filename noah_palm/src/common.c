@@ -685,12 +685,11 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
     unsigned char *def_lens_fast = NULL;
     unsigned char *def_lens_fast_end = NULL;
     long current_entry = 0;
-    Boolean loop_end_p;
+    long synsetNoFast = 0;
     DefsCache *cache = &wcInfo->defsCache;
         
     Assert(cache);
     Assert(synsets);
-    Assert(entry_count >= 0);
     Assert(first_record_with_defs_len >= 0);
     Assert(defs_len_rec_count > 0);
     Assert(first_record_with_defs >= 0);
@@ -711,6 +710,7 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
     def_lens_fast += idx_in_rec;
     def_lens_fast_end = def_lens + curr_rec_size;
     
+    synsetNoFast = synsets[0].synsetNo;
     do
     {
         curr_len = (UInt32) ((unsigned char)def_lens_fast[0]);
@@ -723,7 +723,7 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
             def_lens_fast++;
         }
 
-        if (current_entry == synsets[0].synsetNo)
+        if (current_entry == synsetNoFast)
         {
             synsets[0].offset = offset;
             synsets[0].dataSize = curr_len;
@@ -736,7 +736,7 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
         }
 
         offset += curr_len;
-        Assert(def_lens_fast_end <= def_lens_fast);
+        Assert(def_lens_fast_end >= def_lens_fast);
         if(def_lens_fast_end == def_lens_fast)
         {
             fsUnlockRecord(file, curr_record);
@@ -760,24 +760,20 @@ static Boolean get_defs_records_oneEntryCount(AbstractFile* file, int first_reco
     curr_record = first_record_with_defs;
     do
     {
-        loop_end_p = true;
-        if (-1 == synsets[0].record)
+        /* didn't find the record yet for this one */
+        if (synsets[0].offset >= fsGetRecordSize(file, curr_record))
         {
-            /* didn't find the record yet for this one */
-            if (synsets[0].offset >= fsGetRecordSize(file, curr_record))
-            {
-                synsets[0].offset -= fsGetRecordSize(file, curr_record);
-                loop_end_p = false;
-            }
-            else
-            {
-                synsets[0].record = curr_record;
-                Assert(synsets[0].offset < 65000);
-            }
+            synsets[0].offset -= fsGetRecordSize(file, curr_record);
+        }
+        else
+        {
+            synsets[0].record = curr_record;
+            Assert(synsets[0].offset < 65000);
+            return true;
         }
         ++curr_record;
     }
-    while (!loop_end_p);
+    while (1);
     return true;
 }
 
