@@ -853,27 +853,52 @@ in a record"
 	       last-common)
 	      (t (error "unknown action in make-word-compressor"))))))
 
-(setq new-line-s (make-string 1 :initial-element #\newline))
 
 (defconstant *wordnet-dir* "/home/kjk/src/dict_data/wordnet/dict/")
 
-(defconstant *empty-line-regexp* (excl:compile-regexp "^\b*$")
-  "Matches empty line")
+;; ridiculous function just because I don't know how to consturct
+;; a function that contains all the possible whitespace characters
+(defun char-list->string (char-list)
+    (let ((str (make-string (length char-list)))
+          (i 0))
+        (dolist (c char-list)
+            (setf (elt str i) c)
+            (setf i (1+ i)))
+            str))
 
-(defun is-empty-line-p (line)
-  (excl:match-regexp *empty-line-regexp* line))
+(defun whitespacep (c)
+    (case c
+        ((#\Space #\Newline #\Linefeed #\Tab #\Return #\Page) t)
+        (t nil)))
+
+(defconstant *ws-list* '(#\Space #\Newline #\Linefeed #\Tab #\Return #\Page))
+(setq *ws-str* (char-list->string *ws-list*))
+(setq new-line-s (char-list->string '(#\newline)))
+
+;; empty if number of non-whitespaces is zero (i.e. all of them are whitespaces)
+(defun is-empty-line-p (str)
+    (= 0 (count-if-not #'whitespacep str)))
+
+;; tests
+;;(is-empty-line-p "")
+;;(is-empty-line-p "   ")
+;;(is-empty-line-p "  ")
+
+(defun match-word (str)
+    "return str if it matches a word or NIL otherwise"
+    (let ((allowed-chars "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.'-")
+          (strcopy (string-trim-ws 
 
 ;; construct a hash table that has words from english-polish dict
 (defun make-engpol-words-hash ()
   (let ((hash (make-hash-table :test 'equal :size 50000))
 	(file-name "/home/kjk/src/dict_data/engpol/eng_pol.txt")
-	(word-regexp (excl:compile-regexp "^\\([a-zA-Z\.'-]+\\)$"))
 	(word ""))
     (with-open-file
      (in-stream file-name :direction :input)
      (do ((l (read-line in-stream) (read-line in-stream nil 'eof)))
 	 ((eq l 'eof) hash)
-	 (if (multiple-value-setq (match whole word) (excl:match-regexp word-regexp l))
+	 (if (match-word l))
 	     (setf (gethash word hash) word))))
     hash))
 
@@ -886,6 +911,8 @@ in a record"
      (in-stream file-name :direction :input)
      (do ((l (read-line in-stream) (read-line in-stream nil 'eof)))
 	 ((eq l 'eof) hash)
+	 (if (match-word l))
+	     (setf (gethash word hash) word))))
 	 (if (multiple-value-setq (match whole word) (excl:match-regexp word-regexp l))
 	     (setf (gethash word hash) word))))
     hash))
@@ -917,9 +944,8 @@ in a record"
 	    (push def str-list))
     (string-list->string str-list)))
 
-(defconstant *copyright-line* (excl:compile-regexp "^  "))
 (defun copyright-line-p (line)
-  (excl:match-regexp *copyright-line* line))
+  (= 0 (search "   " line)))
 
 (defstruct simple-lemma
   lemma
