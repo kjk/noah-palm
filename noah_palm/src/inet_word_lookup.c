@@ -257,7 +257,7 @@ void StartRandomWordLookup(AppContext* appContext)
             ExtensibleBuffer* context=ebufNew();
             if (context)
             {
-                ebufInitWithStr(context, "random_word");
+                ebufInitWithStr(context, "random word");
                 StartConnection(appContext, context, requestUrl, WordLookupStatusTextRenderer,
                     WordLookupResponseProcessor, WordLookupContextDestructor);
             }

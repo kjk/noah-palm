@@ -167,8 +167,9 @@ static void MainFormHandleConnectionProgress(AppContext* appContext, FormType* f
 
 static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
 {
-    const Char* newWord=NULL;
-    UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
+    const char* newWord=NULL;
+    UInt16      index=FrmGetObjectIndex(form, fieldWordInput);
+
     Assert(frmInvalidObjectId!=index);
     {
         FieldType* field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
@@ -179,12 +180,17 @@ static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
             StartWordLookup(appContext, newWord);
         else if (mainFormShowsDefinition!=appContext->mainFormContent)
         {
-            cbNoSelection(appContext);
-            appContext->mainFormContent=mainFormShowsDefinition;
-            const Char* currentDefinition=ebufGetDataPointer(&appContext->currentDefinition);
-            Assert(currentDefinition!=NULL);
-            diSetRawTxt(appContext->currDispInfo, const_cast<Char*>(currentDefinition));
-            FrmUpdateForm(formDictMain, redrawAll);
+            const char* currentDefinition=ebufGetDataPointer(&appContext->currentDefinition);
+            if ( NULL != currentDefinition )
+            {
+                // it can be NULL if we didn't have a definition and pressed "GO"
+                // with no word in text field
+                cbNoSelection(appContext);
+                appContext->mainFormContent=mainFormShowsDefinition;
+
+                diSetRawTxt(appContext->currDispInfo, const_cast<char*>(currentDefinition));
+                FrmUpdateForm(formDictMain, redrawAll);
+            }
         } 
     }
 }
