@@ -378,18 +378,19 @@ OnError:
 UInt32 PilotMain(UInt16 cmd, MemPtr cmdPBP, UInt16 launchFlags)
 {
     Err error=RomVersionCompatible (ourMinVersion, launchFlags);
-    if (!error) {
-        switch (cmd)
-        {
-            case sysAppLaunchCmdNormalLaunch:
-                error=AppLaunch();
-                break;
-                
-            case sysAppLaunchCmdNotify:
-                error=AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
-                break;
-        }
-    }       
+    if (error)
+        return error;
+
+    switch (cmd)
+    {
+        case sysAppLaunchCmdNormalLaunch:
+            error=AppLaunch();
+            break;
+            
+        case sysAppLaunchCmdNotify:
+            error=AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
+            break;
+    }
     return error;
 }
 

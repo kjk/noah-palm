@@ -124,9 +124,9 @@ void DisplayAbout(AppContext* appContext)
     currentY+=16;
     
 #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 1.0 (debug)", currentY);
+    DrawCenteredString(appContext, "Ver 1.1 (debug)", currentY);
 #else
-    DrawCenteredString(appContext, "Ver 1.0", currentY);
+    DrawCenteredString(appContext, "Ver 1.1", currentY);
 #endif
     currentY+=20;
     
@@ -191,8 +191,12 @@ static void VfsFindCbNoahLite(void* context, AbstractFile *file )
 static void ScanForDictsNoahLite(AppContext* appContext)
 {
     FsMemFindDb( NOAH_LITE_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahLite, appContext);
-    /* TODO: optimize by just looking in a few specific places like "/", "/Palm",
-    "/Palm/Launcher", "xx/msfiles/xx" ? */
+
+    // if we found a database in memory, don't scan external memory card
+    // because it's slow
+    if ( appContext->dictsCount > 0 )
+        return;
+
     FsVfsFindDb(&appContext->fsSettings, &VfsFindCbNoahLite, appContext);
 }
 

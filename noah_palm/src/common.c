@@ -401,6 +401,17 @@ void DisplayHelp(AppContext* appContext)
 
 #pragma segment Segment1
 
+static void SetWordAsLastWord(AppContext* appContext, char *word, int wordLen )
+{
+    if (-1==wordLen)
+        wordLen = StrLen(word);
+    if (wordLen+1 > sizeof(appContext->lastWord))
+        SafeStrNCopy( &(appContext->lastWord[0]), sizeof(appContext->lastWord), word, sizeof(appContext->lastWord)-1 );
+    else
+        SafeStrNCopy( &(appContext->lastWord[0]), sizeof(appContext->lastWord), word, wordLen );
+}
+
+
 extern void DisplayAbout(AppContext* appContext);
 
 static void FldRedrawSelectAllText(FormType *frm, int objId)
@@ -438,8 +449,7 @@ static void RedrawWordDefinition(AppContext* appContext)
     /* write the word at the bottom */
     word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
 
-    // TODO: replace with SetWordAsLastWord() ?
-    SafeStrNCopy(appContext->prefs.lastWord, sizeof(appContext->prefs.lastWord), word, -1);
+    SetWordAsLastWord(appContext, word, -1);
 
     SetBackColorWhite(appContext);
     /* DrawWord(word, appContext->screenHeight-FONT_DY); */
@@ -1909,11 +1919,6 @@ void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrB
     Assert( 0 == (*data)[strLen-1] );
     Assert( bufSize >= strLen );
     deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
-}
-
-static void SetWordAsLastWord(AppContext* appContext, char *txt, int txtLen )
-{
-    SafeStrNCopy( &(appContext->lastWord[0]), sizeof(appContext->lastWord), txt, txtLen );
 }
 
 void RememberLastWord(AppContext* appContext, FormType * frm, int objId)
