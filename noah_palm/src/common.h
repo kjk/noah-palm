@@ -7,6 +7,8 @@
 
 #pragma warn_a5_access on 
 
+#define optional
+
 #include <PalmOS.h>
 #include "cw_defs.h"
 
@@ -489,5 +491,14 @@ extern UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSi
 #ifndef I_NOAH
 extern AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name);
 #endif // I_NOAH
+
+/**
+ * Calculates the <code>current</code> to <code>total</code> ratio and 
+ * renders result as percents, optionally filling <code>buffer</code>
+ * with textual representation.
+ * @param buffer <code>Char</code> array with space for at least 5 elements, or NULL if not needed.
+ * @return ratio in percents.
+ */ 
+extern UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total);
 
 #endif

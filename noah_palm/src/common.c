@@ -2004,3 +2004,16 @@ AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
 }
 
 #endif // I_NOAH
+
+UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total)
+{
+    current*=100;
+    current/=total;
+    Assert(current<=100);
+    if (buffer)
+    {
+        Int16 result=StrPrintF(buffer, "%ld%%", current);
+        Assert(2<=result && 5>=result);
+    }
+    return current;
+}

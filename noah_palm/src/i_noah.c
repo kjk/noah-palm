@@ -84,6 +84,8 @@ static void AppEventLoop(AppContext* appContext)
 static Err AppLaunch() 
 {
     Err error=errNone;
+    Char* response=NULL;
+    UInt16 respSize=0;
     AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
     if (!appContext)
     {
@@ -95,7 +97,12 @@ static Err AppLaunch()
         goto OnError;
 //    FrmGotoForm(formDictMain);
 //    AppEventLoop(appContext);
-    error=INetWordLookup("word", &appContext->serverIpAddress, NULL, NULL);
+    error=INetWordLookup("word", &appContext->serverIpAddress, &response, &respSize);
+    if (!error)
+    {
+        Assert(response);
+        new_free(response);
+    }
 
     AppFree(appContext);
 OnError: 
