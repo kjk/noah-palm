@@ -12,9 +12,14 @@
 
 typedef struct
 {
+    // total number of words in the dictionary file
     long    wordsCount;
+    // number of records with compressed words
     int     wordsRecsCount;
+    // number of records with lengths of compressed definitions
+    // (equal to wordsCount)
     int     defsLenRecsCount;
+    // number of records with definitions
     int     defsRecsCount;
     int     maxWordLen;
     int     maxDefLen;

@@ -250,7 +250,7 @@ Input:
    recWithWordCache    record that keeps info with pointers to
                           uncompressed words
    firstRecWithWords   first record that contains compressed words
-   recordsWithwords_count  number of records with compressed words
+   recordsWithwordsCount  number of records with compressed words
    maxWordLen             maximum length of uncompressed word
  */
 WcInfo *wcInit(UInt32 wordsCount, int recWithComprData,
