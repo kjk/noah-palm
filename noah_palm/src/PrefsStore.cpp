@@ -238,7 +238,7 @@ PrefsStoreReader::PrefsStoreReader(char *dbName, UInt32 dbCreator, UInt32 dbType
 PrefsStoreReader::~PrefsStoreReader()
 {
     if (_recHandle)
-        MemHandleLock(_recHandle);
+        MemHandleUnlock(_recHandle);
     if (_db)
         DmCloseDatabase(_db);
 }

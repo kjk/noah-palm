@@ -6,7 +6,7 @@
 #define formPrefs           1002
 #define formBookmarks       1003
 #define formWordsList       1004
-#define formRegistration	1005
+#define formRegistration    1005
 
 #define menuMain                1100
 

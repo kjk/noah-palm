@@ -44,12 +44,12 @@ static void MainFormDisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "ArsLexis iNoah", currentY);
     currentY+=16;
 #ifdef DEMO
-    DrawCenteredString(appContext, "Ver 0.5 (demo)", currentY);
+    DrawCenteredString(appContext, "Ver 0.6 (demo)", currentY);
 #else
   #ifdef DEBUG
-    DrawCenteredString(appContext, "Ver 0.5 (beta)", currentY);
+    DrawCenteredString(appContext, "Ver 0.6 (beta)", currentY);
   #else
-    DrawCenteredString(appContext, "Ver 0.5", currentY);
+    DrawCenteredString(appContext, "Ver 0.6", currentY);
   #endif
 #endif
     currentY+=20;
@@ -342,9 +342,10 @@ inline static void MainFormHandleCopy(AppContext* appContext)
 
 static Boolean RegistrationFormHandleEvent(EventType* event)
 {
-    Boolean handled=false;
-    FormType* form=FrmGetFormPtr(formRegistration);
-    UInt16 index=0;
+    Boolean     handled=false;
+    FormType*   form=FrmGetFormPtr(formRegistration);
+    UInt16      index;
+
     switch (event->eType)
     {
         case winEnterEvent:

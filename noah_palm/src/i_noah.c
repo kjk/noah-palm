@@ -80,20 +80,6 @@ static void LoadPreferencesInoah(AppContext* appContext)
     // C++ standard, as opposed to C, doesn't require enums to be ints
     // There's a compiler switch but to be save we'll implement it portably
 
-/*    tmpInt = (int)startupActionNone;
-    err = store.ErrGetInt(startupAction_id, &tmpInt);
-    prefs->startupAction = (StartupAction) tmpInt;
-
-    prefs->hwButtonScrollType = scrollPage;
-    err = store.ErrGetInt(hwButtonScrolType_id, (int*)&prefs->hwButtonScrollType);
-
-    prefs->navButtonScrollType = scrollPage;
-    err = store.ErrGetInt(navButtonScrollType_id, (int*)&prefs->navButtonScrollType);
-
-    prefs->bookmarksSortType = bkmSortByTime;
-    err = store.ErrGetInt(bookmarksSortType_id, (int*)&prefs->bookmarksSortType);
-*/
-
     // evil macros
     GET_ENUM(StartupAction,startupAction,startupActionNone)
     GET_ENUM(ScrollType,hwButtonScrollType,scrollPage)
