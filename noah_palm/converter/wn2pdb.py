@@ -1,4 +1,4 @@
-# Copyright (C) 2001-2002 Krzysztof Kowalczyk
+# Copyright 2003 Krzysztof Kowalczyk
 
 # History:
 # 05/30/2003 - started
