@@ -33,6 +33,9 @@ typedef iNoahPrefs AppPrefs;
 #define SUPPORT_DATABASE_NAME "iNoah_Temp"
 #define APP_NAME "iNoah"
 
-//extern Err AppPerformResidentLookup(Char* term);
+typedef enum AppEvent_
+{
+    lookupProgressEvent=firstUserEvent,
+} AppEvent;
 
 #endif

@@ -9,6 +9,12 @@
 #include "inet_word_lookup.h"
 #include "five_way_nav.h"
 
+typedef enum MainFormUpdateCode_ 
+{
+    redrawAll=frmRedrawUpdateCode,
+    redrawLookupStatusBar,
+} MainFormUpdateCode;
+
 const UInt16 lookupStatusBarHeight=14;
 
 void MainFormPressFindButton(const FormType* form) 
@@ -58,6 +64,7 @@ static void MainFormDisplayAbout(AppContext* appContext)
 
 static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
 {
+    Assert(LookupInProgress(appContext));
     WinPushDrawState();
     SetGlobalBackColor(appContext);
     ClearRectangle(0, 0, appContext->screenWidth, lookupStatusBarHeight);
@@ -69,24 +76,45 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
     WinPopDrawState();
 }
 
-static void MainFormDraw(AppContext* appContext, FormType* form)
+static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCode=redrawAll)
 {
-    FrmDrawForm(form);
-    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
-    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
-    if (!appContext->currDispInfo)
-        MainFormDisplayAbout(appContext);
-    else 
+    switch (updateCode)
     {
-        WinPushDrawState();
-        SetBackColorWhite(appContext);
-        ClearDisplayRectangle(appContext);
-        DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
-        SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
-        WinPopDrawState();
-    }        
-    if (LookupInProgress(appContext))
-        MainFormDrawLookupStatus(appContext, form);
+        case redrawAll:
+            FrmDrawForm(form);
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
+            if (!appContext->currDispInfo)
+                MainFormDisplayAbout(appContext);
+            else 
+            {
+                WinPushDrawState();
+                SetBackColorWhite(appContext);
+                ClearDisplayRectangle(appContext);
+                DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+                SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+                WinPopDrawState();
+            } 
+            if (!LookupInProgress(appContext)) 
+                break; // fall through in case we should redraw status bar
+                
+        case redrawLookupStatusBar:
+            MainFormDrawLookupStatus(appContext, form);
+            break;
+            
+        default:            
+            Assert(false);
+    }            
+}
+
+static void MainFormHandleLookupProgress(AppContext* appContext, FormType* form, EventType* event)
+{
+    Assert(event);
+    LookupProgressEventData* data=reinterpret_cast<LookupProgressEventData*>(&event->data);
+    if (lookupProgress==data->flag) 
+        FrmUpdateForm(formDictMain, redrawLookupStatusBar);
+    else 
+        FrmUpdateForm(formDictMain, redrawAll); //! @todo Prepare some more sophisticated handling (shrinking/stretching current definition etc.)
 }
 
 /* Select all text in a given Field */
@@ -284,7 +312,7 @@ static Boolean MainFormHandleEvent(EventType* event)
             break;   
             
         case frmUpdateEvent:
-            MainFormDraw(appContext, form);
+            MainFormDraw(appContext, form, event->data.frmUpdate.updateCode);
             handled=true;
             break; 
             
@@ -320,6 +348,11 @@ static Boolean MainFormHandleEvent(EventType* event)
             cbPenUpEvent(appContext,event->screenX,event->screenY);
             handled = true;
             break;
+            
+        case lookupProgressEvent:
+            MainFormHandleLookupProgress(appContext, form, event);
+            handled=true;
+            break;            
 /*            
         case winEnterEvent:
             // workaround for probable Sony CLIE's bug that causes only part of screen to be repainted on return from PopUps

@@ -7,8 +7,6 @@
 #include "inet_definition_format.h"
 #include "http_response.h"
 
-//#define connectionProgressDialogTitle   "Looking Up Word"
-
 #define netLibName "Net.lib"
 
 static const Int16 percentsNotSupported=-1;
@@ -36,6 +34,16 @@ typedef struct ConnectionData_
     UInt16 responseStep;
     NetSocketRef socket;
 } ConnectionData;
+
+static void SendLookupProgressEvent(LookupProgressEventFlag flag)
+{
+    EventType event;
+    MemSet(&event, sizeof(event), 0);
+    event.eType=static_cast<eventsEnum>(lookupProgressEvent);
+    LookupProgressEventData* data=reinterpret_cast<LookupProgressEventData*>(&event.data);
+    data->flag=flag;
+    EvtAddEventToQueue(&event);
+}
 
 static void AdvanceConnectionStage(ConnectionData* connData)
 {
@@ -67,15 +75,22 @@ static void AdvanceConnectionStage(ConnectionData* connData)
 static void RenderStatusText(ConnectionData* connData, const Char* baseText)
 {
     Assert(connData);
-    ebufResetWithStr(&connData->statusText, const_cast<Char*>(baseText));
-    if (percentsNotSupported!=connData->percentsProgress) 
+    Char* text=TxtParamString(baseText, ebufGetDataPointer(&connData->wordToFind), NULL, NULL, NULL);
+    if (text)
     {
-        Int16 percentsProgress=connData->percentsProgress;
-        Assert(percentsProgress>=0 && percentsProgress<=100);        Char buffer[5];
-        buffer[0]=' ';
-        PercentProgress(buffer+1, percentsProgress, 100);        ebufAddStr(&connData->statusText, buffer);
+        ebufResetWithStr(&connData->statusText, text);
+        MemPtrFree(text);
+        if (percentsNotSupported!=connData->percentsProgress) 
+        {
+            Int16 percentsProgress=connData->percentsProgress;
+            Assert(percentsProgress>=0 && percentsProgress<=100);
+            Char buffer[5];
+            buffer[0]=' ';
+            PercentProgress(buffer+1, percentsProgress, 100);
+            ebufAddStr(&connData->statusText, buffer);
+        }
+        ebufAddChar(&connData->statusText, chrNull);
     }
-    ebufAddChar(&connData->statusText, chrNull);
 }
 
 const Char* GetLookupStatusText(AppContext* appContext)
@@ -86,18 +101,20 @@ const Char* GetLookupStatusText(AppContext* appContext)
     switch (connData->connectionStage) 
     {
         case stageResolvingAddress:
-            RenderStatusText(connData, "Resolving host address");            break;
+            RenderStatusText(connData, "Resolving host address");
+            break;
         case stageOpeningConnection:
             RenderStatusText(connData, "Opening connection");
             break;
         case stageSendingRequest:
-            RenderStatusText(connData, "Requesting: "); //! @todo Change text to Requesting "word"
+            RenderStatusText(connData, "Requesting: ^0");
             break;                        
         case stageReceivingResponse:
-            RenderStatusText(connData, "Retrieving: ");
+            RenderStatusText(connData, "Retrieving: ^0");
             break;
         case stageFinished:
-            RenderStatusText(connData, "Finished");            break;
+            RenderStatusText(connData, "Finished");
+            break;
         default:
             Assert(false);
     }
@@ -397,7 +414,7 @@ static Err ReceiveResponse(ConnectionData* connData)
         else
         {
             error=appErrMalformedResponse;
-            FrmCustomAlert(alertCustomError, "Server returned malformed response.", NULL, NULL);
+            FrmAlert(alertMalformedResponse);
             ebufFreeData(&connData->response);
         }            
     }
@@ -416,7 +433,7 @@ static Err ReceiveResponse(ConnectionData* connData)
         error=ParseResponse(connData);
         if (error)
         {          
-            FrmCustomAlert(alertCustomError, "Server returned malformed response.", NULL, NULL);
+            FrmAlert(alertMalformedResponse);
             ebufFreeData(&connData->response);
         }            
     }
@@ -461,15 +478,15 @@ static ConnectionStageHandler* GetConnectionStageHandler(const ConnectionData* c
     return handler;
 }
 
-void AbortCurrentLookup(AppContext* appContext, Boolean updateForm)
+void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent)
 {
     Assert(appContext);
     ConnectionData* connData=static_cast<ConnectionData*>(appContext->currentLookupData);
     Assert(connData);
     appContext->currentLookupData=NULL;
     FreeConnectionData(connData);
-    if (updateForm)
-        FrmUpdateForm(formDictMain, frmRedrawUpdateCode); //! @todo Change FrmUpdateForm into sending custom event 
+    if (sendNotifyEvent)
+        SendLookupProgressEvent(lookupFinished);
 }
 
 void StartLookup(AppContext* appContext, const Char* wordToFind)
@@ -480,15 +497,20 @@ void StartLookup(AppContext* appContext, const Char* wordToFind)
         FrmAlert(alertMemError);
         return;
     }
-    if (appContext->currentLookupData)
+    Boolean wasInProgress=LookupInProgress(appContext);
+    if (wasInProgress)
         AbortCurrentLookup(appContext, false);
     Err error=InitializeNetLib(connData);
     if (!error)
+    {
         appContext->currentLookupData=connData;
+        SendLookupProgressEvent(wasInProgress?lookupProgress:lookupStarted);
+    }            
     else 
     {
         FreeConnectionData(connData);
-        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
+        if (wasInProgress)
+            SendLookupProgressEvent(lookupFinished);
     }
 }
 
@@ -500,10 +522,11 @@ void PerformLookupTask(AppContext* appContext)
     ConnectionStageHandler* handler=GetConnectionStageHandler(connData);
     if (handler)
     {
-        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
         Err error=(*handler)(connData);
         if (error)
             AbortCurrentLookup(appContext, true);
+        else
+            SendLookupProgressEvent(lookupProgress);
     }
     else
     {

@@ -21,12 +21,22 @@
 
 extern void StartLookup(AppContext* appContext, const Char* word);
 extern void PerformLookupTask(AppContext* appContext);
-extern void AbortCurrentLookup(AppContext* appContext, Boolean updateForm);
+extern void AbortCurrentLookup(AppContext* appContext, Boolean sendNotifyEvent);
 extern const Char* GetLookupStatusText(AppContext* appContext);
 
-#define LookupInProgress(appContext) (appContext)->currentLookupData
+#define LookupInProgress(appContext) (NULL!=(appContext)->currentLookupData)
 
-//extern Err INetWordLookup(const Char* word, NetIPAddr* serverIpAddress, Char** response, UInt16* responseLength);
+typedef enum LookupProgressEventFlag_ 
+{
+    lookupStarted,
+    lookupProgress,
+    lookupFinished,
+} LookupProgressEventFlag;
+
+typedef struct LookupProgressEventData_ 
+{
+    LookupProgressEventFlag flag;
+} LookupProgressEventData;        
 
 #ifdef DEBUG
 void testParseResponse(char *txt);
