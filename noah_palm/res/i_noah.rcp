@@ -81,7 +81,7 @@ BEGIN
    TITLE "Preferences"
 
    LABEL "Startup action:" AUTOID AT (5 20) FONT 1
-   POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+19 PREVTOP AUTO AUTO) LEFTANCHOR
+   POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+16 PREVTOP AUTO AUTO) LEFTANCHOR
    LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH 35) NONUSABLE VISIBLEITEMS 3
    POPUPLIST popupStartupAction listStartupAction
 

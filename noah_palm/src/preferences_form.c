@@ -7,11 +7,15 @@ static Boolean PreferencesFormOpen(AppContext* appContext, FormType* form, Event
     SetPopupLabel(form, listhwButtonsAction, popuphwButtonsAction, prefs.hwButtonScrollType);
     SetPopupLabel(form, listNavButtonsAction, popupNavButtonsAction, prefs.navButtonScrollType);
 
+    UInt16 index=FrmGetObjectIndex(form, cbShowPronunctiation);
+    Assert(frmInvalidObjectId!=index);
     if (prefs.fEnablePronunciation)
     {
-        UInt16 index=FrmGetObjectIndex(form, cbShowPronunctiation);
-        Assert(frmInvalidObjectId!=index);
         FrmSetControlValue(form, index, appContext->prefs.fShowPronunciation);
+    }
+    else
+    {
+        FrmHideObject(form, index);
     }
     
     FrmUpdateForm(formPrefs, frmRedrawUpdateCode);
