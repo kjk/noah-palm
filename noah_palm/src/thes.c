@@ -531,6 +531,8 @@ Err AppCommonFree(AppContext* appContext)
     return error;
 }
 
+#pragma segment Segment2
+
 static void StopThesaurus(AppContext* appContext)
 {
     Err error=errNone;
@@ -1808,47 +1810,48 @@ static void EventLoopThes(AppContext* appContext)
     }
 }
 
+#pragma segment Segment1
 
-    Err AppPerformResidentLookup(Char* term)
+Err AppPerformResidentLookup(Char* term)
+{
+    Err error=errNone;
+    AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
+    AbstractFile *  chosenDb=NULL;
+    long wordNo=0;
+    if (!appContext)
     {
-        Err error=errNone;
-        AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
-        AbstractFile *  chosenDb=NULL;
-        long wordNo=0;
-        if (!appContext)
-        {
-            error=memErrNotEnoughSpace;
-            goto OnError;
-        }
-        error=AppCommonInit(appContext);
-        RemoveNonexistingDatabases(appContext);
-        ScanForDictsThes(appContext, false);
-        if (0 == appContext->dictsCount)
-            FrmAlert(alertNoDB);
-        else
-        {
-            if (1 == appContext->dictsCount )
-                chosenDb = appContext->dicts[0];
-            else 
-            {            
-                // because we can't start resident mode without previously gracefully exiting at least one time
-                Assert(appContext->prefs.lastDbUsedName); 
-                chosenDb=FindOpenDatabase(appContext, appContext->prefs.lastDbUsedName);
-            }            
-            if (!chosenDb || !DictInit(appContext, chosenDb))
-                FrmAlert(alertDbFailed);
-            else 
-            {
-                appContext->currentWord=dictGetFirstMatching(chosenDb, term);
-                error=PopupResidentLookupForm(appContext);
-            }          
-        }
-        AppCommonFree(appContext);
-    OnError:
-        if (appContext)
-            MemPtrFree(appContext);
-        return error;
+        error=memErrNotEnoughSpace;
+        goto OnError;
     }
+    error=AppCommonInit(appContext);
+    RemoveNonexistingDatabases(appContext);
+    ScanForDictsThes(appContext, false);
+    if (0 == appContext->dictsCount)
+        FrmAlert(alertNoDB);
+    else
+    {
+        if (1 == appContext->dictsCount )
+            chosenDb = appContext->dicts[0];
+        else 
+        {            
+            // because we can't start resident mode without previously gracefully exiting at least one time
+            Assert(appContext->prefs.lastDbUsedName); 
+            chosenDb=FindOpenDatabase(appContext, appContext->prefs.lastDbUsedName);
+        }            
+        if (!chosenDb || !DictInit(appContext, chosenDb))
+            FrmAlert(alertDbFailed);
+        else 
+        {
+            appContext->currentWord=dictGetFirstMatching(chosenDb, term);
+            error=PopupResidentLookupForm(appContext);
+        }          
+    }
+    AppCommonFree(appContext);
+OnError:
+    if (appContext)
+        MemPtrFree(appContext);
+    return error;
+}
 
 static Err AppLaunch() 
 {
