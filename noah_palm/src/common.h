@@ -25,6 +25,8 @@
 #include "copy_block.h"
 #include "bookmarks.h"
 
+#define _RECORD_SPEED_ 1
+
 #ifdef DEBUG
 #define     Assert(c)         ErrFatalDisplayIf(!(c),#c)
 #else
@@ -321,6 +323,11 @@ typedef struct _AppContext
     ExtensibleBuffer currentDefinition;
     ExtensibleBuffer currentWordBuf;
 #endif      
+
+#ifdef _RECORD_SPEED_
+    char * recordSpeedDescription;
+    UInt32 recordSpeedTicksCount;
+#endif
 } AppContext;
 
 #define AppTestFlag(appContext, flag) (((appContext)->flags & (1<<(flag)))!=0)
@@ -523,5 +530,8 @@ extern Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 b
 extern Char ToLower(Char in);
 extern const Char* StrFindOneOf(const Char* begin, const Char* end, const Char* chars);
 extern void StrTrimTail(const Char* begin, const Char** end);
+extern void CreateNewMemo(char *memoBody, int memoBodySize);
+void StartTiming(AppContext* appContext, char * description);
+void StopTiming(AppContext* appContext);
 
 #endif

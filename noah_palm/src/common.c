@@ -903,8 +903,46 @@ char* dictGetWord(AbstractFile* file, long wordNo)
     return NULL;
 }
 
+/**
+    Starts the timer and remembers the description.
+*/
+void StartTiming(AppContext* appContext, char * description)
+{
+    appContext->recordSpeedDescription = description;
+    appContext->recordSpeedTicksCount = TimGetTicks();
+}
+
+/**
+    Stops the timer, adds measured time to the description and saves it in memopad.
+*/
+void StopTiming(AppContext* appContext)
+{
+    ExtensibleBuffer    * buf;
+    char                * tmpString;
+
+    appContext->recordSpeedTicksCount = TimGetTicks() - appContext->recordSpeedTicksCount;    // now we know how much time it took to lookup the word
+    buf = ebufNew();
+    Assert(buf);
+    ebufAddStr(buf, appContext->recordSpeedDescription);
+    tmpString = new_malloc(maxStrIToALen);
+    StrPrintF(tmpString, "%ld", appContext->recordSpeedTicksCount);
+    ebufAddStr(buf, tmpString);
+    new_free(tmpString);
+    ebufAddChar(buf, '\0');
+    // we can reuse this variable after freeing to get extensible buffer data
+    tmpString = ebufGetDataPointer(buf);
+    CreateNewMemo(tmpString, -1);
+    ebufDelete(buf);
+}
+
 Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di)
 {
+#ifdef _RECORD_SPEED_
+    Err              err;
+    char             * word;
+    ExtensibleBuffer * buf;
+#endif
+
     switch (GetFileType(file))
     {
 #ifdef THESAURUS
@@ -913,11 +951,45 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
 #endif
 #ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            return wn_get_display_info( file->dictData.wn, wordNo, dx, di );
+#ifdef _RECORD_SPEED_
+            buf = ebufNew();
+            Assert(buf);
+            ebufAddStr(buf, "wn_get_display_info non-ARM; '");
+            word = dictGetWord(file, wordNo);
+            Assert(word);
+            ebufAddStr(buf, word);
+            ebufAddStr(buf, "'; ticks: ");
+            ebufAddChar(buf, '\0');
+            StartTiming(GetAppContext(), ebufGetDataPointer(buf));
+#endif
+            err = wn_get_display_info( file->dictData.wn, wordNo, dx, di );
+#ifdef _RECORD_SPEED_
+            StopTiming(GetAppContext());
+            ebufDelete(buf);
+#endif
+            return err;
+            break;
 #endif
 #ifdef WNLEX_DICT
         case WORDNET_LITE_TYPE:
-            return wnlex_get_display_info( file->dictData.wnLite, wordNo, dx, di );
+#ifdef _RECORD_SPEED_
+            buf = ebufNew();
+            Assert(buf);
+            ebufAddStr(buf, "wnlex_get_display_info non-ARM; '");
+            word = dictGetWord(file, wordNo);
+            Assert(word);
+            ebufAddStr(buf, word);
+            ebufAddStr(buf, "'; ticks: ");
+            ebufAddChar(buf, '\0');
+            StartTiming(GetAppContext(), ebufGetDataPointer(buf));
+#endif
+            err = wnlex_get_display_info( file->dictData.wnLite, wordNo, dx, di );
+#ifdef _RECORD_SPEED_
+            ebufDelete(buf);
+            StopTiming(GetAppContext());
+#endif
+            return err;
+            break;
 #endif
 #ifdef SIMPLE_DICT
         case SIMPLE_TYPE:
@@ -2078,3 +2150,72 @@ void StrTrimTail(const Char* begin, const Char** end)
     while (*end>begin && *end!=StrFindOneOf((*end)-1, *end, " \r\n\t"))
         --(*end);
 }
+
+/* Create new MemoPad record with a given header and body of the memo.
+   header can be NULL, if bodySize is -1 => calc it from body via StrLen */
+static void CreateNewMemoRec(DmOpenRef dbMemo, char *header, char *body, int bodySize)
+{
+    UInt16      newRecNo;
+    MemHandle   newRecHandle;
+    void *      newRecData;
+    UInt32      newRecSize;
+    Char        null = '\0';
+
+    if (-1 == bodySize)
+       bodySize = StrLen(body);
+
+    if ( NULL == header )
+         header = "";
+
+    newRecSize = StrLen(header) + bodySize + 1;
+
+    newRecHandle = DmNewRecord(dbMemo,&newRecNo,newRecSize);
+    if (!newRecHandle)
+        return;
+
+    newRecData = MemHandleLock(newRecHandle);
+
+    DmWrite(newRecData,0,header,StrLen(header));
+    DmWrite(newRecData,StrLen(header),body,bodySize);
+    DmWrite(newRecData,StrLen(header) + bodySize,&null,1);
+    MemHandleUnlock(newRecHandle);
+
+    DmReleaseRecord(dbMemo,newRecNo,true);
+}
+
+/* Create a new memo with a given memoBody of size of memoBodySize.
+   If memoBodySize is -1 => calculate the size via StrLen(memoBody). */
+void CreateNewMemo(char *memoBody, int memoBodySize)
+{
+    LocalID     id;
+    UInt16      cardno;
+    UInt32      type,creator;
+
+    DmOpenRef   dbMemo;
+
+    // check all the open database and see if memo is currently open
+    dbMemo = DmNextOpenDatabase(NULL);
+    while (dbMemo)
+    {
+        DmOpenDatabaseInfo(dbMemo,&id, NULL,NULL,&cardno,NULL);
+        DmDatabaseInfo(cardno,id,
+            NULL,NULL,NULL, NULL,NULL,NULL,
+            NULL,NULL,NULL, &type,&creator);
+
+        if( ('DATA' == type)  && ('memo' == creator) )
+            break;
+        dbMemo = DmNextOpenDatabase(dbMemo);
+    }
+
+    // we either found memo db, in which case dbTmp points to it, or
+    // didn't find it, in which case dbTmp is NULL
+    if (NULL == dbMemo)
+        dbMemo = DmOpenDatabaseByTypeCreator('DATA','memo',dmModeReadWrite);
+
+    if (NULL != dbMemo)
+        CreateNewMemoRec(dbMemo, NULL, memoBody, memoBodySize);
+
+    if (dbMemo)
+        DmCloseDatabase(dbMemo);
+}
+
