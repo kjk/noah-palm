@@ -60,7 +60,8 @@ inline static Err WordLookupRenderStatusText(const char* word, ConnectionStage s
 static Err WordLookupStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer)
 {
     const char* baseText=NULL;
-    switch (stage) 
+    baseText = "Downloading definition...";
+/*    switch (stage) 
     {
         case stageResolvingAddress:
             baseText="Resolving host address";
@@ -79,7 +80,7 @@ static Err WordLookupStatusTextRenderer(void* context, ConnectionStage stage, UI
             break;
         default:
             Assert(false);
-    }
+    }*/
     ExtensibleBuffer* wordBuffer=static_cast<ExtensibleBuffer*>(context);
     Assert(wordBuffer);
     const char* word=ebufGetDataPointer(wordBuffer);

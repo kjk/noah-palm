@@ -513,7 +513,8 @@ void PerformConnectionTask(AppContext* appContext)
 Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 responseLength, ExtensibleBuffer& statusBuffer)
 {
     const char* baseText=NULL;
-    switch (stage) 
+    baseText = "Downloading definition...";
+/*    switch (stage) 
     {
         case stageResolvingAddress:
             baseText="Resolving host address";
@@ -532,7 +533,7 @@ Err GeneralStatusTextRenderer(void* context, ConnectionStage stage, UInt16 respo
             break;
         default:
             Assert(false);
-    }
+    } */
     ebufAddStr(&statusBuffer, const_cast<Char*>(baseText));
     return errNone;
 }
