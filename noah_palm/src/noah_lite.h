@@ -8,8 +8,10 @@
 #include "noah_lite_rcp.h"
 
 #define  NOAH_LITE_CREATOR     'NoaH'
-#define APP_CREATOR NOAH_LITE_CREATOR
+#define  APP_CREATOR NOAH_LITE_CREATOR
 
+// force using a different database format for Noah Lite
+#define  NOAH_LITE_DB_VERSION_1_0 1
 
 typedef struct
 {

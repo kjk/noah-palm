@@ -216,9 +216,11 @@ typedef struct _AppContext
     AppError           err;
 #endif // I_NOAH    
 
+
     DisplayInfo *      currDispInfo;
 
 #ifndef I_NOAH    
+    ExtensibleBuffer * helpDispBuf;
     long               currentWord;
     long               wordsCount;
 #endif // I_NOAH

@@ -1040,8 +1040,6 @@ Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di
     return 0;
 }
 
-//static const char helpText[] =
-
 #define helpText \
     " Instructions:\n" \
     "\255 to lookup a definition of a word\n" \

@@ -8,8 +8,6 @@
 #include "common.h"
 #include "word_compress.h"
 
-#define NOAH_LITE_DB_VERSION_1_0 1
-
 #ifdef NOAH_LITE_DB_VERSION_1_0
 #define NOAH_LITE_DB_NAME "NoahLite medium"
 // in version 1.0 of Noah Lite we've changed the format of dictionary file
