@@ -104,24 +104,16 @@ void ebufInsertChar(ExtensibleBuffer *buf, char c, int pos)
 
     if ((buf->used + 1) >= buf->allocated)
     {
-        if (0 == buf->allocated)
-        {
-            newAllocated = 256;
-        }
-        else
-        {
-            newAllocated = buf->allocated + 256;
-        }
+        newAllocated = buf->allocated + 256;
         newData = (char *) new_malloc(newAllocated);
         if (!newData)
             return;
         if (buf->data)
         {
             MemMove(newData, buf->data, buf->used);
+            new_free(buf->data);
         }
         buf->allocated = newAllocated;
-        if (buf->data)
-            new_free(buf->data);
         buf->data = newData;
     }
     /* make room if inserting */
@@ -185,19 +177,56 @@ char *ebufGetTxtCopy(ExtensibleBuffer *buf)
 
 void ebufAddChar(ExtensibleBuffer *buf, char c)
 {
-    ebufInsertChar(buf, c, buf->used);
+    int newAllocated;
+    char *newData;
+
+    if ((buf->used + 1) >= buf->allocated)
+    {
+        newAllocated = buf->allocated + 256;
+        newData = (char *) new_malloc(newAllocated);
+        if (!newData)
+            return;
+        if (buf->data)
+        {
+            MemMove(newData, buf->data, buf->used);
+            new_free(buf->data);
+        }
+        buf->allocated = newAllocated;
+        buf->data = newData;
+    }
+    buf->data[buf->used++] = c;
 }
 
 void ebufAddStrN(ExtensibleBuffer *buf, char *str, int strLen)
 {
     int i;
     for (i = 0; i < strLen; i++)
-        ebufInsertChar(buf, str[i], buf->used);
+          ebufAddChar(buf, str[i]);
 }
-
+/*
 void ebufAddStr(ExtensibleBuffer * buf, char *str)
 {
     ebufAddStrN(buf, str, StrLen(str));
+}
+*/
+
+void ebufAddStr(ExtensibleBuffer * buf, char *str)
+{
+    char *data;
+    int  i,j;
+
+    j = buf->allocated-1;
+    i = buf->used;
+    data = buf->data;
+    
+    while(str[0] && i < j)
+    {
+        data[i++] = (str++)[0];
+    }
+    buf->used = i;
+    
+    if(str[0])
+        ebufAddStrN(buf, str, StrLen(str));
 }
 
 //delete one char from buffer
