@@ -1,6 +1,5 @@
 * restore/add word history to Thesaurus
 * register with PDA Green http://www.pdagreen.com/dev_apply.asp
-* bug nl: no screen refresh when going back from word search
 * thes prefs: last used db
 * nl marketing improvements: only give one database (say more in Noah Pro)
 * "Timo Laitinen" <timolai@utu.fi> can beta-test MemPlug version (e-mail 4 Nov
