@@ -201,7 +201,7 @@ Boolean FsFileOpen(AbstractFile *file)
             file->data.cacheData = dcNew(file, NOAH_PRO_CREATOR);
 #endif
 #ifdef NOAH_LITE
-            file->data.cacheData = dcNew(file, NOAH_LITE_CREATOR);
+            Assert(0);
 #endif
             if ( NULL == file->data.cacheData )
             {

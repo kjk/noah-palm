@@ -30,16 +30,15 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Select database"         ID menuItemSelectDB "S"
-    MENUITEM "Preferences"             ID menuItemPrefs "P"
     MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Help"                    ID menuItemHelp "I"
+    MENUITEM "Select database"         ID menuItemSelectDB "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy "C"
     MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
-    MENUITEM "Find databases"          ID menuItemScanDbs "N"
-    MENUITEM "Stress"                  ID menuItemStress "T"
+    MENUITEM "Preferences"             ID menuItemPrefs "P"
     MENUITEM "Display Prefs"           ID menuItemDispPrefs "D"
+    MENUITEM "Help"                    ID menuItemHelp "I"
     MENUITEM "About"                   ID menuItemAbout "A"
+    MENUITEM "Stress"                  ID menuItemStress "T"
   END
 END
 #else
@@ -47,14 +46,13 @@ MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
-    MENUITEM "Select database"         ID menuItemSelectDB "S"
-    MENUITEM "Preferences"             ID menuItemPrefs "P"
     MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Help"                    ID menuItemHelp "I"
+    MENUITEM "Select database"         ID menuItemSelectDB "S"
     MENUITEM "Copy to clipboard"       ID menuItemCopy "C"
     MENUITEM "Translate clipboard"     ID menuItemTranslate "T"
-    MENUITEM "Find databases"          ID menuItemScanDbs "N"
+    MENUITEM "Preferences"             ID menuItemPrefs "P"
     MENUITEM "Display Prefs"           ID menuItemDispPrefs "D"
+    MENUITEM "Help"                    ID menuItemHelp "I"
     MENUITEM "About"                   ID menuItemAbout "A"
   END
 END
@@ -185,17 +183,17 @@ END
 ALERT alertDbFailed
 INFORMATION
 BEGIN
-	TITLE "Error"
-	MESSAGE "Failed to open database."
-	BUTTONS "OK"
+    TITLE "Error"
+    MESSAGE "Failed to open database."
+    BUTTONS "OK"
 END
 
 ALERT alertDbFailedGetAnother
 INFORMATION
 BEGIN
-	TITLE "Error"
-	MESSAGE "Failed to open database. Please choose another one."
-	BUTTONS "OK"
+    TITLE "Error"
+    MESSAGE "Failed to open database. Please choose another one."
+    BUTTONS "OK"
 END
 ICON   "noah_pro.pbitm"
 BITMAP ID bmpFind "find.pbitm"

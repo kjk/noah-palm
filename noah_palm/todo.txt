@@ -1,5 +1,6 @@
 * make a new trial version for Handango (30 days to do it, till dec 22)
 * bug np: returning from preferences screen clutters def display
+* test caching in low memory scenario
 * make Noah Lite compile
 * preferences in Noah Pro
  - remember last used db

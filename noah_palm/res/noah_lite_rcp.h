@@ -13,6 +13,8 @@
 #define   alertMemError     1100
 #define   alertNoDB         1109
 #define   alertDBName       1112
+#define   alertNoInternalDB 1115
+#define   alertDbFailed     1118
 
 #define   menuMain          2000
 #define   menuItemSelectDB  2010

@@ -137,14 +137,6 @@ void DictFoundCBThes( AbstractFile *file )
     gd.dicts[gd.dictsCount++] = file;
 }
 
-void FreeDicts(void)
-{
-    while(gd.dictsCount>0)
-    {
-        AbstractFileFree( gd.dicts[--gd.dictsCount] );
-    }
-}
-
 /* called for every file on the external card */
 void VfsFindCbThes( AbstractFile *file )
 {

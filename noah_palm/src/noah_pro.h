@@ -59,8 +59,6 @@ typedef struct
     ScrollType               tapScrollType;
     ScrollType               hwButtonScrollType;
     DatabaseStartupAction    dbStartupAction;
-    /* number of dbs found on the external mem card during the scan */
-    int                      externalDbsCount;
     /* type and name of the database used most recently */
     unsigned char            lastDbName[DB_NAME_SIZE];
     unsigned char            lastWord[WORD_MAX_LEN];
@@ -80,7 +78,7 @@ typedef struct
     long                wordsCount;
     int                 firstDispLine;
     long                listItemOffset;
-    Boolean             listDisabledP;
+    Boolean             fListDisabled;
     long                prevTopItem;
     int                 penUpsToConsume;
     long                prevSelectedWord;

@@ -468,6 +468,8 @@ void *dcLockRecord(struct DbCacheData *cache, UInt16 recNo)
     UInt32      cachedRecSize = 0;
     Err         err = errNone;
 
+    LogV1("dcLockRecord(%d)", recNo );
+
     err = dcCacheDbRef(cache);
     if (errNone != err)
     {
@@ -512,8 +514,10 @@ void dcUnlockRecord(struct DbCacheData *cache, UInt16 recNo)
     MemHandle   recHandle;
     UInt16      cachedRecNo;
 
-
     Assert(cache->recsInfo[recNo].lockCount >= 0);
+
+    LogV1("dcUnlockRecord(%d)", recNo );
+
     --cache->recsInfo[recNo].lockCount;
     if (0 == cache->recsInfo[recNo].lockCount)
     {

@@ -2,14 +2,6 @@
   Copyright (C) 2000-2002 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
-#ifdef NOAH_PRO
-#include "noah_pro.h"
-#endif
-
-#ifdef NOAH_LITE
-#include "noah_lite.h"
-#endif
-
 #include "wn_lite_ex_support.h"
 #include "common.h"
 #include "extensible_buffer.h"
@@ -35,8 +27,6 @@ static void numIterUnlockRecord(numIter * ni, int record);
 static long numIterGetNextNumber(numIter * ni,  int *lastNumberP);
 static void numIterSkipNumbers(numIter * ni,  long numCount,  long *firstLemmaInRecord);
 static ExtensibleBuffer g_buf = { 0 };
-
-extern GlobalData gd;
 
 void wnlex_delete(void *data)
 {

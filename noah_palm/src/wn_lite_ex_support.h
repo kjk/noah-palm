@@ -46,10 +46,10 @@ typedef struct
     PackContext     defPackContext;
 }WnLiteInfo;
 
-void *wnlex_new(void);
-void wnlex_delete(void *data);
-long wnlex_get_words_count(void *data);
-long wnlex_get_first_matching(void *data, char *word);
-char *wnlex_get_word(void *data, long wordNo);
-Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di);
+void    *wnlex_new(void);
+void    wnlex_delete(void *data);
+long    wnlex_get_words_count(void *data);
+long    wnlex_get_first_matching(void *data, char *word);
+char    *wnlex_get_word(void *data, long wordNo);
+Err     wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di);
 #endif

@@ -8,7 +8,7 @@ BEGIN
   BEGIN
     MENUITEM "Select database"         ID menuItemSelectDB "S"
     MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Stress"				ID menuItemStress
+    MENUITEM "Stress"                   ID menuItemStress
     MENUITEM "Info"                    ID menuItemHelp "I"
     MENUITEM "About"                   ID menuItemAbout "A"
   END
@@ -59,6 +59,24 @@ INFORMATION
 BEGIN
     TITLE "Error"
     MESSAGE "Cannot find database. Please see http://www.arslexis.com/nlfaq.html for more information."
+    BUTTONS "OK"
+END
+
+ALERT alertNoInternalDB
+INFORMATION
+BEGIN
+    TITLE "Error"
+    MESSAGE "Database installed on external memory card. Noah Lite doesn't handle that. Please move" \
+"database to internal memory or upgrade to Noah Pro. See http://www.arslexis.com for more" \
+"information."
+    BUTTONS "OK"
+END
+
+ALERT alertDbFailed
+INFORMATION
+BEGIN
+    TITLE "Error"
+    MESSAGE "Failed to open database."
     BUTTONS "OK"
 END
 

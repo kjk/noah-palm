@@ -79,7 +79,7 @@ typedef struct
     long               wordsCount;
     int                firstDispLine;
     long               listItemOffset;
-    Boolean            listDisabledP;
+    Boolean            fListDisabled;
     long               prevTopItem;
     int                penUpsToConsume;
     long               prevSelectedWord;

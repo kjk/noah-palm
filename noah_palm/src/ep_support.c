@@ -586,7 +586,7 @@ static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **ra
     dx        - width of the display we'll be displaying this description on
     di        - DisplayInfo struct to be filled in
  */
-Err ep_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
+Err epGetDisplayInfo(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 {
     char *rawTxt;
     EngPolInfo *epi;

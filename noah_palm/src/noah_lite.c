@@ -22,141 +22,74 @@ void ClearDisplayRectangle()
 char helpText[] =
     "Instructions:\n\255 to lookup a definition of a word\n  press the find button in the right\n  upper corner and select the word\n\255 you can scroll the definition using\n  hardware buttons, tapping on the\n  screen or using a scrollbar\n\255 left/right arrow moves to next\n  or previous word\n";
 
+#if 0
 static char wait_str[] = "Searching...";
+#endif
 
 GlobalData gd;
 
-Boolean ProgramInitNL(void)
+void DictCurrentFree(void)
+{
+    // TODO: SavePreferences();
+    dictDelete();
+    if ( NULL != GetCurrentFile() ) FsFileClose( GetCurrentFile() );
+}
+
+Boolean DictInit(AbstractFile *file)
+{
+    if ( !FsFileOpen( file ) )
+    {
+        LogV1( "DictInit(%s), FsFileOpen() failed", file->fileName );
+        return false;
+    }
+
+    if ( !dictNew() )
+    {
+        LogV1( "DictInit(%s), FsFileOpen() failed", file->fileName );
+        return false;
+    }
+
+    // TODO: save last used database in preferences
+    gd.wordsCount = dictGetWordsCount();
+    gd.currentWord = 0;
+    gd.listItemOffset = 0;
+    LogV1( "DictInit(%s) ok", file->fileName );
+    return true;
+}
+
+void StopNoahLite()
+{
+    DictCurrentFree();
+    FreeDicts();
+    FreeInfoData();
+    FrmSaveAllForms();
+    FrmCloseAllForms();
+    FsDeinit();
+}
+
+Err InitNoahLite(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
+    LogInit( &g_Log, "c:\\noah_lite_log.txt" );
+
+    SetCurrentFile(NULL);
 
 /*     gd.current_timeout = -1; */
 
-    gd.currentDb = -1;
     gd.penUpsToConsume = 0;
     gd.selectedWord = 0;
     gd.prevSelectedWord = 0xfffff;
 
-#ifdef NEVER
-    gd.help_disp_info = diNew();
-    Assert(gd.help_disp_info);
-    tmp = (char *) new_malloc(StrLen(helpText) + 1);
-    MemMove(tmp, helpText, StrLen(helpText) + 1);
-    convertRawTextToDisplayInfo(gd.help_disp_info, tmp);
-#endif
+    FsInit();
 
-    if ( ERR_NONE != GetMemVfs() )
-        return false;
+/* TODO: LoadPreferences() */
 
-    //setCurrentVfsToMem(); 
+    Assert( CreateInfoData() );
+
+    return errNone;
+}
+
 #if 0
-    if (false == vfsInit())
-    {
-        DrawDebug("Palm db init failed");
-        return false;
-    }
-    DrawDebug("Palm db iniialized");
-#endif
-
-    vfsIterateRestart();
-    while (true == vfsFindDb(NOAH_LITE_CREATOR, WORDNET_LITE_TYPE, NULL))
-    {
-        //DrawDebug2("WN file found:", vfsGetDbName());
-        AddDbToFoundList(DB_SIMPLE_DM );
-    }
-
-    if (gd.dbsCount == 0)
-    {
-        DrawDebug("WN pro file not found");
-        return false;
-    }
-
-    if (!CreateInfoData())
-        return false;
-
-    return true;
-}
-
-void DictCurrentFree(void)
-{
-    dictDelete();
-
-    if (gd.currDispInfo)
-    {
-        diFree(gd.currDispInfo);
-        gd.currDispInfo = NULL;
-    }
-
-    gd.wordsCount = -1;
-    gd.firstDispLine = -1;
-    gd.currentDb = -1;
-    gd.dictData = 0;
-    gd.currentWord = 0;
-    gd.listItemOffset = 0;
-    gd.penUpsToConsume = 0;
-    gd.selectedWord = 0;
-    gd.prevSelectedWord = 0xfffffff;
-}
-
-
-Boolean DictInit(int db_num)
-{
-    Assert((db_num >= 0) && (db_num < gd.dbsCount));
-
-    gd.currentDb = db_num;
-    dbInfo = &(gd.foundDbs[db_num]);
-    gd.dictData = NULL;
-
-    switch (dbInfo->vfsDbType)
-    {
-    case DB_LEX_DM:
-        setCurrentVfsToMem();
-        setWnlexAsCurrentDict();
-        break;
-    default:
-        Assert(false);
-    }
-    vfsIterateRestart();
-// TODO: do something
-#if 0
-    if (!vfsFindDb(dbInfo->dbCreator, dbInfo->dbType, dbInfo->name))
-    {
-        DrawDebug2("Couldn't open db:", dbInfo->name);
-    }
-#endif
-    gd.dictData = dictNew();
-    if (NULL == gd.dictData)
-        goto Error;
-
-    gd.wordsCount = dictGetWordsCount();
-    gd.currentWord = 0;
-    gd.listItemOffset = 0;
-    return true;
-  Error:
-    DictCurrentFree();
-    return false;
-}
-
-void ApplicationStop()
-{
-    DictCurrentFree();
-    FreeInfoData();
-}
-
-Err ApplicationStartNL(void)
-{
-    if (!ProgramInitNL())
-    {
-        if (0 == gd.dbsCount)
-            FrmAlert(alertNoDB);
-        return 1;
-    }
-
-    FrmGotoForm(formDictMain);
-
-    return 0;
-}
-
 void DrawPleaseWait(void)
 {
     ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X, 160 - DRAW_DI_Y);
@@ -165,8 +98,9 @@ void DrawPleaseWait(void)
     dh_display_string(wait_str, 1, 0);
     dh_restore_font();
 }
+#endif
 
-void DisplayAboutNL(void)
+void DisplayAboutNoahLite(void)
 {
     ClearDisplayRectangle();
     HideScrollbar();
@@ -227,11 +161,71 @@ int TryClipboard(void)
     return 0;
 }
 
-Boolean DictMainFormHandleEvent(EventType * event)
+void DictFoundCBNoahLite( AbstractFile *file )
 {
-    Boolean    handled = false;
-    FormPtr    frm;
-    Short    newValue;
+    Assert( file );
+    Assert(NOAH_LITE_CREATOR == file->creator);
+    Assert(WORDNET_LITE_TYPE == file->type);
+
+    if (gd.dictsCount>=MAX_DICTS)
+    {
+        AbstractFileFree(file);
+        return;
+    }
+
+    gd.dicts[gd.dictsCount++] = file;
+}
+
+/* just cheating, it's defined in noah_pro.h */
+#define  NOAH_PRO_CREATOR    'NoAH'
+
+/* called for every file on the external card */
+void VfsFindCbNoahLite( AbstractFile *file )
+{
+    AbstractFile *fileCopy;
+
+    if ( !((NOAH_LITE_CREATOR == file->creator) || (NOAH_PRO_CREATOR == file->creator)) )
+        return;
+
+    if ( WORDNET_LITE_TYPE != file->type )
+        return;
+
+    if ( eFS_MEM == file->fsType )
+    {
+        if ( 0 != StrCaselessCompare( file->fileName, "Wordnet medium" ) )
+        {
+            /* Filter out all except wordnet medium */
+            LogV1( "VfsFindCbNoahLite(), filtered out %s", file->fileName );
+            return;
+        }
+    }
+
+    fileCopy = AbstractFileNewFull( file->fsType, file->creator, file->type, file->fileName );
+    if ( NULL == fileCopy ) return;
+    fileCopy->volRef = file->volRef;
+    DictFoundCBNoahLite( fileCopy );
+}
+
+
+void ScanForDictsNoahLite(void)
+{
+    FsMemFindDb( NOAH_LITE_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahLite );
+    FsMemFindDb( NOAH_PRO_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahLite );
+    /* TODO: optimize by just looking in a few specific places like "/", "/Palm",
+    "/Palm/Launcher", "xx/msfiles/xx" ? */
+    FsVfsFindDb( &VfsFindCbNoahLite );
+}
+
+Boolean MainFormHandleEventNoahLite(EventType * event)
+{
+    Boolean         handled = false;
+    FormType        *frm;
+    Short           newValue;
+    AbstractFile    *fileToOpen;
+    int             dbsInInternalMemory;
+    int             dbsOnExternalCard;
+    int             i;
+    EventType       newEvent;
 
     switch (event->eType)
     {
@@ -241,20 +235,67 @@ Boolean DictMainFormHandleEvent(EventType * event)
         WinDrawLine(0, DRAW_DI_Y - 2, 160, DRAW_DI_Y - 2);
         WinDrawLine(0, DRAW_DI_Y - 1, 160, DRAW_DI_Y - 1);
 
-        if (gd.dbsCount > 1)
+        ScanForDictsNoahLite();
+        if ( 0 == gd.dictsCount )
         {
-            FrmPopupForm(formSelectDict);
-        }
-        else
-        {
-            DictInit(0);
-            DisplayAboutNL();
-            /* start the timer, so we'll switch to info
-               text after a few seconds */
-/*           gd.start_seconds_count = TimGetSeconds();
-           gd.current_timeout = 50; */
+NoDatabaseFound:
+            FrmAlert(alertNoDB);
+ExitProgram:
+            MemSet(&newEvent, sizeof(EventType), 0);
+            newEvent.eType = appStopEvent;
+            EvtAddEventToQueue(&newEvent);
+            return true;
         }
 
+        dbsInInternalMemory = 0;
+        dbsOnExternalCard = 0;
+        for (i=0; i<gd.dictsCount; i++)
+        {
+            if ( eFS_MEM == gd.dicts[i]->fsType )
+            {
+                ++dbsInInternalMemory;
+            }
+            else
+            {
+                Assert( eFS_VFS == gd.dicts[i]->fsType );
+                ++dbsOnExternalCard;
+            }
+        }
+        if (0==dbsInInternalMemory)
+        {
+            Assert( dbsOnExternalCard > 0 );
+            Assert( dbsOnExternalCard + dbsInInternalMemory == gd.dictsCount );
+            FrmAlert(alertNoInternalDB);
+            goto ExitProgram;
+        }
+
+        // TODO: select database if > 1 (but we want to only allow one anyway)
+        fileToOpen = NULL;
+        i = 0;
+        while ( (i<gd.dictsCount) && (fileToOpen == NULL) )
+        {
+            if ( eFS_MEM == gd.dicts[i]->fsType )
+                fileToOpen = gd.dicts[i];
+            ++i;
+        }
+
+        Assert( NULL != fileToOpen );
+        if ( NULL == fileToOpen )
+            goto NoDatabaseFound;
+
+        if ( !DictInit(fileToOpen) )
+        {
+            FrmAlert(alertDbFailed);
+            goto ExitProgram;
+        }
+
+        DisplayAboutNoahLite();
+#if 0
+        /* start the timer, so we'll switch to info
+           text after a few seconds */
+        gd.start_seconds_count = TimGetSeconds();
+        gd.current_timeout = 50;
+#endif
         handled = true;
         break;
 
@@ -286,7 +327,7 @@ Boolean DictMainFormHandleEvent(EventType * event)
         break;
 
     case evtNewDatabaseSelected:
-        DisplayAboutNL();
+        DisplayAboutNoahLite();
         /* start the timer, so we'll switch to info
            text after a few seconds */
 /*      gd.start_seconds_count = TimGetSeconds();
@@ -354,7 +395,7 @@ Boolean DictMainFormHandleEvent(EventType * event)
                 gd.currDispInfo = NULL;
                 gd.currentWord = 0;
             }
-            DisplayAboutNL();
+            DisplayAboutNoahLite();
             break;
 #ifdef STRESS
         case menuItemStress:
@@ -407,7 +448,7 @@ Boolean DictMainFormHandleEvent(EventType * event)
 
 #define WORDS_IN_LIST 15
 
-Boolean FindFormHandleEvent(EventType * event)
+Boolean FindFormHandleEventNoahLite(EventType * event)
 {
     Boolean handled = false;
     char *word;
@@ -529,7 +570,7 @@ Boolean FindFormHandleEvent(EventType * event)
     return handled;
 }
 
-Boolean SelectDictFormHandleEvent(EventType * event)
+Boolean SelectDictFormHandleEventNoahLite(EventType * event)
 {
     FormPtr frm;
     ListPtr list;
@@ -542,9 +583,10 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         frm = FrmGetActiveForm();
         list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listOfDicts));
         LstSetDrawFunction(list, ListDbDrawFunc);
-        LstSetListChoices(list, NULL, gd.dbsCount);
+        LstSetListChoices(list, NULL, gd.dictsCount);
         LstSetSelection(list, selectedDb);
         LstMakeItemVisible(list, selectedDb);
+#if 0
         if (-1 == gd.currentDb)
         {
             FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
@@ -553,6 +595,7 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         {
             FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
         }
+#endif
         FrmDrawForm(frm);
         return true;
         break;
@@ -566,20 +609,24 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         switch (event->data.ctlSelect.controlID)
         {
         case buttonSelect:
+#if 0
             if (gd.currentDb != selectedDb)
             {
                 if (-1 != gd.currentDb)
                     DictCurrentFree();
                 DictInit(selectedDb);
             }
+#endif
             MemSet(&newEvent, sizeof(EventType), 0);
             newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
             EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
         case buttonCancel:
+#if 0
             if (-1 == gd.currentDb)
                 Assert(0);
+#endif
             FrmReturnToForm(0);
             return true;
         }
@@ -590,7 +637,7 @@ Boolean SelectDictFormHandleEvent(EventType * event)
     return false;
 }
 
-Boolean ApplicationHandleEvent(EventType * event)
+Boolean HandleEventNoahLite(EventType * event)
 {
     FormPtr frm;
     Int formId;
@@ -605,13 +652,13 @@ Boolean ApplicationHandleEvent(EventType * event)
         switch (formId)
         {
         case formDictMain:
-            FrmSetEventHandler(frm, DictMainFormHandleEvent);
+            FrmSetEventHandler(frm, MainFormHandleEventNoahLite);
             break;
         case formDictFind:
-            FrmSetEventHandler(frm, FindFormHandleEvent);
+            FrmSetEventHandler(frm, FindFormHandleEventNoahLite);
             break;
         case formSelectDict:
-            FrmSetEventHandler(frm, SelectDictFormHandleEvent);
+            FrmSetEventHandler(frm, SelectDictFormHandleEventNoahLite);
             break;
         default:
             Assert(0);
@@ -622,7 +669,7 @@ Boolean ApplicationHandleEvent(EventType * event)
     return handled;
 }
 
-void EventLoop(void)
+void EventLoopNoahLite(void)
 {
     EventType event;
     Word error;
@@ -636,7 +683,7 @@ void EventLoop(void)
             continue;
         if (MenuHandleEvent(0, &event, &error))
             continue;
-        if (ApplicationHandleEvent(&event))
+        if (HandleEventNoahLite(&event))
             continue;
         FrmDispatchEvent(&event);
     }
@@ -648,11 +695,12 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     switch (cmd)
     {
     case sysAppLaunchCmdNormalLaunch:
-        err = ApplicationStartNL();
+        err = InitNoahLite();
         if (err)
             return err;
-        EventLoop();
-        ApplicationStop();
+        FrmGotoForm(formDictMain);
+        EventLoopNoahLite();
+        StopNoahLite();
         break;
     default:
         break;

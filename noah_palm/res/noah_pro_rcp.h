@@ -35,7 +35,6 @@
 #define   menuItemCopy        2014
 #define   menuItemTranslate   2016
 #define   menuItemDispPrefs   2018
-#define   menuItemScanDbs     2020
 
 #define   buttonCancel        3001
 #define   buttonFind          3002

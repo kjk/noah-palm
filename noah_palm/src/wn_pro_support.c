@@ -4,9 +4,6 @@
  */
 
 /* only supported for Noah Pro, will bomb if tried with Noah Lite */
-#ifdef NOAH_PRO
-#include "noah_pro.h"
-#endif
 #include "wn_pro_support.h"
 #include "extensible_buffer.h"
 #include "common.h"
@@ -737,7 +734,7 @@ int si_word_in_synset_backward_p(SynsetsInfo * si, long *synset, long wordNo)
                 ++*synset;
                 Assert(0);
             }
-#endif /* DEBUG */
+#endif
             wordsNumDataLeft -= wordsCount * 3;
             if (0 == wordsNumDataLeft)
             {
@@ -785,7 +782,7 @@ int si_word_in_synset_backward_p(SynsetsInfo * si, long *synset, long wordNo)
                 ++*synset;
                 Assert(0);
             }
-#endif /* DEBUG */
+#endif
             wordsNumDataLeft -= wordsCount * 2;
             Assert(wordsNumDataLeft >= 0);
             if (0 == wordsNumDataLeft)

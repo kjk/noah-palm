@@ -150,6 +150,7 @@ long    dictGetWordsCount(void);
 long    dictGetFirstMatching(char *word);
 char    *dictGetWord(long wordNo);
 Err     dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di);
+void    FreeDicts(void);
 
 void    DrawDescription(UInt32 wordNo);
 void    DisplayHelp(void);

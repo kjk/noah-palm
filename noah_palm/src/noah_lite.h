@@ -28,21 +28,20 @@
 
 typedef struct
 {
-    NoahErrors         err;
-    void               *dictData;
-    int                currentDb;
-    struct MemData     dm;
-    int                dbsCount;
-    DisplayInfo        *currDispInfo;
-    ExtensibleBuffer   *helpDipsBuf;
-    long               currentWord;
-    long               wordsCount;
-    int                firstDispLine;
-    long               listItemOffset;
-    long               prevTopItem;
-    int                penUpsToConsume;
-    long               prevSelectedWord;
-    long               selectedWord;
+    AbstractFile        *dicts[MAX_DICTS];
+    int                 dictsCount;
+    NoahErrors          err;
+    DisplayInfo         *currDispInfo;
+    ExtensibleBuffer    *helpDipsBuf;
+    long                currentWord;
+    long                wordsCount;
+    int                 firstDispLine;
+    long                listItemOffset;
+    Boolean             fListDisabled;
+    long                prevTopItem;
+    int                 penUpsToConsume;
+    long                prevSelectedWord;
+    long                selectedWord;
 } GlobalData;
 
 #endif

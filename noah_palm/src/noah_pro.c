@@ -214,7 +214,6 @@ Err InitNoahPro(void)
     gd.prefs.tapScrollType = scrollLine;
     gd.prefs.hwButtonScrollType = scrollPage;
     gd.prefs.dbStartupAction = dbStartupActionAsk;
-    gd.prefs.externalDbsCount = 0;
 
     FsInit();
 
@@ -222,7 +221,6 @@ Err InitNoahPro(void)
 
     if (!CreateInfoData())
     {
-        // LogG( "InitNoahPro(): CreateInfoData() failed" );
         return !errNone;
     }
     return errNone;
@@ -234,7 +232,6 @@ void DictCurrentFree(void)
     dictDelete();
     if ( NULL != GetCurrentFile() ) FsFileClose( GetCurrentFile() );
 }
-
 
 Boolean DictInit(AbstractFile *file)
 {
@@ -257,15 +254,6 @@ Boolean DictInit(AbstractFile *file)
     LogV1( "DictInit(%s) ok", file->fileName );
     return true;
 }
-
-void FreeDicts(void)
-{
-    while(gd.dictsCount>0)
-    {
-        AbstractFileFree( gd.dicts[--gd.dictsCount] );
-    }
-}
-
 
 void StopNoahPro(void)
 {
@@ -391,7 +379,7 @@ int LastUsedDatabase(void)
 /* TODO:
     int i;
 
-    for (i = 0; i < gd.dbsCount; i++)
+    for (i = 0; i < gd.dictsCount; i++)
     {
         if (0 == StrCompare((char *) gd.prefs.lastDbName,  (char *) gd.foundDbs[i].dbName))
         {
@@ -453,20 +441,20 @@ void RememberLastWord(FormType * frm)
 
 Boolean MainFormHandleEventNoahPro(EventType * event)
 {
-    Boolean     handled = false;
-    FormType    *frm;
-    Short       newValue;
+    static ExtensibleBuffer clipboard_buf = { 0 };
+    Boolean         handled = false;
+    FormType        *frm;
+    Short           newValue;
     ListType        *list;
 #if 0
-    long        wordNo;
+    long            wordNo;
 #endif
-    EventType   newEvent;
-    char        *defTxt = NULL;
-    int         defTxtLen = 0;
-    int         i;
-    int         linesCount;
-    int         selectedDb;
-    static ExtensibleBuffer clipboard_buf = { 0 };
+    EventType       newEvent;
+    char            *defTxt = NULL;
+    int             defTxtLen = 0;
+    int             i;
+    int             linesCount;
+    int             selectedDb;
     AbstractFile    *fileToOpen;
 
     frm = FrmGetActiveForm();
@@ -542,31 +530,16 @@ ChooseDatabase:
                 }
             }
         }
-#if 0
-        // old code
-        if (gd.dbsCount > 1)
-        {
-            /* ask user which database to use */
-            FrmPopupForm(formSelectDict);
-        }
-        else
-        {
-            gd.newDb = 0;
-            MemSet(&newEvent, sizeof(EventType), 0);
-            newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
-            EvtAddEventToQueue(&newEvent);
-        }
-#endif
         WinDrawLine(0, 145, 160, 145);
         WinDrawLine(0, 144, 160, 144);
         if (!TryClipboard())
-        {
             DisplayAboutNoahPro();
-            /* start the timer, so we'll switch to info
-               text after a few seconds */
-/*            gd.start_seconds_count = TimGetSeconds();
+#if 0
+        /* start the timer, so we'll switch to info
+           text after a few seconds */
+        gd.start_seconds_count = TimGetSeconds();
         gd.current_timeout = 50; */
-        }
+#endif
         handled = true;
         break;
 
@@ -862,33 +835,6 @@ ChooseDatabase:
         case menuItemAbout:
             DisplayAboutNoahPro();
             break;
-        case menuItemScanDbs:
-            // TODO: make it work
-#if 0
-            DictCurrentFree();
-            ScanForDictsNoahPro();
-            if (0 == gd.dbsCount)
-            {
-                FrmAlert(alertNoDB);
-                MemSet(&newEvent, sizeof(EventType), 0);
-                newEvent.eType = appStopEvent;
-                EvtAddEventToQueue(&newEvent);
-            }
-            if (gd.dbsCount > 1)
-            {
-                /* ask user which database to use */
-                FrmPopupForm(formSelectDict);
-            }
-            else
-            {
-                gd.newDb = 0;
-                MemSet(&newEvent, sizeof(EventType), 0);
-                newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
-                EvtAddEventToQueue(&newEvent);
-            }
-#endif
-            handled = true;
-            break;
         case menuItemHelp:
             DisplayHelp();
             break;
@@ -977,7 +923,7 @@ void DoFieldChanged(void)
     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
     word = FldGetTextPtr(fld);
     /* DrawWord( word, 149 ); */
-    gd.listDisabledP = false;
+    gd.fListDisabled = false;
     newSelectedWord = 0;
     if (word && *word)
     {
@@ -1034,7 +980,7 @@ Boolean FindFormHandleEventNoahPro(EventType * event)
         }
         FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
         // CtlHideControlEx( frm, listMatching );
-        //gd.listDisabledP = true;
+        //gd.fListDisabled = true;
         FrmDrawForm(frm);
         handled = true;
         break;

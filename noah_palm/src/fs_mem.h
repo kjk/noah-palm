@@ -31,7 +31,7 @@ void    memInit(struct MemData *memData,AbstractFile *file);
 void    memDeinit(struct MemData *memData);
 UInt16  memGetRecordsCount(struct MemData *memData);
 void    *memLockRecord(struct MemData *memData,UInt16 recNo);
-void    memUnlockRecord(struct MemData *memData, UInt16 record_no);
+void    memUnlockRecord(struct MemData *memData, UInt16 recNo);
 long    memGetRecordSize(struct MemData *memData, UInt16 recNo);
 void    *memLockRegion(struct MemData *memData, UInt16 recNo, UInt16 offset, UInt16 size);
 void    memUnlockRegion(struct MemData *memData, char *regionPtr);

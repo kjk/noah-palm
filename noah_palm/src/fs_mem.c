@@ -146,6 +146,9 @@ UInt16 memGetRecordsCount(struct MemData *memData)
 void *memLockRecord(struct MemData *memData,UInt16 recNo)
 {
     MemHandle recHandle;
+
+    LogV1("memLockRecord(%d)", recNo );
+
     if (0 == memData->recsInfo[recNo].lockCount)
     {
         recHandle = DmQueryRecord(memData->openDb, recNo);
@@ -156,15 +159,17 @@ void *memLockRecord(struct MemData *memData,UInt16 recNo)
     return memData->recsInfo[recNo].data;
 }
 
-void memUnlockRecord(struct MemData *memData, UInt16 record_no)
+void memUnlockRecord(struct MemData *memData, UInt16 recNo)
 {
     MemHandle recHandle;
+    Assert(memData->recsInfo[recNo].lockCount >= 0);
 
-    Assert(memData->recsInfo[record_no].lockCount >= 0);
-    --memData->recsInfo[record_no].lockCount;
-    if (0 == memData->recsInfo[record_no].lockCount)
+    LogV1("memUnlockRecord(%d)", recNo );
+
+    --memData->recsInfo[recNo].lockCount;
+    if (0 == memData->recsInfo[recNo].lockCount)
     {
-        recHandle = DmQueryRecord(memData->openDb, record_no);
+        recHandle = DmQueryRecord(memData->openDb, recNo);
         MemHandleUnlock(recHandle);
     }
 }

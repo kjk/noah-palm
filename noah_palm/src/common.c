@@ -130,6 +130,15 @@ void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, 
 }
 #endif
 
+void FreeDicts(void)
+{
+    while(gd.dictsCount>0)
+    {
+        AbstractFileFree( gd.dicts[--gd.dictsCount] );
+    }
+}
+
+
 /*
 Detect an Palm OS version and return it in a way easy for later
 examination (20 for 2.0, 35 for 3.5 etc.)
@@ -953,7 +962,7 @@ Err dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di)
 #endif
 #ifdef EP_DICT
         case ENGPOL_TYPE:
-            return ep_get_display_info( file->dictData.engpol, wordNo, dx, di );
+            return epGetDisplayInfo( file->dictData.engpol, wordNo, dx, di );
 #endif
         default:
             Assert(0);
@@ -1225,7 +1234,7 @@ void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Boolean     truncatedP = false;
     long        realItemNo;
 
-    if ( gd.listDisabledP )
+    if ( gd.fListDisabled )
         return;
     Assert(itemNum >= 0);
     realItemNo = gd.listItemOffset + itemNum;
