@@ -363,3 +363,12 @@ void CurrFileUnlockRegion(char *data)
     fsUnlockRegion(currFile,data);
 }
 
+
+inline Boolean FValidFsType(eFsType type)
+{
+    if ((eFS_NONE==type) || (eFS_MEM==type) || (eFS_VFS==type))
+        return true;
+    else
+        return false;
+}
+

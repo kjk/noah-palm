@@ -49,6 +49,24 @@ inline Boolean FIsPrefRecord(void *recData)
         return false;
 }
 
+void DictFoundCBNoahPro( AbstractFile *file )
+{
+    Assert( file );
+    Assert( NOAH_PRO_CREATOR == file->creator );
+    Assert( (WORDNET_PRO_TYPE == file->type) ||
+            (WORDNET_LITE_TYPE == file->type) ||
+            (SIMPLE_TYPE == file->type) ||
+            (ENGPOL_TYPE == file->type));
+
+    if (gd.dictsCount>=MAX_DICTS)
+    {
+        AbstractFileFree(file);
+        return;
+    }
+
+    gd.dicts[gd.dictsCount++] = file;
+}
+
 // Create a blob containing serialized prefernces.
 // Devnote: caller needs to free memory returned.
 void *SerializePreferencesNoahPro(long *pBlobSize)
@@ -104,7 +122,13 @@ void *SerializePreferencesNoahPro(long *pBlobSize)
             currFile = gd.dicts[i];
             Assert( NULL != currFile );
             serByte( currFile->fsType, prefsBlob, &blobSize );
-            serString(currFile->fileName, prefsBlob, &blobSize);
+            serLong( currFile->creator, prefsBlob, &blobSize );
+            serLong( currFile->type, prefsBlob, &blobSize );
+            serString(currFile->fileName, prefsBlob, &blobSize );
+            if ( eFS_VFS == currFile->fsType )
+            {
+                serInt( currFile->volRef, prefsBlob, &blobSize );
+            }
         }
 
         /* 5. last word */
@@ -146,10 +170,14 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
 {
     NoahPrefs *     prefs;
     eFsType         fsType;
-    char *          dbName;
+    char *          fileName;
+    UInt32          creator;
+    UInt32          type;
+    UInt16          volRef;
     int             i;
     unsigned char   dbCount;
     unsigned char   currDb;
+    AbstractFile *  file;
 
     Assert( prefsBlob );
     Assert( blobSize > 8 );
@@ -181,14 +209,30 @@ void DeserilizePreferencesNoahPro(unsigned char *prefsBlob, long blobSize)
     for(i=0; i<(int)dbCount; i++)
     {
         fsType = (eFsType) deserByte( &prefsBlob, &blobSize );
-        Assert( (eFS_MEM==fsType) || (eFS_VFS==fsType) );
-        dbName = deserString( &prefsBlob, &blobSize );
+        Assert( FValidFsType(fsType) );
+        // Assert( (eFS_MEM==fsType) || (eFS_VFS==fsType) );
+        creator = (UInt32)deserLong( &prefsBlob, &blobSize );
+        type = (UInt32)deserLong( &prefsBlob, &blobSize );
+        fileName = deserString( &prefsBlob, &blobSize );
+        if ( eFS_VFS == fsType )
+            volRef = (UInt16)deserInt( &prefsBlob, &blobSize );
+        
+        file = AbstractFileNewFull( fsType, creator, type, fileName );
+
+        if ( NULL == file ) return;
+
+        if ( eFS_VFS == fsType )
+            file->volRef = volRef;
+
+        DictFoundCBNoahPro( file );
+
         if (i==currDb)
         {
-            prefs->lastDbUsedName = dbName;
+            prefs->lastDbUsedName = fileName;
         }
         else
-            new_free(dbName);
+            new_free(fileName);
+
     }
 
     /* 5. last word */
@@ -319,24 +363,6 @@ void LoadPreferencesNoahPro()
         gd.fFirstRun = false;
     else
         gd.fFirstRun = true;
-}
-
-void DictFoundCBNoahPro( AbstractFile *file )
-{
-    Assert( file );
-    Assert( NOAH_PRO_CREATOR == file->creator );
-    Assert( (WORDNET_PRO_TYPE == file->type) ||
-            (WORDNET_LITE_TYPE == file->type) ||
-            (SIMPLE_TYPE == file->type) ||
-            (ENGPOL_TYPE == file->type));
-
-    if (gd.dictsCount>=MAX_DICTS)
-    {
-        AbstractFileFree(file);
-        return;
-    }
-
-    gd.dicts[gd.dictsCount++] = file;
 }
 
 /* called for every file on the external card */

@@ -35,10 +35,9 @@ inline Boolean FIsThesPrefRecord(void *recData)
 }
 
 
-/* Create a blob containing 
-caller needs to free memory returned
-*/
-void *GetSerializedPreferencesThes(long *pBlobSize)
+// Create a blob containing serialized preferences.
+// Caller needs to free returned memory
+void *SerializePreferencesThes(long *pBlobSize)
 {
     char *      prefsBlob;
     long        blobSize;
@@ -51,7 +50,7 @@ void *GetSerializedPreferencesThes(long *pBlobSize)
 
     Assert( pBlobSize );
 
-    LogG( "GetSerializedPreferencesThes()" );
+    LogG( "SerializePreferencesThes()" );
 
     prefs = &gd.prefs;
     /* phase one: calculate the size of the blob */
@@ -71,7 +70,7 @@ void *GetSerializedPreferencesThes(long *pBlobSize)
         Assert( wordLen <= WORD_MAX_LEN );
         serInt( wordLen, prefsBlob, &blobSize );
         serData( (char*)gd.prefs.lastWord, wordLen, prefsBlob, &blobSize );
-        LogV1( "GetSerializedPreferencesThes(), lastWord=%s", gd.prefs.lastWord );
+        LogV1( "SerializePreferencesThes(), lastWord=%s", gd.prefs.lastWord );
 
         serInt( gd.historyCount, prefsBlob, &blobSize );
         for (i=0; i<gd.historyCount; i++)
@@ -85,7 +84,7 @@ void *GetSerializedPreferencesThes(long *pBlobSize)
             prefsBlob = (char*)new_malloc( blobSize );
             if (NULL == prefsBlob)
             {
-                LogG("GetSerializedPreferencesThes(): prefsBlob==NULL");
+                LogG("SerializePreferencesThes(): prefsBlob==NULL");
                 return NULL;
             }
         }
@@ -153,7 +152,7 @@ void SavePreferencesThes()
     long           blobSize;
     Boolean        fRecordBusy = false;
 
-    prefsBlob = GetSerializedPreferencesThes( &blobSize );
+    prefsBlob = SerializePreferencesThes( &blobSize );
     if ( NULL == prefsBlob ) return;
 
     db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);

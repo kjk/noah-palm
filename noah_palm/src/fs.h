@@ -52,19 +52,19 @@ typedef struct
     } data;
 
     union {
-        struct _RogetInfo  *     roget;
-        struct _WnInfo     *     wn;
-        struct _WnLiteInfo *     wnLite;
-        struct _SimpleInfo *     simple;
+        struct _RogetInfo  *    roget;
+        struct _WnInfo     *    wn;
+        struct _WnLiteInfo *    wnLite;
+        struct _SimpleInfo *    simple;
         struct _EngPolInfo *    engpol;
     } dictData;
 
 } AbstractFile;
 
 typedef void (FIND_DB_CB)(AbstractFile *);
-//typedef Boolean (IS_DB_OK)(UInt32 creator, UInt32 type, char *name);
 
 Boolean FFileExists(AbstractFile *file);
+Boolean FValidFsType(eFsType type);
 
 AbstractFile *  AbstractFileNew(void);
 AbstractFile *  AbstractFileNewFull( eFsType fsType, UInt32 creator, UInt32 type, char *fileName );
@@ -73,10 +73,9 @@ char *          AbstractFileSerialize( AbstractFile *file, int *pSizeOut );
 AbstractFile *  AbstractFileDeserialize( char *blob );
 
 /* this is defined in fs_mem.c but exported globally */
-void            FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB);
+void  FsMemFindDb( UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB );
 /* this is defined in fs_vfs.c but exported globally */
-//void            FsVfsFindDb( IS_DB_OK *cbDbOk, FIND_DB_CB *cbDbFound );
-void FsVfsFindDb( FIND_DB_CB *cbCheckFile );
+void  FsVfsFindDb( FIND_DB_CB *cbCheckFile );
 
 void    FsInit();
 void    FsDeinit();
@@ -93,5 +92,7 @@ void *  CurrFileLockRecord(UInt16 recNo);
 void    CurrFileUnlockRecord(UInt16 recNo);
 void *  CurrFileLockRegion(UInt16 recNo, UInt16 offset, UInt16 size);
 void    CurrFileUnlockRegion(char *data);
+
+
 
 #endif
