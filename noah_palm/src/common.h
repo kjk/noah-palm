@@ -280,13 +280,6 @@ void            InitFiveWay(void);
 Boolean         HaveFiveWay( void );
 Boolean         HaveHsNav( void );
 
-// no fucking idea why I can't just include <Chars.h> (i.e. Palm OS Support\Incs\Core\System\Chars.h)
-#define vchrRockerUp                           0x0132
-#define vchrRockerDown				0x0133		// 5-way rocker down
-#define vchrRockerLeft				0x0134		// 5-way rocker left
-#define vchrRockerRight				0x0135		// 5-way rocker right
-#define vchrRockerCenter				0x0136		// 5-way rocker center/press
-
 #define HsNavCenterPressed(eventP) \
 ( \
   IsHsFiveWayNavEvent(eventP) && \
