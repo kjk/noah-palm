@@ -35,5 +35,6 @@ typedef struct _PronunciationData
 Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf, AbstractFile *file, long wordNo, char *word);
 char *  pronTranslateDecompresed(struct _AppContext *appContext, unsigned char *decompresed);
 void    pronDisplayHelp(struct _AppContext* appContext, char* pronHitted); //set pronHitted to NULL if you want std. info
+Boolean PronunciationFormHandleEvent(EventType * event);
 
 #endif

@@ -17,6 +17,7 @@
 #define   formDictMain        1008
 #define   formBookmarks       1009
 #define   formResidentBrowse  1010
+#define   formPronunciation   1011
 
 #define   fieldWord           1200
 #define   fieldWordMain       1210

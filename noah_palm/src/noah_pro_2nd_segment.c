@@ -1242,6 +1242,10 @@ static Boolean HandleEventNoahPro(AppContext* appContext, EventType * event)
                 FrmSetEventHandler(frm, DisplayPrefFormHandleEvent);
                 return true;
 
+            case formPronunciation:
+                FrmSetEventHandler(frm, PronunciationFormHandleEvent);
+                return true;
+
             case formBookmarks:
                 FrmSetEventHandler(frm, BookmarksFormHandleEvent);
                 return true;

@@ -123,6 +123,14 @@ BEGIN
    BUTTON "Find databases"  buttonRescanDicts AT ( 43  PREVBOTTOM+6  AUTO AUTO) FONT 0
 END
 
+FORM formPronunciation AT (0 0 160 160)
+USABLE
+FRAME
+BEGIN
+   TITLE  "Pronunciation guide"
+   BUTTON "OK"           buttonOk           AT (RIGHT@159  BOTTOM@160-1 40 AUTO)  FONT 0
+END 
+
 FORM formDisplayPrefs AT (0 0 160 160)
 USABLE
 FRAME
