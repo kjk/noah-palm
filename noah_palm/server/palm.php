@@ -1,5 +1,8 @@
 <?php
 
+# Some testing urls:
+# http://dict-pc.arslexis.com:3000/palm.php?pv=1&cv=0.5&c=any_cookie_is_good&get_random_word
+
 define( 'ERR_NO_PV',             1);
 define( 'ERR_NO_CV',             2);
 define( 'ERR_INVALID_CV',        3);
@@ -14,87 +17,18 @@ define( 'ERR_DB_SELECT_FAIL',   11);
 
 require( "dbsettings.inc" );
 
-$sample_def = '!fawn
-$n
-@young deer
-!dun
-!grayish brown
-!greyish brown
-!fawn
-$n
-@a color varying around light grayish brown
-#she wore a dun raincoat
-!fawn
-$v
-@have fawns, of deer
-!fawn
-!toady
-!truckle
-!bootlick
-!kowtow
-!kotow
-!suck up
-$v
-@court favor by cringing or flattering
-!fawn
-!crawl
-!creep
-!cringe
-!cower
-!grovel
-$v
-@show submission or fear
-';
+require_once("ez_mysql.php");
 
-# get definition of $word from the database. Returns an empty string
-# if there is no definition.
-function get_word_def($word)
-{
-    $ret = "";
-    $conn_id = @mysql_connect(DBHOST, DBUSER, '');
-    if ( !$conn_id )
-    {
-        report_error( ERR_DB_CONNECT_FAIL );
-        # return $err_prefix . " couldn't connect. " . mysql_error() ;
-    }
-
-    if ( !mysql_select_db("inoahdb") )
-    {
-        report_err( ERR_DB_SELECTDB_FAIL );
-        #return $err_prefix . " couldn't select db. " . mysql_error();
-    }
-
-    $query = "SELECT def FROM words WHERE word='$word';";
-    $result_id = mysql_query( $query );
-    if ( !$result_id)
-    {
-        report_error( ERR_DB_SELECT_FAIL );
-        # return $err_prefix . " select failed, query was=$query. " . mysql_error();
-    }
-    if ($row = mysql_fetch_row ($result_id))
-        $ret = $row[0];
-    else
-        $ret = "";
-    mysql_free_result ($result_id);
-    return $ret;
-}
-
-function get_words_count()
-{
-    # TODO: get words count as select count(*) from words;
-    return 123497;
-}
+$dict_db = new inoah_db(DBUSER, '', DBNAME, DBHOST);
 
 function validate_protocol_version( $pv )
 {
-    # print "protocol version: $pv";
     if ($pv != '1')
         report_error(ERR_INVALID_PV);
 }
 
 function validate_client_version( $cv )
 {
-    # print "client versin: $cv";
     if ($cv != '0.5')
         report_error(ERR_INVALID_CV);
 }
@@ -113,9 +47,8 @@ function write_MSG( $msg )
     print $msg;
 }
 
-
 # write DEF response to returning stream
-function write_DEF( $def, $word )
+function write_DEF( $word, $def )
 {
     print "DEF\n";
     print $word;
@@ -150,21 +83,39 @@ function serve_register($reg_code)
     exit;
 }
 
+function get_words_count()
+{
+    global $dict_db;
+
+    $query = "SELECT COUNT(*) FROM words;";
+    $words_count = $dict_db->get_var( $query );
+    return $words_count;
+}
+
 function serve_get_random_word()
 {
-    global $sample_def, $sample_word;
+    global $dict_db;
 
-    // word_no = rand( 1, get_words_count()-1);
+    $word_no = rand( 1, get_words_count()-1);
+    $query = "SELECT def,word FROM words WHERE word_no='$word_no';";
+    $res = $dict_db->get_row( $query );
+    $def = $res->def;
+    $word = $res->word;
 
-    // TODO: get the word as select def from words where word_no=$word_no
-
-    write_DEF($sample_def, $sample_word);
+    write_DEF($word, $def);
     exit;
+}
+
+function get_word_def($word)
+{
+    global $dict_db;
+    $query = "SELECT def FROM words WHERE word='$word';";
+    $def = $dict_db->get_var($query); 
+    return $def;
 }
 
 function serve_get_word($word)
 {
-    global $sample_def;
 
     if ( $word=='wl' )
     {
@@ -179,10 +130,53 @@ function serve_get_word($word)
     }
 
     $def = get_word_def($word);
-    if ( $def == "" )
-        write_MSG("Definition of word $word not found");
-    else
-        write_DEF($def,$word);
+
+    if ( $def != "" )
+    {
+        write_DEF($word,$def);
+        exit;
+    }
+
+    # didnt find the exact word, so try a few heuristics
+
+    # if word ends with "s", try to find word without it e.g. "strings" => "string"
+    if ( "s" == substr($word,strlen($word)-1) )
+    {
+        $word = substr($word,0,strlen($word)-1);
+        $def = get_word_def($word);
+        if ( $def != "" )
+        {
+            write_DEF($word,$def);
+            exit;
+        }
+    }
+
+    # if word ends with "ed", try to find word without it e.g. "glued" => "glue"
+    if ( "ed" == substr($word,strlen($word)-2) )
+    {
+        $word = substr($word,0,strlen($word)-2);
+        $def = get_word_def($word);
+        if ( $def != "" )
+        {
+            write_DEF($word,$def);
+            exit;
+        }
+    }
+
+    # if word ends with "ing", try to find word without it e.g. "working" => "work"
+    if ( "ing" == substr($word,strlen($word)-3) )
+    {
+        $word = substr($word,0,strlen($word)-3);
+        $def = get_word_def($word);
+        if ( $def != "" )
+        {
+            write_DEF($word,$def);
+            exit;
+        }
+    }
+
+    # didnt find the word
+    write_MSG("Definition of word $word not found");
     exit;
 }
 
