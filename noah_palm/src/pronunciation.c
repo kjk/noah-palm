@@ -11,6 +11,7 @@
 
 #include "common.h"
 #include "pronunciation.h"
+#include "five_way_nav.h"
 
 #define DRAW_DI_X_P     0
 #define DRAW_DI_Y_P     15
@@ -355,8 +356,40 @@ PronExitComplexFalse:
 }
 
 /**
+ *  Insert spaces when needed up to dx
+ *  return new dx
+ */
+static int pronInsertSpaces(ExtensibleBuffer *buf, int start,int end, int dx)
+{
+    Int16   newDx;
+    Int16   len;
+    
+    char txt[50];
+
+    len = end - start;
+        
+    newDx = FntCharsWidth (&buf->data[start], len);
+    
+    while(newDx < dx)
+    {
+        ebufInsertChar(buf,' ',end);
+        end++;
+        len = end - start;
+        newDx = FntCharsWidth (&buf->data[start], len);
+    }
+    
+    
+    StrPrintF(txt,"%d   ",newDx);
+    WinDrawChars(txt,StrLen(txt),5,2);
+    return newDx;
+}
+
+/**
  *  Called only by "pronFillHelpBuffer" to make it shorter
  */
+#define PRON_1_TAB 25
+#define PRON_2_TAB 75
+
 static void pronFillOneWord(struct _AppContext *appContext, ExtensibleBuffer *buf,
                             int nr, char *word, unsigned char * decompresed)
 {
@@ -364,6 +397,8 @@ static void pronFillOneWord(struct _AppContext *appContext, ExtensibleBuffer *bu
     char pronTag[3];
     char wordTag[3];
     unsigned char oneChar[3];
+    int start;
+    int dx;
     
     pronTag[0] = wordTag[0] = FORMAT_TAG;
     pronTag[1] = FORMAT_PRONUNCIATION;
@@ -374,12 +409,24 @@ static void pronFillOneWord(struct _AppContext *appContext, ExtensibleBuffer *bu
     oneChar[0] = (unsigned char) nr;
     oneChar[1] = 0;
     pron = pronTranslateDecompresed(appContext, oneChar);
+
+
+    start = buf->used;
+    dx = PRON_1_TAB;
     ebufAddStr(buf,pron);
+    SetOnlyFont(FORMAT_PRONUNCIATION,&appContext->prefs.displayPrefs);
+    dx = PRON_2_TAB - pronInsertSpaces(buf, start,buf->used, dx);
+
     new_free(pron);
     ebufAddStr(buf,wordTag);
-    ebufAddStr(buf,"    ");
+//    ebufAddStr(buf,"    ");
+
+    start = buf->used;
     ebufAddStr(buf,word);
-    ebufAddStr(buf,"    ");
+    SetOnlyFont(FORMAT_WORD,&appContext->prefs.displayPrefs);
+    pronInsertSpaces(buf, start,buf->used, dx);
+    
+//    ebufAddStr(buf,"    ");
     ebufAddStr(buf,pronTag);
     pron = pronTranslateDecompresed(appContext, decompresed);
     ebufAddStr(buf,pron);
@@ -687,17 +734,6 @@ static void pronFillHelpBufferWithPhonem(struct _AppContext *appContext, Extensi
 }
 
 /**
- *  Fill buffer with help about pronunciation
- */
-static void pronFillHelpBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf)
-{
-    int i = 1;
-    for(i=1;i<=39;i++)
-        pronFillHelpBufferWithPhonem(appContext, buf, i);    
-    ebufAddChar(buf,'\0');
-}
-
-/**
  *  Form resizer
  */
 static Boolean PronunciationFormDisplayChanged(AppContext* appContext, FormType* frm) 
@@ -706,54 +742,11 @@ static Boolean PronunciationFormDisplayChanged(AppContext* appContext, FormType*
         return false;
 
     UpdateFrmBounds(frm);
-    FrmSetObjectPosByID(frm, buttonOk,      -1, appContext->screenHeight-14);
-    FrmSetObjectBoundsByID(frm, scrollDef, -1, -1, -1, appContext->screenHeight-18-DRAW_DI_Y_P);
+    FrmSetObjectPosByID(frm, buttonOk, appContext->screenWidth-41, appContext->screenHeight-14);
+    FrmSetObjectBoundsByID(frm, scrollDef, appContext->screenWidth-FRM_RSV_W, -1, -1, appContext->screenHeight-18-DRAW_DI_Y_P);
+    
     FrmDrawForm(frm);        
     return true;
-}
-
-/**
- *  Draw form buffer
- */
-static int pronDrawWord(char *word, int x, int y, int maxX)
-{
-    int     offset = 0;
-    int     fontDY;
-    Int16   stringDx = maxX;
-    Int16   stringLen;
-    Boolean fits = false;
-    fontDY = FntCharHeight();
-
-    while(word[offset])
-    {
-        stringLen = StrLen(&word[offset]);
-        FntCharsInWidth(&word[offset], &stringDx, &stringLen, &fits);
-    
-        if(fits)
-        {
-            WinDrawChars(&word[offset], stringLen, x, y);
-            y += fontDY;
-            return y;
-        }
-        else
-        {
-            while(word[stringLen + offset] != ' ' && word[stringLen + offset] != ' ' && stringLen > 0)
-                stringLen--;
-
-            stringLen++;
-
-            if(stringLen <= 1)
-            {
-                stringLen = StrLen(&word[offset]);
-                FntCharsInWidth(&word[offset], &stringDx, &stringLen, &fits);
-            }
-
-            WinDrawChars(&word[offset], stringLen, x, y);
-            y += fontDY;
-            offset += stringLen;        
-        }
-    }
-    return y;
 }
 
 /**
@@ -928,11 +921,61 @@ Boolean PronunciationFormHandleEvent(EventType * event)
                 SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
             }
             return true;
+        case keyDownEvent:
+            if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
+            {
+                if (FiveWayDirectionPressed(appContext, event, Up ))
+                {
+                    if(appContext->firstDispLine > 0)
+                    {
+                        appContext->firstDispLine--;               
+                        SetGlobalBackColor(appContext);
+                        ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                        DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
+                        SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+                    }
+                }
+                if (FiveWayDirectionPressed(appContext, event, Down ))
+                {
+                    if(appContext->lastDispLine < appContext->currDispInfo->linesCount-1)
+                    {
+                        appContext->firstDispLine++;               
+                        SetGlobalBackColor(appContext);
+                        ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                        DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
+                        SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+                    }
+                }
+                return false;
+            }
+            else if (pageUpChr == event->data.keyDown.chr)
+            {
+                if(appContext->firstDispLine > 0)
+                {
+                    appContext->firstDispLine--;               
+                    SetGlobalBackColor(appContext);
+                    ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
+                    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+                }
+            }
+            else if (pageDownChr == event->data.keyDown.chr)
+            {
+                if(appContext->lastDispLine < appContext->currDispInfo->linesCount-1)
+                {
+                    appContext->firstDispLine++;               
+                    SetGlobalBackColor(appContext);
+                    ClearRectangle(DRAW_DI_X_P, DRAW_DI_Y_P, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H-DRAW_DI_Y_P);
+                    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X_P, DRAW_DI_Y_P, appContext->dispLinesCount);
+                    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+                }
+            }
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonOk:
                     FrmReturnToForm(0);
+                 
                     //redraw all behind the form                    
                     diSetRawTxt(appContext->currDispInfo,(char*) appContext->ptrOldDisplayPrefs);
                     new_free(appContext->ptrOldDisplayPrefs);
