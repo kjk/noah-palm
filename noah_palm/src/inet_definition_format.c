@@ -348,7 +348,8 @@ static Err ProcessMessageResponse(AppContext* appContext, const Char* responseBe
             else 
                 messageBegin=responseEnd;
         }                
-        ebufWrapBigLines(&buffer,true);
+        ebufAddChar(&buffer, chrNull);
+        ebufWrapBigLines(&buffer, true);
         ebufSwap(&appContext->lastMessage, &buffer);
         diSetRawTxt(appContext->currDispInfo, ebufGetDataPointer(&appContext->lastMessage));
         ebufFreeData(&buffer);
