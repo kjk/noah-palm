@@ -5,30 +5,19 @@
 #ifndef _NOAH_PRO_H_
 #define _NOAH_PRO_H_
 
-#include <PalmOS.h>
-#include <PalmCompatibility.h>
-
-#include "common.h"
-
-#include "extensible_buffer.h"
-#include "display_info.h"
-
-#include "fs.h"
-
-#include "fs_mem.h"
-
-#ifdef FS_VFS
-#include "fs_vfs.h"
-#endif
-
 #define  NOAH_PRO_CREATOR    'NoAH'
 #define  NOAH_PREF_TYPE      'pref'
+
+#define APP_CREATOR NOAH_PRO_CREATOR
+#define APP_PREF_TYPE NOAH_PREF_TYPE
 
 // old ids for preference records
 // #define Noah10Pref      0x43212205
 
 /* id for Noah Pro >v2.0 preferences */
 #define Noah21Pref      0x43212208
+
+#define AppPrefId Noah21Pref
 
 /* id for Noah Pro v 1.0 per-database preferences, no longer used */
 /* #define NoahDB10Pref    0x43212213 */
@@ -54,7 +43,10 @@ typedef struct
     char *                  lastDbUsedName;
 } NoahPrefs;
 
+typedef NoahPrefs AppPrefs;
+
 /* Global data for Noah Pro */
+/*
 typedef struct
 {
     AbstractFile *     dicts[MAX_DICTS];
@@ -75,7 +67,7 @@ typedef struct
     int                historyCount;
     char *             wordHistory[HISTORY_ITEMS];
     NoahPrefs          prefs;
-    Boolean            fFirstRun; /* is this first run or not */
+    Boolean            fFirstRun; // is this first run or not 
     long               ticksEventTimeout;
 #ifdef DEBUG
     long               currentStressWord;
@@ -86,4 +78,13 @@ typedef struct
 } GlobalData;
 
 extern GlobalData gd;
+*/
+
+#define PREF_REC_MIN_SIZE 4+5
+
+#define SUPPORT_DATABASE_NAME "NoahPro_Temp"
+#define APP_NAME "Noah Pro"
+
+extern Err AppPerformResidentLookup(Char* term);
+
 #endif

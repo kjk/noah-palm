@@ -39,10 +39,10 @@
         <SESSION>-1</SESSION>
         <EDOCTYPE>0</EDOCTYPE>
         <DEFAULT>true</DEFAULT>
-        <PATH USERELATIVEPATHS = "true">noah_pro.mcp</PATH>
+        <PATH USERELATIVEPATHS = "true">thes.mcp</PATH>
         <FRAMELOC>
-            <X>418</X>
-            <Y>345</Y>
+            <X>262</X>
+            <Y>276</Y>
         </FRAMELOC>
         <FRAMESIZE>
             <W>392</W>
@@ -51,9 +51,9 @@
         <DOCKINFO>
             <STATUS>1</STATUS>
             <ROW>0</ROW>
-            <COLUMN>0</COLUMN>
+            <COLUMN>2</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.522764</PCTWIDTH>
+            <PCTWIDTH>0.331311</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -76,9 +76,9 @@
         <DOCKINFO>
             <STATUS>1</STATUS>
             <ROW>0</ROW>
-            <COLUMN>2</COLUMN>
+            <COLUMN>0</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.133929</PCTWIDTH>
+            <PCTWIDTH>0.335459</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -89,10 +89,10 @@
     <WINDOW>
         <SESSION>-1</SESSION>
         <EDOCTYPE>0</EDOCTYPE>
-        <PATH USERELATIVEPATHS = "true">thes.mcp</PATH>
+        <PATH USERELATIVEPATHS = "true">noah_pro.mcp</PATH>
         <FRAMELOC>
-            <X>262</X>
-            <Y>276</Y>
+            <X>418</X>
+            <Y>345</Y>
         </FRAMELOC>
         <FRAMESIZE>
             <W>392</W>
@@ -103,7 +103,7 @@
             <ROW>0</ROW>
             <COLUMN>1</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.343308</PCTWIDTH>
+            <PCTWIDTH>0.333230</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -114,7 +114,7 @@
     <WINDOW>
         <SESSION>-1</SESSION>
         <EDOCTYPE>1</EDOCTYPE>
-        <PATH USERELATIVEPATHS = "true">..\..\src\wn_pro_support.c</PATH>
+        <PATH USERELATIVEPATHS = "true">..\..\src\noah_lite.c</PATH>
         <FRAMELOC>
             <X>8</X>
             <Y>27</Y>
@@ -122,32 +122,6 @@
         <FRAMESIZE>
             <W>646</W>
             <H>464</H>
-        </FRAMESIZE>
-        <DOCKINFO>
-            <STATUS>0</STATUS>
-            <ROW></ROW>
-            <COLUMN></COLUMN>
-            <DOCKBARID></DOCKBARID>
-            <PCTWIDTH></PCTWIDTH>
-            <HGT></HGT>
-            <GROUPID>
-                <GIDHIGHPART></GIDHIGHPART>
-                <GIDLOWPART></GIDLOWPART>
-            </GROUPID>
-        </DOCKINFO>
-    </WINDOW>
-    <WINDOW>
-        <SESSION>-1</SESSION>
-        <EDOCTYPE>1</EDOCTYPE>
-        <PATH USERELATIVEPATHS = "true">..\..\src\common.c</PATH>
-        <MAXIMIZED>true</MAXIMIZED>
-        <FRAMELOC>
-            <X>30</X>
-            <Y>17</Y>
-        </FRAMELOC>
-        <FRAMESIZE>
-            <W>565</W>
-            <H>884</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>
@@ -195,11 +169,11 @@
         <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
             <X>0</X>
-            <Y>0</Y>
+            <Y>35</Y>
         </FRAMELOC>
         <FRAMESIZE>
-            <W>662</W>
-            <H>801</H>
+            <W>582</W>
+            <H>531</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>

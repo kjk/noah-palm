@@ -11,16 +11,12 @@
 #include <VFSMgr.h>
 #include <ExpansionMgr.h>
 #include <PalmOS.h>
-#include "common.h"
 #include "fs.h"
 #include "fs_ex.h"
 
 Boolean ReadPdbHeader(UInt16 volRef, char *fileName, PdbHeader *hdr);
-
-Boolean FVfsPresent(void);
-
-Boolean FsVfsInit(void);
-void    FsVfsDeinit(void);
+Boolean FsVfsInit(FS_Settings* fsSettings);
+void    FsVfsDeinit(FS_Settings* fsSettings);
 
 Boolean vfsInitCacheData(AbstractFile *file, struct DbCacheData *cacheData);
 Err     vfsCopyExternalToMem(AbstractFile *file, UInt32 offset, UInt32 size, void *dstBuf);

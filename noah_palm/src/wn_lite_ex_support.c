@@ -2,9 +2,8 @@
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
+
 #include "wn_lite_ex_support.h"
-#include "common.h"
-#include "extensible_buffer.h"
 
 /* this thing handles records that contain sets of 24-bit numbers,
    when the last number in the set has 24-bit set to 1 (thus
@@ -21,22 +20,21 @@ typedef struct
 
 static long get_24bit_number(unsigned char *data, int *lastNumberP);
 static void numIterInit(numIter * ni, int firstRecord,  int recsCount);
-static void numIterDestroy(numIter * ni);
-static void numIterLockRecord(numIter * ni, int record);
-static void numIterUnlockRecord(numIter * ni, int record);
-static long numIterGetNextNumber(numIter * ni,  int *lastNumberP);
-static void numIterSkipNumbers(numIter * ni,  long numCount,  long *firstLemmaInRecord);
-static ExtensibleBuffer g_buf = { 0 };
+static void numIterDestroy(AbstractFile* file, numIter * ni);
+static void numIterLockRecord(AbstractFile* file, numIter * ni, int record);
+static void numIterUnlockRecord(AbstractFile* file, numIter * ni, int record);
+static long numIterGetNextNumber(AbstractFile* file, numIter * ni,  int *lastNumberP);
+static void numIterSkipNumbers(AbstractFile* file, numIter * ni,  long numCount,  long *firstLemmaInRecord);
+
+//static ExtensibleBuffer g_buf = { 0 };
 
 void wnlex_delete(void *data)
 {
-    WnLiteInfo *wi;
-
-    ebufFreeData(&g_buf);
+    WnLiteInfo *wi= (WnLiteInfo *) data;
     if (!data)
         return;
 
-    wi = (WnLiteInfo *) data;
+    ebufFreeData(&wi->buffer);
 
     pcFree(&wi->defPackContext);
 
@@ -56,7 +54,7 @@ void wnlex_delete(void *data)
     return;
 }
 
-void *wnlex_new(void)
+void *wnlex_new(AbstractFile* file)
 {
     WnLiteInfo *        wi = NULL;
     WnLiteFirstRecord * firstRecord = NULL;
@@ -71,15 +69,15 @@ void *wnlex_new(void)
         LogG("wnlex_new(), new_malloc(sizeof(WnLiteInfo)) failed" );
         goto Error;
     }
-
-    firstRecord = (WnLiteFirstRecord *) CurrFileLockRecord(0);
+    ebufInit(&wi->buffer, 0);
+    firstRecord = (WnLiteFirstRecord *) fsLockRecord(file, 0);
     if ( NULL == firstRecord )
     {
         LogG("wnlex_new(), CurrFileLockRecord(0) failed" );
         goto Error;
     }
-
-    wi->recordsCount = CurrFileGetRecordsCount();
+    wi->file=file;
+    wi->recordsCount = fsGetRecordsCount(file);
     LogV1("wnlex_new(), recs count=%ld", (long)wi->recordsCount);
     wi->wordsCount = firstRecord->wordsCount;
     wi->synsetsCount = firstRecord->synsetsCount;
@@ -126,7 +124,7 @@ void *wnlex_new(void)
     recWithWordCache = 1;
     firstRecWithWords = 4 + wi->synsetDefLenRecordsCount + wi->wordsInfoRecordsCount;
 
-    wi->wci = (WcInfo *) wcInit(wi->wordsCount, recWithComprData,
+    wi->wci = (WcInfo *) wcInit(file, wi->wordsCount, recWithComprData,
                                  recWithWordCache, firstRecWithWords,
                                  wi->wordsRecordsCount, wi->maxWordLen);
 
@@ -136,20 +134,20 @@ void *wnlex_new(void)
         goto Error;
     }
 
-    if ( !pcInit(&wi->defPackContext, 3) )
+    if ( !pcInit(file, &wi->defPackContext, 3) )
     {
         LogG("wnlex_new(), pcInit() failed");
         goto Error;
     }
 
 Exit:
-    if (NULL != firstRecord) CurrFileUnlockRecord(0);
+    if (NULL != firstRecord) fsUnlockRecord(file, 0);
     LogG( "wnlex_new() ok" );
-    return (void *) wi;
+    return wi;
 Error:
     LogG( "wnlex_new() failed" );
     if (wi)
-        wnlex_delete((void *) wi);
+        wnlex_delete(wi);
     wi = NULL;
     goto Exit;
 }
@@ -161,7 +159,7 @@ long wnlex_get_words_count(void *data)
 
 long wnlex_get_first_matching(void *data, char *word)
 {
-    return wcGetFirstMatching(((WnLiteInfo *) data)->wci, word);
+    return wcGetFirstMatching(((WnLiteInfo *) data)->file, ((WnLiteInfo *) data)->wci, word);
 }
 
 char *wnlex_get_word(void *data, long wordNo)
@@ -173,7 +171,7 @@ char *wnlex_get_word(void *data, long wordNo)
 
     if (wordNo >= wi->wordsCount)
         return NULL;
-    return wcGetWord(wi->wci, wordNo);
+    return wcGetWord(wi->file, wi->wci, wordNo);
 }
 
 long get_24bit_number(unsigned char *data, int *lastNumberP)
@@ -202,40 +200,40 @@ void numIterInit(numIter * ni, int firstRecord, int recsCount)
     ni->data = NULL;
 }
 
-void numIterDestroy(numIter * ni)
+void numIterDestroy(AbstractFile* file, numIter * ni)
 {
     Assert(ni);
     if (-1 != ni->currentRecord)
     {
-        numIterUnlockRecord(ni, ni->currentRecord);
+        numIterUnlockRecord(file, ni, ni->currentRecord);
         numIterInit(ni, 0, 0);
     }
 }
 
-void numIterLockRecord(numIter * ni, int record)
+void numIterLockRecord(AbstractFile* file, numIter * ni, int record)
 {
     Assert(ni);
     Assert((record >= ni->firstRecord) &&  (record < (ni->firstRecord + ni->recordsCount)));
 
     if (-1 != ni->currentRecord)
-        CurrFileUnlockRecord(ni->currentRecord);
+        fsUnlockRecord(file, ni->currentRecord);
 
     ni->currentRecord = record;
-    ni->data = (unsigned char *) CurrFileLockRecord(record);
-    ni->bytesLeftInRecord = CurrFileGetRecordSize(record);
+    ni->data = (unsigned char *) fsLockRecord(file, record);
+    ni->bytesLeftInRecord = fsGetRecordSize(file, record);
     Assert(0 == (ni->bytesLeftInRecord % 3));
 }
 
-void numIterUnlockRecord(numIter * ni, int record)
+void numIterUnlockRecord(AbstractFile* file, numIter * ni, int record)
 {
     Assert(ni);
     Assert((record >= ni->firstRecord) &&  (record < (ni->firstRecord + ni->recordsCount)));
-    CurrFileUnlockRecord(record);
+    fsUnlockRecord(file, record);
     ni->data = NULL;
     ni->currentRecord = -1;
 }
 
-long numIterGetNextNumber(numIter * ni, int *lastNumberP)
+long numIterGetNextNumber(AbstractFile* file, numIter * ni, int *lastNumberP)
 {
     long number;
 
@@ -244,12 +242,12 @@ long numIterGetNextNumber(numIter * ni, int *lastNumberP)
 
     if (-1 == ni->currentRecord)
     {
-        numIterLockRecord(ni, ni->firstRecord);
+        numIterLockRecord(file, ni, ni->firstRecord);
     }
     else if (0 == ni->bytesLeftInRecord)
     {
         ++ni->currentRecord;
-        numIterLockRecord(ni, ni->currentRecord);
+        numIterLockRecord(file, ni, ni->currentRecord);
     }
 
     number = get_24bit_number(ni->data, lastNumberP);
@@ -258,7 +256,7 @@ long numIterGetNextNumber(numIter * ni, int *lastNumberP)
     return number;
 }
 
-void numIterSkipNumbers(numIter * ni, long numCount,  long *firstLemmaInRecord)
+void numIterSkipNumbers(AbstractFile* file, numIter * ni, long numCount,  long *firstLemmaInRecord)
 {
     Boolean lastNumberP;
     int     idx;
@@ -273,7 +271,7 @@ void numIterSkipNumbers(numIter * ni, long numCount,  long *firstLemmaInRecord)
 
     numCount -= firstLemmaInRecord[idx];
 
-    numIterLockRecord(ni, ni->firstRecord + idx);
+    numIterLockRecord(file, ni, ni->firstRecord + idx);
 
     while (numCount > 0)
     {
@@ -282,7 +280,7 @@ void numIterSkipNumbers(numIter * ni, long numCount,  long *firstLemmaInRecord)
             if (0 == ni->bytesLeftInRecord)
             {
                 ++ni->currentRecord;
-                numIterLockRecord(ni, ni->currentRecord);
+                numIterLockRecord(file, ni, ni->currentRecord);
             }
             if (ni->data[0] & 0x80)
                 lastNumberP = true;
@@ -324,17 +322,17 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     Assert(dx > 0);
     Assert(di);
 
-    ebufReset(&g_buf);
+    ebufReset(&wi->buffer);
 
     /* first find all synsets this word belongs to */
     numIterInit(&ni, 4 + wi->synsetDefLenRecordsCount,  wi->wordsInfoRecordsCount);
-    numIterSkipNumbers(&ni, wordNo, wi->firstLemmaInWordInfoRec);
+    numIterSkipNumbers(wi->file, &ni, wordNo, wi->firstLemmaInWordInfoRec);
 
     /* so we're positioned at the right word */
     synsetsCount = 0;
     do
     {
-        synsetNo = numIterGetNextNumber(&ni, &lastNumberP);
+        synsetNo = numIterGetNextNumber(wi->file, &ni, &lastNumberP);
         /* insert in sorted order */
         /* TODO: put this in a converter */
         insertIndex = 0;
@@ -354,7 +352,7 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     }
     while (!lastNumberP);
 
-    if ( !get_defs_records(synsetsCount, 4, wi->synsetDefLenRecordsCount, 4 + wi->synsetDefLenRecordsCount +  wi->wordsRecordsCount +  wi->wordsInfoRecordsCount, wi->synsets) )
+    if ( !get_defs_records(wi->file, synsetsCount, 4, wi->synsetDefLenRecordsCount, 4 + wi->synsetDefLenRecordsCount +  wi->wordsRecordsCount +  wi->wordsInfoRecordsCount, wi->synsets) )
     {
         /* TODO: repleace with some meaningful err* */
         return 1;
@@ -368,28 +366,28 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 /*          defDataSize = wi->synsets[currentSynset].dataSize; */
 
         defDataSize = wi->synsets[currentSynset].dataSize;
-        defData = (unsigned char *) CurrFileLockRegion(wi->synsets[currentSynset].record, wi->synsets[currentSynset].offset, defDataSize);
+        defData = (unsigned char *) fsLockRegion(wi->file, wi->synsets[currentSynset].record, wi->synsets[currentSynset].offset, defDataSize);
         Assert((defDataSize >= 4) && (defDataSize <= wi->maxComprDefLen));
         defDataCopy = defData;
 
-        ebufAddChar(&g_buf, 149);
-        ebufAddChar(&g_buf, ' ');
+        ebufAddChar(&wi->buffer, 149);
+        ebufAddChar(&wi->buffer, ' ');
         partOfSpeech = defData[0];
 
         switch (partOfSpeech)
         {
         case 'n':
-            ebufAddStr(&g_buf, "(noun.) ");
+            ebufAddStr(&wi->buffer, "(noun.) ");
             break;
         case 'a':
         case 's':
-            ebufAddStr(&g_buf, "(adj.) ");
+            ebufAddStr(&wi->buffer, "(adj.) ");
             break;
         case 'r':
-            ebufAddStr(&g_buf, "(adv.) ");
+            ebufAddStr(&wi->buffer, "(adv.) ");
             break;
         case 'v':
-            ebufAddStr(&g_buf, "(verb) ");
+            ebufAddStr(&wi->buffer, "(verb) ");
             break;
         default:
             Assert(0);
@@ -406,15 +404,15 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             defData += 3;
             defDataSize -= 3;
 
-            word = wnlex_get_word((void *) wi, thisWordNo);
-            ebufAddStr(&g_buf, word);
+            word = wnlex_get_word(wi, thisWordNo);
+            ebufAddStr(&wi->buffer, word);
             if (lastWordP)
             {
-                ebufAddChar(&g_buf, '\n');
+                ebufAddChar(&wi->buffer, '\n');
             }
             else
             {
-                ebufAddStr(&g_buf, ", ");
+                ebufAddStr(&wi->buffer, ", ");
             }
         }
         while (!lastWordP);
@@ -428,7 +426,7 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         unpackedDef = wi->curDefData;
         Assert((1 == unpackedDef[unpackedLen - 1]) || (0 == unpackedDef[unpackedLen - 1]));
 /*          CurrFileUnlockRecord(wi->synsets[currentSynset].record); */
-        CurrFileUnlockRegion((char*)defDataCopy);
+        fsUnlockRegion(wi->file, (char*)defDataCopy);
 
         while (unpackedLen > 0)
         {
@@ -443,19 +441,19 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
             if (1 == unpackedDef[0])
             {
-                ebufAddStr(&g_buf, " ");
+                ebufAddStr(&wi->buffer, " ");
             }
             else
             {
-                ebufAddStr(&g_buf, " \"");
+                ebufAddStr(&wi->buffer, " \"");
             }
 
-            ebufAddStrN(&g_buf, (char *) unpackedDef - len, len);
+            ebufAddStrN(&wi->buffer, (char *) unpackedDef - len, len);
             if (0 == unpackedDef[0])
             {
-                ebufAddStr(&g_buf, " \"");
+                ebufAddStr(&wi->buffer, " \"");
             }
-            ebufAddChar(&g_buf, '\n');
+            ebufAddChar(&wi->buffer, '\n');
             --unpackedLen;
             ++unpackedDef;
             Assert(unpackedLen >= 0);
@@ -463,12 +461,12 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         ++currentSynset;
     }
 
-    numIterDestroy(&ni);
+    numIterDestroy(wi->file, &ni);
 
-    ebufAddChar(&g_buf, '\0');
-    ebufWrapBigLines(&g_buf);
+    ebufAddChar(&wi->buffer, '\0');
+    ebufWrapBigLines(&wi->buffer);
 
-    rawTxt = ebufGetDataPointer(&g_buf);
+    rawTxt = ebufGetDataPointer(&wi->buffer);
 
     diSetRawTxt(di, rawTxt);
     return 0;

@@ -7,11 +7,6 @@
 
 #include <PalmOS.h>
 
-#define dmDBNameLength    32
-
-// TODO: remove if not needed
-#define HISTORY_ITEMS 5
-#define WORD_MAX_LEN 40
 #define DB_NAME_SIZE 280
 
 typedef enum  {
@@ -50,7 +45,7 @@ typedef struct _PdbHeader
 
 /* this struct describes the abstract file access api. All file operations come
 through this struct */
-typedef struct
+typedef struct _AbstractFile
 {
     eFsType   fsType;
     UInt32    type;
@@ -80,38 +75,52 @@ typedef struct
 
 } AbstractFile;
 
-typedef void (FIND_DB_CB)(AbstractFile *);
+#define MAX_VFS_VOLUMES 3
 
-Boolean FFileExists(AbstractFile *file);
+typedef struct _FS_Settings 
+{
+    Boolean vfsPresent;
+    int vfsVolumeCount;
+    UInt16 vfsVolumeRef[MAX_VFS_VOLUMES];
+} FS_Settings;
+
+#define FVfsPresent(fsSettings) ((fsSettings)->vfsPresent)
+
+typedef void (FIND_DB_CB)(void* context, AbstractFile *);
+
+Boolean FFileExists(AbstractFile* file);
 Boolean FValidFsType(eFsType type);
 
 AbstractFile *  AbstractFileNew(void);
 AbstractFile *  AbstractFileNewFull( eFsType fsType, UInt32 creator, UInt32 type, char *fileName );
-void            AbstractFileFree(AbstractFile *file);
-char *          AbstractFileSerialize( AbstractFile *file, int *pSizeOut );
+void            AbstractFileFree(AbstractFile* file);
+char *          AbstractFileSerialize( AbstractFile* file, int *pSizeOut );
 AbstractFile *  AbstractFileDeserialize( char *blob );
 
 /* this is defined in fs_mem.c but exported globally */
-void  FsMemFindDb( UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB );
+void  FsMemFindDb( UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB, void* context );
 /* this is defined in fs_vfs.c but exported globally */
-void  FsVfsFindDb( FIND_DB_CB *cbCheckFile );
+void FsVfsFindDb( FS_Settings* fsSettings, FIND_DB_CB *cbCheckFile, void* context );
 
-void    FsInit();
-void    FsDeinit();
+void    FsInit(FS_Settings* fsSettings);
+void    FsDeinit(FS_Settings* fsSettings);
 
-Boolean FsFileOpen(AbstractFile *file);
-void    FsFileClose(AbstractFile *file);
+struct _AppContext;
 
-void            SetCurrentFile(AbstractFile *file);
-AbstractFile *  GetCurrentFile(void);
+Boolean FsFileOpen(struct _AppContext* appContext, AbstractFile* file);
+void    FsFileClose(AbstractFile* file);
 
-UInt16  CurrFileGetRecordsCount(void);
-long    CurrFileGetRecordSize(UInt16 recNo);
-void *  CurrFileLockRecord(UInt16 recNo);
-void    CurrFileUnlockRecord(UInt16 recNo);
-void *  CurrFileLockRegion(UInt16 recNo, UInt16 offset, UInt16 size);
-void    CurrFileUnlockRegion(char *data);
+void    SetCurrentFile(struct _AppContext* appContext, AbstractFile* file);
+#define GetCurrentFile(appContext) ((appContext)->currentFile)
 
+extern UInt16 fsGetRecordsCount(AbstractFile* file);
+extern UInt16 fsGetRecordSize(AbstractFile* file, UInt16 recNo);
+extern void* fsLockRecord(AbstractFile* file, UInt16 recNo);
+extern void fsUnlockRecord(AbstractFile* file, UInt16 recNo);
+extern void* fsLockRegion(AbstractFile* file, UInt16 recNo, UInt16 offset, UInt16 size);
+extern void fsUnlockRegion(AbstractFile* file, char *data);
+
+extern Boolean ReadPdbHeader(UInt16 volRef, char *fileName, PdbHeader *hdr);
 
 
 #endif

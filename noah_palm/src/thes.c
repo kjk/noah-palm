@@ -2,69 +2,53 @@
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
-#include "cw_defs.h"
-
-#include "thes.h"
-#include "display_info.h"
 #include "roget_support.h"
-
-#define PREF_REC_MIN_SIZE 4
-//#define (gd.dispLinesCount-1) 12
+#include "five_way_nav.h"
+#include "resident_lookup_form.h"
+#include "word_matching_pattern.h"
 
 #ifdef NEVER
-char helpText[] =
+static const char helpText[] =
     " This is a demo version. It's fully\n functional but has only 10% of\n the thesaurus data.\n" \
     " Go to www.arslexis.com to get the\n full version and find out about\n latest developments.\n";
 #endif
 
-static char sa_txt[20];
-static char sdb_txt[10];
-static char but_txt[20];
-static char tap_txt[20];
-
-GlobalData gd;
-
-inline Boolean FIsThesPrefRecord(void *recData)
+static void DictFoundCBThes(void* context, AbstractFile *file)
 {
-    long    sig;
-    Assert( recData );
-    sig = ((long*)recData)[0];
-    return (Thes11Pref == sig) ? true : false;
-}
-
-void DictFoundCBThes( AbstractFile *file )
-{
+    AppContext* appContext=(AppContext*)context;
+    Assert(appContext);
     Assert( file );
     Assert( THES_CREATOR == file->creator );
     Assert( ROGET_TYPE == file->type );
-    if (gd.dictsCount>=MAX_DICTS)
+    if (appContext->dictsCount>=MAX_DICTS)
     {
         AbstractFileFree(file);
         return;
     }
 
-    gd.dicts[gd.dictsCount++] = file;
+    appContext->dicts[appContext->dictsCount++] = file;
 }
 
 // Create a blob containing serialized preferences.
 // Caller needs to free returned memory
-void *SerializePreferencesThes(long *pBlobSize)
+static void *SerializePreferencesThes(AppContext* appContext, long *pBlobSize)
 {
     char *          prefsBlob;
     long            blobSize;
     long            blobSizePhaseOne;
     int             phase;
-    ThesPrefs *     prefs;
-    UInt32          prefRecordId = Thes11Pref;
+    AppPrefs*     prefs;
+    UInt32          prefRecordId = AppPrefId;
     int             i;
     unsigned char   currFilePos;
     AbstractFile *  currFile;
 
+    Assert(appContext);
     Assert( pBlobSize );
 
-    LogG( "SerializePreferencesThes()" );
+    LogG("SerializePreferencesThes()");
 
-    prefs = &gd.prefs;
+    prefs = &appContext->prefs;
     /* phase one: calculate the size of the blob */
     /* phase two: create the blob */
     prefsBlob = NULL;
@@ -81,13 +65,13 @@ void *SerializePreferencesThes(long *pBlobSize)
         serByte( prefs->dbStartupAction, prefsBlob, &blobSize );
 
         // 2. number of databases found      
-        serByte( gd.dictsCount, prefsBlob, &blobSize );
+        serByte( appContext->dictsCount, prefsBlob, &blobSize );
 
         // 3. currently used database
         currFilePos = 0xff;
-        for (i=0; i<gd.dictsCount; i++)
+        for (i=0; i<appContext->dictsCount; i++)
         {
-            if( GetCurrentFile() == gd.dicts[i] )
+            if( GetCurrentFile(appContext) == appContext->dicts[i] )
             {
                 currFilePos = (unsigned char)i;
                 break;
@@ -98,9 +82,9 @@ void *SerializePreferencesThes(long *pBlobSize)
         // 4. list of databases
         // note: we don't really need to store databases from eFS_MEM because
         // we rescan them anyway, but this is easier to code
-        for(i=0; i<gd.dictsCount; i++)
+        for(i=0; i<appContext->dictsCount; i++)
         {
-            currFile = gd.dicts[i];
+            currFile = appContext->dicts[i];
             Assert( NULL != currFile );
             serByte( currFile->fsType, prefsBlob, &blobSize );
             serLong( currFile->creator, prefsBlob, &blobSize );
@@ -113,15 +97,15 @@ void *SerializePreferencesThes(long *pBlobSize)
         }
 
         // 5. last word
-        serString( (char*)gd.prefs.lastWord, prefsBlob, &blobSize );
+        serString( (char*)appContext->prefs.lastWord, prefsBlob, &blobSize );
 
         // 6. number of words in the history
-        serInt( gd.historyCount, prefsBlob, &blobSize );
+        serInt( appContext->historyCount, prefsBlob, &blobSize );
 
         // 7. all words in the history
-        for (i=0; i<gd.historyCount; i++)
+        for (i=0; i<appContext->historyCount; i++)
         {
-            serString( gd.wordHistory[i], prefsBlob, &blobSize );
+            serString( appContext->wordHistory[i], prefsBlob, &blobSize );
         }
 
         if ( 1 == phase )
@@ -144,10 +128,9 @@ void *SerializePreferencesThes(long *pBlobSize)
     return prefsBlob;
 }
 
-
 // Given a blob containing serialized prefrences deserilize the blob
 // and set the preferences accordingly.
-void DeserilizePreferencesThes(unsigned char *prefsBlob, long blobSize)
+static void DeserializePreferencesThes(AppContext* appContext, unsigned char *prefsBlob, long blobSize)
 {
     ThesPrefs *     prefs;
     int             i;
@@ -162,11 +145,11 @@ void DeserilizePreferencesThes(unsigned char *prefsBlob, long blobSize)
     Assert( prefsBlob );
     Assert( blobSize > 8 );
 
-    LogG( "DeserilizePreferencesThes()" );
+    LogG("DeserializePreferencesThes()" );
 
-    prefs = &gd.prefs;
+    prefs = &appContext->prefs;
     /* skip the 4-byte signature of the preferences record */
-    Assert( FIsThesPrefRecord( prefsBlob ) );
+    Assert( IsValidPrefRecord(prefsBlob) );
     prefsBlob += 4;
     blobSize -= 4;
 
@@ -200,7 +183,7 @@ void DeserilizePreferencesThes(unsigned char *prefsBlob, long blobSize)
             file->volRef = (UInt16)deserInt( &prefsBlob, &blobSize );
             // we only remember files on external memory because those in ram
             // are fast to find
-            DictFoundCBThes( file );
+            DictFoundCBThes( appContext, file );
         }
 
         if (i==currDb)
@@ -210,20 +193,20 @@ void DeserilizePreferencesThes(unsigned char *prefsBlob, long blobSize)
     }
 
     /// 5. last word
-    deserStringToBuf( (char*)gd.prefs.lastWord, WORD_MAX_LEN, &prefsBlob, &blobSize );
-    LogV1( "DeserilizePreferencesThes(), lastWord=%s", gd.prefs.lastWord );
+    deserStringToBuf( (char*)appContext->prefs.lastWord, WORD_MAX_LEN, &prefsBlob, &blobSize );
+    LogV1("DeserializePreferencesThes(), lastWord=%s", appContext->prefs.lastWord );
 
     // 6. number of words in the history
-    gd.historyCount = deserInt( &prefsBlob, &blobSize );
+    appContext->historyCount = deserInt( &prefsBlob, &blobSize );
 
     // 7. all words in the history
-    for (i=0; i<gd.historyCount; i++)
+    for (i=0; i<appContext->historyCount; i++)
     {
-        gd.wordHistory[i] = deserString( &prefsBlob, &blobSize );
+        appContext->wordHistory[i] = deserString( &prefsBlob, &blobSize );
     }
 }
 
-void SavePreferencesThes()
+static void SavePreferencesThes(AppContext* appContext)
 {
     DmOpenRef      db;
     UInt           recNo;
@@ -237,7 +220,7 @@ void SavePreferencesThes()
     long           blobSize;
     Boolean        fRecordBusy = false;
 
-    prefsBlob = SerializePreferencesThes( &blobSize );
+    prefsBlob = SerializePreferencesThes(appContext, &blobSize );
     if ( NULL == prefsBlob ) return;
 
     db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
@@ -246,14 +229,14 @@ void SavePreferencesThes()
         err = DmCreateDatabase(0, "Thes Prefs", THES_CREATOR,  THES_PREF_TYPE, false);
         if ( errNone != err)
         {
-            gd.err = ERR_NO_PREF_DB_CREATE;
+            appContext->err = ERR_NO_PREF_DB_CREATE;
             return;
         }
 
         db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
         if (!db)
         {
-            gd.err = ERR_NO_PREF_DB_OPEN;
+            appContext->err = ERR_NO_PREF_DB_OPEN;
             return;
         }
     }
@@ -265,7 +248,7 @@ void SavePreferencesThes()
         fRecordBusy = true;
         recData = MemHandleLock(recHandle);
         recSize = MemHandleSize(recHandle);
-        if ( FIsThesPrefRecord(recData) )
+        if (IsValidPrefRecord(recData))
         {
             fRecFound = true;
             break;
@@ -308,7 +291,7 @@ CloseDbExit:
     new_free( prefsBlob );
 }
 
-void LoadPreferencesThes()
+static void LoadPreferencesThes(AppContext* appContext)
 {
     DmOpenRef    db;
     UInt         recNo;
@@ -317,7 +300,7 @@ void LoadPreferencesThes()
     UInt         recsCount;
     Boolean      fRecFound = false;
 
-    gd.fFirstRun = true;
+    appContext->fFirstRun = true;
     db = DmOpenDatabaseByTypeCreator(THES_PREF_TYPE, THES_CREATOR, dmModeReadWrite);
     if (!db) return;
     recsCount = DmNumRecords(db);
@@ -325,82 +308,73 @@ void LoadPreferencesThes()
     {
         recHandle = DmQueryRecord(db, recNo);
         recData = MemHandleLock(recHandle);
-        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && FIsThesPrefRecord( recData ) )
+        if ( (MemHandleSize(recHandle)>=PREF_REC_MIN_SIZE) && IsValidPrefRecord(recData) )
         {
-            LogG( "LoadPreferencesThes(), found prefs record" );
+            LogG("LoadPreferencesThes(), found prefs record" );
             fRecFound = true;
-            gd.fFirstRun = false;
-            DeserilizePreferencesThes((unsigned char*)recData, MemHandleSize(recHandle) );
+            appContext->fFirstRun = false;
+            DeserializePreferencesThes(appContext, (unsigned char*)recData, MemHandleSize(recHandle) );
         }
         MemPtrUnlock(recData);
     }
     DmCloseDatabase(db);
 }
 
-Boolean FThesDatabase( UInt32 creator, UInt32 type )
-{
-    if ( THES_CREATOR != creator )
-        return false;
-
-    if ( ROGET_TYPE != type )
-        return false;
-
-    return true;
-}
+#define IsThesDatabase(creator, type) (THES_CREATOR==(creator) && ROGET_TYPE==(type))
 
 /* called for every file on the external card */
-void VfsFindCbThes( AbstractFile *file )
+static void VfsFindCbThes( void* context, AbstractFile *file )
 {
     AbstractFile *fileCopy;
 
     /* UNDONE: update progress dialog with a number of files processed */
 
-    if ( !FThesDatabase(file->creator, file->type) )
+    if ( !IsThesDatabase(file->creator, file->type) )
         return;
 
     fileCopy = AbstractFileNewFull( file->fsType, file->creator, file->type, file->fileName );
     if ( NULL == fileCopy ) return;
     fileCopy->volRef = file->volRef;
-    DictFoundCBThes( fileCopy );
+    DictFoundCBThes( context, fileCopy );
 }
 
-Boolean FDatabaseExists(AbstractFile *file)
+static Boolean FDatabaseExists(FS_Settings* fsSettings, AbstractFile *file)
 {
     PdbHeader   hdr;
 
     Assert( eFS_VFS == file->fsType );
 
-    if ( !FVfsPresent() )
+    if ( !FVfsPresent(fsSettings) )
         return false;
 
     if ( !ReadPdbHeader(file->volRef, file->fileName, &hdr ) )
         return false;
     
-    if ( FThesDatabase( hdr.creator, hdr.type ) )
+    if ( IsThesDatabase( hdr.creator, hdr.type ) )
         return true;
     else
         return false;
 }
 
-void RemoveNonexistingDatabases(void)
+static void RemoveNonexistingDatabases(AppContext* appContext)
 {
     int i;
     // if we got a list of databases on eFS_VFS from preferences we need
     // to verify that those databases still exist
-    for(i=0; i<gd.dictsCount; i++)
+    for(i=0; i<appContext->dictsCount; i++)
     {
-        if ( !FDatabaseExists(gd.dicts[i]) )
+        if ( !FDatabaseExists(&appContext->fsSettings, appContext->dicts[i]) )
         {
-            AbstractFileFree( gd.dicts[i] );
-            MemMove( &(gd.dicts[i]), &(gd.dicts[i+1]), (gd.dictsCount-i-1)*sizeof(gd.dicts[0]) );
-            --gd.dictsCount;
+            AbstractFileFree( appContext->dicts[i] );
+            MemMove( &(appContext->dicts[i]), &(appContext->dicts[i+1]), (appContext->dictsCount-i-1)*sizeof(appContext->dicts[0]) );
+            --appContext->dictsCount;
         }
     }
 }
 
-void ScanForDictsThes(Boolean fAlwaysScanExternal)
+static void ScanForDictsThes(AppContext* appContext, Boolean fAlwaysScanExternal)
 {
-    FsMemFindDb( THES_CREATOR, ROGET_TYPE, NULL, &DictFoundCBThes );
+    FsMemFindDb( THES_CREATOR, ROGET_TYPE, NULL, &DictFoundCBThes, appContext );
 
     /* TODO: show a progress dialog with a number of files processed so far */
 
@@ -408,163 +382,213 @@ void ScanForDictsThes(Boolean fAlwaysScanExternal)
     // time we run (don't have the list of databases cached in
     // preferences) or we didn't find any databases at all
     // (unless it was over-written by fAlwaysScanExternal flag
-    if (fAlwaysScanExternal || gd.fFirstRun || (0==gd.dictsCount))
-        FsVfsFindDb( &VfsFindCbThes );
+    if (fAlwaysScanExternal || appContext->fFirstRun || (0==appContext->dictsCount))
+        FsVfsFindDb(&appContext->fsSettings, &VfsFindCbThes, appContext );
 }
 
-Err InitThesaurus(void)
+static Err AppCommonInit(AppContext* appContext)
 {
     Err error=errNone;
     UInt32 value=0;
+    MemSet(appContext, sizeof(*appContext), 0);
+    error=FtrSet(APP_CREATOR, appFtrContext, (UInt32)appContext);
+    if (error) 
+        goto OnError;
+    error=FtrSet(APP_CREATOR, appFtrLeaksFile, 0);
+    if (error) 
+        goto OnError;
     
-    MemSet((void *) &gd, sizeof(GlobalData), 0);
-    LogInit( &g_Log, "c:\\thes_log.txt" );
-
-    InitFiveWay();
-
-    SetCurrentFile( NULL );
+    LogInit( appContext, "c:\\thes_log.txt" );
+    InitFiveWay(appContext);
 
     // disable getting nilEvent
-    gd.ticksEventTimeout = evtWaitForever;
+    appContext->ticksEventTimeout = evtWaitForever;
 #ifdef DEBUG
-    gd.currentStressWord = 0;
+    appContext->currentStressWord = 0;
 #endif
-    gd.prevSelectedWord = 0xfffff;
+    appContext->prevSelectedWord = 0xfffff;
 
-    gd.firstDispLine = -1;
-    gd.prevSelectedWord = -1;
+    appContext->firstDispLine = -1;
+    appContext->prevSelectedWord = -1;
 
     // fill out the default values for Thesaurus preferences
     // and try to load them from pref database
-    gd.prefs.fDelVfsCacheOnExit = true;
-    gd.prefs.startupAction = startupActionNone;
-    gd.prefs.tapScrollType = scrollLine;
-    gd.prefs.hwButtonScrollType = scrollPage;
-    gd.prefs.dbStartupAction = dbStartupActionAsk;
-    gd.prefs.lastDbUsedName = NULL;
+    appContext->prefs.fDelVfsCacheOnExit = true;
+    appContext->prefs.startupAction = startupActionNone;
+    appContext->prefs.tapScrollType = scrollLine;
+    appContext->prefs.hwButtonScrollType = scrollPage;
+    appContext->prefs.dbStartupAction = dbStartupActionAsk;
+    appContext->prefs.lastDbUsedName = NULL;
+    SyncScreenSize(appContext);
+    FsInit(&appContext->fsSettings);
+    LoadPreferencesThes(appContext);
     
-// 2003-11-25 andrzejc DynamicInputArea
-    SyncScreenSize();
 // define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
 #ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
-    error=DIA_Init(&gd.diaSettings);
-    if (error) return error;
+    error=DIA_Init(&appContext->diaSettings);
+    if (error) 
+        goto OnError;
 #endif  
-
-    FsInit();
-
-    LoadPreferencesThes();
-
-    if (!CreateHelpData())
-        return !errNone;
-
-    return errNone;
+    
+OnError:
+    return error;
 }
 
-Boolean DictInit(AbstractFile *file)
+static Err AppCommonFree(AppContext* appContext);
+
+static Err InitThesaurus(AppContext* appContext)
 {
-    if ( !FsFileOpen( file ) )
+    Err error=errNone;
+    Boolean res=false;
+    error=AppCommonInit(appContext);
+    if (error) 
+        goto OnError;
+    
+    error=AppNotifyInit(appContext);
+    if (error)
+        goto OnErrorCommonFree;
+
+    res=CreateHelpData(appContext);
+    Assert(res);
+
+OnError:
+    return error;
+    
+OnErrorCommonFree:
+    AppCommonFree(appContext);
+    goto OnError;    
+}
+
+static Boolean DictInit(AppContext* appContext, AbstractFile *file)
+{
+    if ( !FsFileOpen( appContext, file ) )
         return false;
 
-    if ( !dictNew() )
+    if ( !dictNew(file) )
         return false;
 
-    gd.wordsCount = dictGetWordsCount();
-    gd.currentWord = 0;
-    gd.listItemOffset = 0;
-    LogV1( "DictInit(%s) ok", file->fileName );
+    appContext->wordsCount = dictGetWordsCount(file);
+    appContext->currentWord = 0;
+    appContext->listItemOffset = 0;
+    LogV1("DictInit(%s) ok", file->fileName );
     return true;
 }
 
-void DictCurrentFree(void)
+static void DictCurrentFree(AppContext* appContext)
 {
-
+    AbstractFile* file;
 #if 0
     int i;
     // UNDONE: need to fix that to be dictionary-specific instead of global
-    for (i = 0; i < gd.recordsCount; i++)
+    for (i = 0; i < appContext->recordsCount; i++)
     {
-        if (0 != gd.recsInfo[i].lockCount)
+        if (0 != appContext->recsInfo[i].lockCount)
         {
             Assert(0);
         }
     }
 #endif
-
-    if ( NULL != GetCurrentFile() )
+    file=GetCurrentFile(appContext);
+    if ( NULL != file)
     {
-        dictDelete();
-        FsFileClose( GetCurrentFile() );
-        SetCurrentFile(NULL);
+        dictDelete(file);
+        FsFileClose(file);
+        SetCurrentFile(appContext, NULL);
     }
 }
 
-void StopThesaurus()
+Err AppCommonFree(AppContext* appContext)
 {
     Err error=errNone;
-    SavePreferencesThes();
-    DictCurrentFree();
-    FreeDicts();
-    FreeInfoData();
-    FreeHistory();
+
+    error=DIA_Free(&appContext->diaSettings);
+    Assert(!error);
+
+    DictCurrentFree(appContext);
+    FreeDicts(appContext);
+    FreeInfoData(appContext);
+    FreeHistory(appContext);
 
 //  decided to make it always true
-//    if ( gd.prefs.fDelVfsCacheOnExit)
+//    if ( appContext->prefs.fDelVfsCacheOnExit)
         dcDelCacheDb();
 
-    if ( NULL != gd.prefs.lastDbUsedName )
-        new_free( gd.prefs.lastDbUsedName );
+    if ( NULL != appContext->prefs.lastDbUsedName )
+        new_free( appContext->prefs.lastDbUsedName );
+    
+    CloseMatchingPatternDB(appContext);
+    FsDeinit(&appContext->fsSettings);
+    return error;
+}
 
+static void StopThesaurus(AppContext* appContext)
+{
+    Err error=errNone;
+    SavePreferencesThes(appContext);
+    
+    error=AppCommonFree(appContext);
+    Assert(!error);
+    
     FrmSaveAllForms();
     FrmCloseAllForms();
 
-// 2003-11-28 andrzejc DynamicInputArea
-    error=DIA_Free(&gd.diaSettings);
+
+    error=AppNotifyFree(appContext, true);    
     Assert(!error);
 
-    CloseMatchingPatternDB();
-
-    FsDeinit();
 }
 
-void DisplayAbout(void)
+void DisplayAbout(AppContext* appContext)
 {
-    ClearDisplayRectangle();
+    UInt16 currentY=0;
+    WinPushDrawState();
+    ClearDisplayRectangle(appContext);
     HideScrollbar();
-
-    dh_set_current_y(7);
-
-    dh_save_font();
-    dh_display_string("ArsLexis Thesaurus", 2, 16);
+    
+    currentY=7;
+    FntSetFont(largeFont);
+    DrawCenteredString(appContext, "ArsLexis Thesaurus", currentY);
+    currentY+=16;
 #ifdef DEMO
-    dh_display_string("Ver 1.2 (demo)", 2, 20);
+    DrawCenteredString(appContext, "Ver 1.2 (demo)", currentY);
 #else
   #ifdef DEBUG
-    dh_display_string("Ver 1.2 (debug)", 2, 20);
+    DrawCenteredString(appContext, "Ver 1.2 (debug)", currentY);
   #else
-    dh_display_string("Ver 1.2", 2, 20);
+    DrawCenteredString(appContext, "Ver 1.2", currentY);
   #endif
 #endif
-    dh_display_string("(C) 2000-2003 ArsLexis", 1, 24);
-    dh_display_string("http://www.arslexis.com", 2, 40); 
+    currentY+=20;
+    
+    FntSetFont(boldFont);
+    DrawCenteredString(appContext, "(C) 2000-2003 ArsLexis", currentY);
+    currentY+=24;
+
+    FntSetFont(largeFont);
+    DrawCenteredString(appContext, "http://www.arslexis.com", currentY);
+    currentY+=40;
+    
+    FntSetFont(stdFont);
 #ifdef DEMO_HANDANGO
-    dh_display_string("Buy at: www.handango.com/purchase", 0, 14);
-    dh_display_string("        Product ID: 10023", 0, 0);
+    DrawCenteredString(appContext, "Buy at: www.handango.com/purchase", currentY);
+    currentY+=14;
+    DrawCenteredString(appContext, "        Product ID: 10023", currentY);
 #endif
 #ifdef DEMO_PALMGEAR
-    dh_display_string("Buy at: www.palmgear.com?7423", 0, 0);
+    DrawCenteredString(appContext, "Buy at: www.palmgear.com?7423", currentY);
 #endif
-    dh_restore_font();
+
+    WinPopDrawState();    
 }
 
-void DoWord(char *word)
+static void DoWord(AppContext* appContext, char *word)
 {
     long wordNo;
 
-    LogV1( "DoWord(%s)", word );
+    LogV1("DoWord(%s)", word );
     Assert( word );
-    wordNo = dictGetFirstMatching(word);
-    DrawDescription(wordNo);
+    wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
+    DrawDescription(appContext, wordNo);
 }
 
 /*
@@ -572,7 +596,7 @@ Given a point on the screen calculate the bounds of the character that
 this point belongs to and also line & position in the line of this character.
 Returns true if there is a char that falls within, false otherwise.
 */
-Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *charPos)
+static Boolean GetCharBounds(AppContext* appContext, UInt16 x, UInt16 y, RectangleType * r, int *line, int *charPos)
 {
     DisplayInfo *di = NULL;
     int lineOnScreen;
@@ -581,16 +605,14 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     Assert(line);
     Assert(charPos);
 
-    di = gd.currDispInfo;
+    di = appContext->currDispInfo;
     if (NULL == di)
         return false;
 
     lineOnScreen = y / FONT_DY;    /* should be font height */
     r->topLeft.x = 0;
     r->topLeft.y = lineOnScreen * FONT_DY;
-// 2003-11-26 andrzejc DynamicInputArea    
-//    r->extent.x = 120;
-    r->extent.x = gd.screenWidth-40;
+    r->extent.x = appContext->screenWidth-40;
     r->extent.y = FONT_DY;
 
     *line = lineOnScreen;
@@ -599,37 +621,37 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     return true;
 }
 
-static Boolean MainFormDisplayChanged(FormType* frm) 
+static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         UInt16 index=0;
         RectangleType newBounds;
         WinGetBounds(WinGetDisplayWindow(), &newBounds);
         WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
 
-        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
-        FrmSetObjectBoundsByID(frm, scrollDef, gd.screenWidth-8, 1, 7, gd.screenHeight-18);
-        FrmSetObjectBoundsByID(frm, bmpFind, gd.screenWidth-13, gd.screenHeight-13, 13, 13);
-        FrmSetObjectBoundsByID(frm, buttonFind, gd.screenWidth-14, gd.screenHeight-14, 14, 14);
-        FrmSetObjectBoundsByID(frm, popupHistory, gd.screenWidth-32, gd.screenHeight-13, 17, 13);
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
+        FrmSetObjectBoundsByID(frm, scrollDef, appContext->screenWidth-8, 1, 7, appContext->screenHeight-18);
+        FrmSetObjectBoundsByID(frm, bmpFind, appContext->screenWidth-13, appContext->screenHeight-13, 13, 13);
+        FrmSetObjectBoundsByID(frm, buttonFind, appContext->screenWidth-14, appContext->screenHeight-14, 14, 14);
+        FrmSetObjectBoundsByID(frm, popupHistory, appContext->screenWidth-32, appContext->screenHeight-13, 17, 13);
 
         index=FrmGetObjectIndex(frm, listHistory);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.x=gd.screenWidth-80;
-        newBounds.topLeft.y=gd.screenHeight-60;
+        newBounds.topLeft.x=appContext->screenWidth-80;
+        newBounds.topLeft.y=appContext->screenHeight-60;
         FrmSetObjectBounds(frm, index, &newBounds);
 
-        RedrawMainScreen();
+        RedrawMainScreen(appContext);
         handled=true;
     }
     return handled;
 }
 
-Boolean MainFormHandleEventThes(EventType * event)
+static Boolean MainFormHandleEventThes(EventType * event)
 {
     Boolean         handled = false;
     FormType *      frm;
@@ -641,34 +663,36 @@ Boolean MainFormHandleEventThes(EventType * event)
     AbstractFile *  fileToOpen;
     char *          lastDbUsedName;
     char *          word;
+    AppContext* appContext=GetAppContext();
+    Assert(appContext);
 
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case winEnterEvent:
             // workaround for probable Sony CLIE's bug that causes only part of screen to be repainted on return from PopUps
-            if (DIA_HasSonySilkLib(&gd.diaSettings) && frm==(void*)((SysEventType*)event)->data.winEnter.enterWindow)
-                RedrawMainScreen();
+            if (DIA_HasSonySilkLib(&appContext->diaSettings) && frm==(void*)((SysEventType*)event)->data.winEnter.enterWindow)
+                RedrawMainScreen(appContext);
             break;
 
         case winDisplayChangedEvent:
-            handled= MainFormDisplayChanged(frm);
+            handled= MainFormDisplayChanged(appContext, frm);
             break;
             
         case frmUpdateEvent:
-            LogG( "mainFrm - frmUpdateEvent" );
-            RedrawMainScreen();
+            LogG("mainFrm - frmUpdateEvent" );
+            RedrawMainScreen(appContext);
             handled = true;
             break;
 
         case frmOpenEvent:
             FrmDrawForm(frm);
-            HistoryListInit(frm);
+            HistoryListInit(appContext, frm);
 
-            RemoveNonexistingDatabases();
-            ScanForDictsThes(false);
+            RemoveNonexistingDatabases(appContext);
+            ScanForDictsThes(appContext, false);
 
-            if (0 == gd.dictsCount)
+            if (0 == appContext->dictsCount)
             {
                 FrmAlert(alertNoDB);
                 SendStopEvent();
@@ -677,33 +701,22 @@ Boolean MainFormHandleEventThes(EventType * event)
 
 ChooseDatabase:
             fileToOpen = NULL;
-            if (1 == gd.dictsCount )
-                fileToOpen = gd.dicts[0];
+            if (1 == appContext->dictsCount )
+                fileToOpen = appContext->dicts[0];
             else
             {
-                lastDbUsedName = gd.prefs.lastDbUsedName;
+                lastDbUsedName = appContext->prefs.lastDbUsedName;
                 if ( NULL != lastDbUsedName )
                 {
-                    LogV1( "db name from prefs: %s", lastDbUsedName );
+                    LogV1("db name from prefs: %s", lastDbUsedName );
                 }
                 else
                 {
-                    LogG( "no db name from prefs" );
+                    LogG("no db name from prefs" );
                 }
 
-                if ( (NULL != lastDbUsedName) &&
-                     (dbStartupActionLast == gd.prefs.dbStartupAction) )
-                {
-                    for( i=0; i<gd.dictsCount; i++)
-                    {
-                        if (0==StrCompare( lastDbUsedName, gd.dicts[i]->fileName ) )
-                        {
-                            fileToOpen = gd.dicts[i];
-                            LogV1( "found db=%s", fileToOpen->fileName );
-                            break;
-                        }
-                    }
-                }
+                if ( (NULL != lastDbUsedName) && (dbStartupActionLast == appContext->prefs.dbStartupAction) )
+                    fileToOpen=FindOpenDatabase(appContext, lastDbUsedName);
             }
 
             if (NULL == fileToOpen)
@@ -714,25 +727,25 @@ ChooseDatabase:
             }
             else
             {
-                if ( !DictInit(fileToOpen) )
+                if ( !DictInit(appContext, fileToOpen) )
                 {
                     // failed to initialize dictionary. If we have more - retry,
                     // if not - just quit
-                    if ( gd.dictsCount > 1 )
+                    if ( appContext->dictsCount > 1 )
                     {
                         i = 0;
-                        while ( fileToOpen != gd.dicts[i] )
+                        while ( fileToOpen != appContext->dicts[i] )
                         {
                             ++i;
-                            Assert( i<gd.dictsCount );
+                            Assert( i<appContext->dictsCount );
                         }
-                        AbstractFileFree( gd.dicts[i] );
-                        while ( i<gd.dictsCount )
+                        AbstractFileFree( appContext->dicts[i] );
+                        while ( i<appContext->dictsCount )
                         {
-                            gd.dicts[i] = gd.dicts[i+1];
+                            appContext->dicts[i] = appContext->dicts[i+1];
                             ++i;
                         }
-                        --gd.dictsCount;
+                        --appContext->dictsCount;
                         FrmAlert( alertDbFailed);
                         goto ChooseDatabase;
                     }
@@ -744,24 +757,21 @@ ChooseDatabase:
                     }
                 }
             }
-// 2003-11-25 andrzejc DynamicInputArea  
-//            WinDrawLine(0, 145, 160, 145);
-//            WinDrawLine(0, 144, 160, 144);
-            WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
-            WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
 
-            if ( startupActionClipboard == gd.prefs.startupAction )
+            if ( startupActionClipboard == appContext->prefs.startupAction )
             {
-                if (!FTryClipboard())
-                    DisplayAbout();
+                if (!FTryClipboard(appContext))
+                    DisplayAbout(appContext);
             }
             else
-                DisplayAbout();
+                DisplayAbout(appContext);
 
-            if ( (startupActionLast == gd.prefs.startupAction) &&
-                gd.prefs.lastWord[0] )
+            if ( (startupActionLast == appContext->prefs.startupAction) &&
+                appContext->prefs.lastWord[0] )
             {
-                DoWord( (char *)gd.prefs.lastWord );
+                DoWord(appContext, (char *)appContext->prefs.lastWord );
             }
             handled = true;
             break;
@@ -770,14 +780,14 @@ ChooseDatabase:
             switch (event->data.popSelect.listID)
             {
                 case listHistory:
-                    word = gd.wordHistory[event->data.popSelect.selection];
-                    wordNo = dictGetFirstMatching(word);
-                    if (wordNo != gd.currentWord)
+                    word = appContext->wordHistory[event->data.popSelect.selection];
+                    wordNo = dictGetFirstMatching(GetCurrentFile(appContext), word);
+                    if (wordNo != appContext->currentWord)
                     {
-                        gd.currentWord = wordNo;
-                        Assert(wordNo < gd.wordsCount);
-                        DrawDescription(gd.currentWord);
-                        gd.penUpsToConsume = 1;
+                        appContext->currentWord = wordNo;
+                        Assert(wordNo < appContext->wordsCount);
+                        DrawDescription(appContext, appContext->currentWord);
+                        appContext->penUpsToConsume = 1;
                     }
                     break;
                 default:
@@ -791,13 +801,13 @@ ChooseDatabase:
             switch (event->data.ctlSelect.controlID)
             {
                 case ctlArrowLeft:
-                    if (gd.currentWord > 0)
-                        DrawDescription(gd.currentWord - 1);
+                    if (appContext->currentWord > 0)
+                        DrawDescription(appContext, appContext->currentWord - 1);
                     handled = true;
                     break;
                 case ctlArrowRight:
-                    if (gd.currentWord < gd.wordsCount - 1)
-                        DrawDescription(gd.currentWord + 1);
+                    if (appContext->currentWord < appContext->wordsCount - 1)
+                        DrawDescription(appContext, appContext->currentWord + 1);
                     handled = true;
                     break;
                 case buttonFind:
@@ -815,47 +825,44 @@ ChooseDatabase:
             break;
 
         case evtNewWordSelected:
-            AddToHistory(gd.currentWord);
-            HistoryListSetState(frm);
+            AddToHistory(appContext, appContext->currentWord);
+            HistoryListSetState(appContext, frm);
 
-// 2003-11-25 andrzejc DynamicInputArea  
-//            WinDrawLine(0, 145, 160, 145);
-//            WinDrawLine(0, 144, 160, 144);
-            WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
-            WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
-            DrawDescription(gd.currentWord);
-            gd.penUpsToConsume = 1;
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
+            DrawDescription(appContext, appContext->currentWord);
+            appContext->penUpsToConsume = 1;
             handled = true;
             break;
 
         case evtNewDatabaseSelected:
             selectedDb = EvtGetInt( event );
-            fileToOpen = gd.dicts[selectedDb];
-            if ( GetCurrentFile() != fileToOpen )
+            fileToOpen = appContext->dicts[selectedDb];
+            if ( GetCurrentFile(appContext) != fileToOpen )
             {
-                DictCurrentFree();
-                if ( !DictInit(fileToOpen) )
+                DictCurrentFree(appContext);
+                if ( !DictInit(appContext, fileToOpen) )
                 {
                     // failed to initialize dictionary. If we have more - retry,
                     // if not - just quit
-                    if ( gd.dictsCount > 1 )
+                    if ( appContext->dictsCount > 1 )
                     {
                         i = 0;
-                        while ( fileToOpen != gd.dicts[i] )
+                        while ( fileToOpen != appContext->dicts[i] )
                         {
                             ++i;
-                            Assert( i<gd.dictsCount );
+                            Assert( i<appContext->dictsCount );
                         }
-                        AbstractFileFree( gd.dicts[i] );
-                        while ( i<gd.dictsCount )
+                        AbstractFileFree( appContext->dicts[i] );
+                        while ( i<appContext->dictsCount )
                         {
-                            gd.dicts[i] = gd.dicts[i+1];
+                            appContext->dicts[i] = appContext->dicts[i+1];
                             ++i;
                         }
-                        --gd.dictsCount;
+                        --appContext->dictsCount;
                         list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-                        LstSetListChoices(list, NULL, gd.dictsCount);
-                        if ( gd.dictsCount > 1 )
+                        LstSetListChoices(list, NULL, appContext->dictsCount);
+                        if ( appContext->dictsCount > 1 )
                         {
                             FrmAlert( alertDbFailedGetAnother );
                             FrmPopupForm( formSelectDict );
@@ -877,70 +884,70 @@ ChooseDatabase:
                 }
             }
 
-            OpenMatchingPatternDB();
-            ClearMatchingPatternDB();
-            CloseMatchingPatternDB();
+            OpenMatchingPatternDB(appContext);
+            ClearMatchingPatternDB(appContext);
+            CloseMatchingPatternDB(appContext);
 
-            RedrawMainScreen();
+            RedrawMainScreen(appContext);
 
-            if ( startupActionClipboard == gd.prefs.startupAction )
+            if ( startupActionClipboard == appContext->prefs.startupAction )
             {
-                if (!FTryClipboard())
-                    DisplayAbout();
+                if (!FTryClipboard(appContext))
+                    DisplayAbout(appContext);
             }
             else
-                DisplayAbout();
+                DisplayAbout(appContext);
 
-            if ( (startupActionLast == gd.prefs.startupAction) &&
-                gd.prefs.lastWord[0] )
+            if ( (startupActionLast == appContext->prefs.startupAction) &&
+                appContext->prefs.lastWord[0] )
             {
-                DoWord( (char *)gd.prefs.lastWord );
+                DoWord(appContext, (char *)appContext->prefs.lastWord );
             }
 
             handled = true;
             break;
 
         case keyDownEvent:
-            if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
+            if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
             {
-                if (FiveWayCenterPressed(event))
+                if (FiveWayCenterPressed(appContext, event))
                 {
                     FrmPopupForm(formDictFind);
                 }
-                if (FiveWayDirectionPressed( event, Left ))
+                if (FiveWayDirectionPressed(appContext, event, Left ))
                 {
-                    if (gd.currentWord > 0)
-                        DrawDescription(gd.currentWord - 1);
+                    if (appContext->currentWord > 0)
+                        DrawDescription(appContext, appContext->currentWord - 1);
                 }
-                if (FiveWayDirectionPressed( event, Right ))
+                if (FiveWayDirectionPressed(appContext, event, Right ))
                 {
-                    if (gd.currentWord < gd.wordsCount - 1)
-                        DrawDescription(gd.currentWord + 1);
+                    if (appContext->currentWord < appContext->wordsCount - 1)
+                        DrawDescription(appContext, appContext->currentWord + 1);
                 }
-                if (FiveWayDirectionPressed( event, Up ))
+                if (FiveWayDirectionPressed(appContext, event, Up ))
                 {
-                    DefScrollUp( scrollLine );
+                    DefScrollUp(appContext, scrollLine );
                 }
-                if (FiveWayDirectionPressed( event, Down ))
+                if (FiveWayDirectionPressed(appContext, event, Down ))
                 {
-                    DefScrollDown( scrollLine );
+                    DefScrollDown(appContext, scrollLine );
                 }
                 return false;
             }
             else if (pageUpChr == event->data.keyDown.chr)
             {
-                DefScrollUp(gd.prefs.hwButtonScrollType);
+                DefScrollUp(appContext, appContext->prefs.hwButtonScrollType);
             }
             else if (pageDownChr == event->data.keyDown.chr)
             {
-                DefScrollDown(gd.prefs.hwButtonScrollType);
+                DefScrollDown(appContext, appContext->prefs.hwButtonScrollType);
             }
             else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
                      || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
                      || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
             {
-                gd.lastWord[0] = event->data.keyDown.chr;
-                gd.lastWord[1] = 0;
+                appContext->lastWord[0] = event->data.keyDown.chr;
+                appContext->lastWord[1] = 0;
                 FrmPopupForm(formDictFind);
             }
             handled = true;
@@ -948,23 +955,17 @@ ChooseDatabase:
 
         case sclExitEvent:
             newValue = event->data.sclRepeat.newValue;
-            if (newValue != gd.firstDispLine)
+            if (newValue != appContext->firstDispLine)
             {
-// 2003-11-25 andrzejc DynamicInputArea
-//               ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
-               ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth-FRM_RSV_W+2, gd.screenHeight-FRM_RSV_H);
-                gd.firstDispLine = newValue;
-// 2003-11-25 andrzejc DynamicInputArea
-//                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, DRAW_DI_LINES);
-                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
+                ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H);
+                appContext->firstDispLine = newValue;
+                DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
             }
             handled = true;
             break;
 
         case penDownEvent:
-// 2003-11-25 andrzejc DynamicInputArea
-//            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
-            if ((NULL == gd.currDispInfo) || (event->screenX > gd.screenWidth-FRM_RSV_W) || (event->screenY > gd.screenHeight-FRM_RSV_H))
+            if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
             {
                 handled = false;
                 break;
@@ -990,9 +991,7 @@ ChooseDatabase:
             break;
 
         case penUpEvent:
-// 2003-11-25 andrzejc DynamicInputArea
-//            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
-            if ((NULL == gd.currDispInfo) || (event->screenX > gd.screenWidth-FRM_RSV_W) || (event->screenY > gd.screenHeight-FRM_RSV_H))
+            if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
             {
                 handled = false;
                 break;
@@ -1015,22 +1014,20 @@ ChooseDatabase:
     /*        r.extent.y = 10; */
     /*        WinInvertRectangle(&r,0); */
 
-            if (0 != gd.penUpsToConsume)
+            if (0 != appContext->penUpsToConsume)
             {
-                --gd.penUpsToConsume;
+                --appContext->penUpsToConsume;
                 handled = true;
                 break;
             }
 
-// 2003-11-25 andrzejc DynamicInputArea
-//            if (event->screenY > (144 / 2))
-            if (event->screenY > ((gd.screenHeight-FRM_RSV_H) / 2))
+            if (event->screenY > ((appContext->screenHeight-FRM_RSV_H) / 2))
             {
-                DefScrollDown(gd.prefs.tapScrollType);
+                DefScrollDown(appContext, appContext->prefs.tapScrollType);
             }
             else
             {
-                DefScrollUp(gd.prefs.tapScrollType);
+                DefScrollUp(appContext, appContext->prefs.tapScrollType);
             }
             handled = true;
             break;
@@ -1041,43 +1038,45 @@ ChooseDatabase:
                 case menuItemFind:
                     FrmPopupForm(formDictFind);
                     break;
-                case menuItemFindPattern:
-                    FrmPopupForm(formDictFindPattern);
-                    break;
                 case menuItemAbout:
-                    if (NULL != gd.currDispInfo)
+                    if (NULL != appContext->currDispInfo)
                     {
-                        diFree(gd.currDispInfo);
-                        gd.currDispInfo = NULL;
-                        gd.currentWord = 0;
+                        diFree(appContext->currDispInfo);
+                        appContext->currDispInfo = NULL;
+                        appContext->currentWord = 0;
                     }
-                    DisplayAbout();
+                    DisplayAbout(appContext);
                     break;
                 case menuItemSelectDB:
                     FrmPopupForm(formSelectDict);
                     break;
                 case menuItemHelp:
-                    DisplayHelp();
+                    DisplayHelp(appContext);
                     break;
                 case menuItemCopy:
-                    if (NULL != gd.currDispInfo)
-                        diCopyToClipboard(gd.currDispInfo);
+                    if (NULL != appContext->currDispInfo)
+                        diCopyToClipboard(appContext->currDispInfo);
                     break;
                 case menuItemTranslate:
-                    FTryClipboard();
+                    FTryClipboard(appContext);
                     break;
 #ifdef DEBUG
                 case menuItemStress:
                     // initiate stress i.e. going through all the words
                     // 0 means that stress is not in progress
-                    gd.currentStressWord = -1;
+                    appContext->currentStressWord = -1;
                     // get nilEvents as fast as possible
-                    gd.ticksEventTimeout = 0;
+                    appContext->ticksEventTimeout = 0;
                     break;
 #endif
                 case menuItemPrefs:
                     FrmPopupForm(formPrefs);
                     break;
+                    
+                case menuItemFindPattern:
+                    FrmPopupForm(formDictFindPattern);
+                    break;
+                    
                 default:
                     Assert(0);
                     break;
@@ -1086,17 +1085,17 @@ ChooseDatabase:
             break;
         case nilEvent:
 #ifdef DEBUG
-            if ( 0 != gd.currentStressWord )
+            if ( 0 != appContext->currentStressWord )
             {
-                if ( -1 == gd.currentStressWord )
-                    gd.currentStressWord = 0;
-                DrawDescription(gd.currentStressWord++);
-                if (gd.currentStressWord==dictGetWordsCount())
+                if ( -1 == appContext->currentStressWord )
+                    appContext->currentStressWord = 0;
+                DrawDescription(appContext, appContext->currentStressWord++);
+                if (appContext->currentStressWord==dictGetWordsCount(GetCurrentFile(appContext)))
                 {
                     // disable running the stress
-                    gd.currentStressWord = 0;
+                    appContext->currentStressWord = 0;
                     // disable getting nilEvent
-                    gd.ticksEventTimeout = evtWaitForever;
+                    appContext->ticksEventTimeout = evtWaitForever;
                 }
             }
 #endif
@@ -1105,25 +1104,25 @@ ChooseDatabase:
 
 #ifdef NEVER
         case nilEvent:
-            if (-1 != gd.start_seconds_count)
+            if (-1 != appContext->start_seconds_count)
             {
                 /* we're still displaying About info, check
                    if it's time to switch to info */
-                Assert(gd.start_seconds_count <= TimGetSeconds());
-                if (NULL == gd.currDispInfo)
+                Assert(appContext->start_seconds_count <= TimGetSeconds());
+                if (NULL == appContext->currDispInfo)
                 {
-                    if (TimGetSeconds() - gd.start_seconds_count > 5)
+                    if (TimGetSeconds() - appContext->start_seconds_count > 5)
                     {
                         DisplayHelp();
                         /* we don't nid evtNil events anymore */
-                        gd.start_seconds_count = -1;
-                        gd.current_timeout = -1;
+                        appContext->start_seconds_count = -1;
+                        appContext->current_timeout = -1;
                     }
                 }
                 else
                 {
-                    gd.start_seconds_count = -1;
-                    gd.current_timeout = -1;
+                    appContext->start_seconds_count = -1;
+                    appContext->current_timeout = -1;
                 }
             }
             handled = true;
@@ -1135,10 +1134,10 @@ ChooseDatabase:
     return handled;
 }
 
-static Boolean FindFormDisplayChanged(FormType* frm) 
+static Boolean FindFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         UInt16 index=0;
         ListType* list=0;
@@ -1146,30 +1145,30 @@ static Boolean FindFormDisplayChanged(FormType* frm)
         WinGetBounds(WinGetDisplayWindow(), &newBounds);
         WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
         
-        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
         
         index=FrmGetObjectIndex(frm, listMatching);
         Assert(index!=frmInvalidObjectId);
         list=(ListType*)FrmGetObjectPtr(frm, index);
         Assert(list);
-        LstSetHeight(list, gd.dispLinesCount);
+        LstSetHeight(list, appContext->dispLinesCount);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.extent.x=gd.screenWidth;
+        newBounds.extent.x=appContext->screenWidth;
         FrmSetObjectBounds(frm, index, &newBounds);
         
         index=FrmGetObjectIndex(frm, fieldWord);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-13;
-        newBounds.extent.x=gd.screenWidth-66;
+        newBounds.topLeft.y=appContext->screenHeight-13;
+        newBounds.extent.x=appContext->screenWidth-66;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonCancel);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.x=gd.screenWidth-40;
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.x=appContext->screenWidth-40;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         FrmDrawForm(frm);
@@ -1178,7 +1177,7 @@ static Boolean FindFormDisplayChanged(FormType* frm)
     return handled;
 }
 
-Boolean FindFormHandleEventThes(EventType * event)
+static Boolean FindFormHandleEventThes(EventType * event)
 {
     Boolean     handled = false;
     char *      word;
@@ -1186,7 +1185,9 @@ Boolean FindFormHandleEventThes(EventType * event)
     FieldPtr    fld;
     ListPtr     list;
     long        newSelectedWord;
-
+    AppContext* appContext=GetAppContext();
+    Assert(appContext);
+    
     if (event->eType == nilEvent)
         return true;
 
@@ -1194,19 +1195,19 @@ Boolean FindFormHandleEventThes(EventType * event)
     switch (event->eType)
     {
         case winDisplayChangedEvent:
-            handled= FindFormDisplayChanged(frm);
+            handled= FindFormDisplayChanged(appContext, frm);
             break;
             
         case frmOpenEvent:
             fld =(FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
             list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-            gd.prevSelectedWord = 0xffffffff;
-            LstSetListChoicesEx(list, NULL, dictGetWordsCount());
+            appContext->prevSelectedWord = 0xffffffff;
+            LstSetListChoicesEx( list, NULL, dictGetWordsCount(GetCurrentFile(appContext)));
             LstSetDrawFunction(list, ListDrawFunc);
-            gd.prevTopItem = 0;
-            gd.selectedWord = 0;
-            Assert(gd.selectedWord < gd.wordsCount);
-            word = &(gd.lastWord[0]);
+            appContext->prevTopItem = 0;
+            appContext->selectedWord = 0;
+            Assert(appContext->selectedWord < appContext->wordsCount);
+            word = &(appContext->lastWord[0]);
             /* force updating the field */
             if (word[0])
             {
@@ -1215,7 +1216,7 @@ Boolean FindFormHandleEventThes(EventType * event)
             }
             else
             {
-                LstSetSelectionEx(list, gd.selectedWord);
+                LstSetSelectionEx(appContext, list, appContext->selectedWord);
             }
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
             FrmDrawForm(frm);
@@ -1225,13 +1226,13 @@ Boolean FindFormHandleEventThes(EventType * event)
         case lstSelectEvent:
             /* copy word from text field to a buffer, so next time we
                come back here, we'll come back to the same place */
-            RememberLastWord(FrmGetActiveForm());
+            RememberLastWord(appContext, FrmGetActiveForm());
             /* set the selected word as current word */
-            gd.currentWord = gd.listItemOffset + (UInt32) event->data.lstSelect.selection;
+            appContext->currentWord = appContext->listItemOffset + (UInt32) event->data.lstSelect.selection;
             /* send a msg to yourself telling that a new word
                have been selected so we need to draw the
                description */
-            Assert(gd.currentWord < gd.wordsCount);
+            Assert(appContext->currentWord < appContext->wordsCount);
             SendNewWordSelected();
             handled = true;
             FrmReturnToForm(0);
@@ -1248,59 +1249,59 @@ Boolean FindFormHandleEventThes(EventType * event)
             {
                 case returnChr:
                 case linefeedChr:
-                    RememberLastWord(FrmGetActiveForm());
-                    gd.currentWord = gd.selectedWord;
-                    Assert(gd.currentWord < gd.wordsCount);
+                    RememberLastWord(appContext, FrmGetActiveForm());
+                    appContext->currentWord = appContext->selectedWord;
+                    Assert(appContext->currentWord < appContext->wordsCount);
                     SendNewWordSelected();
                     FrmReturnToForm(0);
                     return true;
                     break;
 
                 case pageUpChr:
-                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
                     {
-                        ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
+                        ScrollWordListByDx( appContext, frm, -(appContext->dispLinesCount-1) );
                         return true;
                     }
                 
                 case pageDownChr:
-                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
                     {
-                        ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
+                        ScrollWordListByDx( appContext, frm, (appContext->dispLinesCount-1) );
                         return true;
                     }
 
                 default:
-                    if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
+                    if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
                     {
-                        if (FiveWayCenterPressed(event))
+                        if (FiveWayCenterPressed(appContext, event))
                         {
-                            RememberLastWord(frm);
-                            gd.currentWord = gd.selectedWord;
-                            Assert(gd.currentWord < gd.wordsCount);
+                            RememberLastWord(appContext, frm);
+                            appContext->currentWord = appContext->selectedWord;
+                            Assert(appContext->currentWord < appContext->wordsCount);
                             SendNewWordSelected();
                             FrmReturnToForm(0);
                             return true;
                         }
                     
-                        if (FiveWayDirectionPressed( event, Left ))
+                        if (FiveWayDirectionPressed(appContext, event, Left ))
                         {
-                            ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
+                            ScrollWordListByDx( appContext, frm, -(appContext->dispLinesCount-1) );
                             return true;
                         }
-                        if (FiveWayDirectionPressed( event, Right ))
+                        if (FiveWayDirectionPressed(appContext, event, Right ))
                         {
-                            ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
+                            ScrollWordListByDx( appContext, frm, (appContext->dispLinesCount-1) );
                             return true;
                         }
-                        if (FiveWayDirectionPressed( event, Up ))
+                        if (FiveWayDirectionPressed(appContext, event, Up ))
                         {
-                            ScrollWordListByDx( frm, -1 );
+                            ScrollWordListByDx( appContext, frm, -1 );
                             return true;
                         }
-                        if (FiveWayDirectionPressed( event, Down ))
+                        if (FiveWayDirectionPressed(appContext, event, Down ))
                         {
-                            ScrollWordListByDx( frm, 1 );
+                            ScrollWordListByDx( appContext, frm, 1 );
                             return true;
                         }
                         return false;
@@ -1314,18 +1315,18 @@ Boolean FindFormHandleEventThes(EventType * event)
         case evtFieldChanged:
             frm = FrmGetActiveForm();
             fld =(FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
-            list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,listMatching));
+            list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
             word = FldGetTextPtr(fld);
             newSelectedWord = 0;
             if (word && *word)
             {
-                newSelectedWord = dictGetFirstMatching(word);
+                newSelectedWord = dictGetFirstMatching(GetCurrentFile(appContext), word);
             }
-            if (gd.selectedWord != newSelectedWord)
+            if (appContext->selectedWord != newSelectedWord)
             {
-                gd.selectedWord = newSelectedWord;
-                Assert(gd.selectedWord < gd.wordsCount);
-                LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
+                appContext->selectedWord = newSelectedWord;
+                Assert(appContext->selectedWord < appContext->wordsCount);
+                LstSetSelectionMakeVisibleEx(appContext, list, appContext->selectedWord);
             }
             handled = true;
             break;
@@ -1333,14 +1334,14 @@ Boolean FindFormHandleEventThes(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
-                    RememberLastWord(FrmGetActiveForm());
+                    RememberLastWord(appContext, FrmGetActiveForm());
                     FrmReturnToForm(0);
                     break;
                 case ctlArrowLeft:
-                    ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
+                    ScrollWordListByDx( appContext, frm, -(appContext->dispLinesCount-1) );
                     break;
                 case ctlArrowRight:
-                    ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
+                    ScrollWordListByDx( appContext, frm, (appContext->dispLinesCount-1) );
                     break;
                 default:
                     Assert(0);
@@ -1354,12 +1355,10 @@ Boolean FindFormHandleEventThes(EventType * event)
     return handled;
 }
 
-// Event handler proc for the find word using pattern dialog
-// Event handler proc for the find word using pattern dialog
-static Boolean FindPatternFormDisplayChanged(FormType* frm) 
+static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         UInt16 index=0;
         ListType* list=0;
@@ -1371,39 +1370,39 @@ static Boolean FindPatternFormDisplayChanged(FormType* frm)
         Assert(index!=frmInvalidObjectId);
         list=(ListType*)FrmGetObjectPtr(frm, index);
         Assert(list);
-        LstSetHeight(list, gd.dispLinesCount);
+        LstSetHeight(list, appContext->dispLinesCount);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.extent.x=gd.screenWidth;
+        newBounds.extent.x=appContext->screenWidth;
         FrmSetObjectBounds(frm, index, &newBounds);
         
         index=FrmGetObjectIndex(frm, fieldWord);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonFind);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonCancel);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonOneChar);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonAnyChar);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         FrmDrawForm(frm);
@@ -1412,31 +1411,31 @@ static Boolean FindPatternFormDisplayChanged(FormType* frm)
     return handled;
 }
 
-Boolean FindPatternFormHandleEventThes(EventType * event)
+static Boolean FindPatternFormHandleEventThes(EventType * event)
 {
     Boolean handled = false;
+    AppContext* appContext=GetAppContext();
     FormPtr frm = FrmGetActiveForm();
     FieldPtr fld;
     ListPtr list;
-    static long lastWordPos;
     char * pattern;
 
     switch (event->eType)
     {
         case winDisplayChangedEvent:
-            handled = FindPatternFormDisplayChanged(frm);
+            handled = FindPatternFormDisplayChanged(appContext, frm);
             break;
                         
         case frmOpenEvent:
-            OpenMatchingPatternDB();
+            OpenMatchingPatternDB(appContext);
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
-            LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords());
+            LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords(appContext));
             LstSetDrawFunction(list, PatternListDrawFunc);
             FrmDrawForm(frm);
-            LstSetSelectionEx(list, lastWordPos);
+            LstSetSelectionEx(appContext, list, appContext->wmpLastWordPos);
             pattern = (char *) new_malloc(WORDS_CACHE_SIZE);
-            ReadPattern(pattern);
+            ReadPattern(appContext, pattern);
             if (StrLen(pattern) > 0)
                 FldInsert(fld, pattern, StrLen(pattern));
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
@@ -1448,7 +1447,7 @@ Boolean FindPatternFormHandleEventThes(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
-                    CloseMatchingPatternDB();
+                    CloseMatchingPatternDB(appContext);
                     FrmReturnToForm(0);
                     handled = true;
                     break;
@@ -1458,10 +1457,10 @@ Boolean FindPatternFormHandleEventThes(EventType * event)
                     list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
                     pattern = FldGetTextPtr(fld);
                     if (pattern != NULL) {
-                        ClearMatchingPatternDB();
-                        WritePattern(pattern);
-                        FillMatchingPatternDB(pattern);
-                        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords());
+                        ClearMatchingPatternDB(appContext);
+                        WritePattern(appContext, pattern);
+                        FillMatchingPatternDB(appContext, pattern);
+                        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords(appContext));
                         LstSetDrawFunction(list, PatternListDrawFunc);
                         LstDrawList(list);
                     }
@@ -1486,8 +1485,8 @@ Boolean FindPatternFormHandleEventThes(EventType * event)
             break;
 
         case lstSelectEvent:
-            lastWordPos = gd.listItemOffset + (UInt32) event->data.lstSelect.selection;
-            ReadMatchingPatternRecord(lastWordPos, &gd.currentWord);
+            appContext->wmpLastWordPos = appContext->listItemOffset + (UInt32) event->data.lstSelect.selection;
+            ReadMatchingPatternRecord(appContext, appContext->wmpLastWordPos, &appContext->currentWord);
             SendNewWordSelected();
             FrmReturnToForm(0);
             return true;
@@ -1499,10 +1498,10 @@ Boolean FindPatternFormHandleEventThes(EventType * event)
     return handled;
 }
 
-static Boolean SelectDictFormDisplayChanged(FormType* frm) 
+static Boolean SelectDictFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         RectangleType newBounds;
         WinGetBounds(WinGetDisplayWindow(), &newBounds);
@@ -1513,27 +1512,29 @@ static Boolean SelectDictFormDisplayChanged(FormType* frm)
     return handled;
 }
 
-Boolean SelectDictFormHandleEventThes(EventType * event)
+static Boolean SelectDictFormHandleEventThes(EventType * event)
 {
     FormPtr     frm;
     ListPtr     list;
     long        selectedDb;
-
+    AppContext* appContext=GetAppContext();
+    Assert(appContext);
+    
     switch (event->eType)
     {
         case winDisplayChangedEvent:
-            return SelectDictFormDisplayChanged(frm=FrmGetActiveForm());
+            return SelectDictFormDisplayChanged(appContext, frm=FrmGetActiveForm());
             break;
 
         case frmOpenEvent:
-            selectedDb = FindCurrentDbIndex();
+            selectedDb = FindCurrentDbIndex(appContext);
             frm = FrmGetActiveForm();
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
             LstSetDrawFunction(list, ListDbDrawFunc);
-            LstSetListChoices(list, NULL, gd.dictsCount);
+            LstSetListChoices(list, NULL, appContext->dictsCount);
             LstSetSelection(list, selectedDb);
             LstMakeItemVisible(list, selectedDb);
-            if (NULL == GetCurrentFile())
+            if (NULL == GetCurrentFile(appContext))
                 FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
             else
                 FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
@@ -1556,19 +1557,19 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
                     return true;
 
                 case buttonCancel:
-                    Assert( NULL != GetCurrentFile() );
+                    Assert( NULL != GetCurrentFile(appContext) );
                     FrmReturnToForm(0);
                     return true;
 
                 case buttonRescanDicts:
-                    DictCurrentFree();
-                    FreeDicts();
+                    DictCurrentFree(appContext);
+                    FreeDicts(appContext);
                     // force scanning external memory for databases
-                    ScanForDictsThes(true);
+                    ScanForDictsThes(appContext, true);
                     frm = FrmGetActiveForm();
                     list =(ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
-                    LstSetListChoices(list, NULL, gd.dictsCount);
-                    if (0==gd.dictsCount)
+                    LstSetListChoices(list, NULL, appContext->dictsCount);
+                    if (0==appContext->dictsCount)
                     {
                         FrmHideObject(frm, FrmGetObjectIndex(frm, buttonSelect));
                         FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
@@ -1576,7 +1577,7 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
                     else
                     {
                         FrmShowObject(frm, FrmGetObjectIndex(frm, buttonSelect));
-                        if (NULL == GetCurrentFile())
+                        if (NULL == GetCurrentFile(appContext))
                             FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
                         else
                             FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
@@ -1596,22 +1597,22 @@ Boolean SelectDictFormHandleEventThes(EventType * event)
     return false;
 }
 
-void PrefsToGUI(FormType * frm)
+static void PrefsToGUI(AppContext* appContext, FormType * frm)
 {
     Assert(frm);
-    SetPopupLabel(frm, listStartupAction, popupStartupAction, gd.prefs.startupAction, (char *) sa_txt);
-    SetPopupLabel(frm, listStartupDB, popupStartupDB, gd.prefs.dbStartupAction, (char *) sdb_txt);
-    SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, gd.prefs.hwButtonScrollType, (char *) but_txt);
-    SetPopupLabel(frm, listTapAction, popupTapAction, gd.prefs.tapScrollType, (char *) tap_txt);
+    SetPopupLabel(frm, listStartupAction, popupStartupAction, appContext->prefs.startupAction);
+    SetPopupLabel(frm, listStartupDB, popupStartupDB, appContext->prefs.dbStartupAction);
+    SetPopupLabel(frm, listhwButtonsAction, popuphwButtonsAction, appContext->prefs.hwButtonScrollType);
+    SetPopupLabel(frm, listTapAction, popupTapAction, appContext->prefs.tapScrollType);
 #if 0
-    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), gd.prefs.fDelVfsCacheOnExit );
+    CtlSetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)), appContext->prefs.fDelVfsCacheOnExit );
 #endif
 }
 
-static Boolean PrefFormDisplayChanged(FormType* frm) 
+static Boolean PrefFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         UInt16 index=0;
         RectangleType newBounds;
@@ -1621,13 +1622,13 @@ static Boolean PrefFormDisplayChanged(FormType* frm)
         index=FrmGetObjectIndex(frm, buttonOk);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-13-newBounds.extent.y;
+        newBounds.topLeft.y=appContext->screenHeight-13-newBounds.extent.y;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonCancel);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-13-newBounds.extent.y;
+        newBounds.topLeft.y=appContext->screenHeight-13-newBounds.extent.y;
         FrmSetObjectBounds(frm, index, &newBounds);
         
         FrmDrawForm(frm);
@@ -1636,22 +1637,25 @@ static Boolean PrefFormDisplayChanged(FormType* frm)
     return handled;
 }
 
-Boolean PrefFormHandleEventThes(EventType * event)
+static Boolean PrefFormHandleEventThes(EventType * event)
 {
     Boolean     handled = false;
     FormType *  frm = NULL;
     ListType *  list = NULL;
     char *      listTxt = NULL;
+    AppContext* appContext=GetAppContext();
+    Assert(appContext);
+    
 
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case winDisplayChangedEvent:
-            handled=PrefFormDisplayChanged(frm);
+            handled=PrefFormDisplayChanged(appContext, frm);
             break;
 
         case frmOpenEvent:
-            PrefsToGUI(frm);
+            PrefsToGUI(appContext, frm);
             FrmDrawForm(frm);
             handled = true;
             break;
@@ -1662,24 +1666,20 @@ Boolean PrefFormHandleEventThes(EventType * event)
             switch (event->data.popSelect.listID)
             {
                 case listStartupAction:
-                    gd.prefs.startupAction = (StartupAction) event->data.popSelect.selection;
-                    MemMove(sa_txt, listTxt, StrLen(listTxt) + 1);
-                    CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm, popupStartupAction)), sa_txt);
+                    appContext->prefs.startupAction = (StartupAction) event->data.popSelect.selection;
+                    CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm, popupStartupAction)), listTxt);
                     break;
                 case listStartupDB:
-                    gd.prefs.dbStartupAction = event->data.popSelect.selection;
-                    MemMove(sdb_txt,listTxt,StrLen(listTxt)+1);
-                    CtlSetLabel(FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupDB)),sdb_txt);
+                    appContext->prefs.dbStartupAction = event->data.popSelect.selection;
+                    CtlSetLabel(FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupStartupDB)), listTxt);
                     break;
                 case listhwButtonsAction:
-                    gd.prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
-                    MemMove(but_txt, listTxt, StrLen(listTxt) + 1);
-                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popuphwButtonsAction)), but_txt);
+                    appContext->prefs.hwButtonScrollType = (ScrollType) event->data.popSelect.selection;
+                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popuphwButtonsAction)), listTxt);
                     break;
                 case listTapAction:
-                    gd.prefs.tapScrollType = (ScrollType) event->data.popSelect.selection;
-                    MemMove(tap_txt, listTxt, StrLen(listTxt) + 1);
-                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupTapAction)), tap_txt);
+                    appContext->prefs.tapScrollType = (ScrollType) event->data.popSelect.selection;
+                    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupTapAction)), listTxt);
                     break;
                 default:
                     Assert(0);
@@ -1699,7 +1699,7 @@ Boolean PrefFormHandleEventThes(EventType * event)
                     handled = false;
                     break;
                 case buttonOk:
-                    SavePreferencesThes();
+                    SavePreferencesThes(appContext);
                     // pass through
                 case buttonCancel:
                     FrmReturnToForm(0);
@@ -1707,7 +1707,7 @@ Boolean PrefFormHandleEventThes(EventType * event)
                     break;
 #if 0
                 case checkDeleteVfs:
-                    gd.prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
+                    appContext->prefs.fDelVfsCacheOnExit = CtlGetValue((ControlType *)FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, checkDeleteVfs)));
                     break;
 #endif
                 default:
@@ -1722,7 +1722,7 @@ Boolean PrefFormHandleEventThes(EventType * event)
     return handled;
 }
 
-Boolean HandleEventThes(EventType * event)
+static Boolean HandleEventThes(AppContext* appContext, EventType * event)
 {
     FormPtr frm;
     UInt16 formId;
@@ -1734,7 +1734,7 @@ Boolean HandleEventThes(EventType * event)
         formId = event->data.frmLoad.formID;
         frm = FrmInitForm(formId);
         FrmSetActiveForm(frm);
-        error=DefaultFormInit(frm);
+        error=DefaultFormInit(appContext, frm);
 
         switch (formId)
         {
@@ -1746,10 +1746,6 @@ Boolean HandleEventThes(EventType * event)
             FrmSetEventHandler(frm, FindFormHandleEventThes);
             handled = true;
             break;
-        case formDictFindPattern:
-            FrmSetEventHandler(frm, FindPatternFormHandleEventThes);
-            handled = true;
-            break;
         case formSelectDict:
             FrmSetEventHandler(frm, SelectDictFormHandleEventThes);
             handled = true;
@@ -1758,6 +1754,11 @@ Boolean HandleEventThes(EventType * event)
             FrmSetEventHandler(frm, PrefFormHandleEventThes);
             handled = true;
             break;
+        case formDictFindPattern:
+            FrmSetEventHandler(frm, FindPatternFormHandleEventThes);
+            handled = true;
+            break;
+            
         default:
             Assert(0);
             handled = false;
@@ -1768,7 +1769,7 @@ Boolean HandleEventThes(EventType * event)
     return handled;
 }
 
-void EventLoopThes(void)
+static void EventLoopThes(AppContext* appContext)
 {
     EventType event;
     Word error;
@@ -1776,41 +1777,94 @@ void EventLoopThes(void)
     event.eType = (eventsEnum) 0;
     while (event.eType != appStopEvent)
     {
-        EvtGetEvent(&event, gd.ticksEventTimeout);
+        EvtGetEvent(&event, appContext->ticksEventTimeout);
         if (SysHandleEvent(&event))
             continue;
         if (MenuHandleEvent(0, &event, &error))
             continue;
-        if (HandleEventThes(&event))
+        if (HandleEventThes(appContext, &event))
             continue;
         FrmDispatchEvent(&event);
     }
 }
 
+
+    Err AppPerformResidentLookup(Char* term)
+    {
+        Err error=errNone;
+        AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
+        AbstractFile *  chosenDb=NULL;
+        long wordNo=0;
+        if (!appContext)
+        {
+            error=memErrNotEnoughSpace;
+            goto OnError;
+        }
+        error=AppCommonInit(appContext);
+        RemoveNonexistingDatabases(appContext);
+        ScanForDictsThes(appContext, false);
+        if (0 == appContext->dictsCount)
+            FrmAlert(alertNoDB);
+        else
+        {
+            if (1 == appContext->dictsCount )
+                chosenDb = appContext->dicts[0];
+            else 
+            {            
+                // because we can't start resident mode without previously gracefully exiting at least one time
+                Assert(appContext->prefs.lastDbUsedName); 
+                chosenDb=FindOpenDatabase(appContext, appContext->prefs.lastDbUsedName);
+            }            
+            if (!chosenDb || !DictInit(appContext, chosenDb))
+                FrmAlert(alertDbFailed);
+            else 
+            {
+                appContext->currentWord=dictGetFirstMatching(chosenDb, term);
+                error=PopupResidentLookupForm(appContext);
+            }          
+        }
+        AppCommonFree(appContext);
+    OnError:
+        if (appContext)
+            MemPtrFree(appContext);
+        return error;
+    }
+
+static Err AppLaunch() 
+{
+    Err error=errNone;
+    AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
+    if (!appContext)
+    {
+        error=!errNone;
+        goto OnError;
+    }     
+    error=InitThesaurus(appContext);
+    if (error) 
+        goto OnError;
+    FrmGotoForm(formDictMain);
+    EventLoopThes(appContext);
+    StopThesaurus(appContext);
+OnError: 
+    if (appContext) 
+        MemPtrFree(appContext);
+    return error;
+}
+
 DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
 {
-    Err err;
-
+    Err err=errNone;
     switch (cmd)
     {
     case sysAppLaunchCmdNormalLaunch:
-        err = InitThesaurus();
-        if ( errNone != err )
-            return err;
-        FrmGotoForm(formDictMain);
-        EventLoopThes();
-        StopThesaurus();
+        err=AppLaunch();
         break;
         
-// 2003-11-25 andrzejc DynamicInputArea     
     case sysAppLaunchCmdNotify:
         AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
         break;
-        
-    default:
-        break;
     }
 
-    return 0;
+    return err;
 }
 

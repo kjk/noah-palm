@@ -2,10 +2,10 @@
   Copyright (C) 2000-2003 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
-#include <PalmCompatibility.h>
-#include "noah_lite.h"
-#include "display_info.h"
-#include "wn_lite_ex_support.h"
+ 
+#include "common.h"
+#include "five_way_nav.h"
+#include "word_matching_pattern.h"
 
 #define MAX_WORD_LABEL_LEN 18
 
@@ -14,135 +14,149 @@
 static char wait_str[] = "Searching...";
 #endif
 
-GlobalData gd;
-
-void DictCurrentFree(void)
+static void DictCurrentFree(AppContext* appContext)
 {
     // TODO: SavePreferences();
-    dictDelete();
-    if ( NULL != GetCurrentFile() )
+    AbstractFile* file=GetCurrentFile(appContext);
+    if ( NULL != file )
     {
-        FsFileClose( GetCurrentFile() );
-        SetCurrentFile(NULL);
+        dictDelete(file);
+        FsFileClose( file );
+        SetCurrentFile(appContext, NULL);
     }
 }
 
-Boolean DictInit(AbstractFile *file)
+static Boolean DictInit(AppContext* appContext, AbstractFile *file)
 {
-    if ( !FsFileOpen( file ) )
+    if ( !FsFileOpen(appContext, file ) )
     {
         LogV1( "DictInit(%s), FsFileOpen() failed", file->fileName );
         return false;
     }
 
-    if ( !dictNew() )
+    if ( !dictNew(file) )
     {
         LogV1( "DictInit(%s), FsFileOpen() failed", file->fileName );
         return false;
     }
 
     // TODO: save last used database in preferences
-    gd.wordsCount = dictGetWordsCount();
-    gd.currentWord = 0;
-    gd.listItemOffset = 0;
+    appContext->wordsCount = dictGetWordsCount(file);
+    appContext->currentWord = 0;
+    appContext->listItemOffset = 0;
     LogV1( "DictInit(%s) ok", file->fileName );
     return true;
 }
 
-void StopNoahLite()
+static void StopNoahLite(AppContext* appContext)
 {
     Err error=errNone;
-    DictCurrentFree();
-    FreeDicts();
-    FreeInfoData();
+    DictCurrentFree(appContext);
+    FreeDicts(appContext);
+    FreeInfoData(appContext);
 
-// 2003-11-28 andrzejc DynamicInputArea
-    error=DIA_Free(&gd.diaSettings);
+    error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
 
-    CloseMatchingPatternDB();
+    CloseMatchingPatternDB(appContext);
 
     FrmSaveAllForms();
     FrmCloseAllForms();
-    FsDeinit();
+    FsDeinit(&appContext->fsSettings);
 }
 
-Err InitNoahLite(void)
+static Err InitNoahLite(AppContext* appContext)
 {
     Err error=errNone;
     UInt32 value=0;
-    MemSet((void *) &gd, sizeof(GlobalData), 0);
-    LogInit( &g_Log, "c:\\noah_lite_log.txt" );
+    Boolean res=false;
+    MemSet(appContext, sizeof(*appContext), 0);
+    error=FtrSet(APP_CREATOR, appFtrContext, (UInt32)appContext);
+    if (error) 
+        goto OnError;
+    error=FtrSet(APP_CREATOR, appFtrLeaksFile, 0);
+    if (error) 
+        goto OnError;
+    
+    LogInit( appContext, "c:\\noah_pro_log.txt" );
+    InitFiveWay(appContext);
 
-    InitFiveWay();
-
-    SetCurrentFile(NULL);
-
-    gd.penUpsToConsume = 0;
-    gd.selectedWord = 0;
-    gd.prevSelectedWord = 0xfffff;
+    appContext->penUpsToConsume = 0;
+    appContext->selectedWord = 0;
+    appContext->prevSelectedWord = 0xfffff;
     // disable getting nilEvent
-    gd.ticksEventTimeout = evtWaitForever;
+    appContext->ticksEventTimeout = evtWaitForever;
 #ifdef DEBUG
-    gd.currentStressWord = 0;
+    appContext->currentStressWord = 0;
 #endif
 
-// 2003-11-26 andrzejc DynamicInputArea
-    SyncScreenSize();
-// define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
-#ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
-    error=DIA_Init(&gd.diaSettings);
-    if (error) return error;
-#endif  
-
-    FsInit();
+    SyncScreenSize(appContext);
+    FsInit(&appContext->fsSettings);
 
     // UNDONE: LoadPreferences()
 
-    if (!CreateHelpData())
-        return !errNone;
+    res=CreateHelpData(appContext);
+    Assert(res);
 
-    return errNone;
+// define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
+#ifndef _DONT_DO_HANDLE_DYNAMIC_INPUT_
+    error=DIA_Init(&appContext->diaSettings);
+#endif  
+
+OnError:
+    return error;
 }
 
-void DisplayAbout(void)
+void DisplayAbout(AppContext* appContext)
 {
-    ClearDisplayRectangle();
+    UInt16 currentY=0;
+    WinPushDrawState();
+    ClearDisplayRectangle(appContext);
     HideScrollbar();
-
-    dh_set_current_y(7);
-
-    dh_save_font();
-    dh_display_string("Noah Lite", 2, 16);
+    
+    currentY=7;
+    FntSetFont(largeFont);
+    DrawCenteredString(appContext, "Noah Lite", currentY);
+    currentY+=16;
+    
 #ifdef DEBUG
-    dh_display_string("Ver 1.0 (debug)", 2, 20);
+    DrawCenteredString(appContext, "Ver 1.0 (debug)", currentY);
 #else
-    dh_display_string("Ver 1.0", 2, 20);
+    DrawCenteredString(appContext, "Ver 1.0", currentY);
 #endif
-    dh_display_string("(C) 2000-2003 ArsLexis", 1, 24);
-    dh_display_string("get Noah Pro at:", 2, 20);
-    dh_display_string("http://www.arslexis.com", 2, 0);
+    currentY+=20;
+    
+    FntSetFont(boldFont);
+    DrawCenteredString(appContext, "(C) 2000-2003 ArsLexis", currentY);
+    currentY+=24;
+    
+    FntSetFont(largeFont);
+    DrawCenteredString(appContext, "get Noah Pro at:", currentY);
+    currentY+=20;
+    DrawCenteredString(appContext, "http://www.arslexis.com", currentY);
 
-    dh_restore_font();
+    WinPopDrawState();    
 }
 
-void DictFoundCBNoahLite( AbstractFile *file )
+static void DictFoundCBNoahLite(void * context, AbstractFile *file )
 {
+    AppContext* appContext=(AppContext*)context;
+    Assert(appContext);
     Assert( file );
     Assert(NOAH_LITE_CREATOR == file->creator);
     Assert(WORDNET_LITE_TYPE == file->type);
 
-    if (gd.dictsCount>=MAX_DICTS)
+    if (appContext->dictsCount>=MAX_DICTS)
     {
         AbstractFileFree(file);
         return;
     }
 
-    gd.dicts[gd.dictsCount++] = file;
+    appContext->dicts[appContext->dictsCount++] = file;
 }
 
 /* called for every file on the external card */
-void VfsFindCbNoahLite( AbstractFile *file )
+static void VfsFindCbNoahLite(void* context, AbstractFile *file )
 {
     AbstractFile *fileCopy;
 
@@ -165,41 +179,41 @@ void VfsFindCbNoahLite( AbstractFile *file )
     fileCopy = AbstractFileNewFull( file->fsType, file->creator, file->type, file->fileName );
     if ( NULL == fileCopy ) return;
     fileCopy->volRef = file->volRef;
-    DictFoundCBNoahLite( fileCopy );
+    DictFoundCBNoahLite( context, fileCopy );
 }
 
 
-void ScanForDictsNoahLite(void)
+static void ScanForDictsNoahLite(AppContext* appContext)
 {
-    FsMemFindDb( NOAH_LITE_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahLite );
+    FsMemFindDb( NOAH_LITE_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahLite, appContext);
     /* TODO: optimize by just looking in a few specific places like "/", "/Palm",
     "/Palm/Launcher", "xx/msfiles/xx" ? */
-    FsVfsFindDb( &VfsFindCbNoahLite );
+    FsVfsFindDb(&appContext->fsSettings, &VfsFindCbNoahLite, appContext);
 }
 
-static Boolean MainFormDisplayChanged(FormType* frm) 
+static Boolean MainFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         UInt16 index=0;
         RectangleType newBounds;
         WinGetBounds(WinGetDisplayWindow(), &newBounds);
         WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
         
-        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
-        FrmSetObjectBoundsByID(frm, scrollDef, gd.screenWidth-8, 1, 7, gd.screenHeight-18);
-        FrmSetObjectBoundsByID(frm, bmpFind, gd.screenWidth-13, gd.screenHeight-13, 13, 13);
-        FrmSetObjectBoundsByID(frm, buttonFind, gd.screenWidth-14, gd.screenHeight-14, 14, 14);
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
+        FrmSetObjectBoundsByID(frm, scrollDef, appContext->screenWidth-8, 1, 7, appContext->screenHeight-18);
+        FrmSetObjectBoundsByID(frm, bmpFind, appContext->screenWidth-13, appContext->screenHeight-13, 13, 13);
+        FrmSetObjectBoundsByID(frm, buttonFind, appContext->screenWidth-14, appContext->screenHeight-14, 14, 14);
 
-        RedrawMainScreen();
+        RedrawMainScreen(appContext);
         handled=true;
     }
     return handled;
 }
 
-Boolean MainFormHandleEventNoahLite(EventType * event)
+static Boolean MainFormHandleEventNoahLite(EventType * event)
 {
     Boolean         handled = false;
     FormType        *frm;
@@ -208,65 +222,60 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
     int             dbsInInternalMemory;
     int             dbsOnExternalCard;
     int             i;
-    EventType       newEvent;
+    AppContext* appContext=GetAppContext();
 
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case winEnterEvent:
             // workaround for probable Sony CLIE's bug that causes only part of screen to be repainted on return from PopUps
-            if (DIA_HasSonySilkLib(&gd.diaSettings) && frm==(void*)((SysEventType*)event)->data.winEnter.enterWindow)
-                RedrawMainScreen();
+            if (DIA_HasSonySilkLib(&appContext->diaSettings) && frm==(void*)((SysEventType*)event)->data.winEnter.enterWindow)
+                RedrawMainScreen(appContext);
             break;
 
         case winDisplayChangedEvent:
-            handled= MainFormDisplayChanged(frm);
+            handled= MainFormDisplayChanged(appContext, frm);
             break;
             
         case frmUpdateEvent:
             LogG( "mainFrm - frmUpdateEvent" );
-            RedrawMainScreen();
+            RedrawMainScreen(appContext);
             return true;
 
         case frmOpenEvent:
             FrmDrawForm(frm);
 
-// 2003-11-28 andrzejc DynamicInputArea  
-//            WinDrawLine(0, 145, 160, 145);
-//            WinDrawLine(0, 144, 160, 144);
-            WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
-            WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
 
-            ScanForDictsNoahLite();
-            if ( 0 == gd.dictsCount )
+            ScanForDictsNoahLite(appContext);
+            if ( 0 == appContext->dictsCount )
             {
     NoDatabaseFound:
                 FrmAlert(alertNoDB);
     ExitProgram:
-                MemSet(&newEvent, sizeof(EventType), 0);
-                newEvent.eType = appStopEvent;
-                EvtAddEventToQueue(&newEvent);
+                SendStopEvent();
                 return true;
             }
 
             dbsInInternalMemory = 0;
             dbsOnExternalCard = 0;
-            for (i=0; i<gd.dictsCount; i++)
+            for (i=0; i<appContext->dictsCount; i++)
             {
-                if ( eFS_MEM == gd.dicts[i]->fsType )
+                if ( eFS_MEM == appContext->dicts[i]->fsType )
                 {
                     ++dbsInInternalMemory;
                 }
                 else
                 {
-                    Assert( eFS_VFS == gd.dicts[i]->fsType );
+                    Assert( eFS_VFS == appContext->dicts[i]->fsType );
                     ++dbsOnExternalCard;
                 }
             }
             if (0==dbsInInternalMemory)
             {
                 Assert( dbsOnExternalCard > 0 );
-                Assert( dbsOnExternalCard + dbsInInternalMemory == gd.dictsCount );
+                Assert( dbsOnExternalCard + dbsInInternalMemory == appContext->dictsCount );
                 FrmAlert(alertNoInternalDB);
                 goto ExitProgram;
             }
@@ -274,10 +283,10 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             // TODO: select database if > 1 (but we want to only allow one anyway)
             fileToOpen = NULL;
             i = 0;
-            while ( (i<gd.dictsCount) && (fileToOpen == NULL) )
+            while ( (i<appContext->dictsCount) && (fileToOpen == NULL) )
             {
-                if ( eFS_MEM == gd.dicts[i]->fsType )
-                    fileToOpen = gd.dicts[i];
+                if ( eFS_MEM == appContext->dicts[i]->fsType )
+                    fileToOpen = appContext->dicts[i];
                 ++i;
             }
 
@@ -285,18 +294,18 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             if ( NULL == fileToOpen )
                 goto NoDatabaseFound;
 
-            if ( !DictInit(fileToOpen) )
+            if ( !DictInit(appContext, fileToOpen) )
             {
                 FrmAlert(alertDbFailed);
                 goto ExitProgram;
             }
 
-            DisplayAbout();
+            DisplayAbout(appContext);
 #if 0
             /* start the timer, so we'll switch to info
                text after a few seconds */
-            gd.start_seconds_count = TimGetSeconds();
-            gd.current_timeout = 50;
+            appContext->start_seconds_count = TimGetSeconds();
+            appContext->current_timeout = 50;
 #endif
             handled = true;
             break;
@@ -305,12 +314,12 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case ctlArrowLeft:
-                    if (gd.currentWord > 0)
-                        DrawDescription(gd.currentWord - 1);
+                    if (appContext->currentWord > 0)
+                        DrawDescription(appContext, appContext->currentWord - 1);
                     break;
                 case ctlArrowRight:
-                    if (gd.currentWord < gd.wordsCount - 1)
-                        DrawDescription(gd.currentWord + 1);
+                    if (appContext->currentWord < appContext->wordsCount - 1)
+                        DrawDescription(appContext, appContext->currentWord + 1);
                     break;
                 case buttonFind:
                     FrmPopupForm(formDictFind);
@@ -323,61 +332,61 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             break;
 
         case evtNewWordSelected:
-            DrawDescription(gd.currentWord);
-            gd.penUpsToConsume = 1;
+            DrawDescription(appContext, appContext->currentWord);
+            appContext->penUpsToConsume = 1;
             handled = true;
             break;
 
         case evtNewDatabaseSelected:
-            DisplayAbout();
+            DisplayAbout(appContext);
             /* start the timer, so we'll switch to info
                text after a few seconds */
-    /*      gd.start_seconds_count = TimGetSeconds();
-          gd.current_       timeout = 50; */
+    /*      appContext->start_seconds_count = TimGetSeconds();
+          appContext->current_       timeout = 50; */
             handled = true;
             break;      
 
         case keyDownEvent:
-            if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
+            if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
             {
-                if (FiveWayCenterPressed(event))
+                if (FiveWayCenterPressed(appContext, event))
                 {
                     FrmPopupForm(formDictFind);
                 }
-                if (FiveWayDirectionPressed( event, Left ))
+                if (FiveWayDirectionPressed(appContext, event, Left ))
                 {
-                    if (gd.currentWord > 0)
-                        DrawDescription(gd.currentWord - 1);
+                    if (appContext->currentWord > 0)
+                        DrawDescription(appContext, appContext->currentWord - 1);
                 }
-                if (FiveWayDirectionPressed( event, Right ))
+                if (FiveWayDirectionPressed(appContext, event, Right ))
                 {
-                    if (gd.currentWord < gd.wordsCount - 1)
-                        DrawDescription(gd.currentWord + 1);
+                    if (appContext->currentWord < appContext->wordsCount - 1)
+                        DrawDescription(appContext, appContext->currentWord + 1);
                 }
-                if (FiveWayDirectionPressed( event, Up ))
+                if (FiveWayDirectionPressed(appContext, event, Up ))
                 {
-                    DefScrollUp( scrollLine );
+                    DefScrollUp(appContext, scrollLine );
                 }
-                if (FiveWayDirectionPressed( event, Down ))
+                if (FiveWayDirectionPressed(appContext, event, Down ))
                 {
-                    DefScrollDown( scrollLine );
+                    DefScrollDown(appContext, scrollLine );
                 }
                 return false;
             }
             else if (pageUpChr == event->data.keyDown.chr)
             {
-                DefScrollUp( scrollLine );
+                DefScrollUp(appContext, scrollLine );
             }
             else if (pageDownChr == event->data.keyDown.chr)
             {
-                DefScrollDown( scrollLine );
+                DefScrollDown(appContext, scrollLine );
             }
             else if (((event->data.keyDown.chr >= 'a')  && (event->data.keyDown.chr <= 'z'))
                      || ((event->data.keyDown.chr >= 'A') && (event->data.keyDown.chr <= 'Z'))
                      || ((event->data.keyDown.chr >= '0') && (event->data.keyDown.chr <= '9')))
             {
-                gd.lastWord[0] = event->data.keyDown.chr;
-                gd.lastWord[1] = 0;
+                appContext->lastWord[0] = event->data.keyDown.chr;
+                appContext->lastWord[1] = 0;
                 FrmPopupForm(formDictFind);
             }        
             handled = true;
@@ -385,37 +394,35 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
 
         case sclExitEvent:
             newValue = event->data.sclRepeat.newValue;
-            if (newValue != gd.firstDispLine)
+            if (newValue != appContext->firstDispLine)
             {
-                ClearDisplayRectangle();
-                gd.firstDispLine = newValue;
-                DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
+                ClearDisplayRectangle(appContext);
+                appContext->firstDispLine = newValue;
+                DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
             }
             handled = true;
             break;
 
         case penUpEvent:
-            if (0 != gd.penUpsToConsume > 0)
+            if (0 != appContext->penUpsToConsume > 0)
             {
-                --gd.penUpsToConsume;
+                --appContext->penUpsToConsume;
                 handled = true;
                 break;
             }
-// 2003-11-28 andrzejc DynamicInputArea
-//            if ((NULL == gd.currDispInfo) || (event->screenX > 150) || (event->screenY > 144))
-            if ((NULL == gd.currDispInfo) || (event->screenX > gd.screenWidth-FRM_RSV_W) || (event->screenY > gd.screenHeight-FRM_RSV_H))
+            if ((NULL == appContext->currDispInfo) || (event->screenX > appContext->screenWidth-FRM_RSV_W) || (event->screenY > appContext->screenHeight-FRM_RSV_H))
             {
                 handled = true;
                 break;
             }
 
-            if (event->screenY > 87)
+            if (event->screenY > (appContext->screenHeight-FRM_RSV_H)/2)
             {
-                DefScrollDown( scrollLine );
+                DefScrollDown(appContext, scrollLine );
             }
             else
             {
-                DefScrollUp( scrollLine );
+                DefScrollUp(appContext, scrollLine );
             }
             handled = true;
             break;
@@ -429,25 +436,25 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
                     FrmPopupForm(formDictFindPattern);
                     break;
                 case menuItemAbout:
-                    if (NULL != gd.currDispInfo)
+                    if (NULL != appContext->currDispInfo)
                     {
-                        diFree(gd.currDispInfo);
-                        gd.currDispInfo = NULL;
-                        gd.currentWord = 0;
+                        diFree(appContext->currDispInfo);
+                        appContext->currDispInfo = NULL;
+                        appContext->currentWord = 0;
                     }
-                    DisplayAbout();
+                    DisplayAbout(appContext);
                     break;
 #ifdef DEBUG
                 case menuItemStress:
                     // initiate stress i.e. going through all the words
                     // 0 means that stress is not in progress
-                    gd.currentStressWord = -1;
+                    appContext->currentStressWord = -1;
                     // get nilEvents as fast as possible
-                    gd.ticksEventTimeout = 0;
+                    appContext->ticksEventTimeout = 0;
                     break;
 #endif
                 case menuItemHelp:
-                    DisplayHelp();
+                    DisplayHelp(appContext);
                     break;
 #if 0
                 case menuItemSelectDB:
@@ -462,17 +469,17 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             break;
         case nilEvent:
 #ifdef DEBUG
-            if ( 0 != gd.currentStressWord )
+            if ( 0 != appContext->currentStressWord )
             {
-                if ( -1 == gd.currentStressWord )
-                    gd.currentStressWord = 0;
-                DrawDescription(gd.currentStressWord++);
-                if (gd.currentStressWord==dictGetWordsCount())
+                if ( -1 == appContext->currentStressWord )
+                    appContext->currentStressWord = 0;
+                DrawDescription(appContext, appContext->currentStressWord++);
+                if (appContext->currentStressWord==dictGetWordsCount(GetCurrentFile(appContext)))
                 {
                     // disable running the stress
-                    gd.currentStressWord = 0;
+                    appContext->currentStressWord = 0;
                     // disable getting nilEvent
-                    gd.ticksEventTimeout = evtWaitForever;
+                    appContext->ticksEventTimeout = evtWaitForever;
                 }
             }
 #endif
@@ -481,25 +488,25 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
 
 #ifdef NEVER
         case nilEvent:
-            if (-1 != gd.start_seconds_count)
+            if (-1 != appContext->start_seconds_count)
             {
                 /* we're still displaying About info, check
                    if it's time to switch to info */
-                Assert(gd.start_seconds_count <= TimGetSeconds());
-                if (NULL == gd.currDispInfo)
+                Assert(appContext->start_seconds_count <= TimGetSeconds());
+                if (NULL == appContext->currDispInfo)
                 {
-                    if (TimGetSeconds() - gd.start_seconds_count > 5)
+                    if (TimGetSeconds() - appContext->start_seconds_count > 5)
                     {
                         DisplayHelp();
                         /* we don't nid evtNil events anymore */
-                        gd.start_seconds_count = -1;
-                        gd.current_timeout = -1;
+                        appContext->start_seconds_count = -1;
+                        appContext->current_timeout = -1;
                     }
                 }
                 else
                 {
-                    gd.start_seconds_count = -1;
-                    gd.current_timeout = -1;
+                    appContext->start_seconds_count = -1;
+                    appContext->current_timeout = -1;
                 }
             }
             handled = true;
@@ -511,12 +518,10 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
     return handled;
 }
 
-//#define WORDS_IN_LIST 12
-
-static Boolean FindFormDisplayChanged(FormType* frm) 
+static Boolean FindFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         UInt16 index=0;
         ListType* list=0;
@@ -524,30 +529,30 @@ static Boolean FindFormDisplayChanged(FormType* frm)
         WinGetBounds(WinGetDisplayWindow(), &newBounds);
         WinSetBounds(FrmGetWindowHandle(frm), &newBounds);
 
-        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, gd.screenHeight-12, 8, 11);
-        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, gd.screenHeight-12, 10, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowLeft, 0, appContext->screenHeight-12, 8, 11);
+        FrmSetObjectBoundsByID(frm, ctlArrowRight, 8, appContext->screenHeight-12, 10, 11);
         
         index=FrmGetObjectIndex(frm, listMatching);
         Assert(index!=frmInvalidObjectId);
         list=(ListType*)FrmGetObjectPtr(frm, index);
         Assert(list);
-        LstSetHeight(list, gd.dispLinesCount);
+        LstSetHeight(list, appContext->dispLinesCount);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.extent.x=gd.screenWidth;
+        newBounds.extent.x=appContext->screenWidth;
         FrmSetObjectBounds(frm, index, &newBounds);
         
         index=FrmGetObjectIndex(frm, fieldWord);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-13;
-        newBounds.extent.x=gd.screenWidth-66;
+        newBounds.topLeft.y=appContext->screenHeight-13;
+        newBounds.extent.x=appContext->screenWidth-66;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonCancel);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.x=gd.screenWidth-40;
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.x=appContext->screenWidth-40;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         FrmDrawForm(frm);
@@ -557,35 +562,36 @@ static Boolean FindFormDisplayChanged(FormType* frm)
 }
 
 
-Boolean FindFormHandleEventNoahLite(EventType * event)
+static Boolean FindFormHandleEventNoahLite(EventType * event)
 {
     Boolean     handled = false;
     char *      word;
     FormPtr     frm;
     FieldPtr    fld;
     ListPtr     list;
-
+    AppContext* appContext=GetAppContext();
+    
     frm = FrmGetActiveForm();
     switch (event->eType)
     {
         case winDisplayChangedEvent:
-            handled= FindFormDisplayChanged(frm);
+            handled= FindFormDisplayChanged(appContext, frm);
             break;
                         
         case frmOpenEvent:
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
             list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-            gd.prevSelectedWord = 0xffffffff;
-            LstSetListChoicesEx(list, NULL, dictGetWordsCount());
+            appContext->prevSelectedWord = 0xffffffff;
+            LstSetListChoicesEx(list, NULL, dictGetWordsCount(GetCurrentFile(appContext)));
             LstSetDrawFunction(list, ListDrawFunc);
-            gd.prevTopItem = 0;
-            gd.selectedWord = 0;
-            word = &(gd.lastWord[0]);
+            appContext->prevTopItem = 0;
+            appContext->selectedWord = 0;
+            word = &(appContext->lastWord[0]);
             /* force updating the field */
             if (0 == StrLen(word))
             {
                 // no word so focus on first word
-                LstSetSelectionEx(list, gd.selectedWord);
+                LstSetSelectionEx(appContext, list, appContext->selectedWord);
             }
             else
             {
@@ -600,13 +606,13 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
         case lstSelectEvent:
             /* copy word from text field to a buffer, so next time we
                come back here, we'll come back to the same place */
-            RememberLastWord(frm);
+            RememberLastWord(appContext, frm);
             /* set the selected word as current word */
-            gd.currentWord = gd.listItemOffset + (long) event->data.lstSelect.selection;
+            appContext->currentWord = appContext->listItemOffset + (long) event->data.lstSelect.selection;
             /* send a msg to yourself telling that a new word
                have been selected so we need to draw the
                description */
-            Assert(gd.currentWord < gd.wordsCount);
+            Assert(appContext->currentWord < appContext->wordsCount);
             SendNewWordSelected();
             handled = true;
             FrmReturnToForm(0);
@@ -623,60 +629,61 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
             {
                 case returnChr:
                 case linefeedChr:
-                    RememberLastWord(frm);
-                    gd.currentWord = gd.selectedWord;
-                    Assert(gd.currentWord < gd.wordsCount);
+                    RememberLastWord(appContext, frm);
+                    appContext->currentWord = appContext->selectedWord;
+                    Assert(appContext->currentWord < appContext->wordsCount);
                     SendNewWordSelected();
                     FrmReturnToForm(0);
                     return true;
 
                 case pageUpChr:
-                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
                     {
-                        ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
+                        ScrollWordListByDx(appContext, frm, -(appContext->dispLinesCount-1) );
                         return true;
                     }
                 
                 case pageDownChr:
-                    if ( ! (HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) ) )
+                    if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
                     {
-                        ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
+                        ScrollWordListByDx(appContext, frm, (appContext->dispLinesCount-1) );
                         return true;
                     }
 
                 default:
-                    if ( HaveFiveWay() && EvtKeydownIsVirtual(event) && IsFiveWayEvent(event) )
+                    if ( HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) )
                     {
-                        if (FiveWayCenterPressed(event))
+                        if (FiveWayCenterPressed(appContext, event))
                         {
-                            RememberLastWord(frm);
-                            gd.currentWord = gd.selectedWord;
-                            Assert(gd.currentWord < gd.wordsCount);
+                            RememberLastWord(appContext, frm);
+                            appContext->currentWord = appContext->selectedWord;
+                            Assert(appContext->currentWord < appContext->wordsCount);
                             SendNewWordSelected();
                             FrmReturnToForm(0);
                             return true;
                         }
                     
-                        if (FiveWayDirectionPressed( event, Left ))
+                        if (FiveWayDirectionPressed(appContext, event, Left ))
                         {
-                            ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
+                            ScrollWordListByDx(appContext, frm, -(appContext->dispLinesCount-1) );
                             return true;
                         }
-                        if (FiveWayDirectionPressed( event, Right ))
+                        if (FiveWayDirectionPressed(appContext, event, Right ))
                         {
-                            ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
+                            ScrollWordListByDx(appContext, frm, (appContext->dispLinesCount-1) );
                             return true;
                         }
-                        if (FiveWayDirectionPressed( event, Up ))
+                        if (FiveWayDirectionPressed(appContext, event, Up ))
                         {
-                            ScrollWordListByDx( frm, -1 );
+                            ScrollWordListByDx(appContext, frm, -1 );
                             return true;
                         }
-                        if (FiveWayDirectionPressed( event, Down ))
+                        if (FiveWayDirectionPressed(appContext, event, Down ))
                         {
-                            ScrollWordListByDx( frm, 1 );
+                            ScrollWordListByDx(appContext, frm, 1 );
                             return true;
-                        }                        return false;
+                        }
+                        return false;
                     }
                     break;
             }
@@ -685,21 +692,21 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
             break;
 
         case evtFieldChanged:
-            DoFieldChanged();
+            DoFieldChanged(appContext);
             return true;
 
         case ctlSelectEvent:
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
-                    RememberLastWord(frm);
+                    RememberLastWord(appContext, frm);
                     FrmReturnToForm(0);
                     break;
                 case ctlArrowLeft:
-                    ScrollWordListByDx( frm, -(gd.dispLinesCount-1) );
+                    ScrollWordListByDx(appContext, frm, -(appContext->dispLinesCount-1) );
                     break;
                 case ctlArrowRight:
-                    ScrollWordListByDx( frm, (gd.dispLinesCount-1) );
+                    ScrollWordListByDx(appContext, frm, (appContext->dispLinesCount-1) );
                     break;
                 default:
                     Assert(0);
@@ -714,10 +721,10 @@ Boolean FindFormHandleEventNoahLite(EventType * event)
 }
 
 // Event handler proc for the find word using pattern dialog
-static Boolean FindPatternFormDisplayChanged(FormType* frm) 
+static Boolean FindPatternFormDisplayChanged(AppContext* appContext, FormType* frm) 
 {
     Boolean handled=false;
-    if (DIA_Supported(&gd.diaSettings))
+    if (DIA_Supported(&appContext->diaSettings))
     {
         UInt16 index=0;
         ListType* list=0;
@@ -729,39 +736,39 @@ static Boolean FindPatternFormDisplayChanged(FormType* frm)
         Assert(index!=frmInvalidObjectId);
         list=(ListType*)FrmGetObjectPtr(frm, index);
         Assert(list);
-        LstSetHeight(list, gd.dispLinesCount);
+        LstSetHeight(list, appContext->dispLinesCount);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.extent.x=gd.screenWidth;
+        newBounds.extent.x=appContext->screenWidth;
         FrmSetObjectBounds(frm, index, &newBounds);
         
         index=FrmGetObjectIndex(frm, fieldWord);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonFind);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonCancel);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonOneChar);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         index=FrmGetObjectIndex(frm, buttonAnyChar);
         Assert(index!=frmInvalidObjectId);
         FrmGetObjectBounds(frm, index, &newBounds);
-        newBounds.topLeft.y=gd.screenHeight-14;
+        newBounds.topLeft.y=appContext->screenHeight-14;
         FrmSetObjectBounds(frm, index, &newBounds);
 
         FrmDrawForm(frm);
@@ -770,34 +777,34 @@ static Boolean FindPatternFormDisplayChanged(FormType* frm)
     return handled;
 }
 
-Boolean FindPatternFormHandleEventNoahLite(EventType * event)
+static Boolean FindPatternFormHandleEventNoahLite(EventType * event)
 {
     Boolean     handled = false;
     FormPtr     frm = FrmGetActiveForm();
     FieldPtr    fld;
     ListPtr     list;
-    static long lastWordPos;
     char *      pattern;
     long        prevMatchWordCount=0;
+    AppContext* appContext=GetAppContext();    
 
     switch (event->eType)
     {
         case winDisplayChangedEvent:
-            handled = FindPatternFormDisplayChanged(frm);
+            handled = FindPatternFormDisplayChanged(appContext, frm);
             break;
                         
         case frmOpenEvent:
-            OpenMatchingPatternDB();
+            OpenMatchingPatternDB(appContext);
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
             fld = (FieldType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, fieldWord));
-            prevMatchWordCount = NumMatchingPatternRecords();
+            prevMatchWordCount = NumMatchingPatternRecords(appContext);
             LstSetListChoicesEx(list, NULL, prevMatchWordCount );
             LstSetDrawFunction(list, PatternListDrawFunc);
             FrmDrawForm(frm);
             if (prevMatchWordCount>0)
-                LstSetSelectionEx(list, lastWordPos);
+                LstSetSelectionEx(appContext, list, appContext->wmpLastWordPos);
             pattern = (char *) new_malloc(WORDS_CACHE_SIZE);
-            ReadPattern(pattern);
+            ReadPattern(appContext, pattern);
             if (StrLen(pattern) > 0)
                 FldInsert(fld, pattern, StrLen(pattern));
             FrmSetFocus(frm, FrmGetObjectIndex(frm, fieldWord));
@@ -809,7 +816,7 @@ Boolean FindPatternFormHandleEventNoahLite(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonCancel:
-                    CloseMatchingPatternDB();
+                    CloseMatchingPatternDB(appContext);
                     FrmReturnToForm(0);
                     handled = true;
                     break;
@@ -819,10 +826,10 @@ Boolean FindPatternFormHandleEventNoahLite(EventType * event)
                     list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
                     pattern = FldGetTextPtr(fld);
                     if (pattern != NULL) {
-                        ClearMatchingPatternDB();
-                        WritePattern(pattern);
-                        FillMatchingPatternDB(pattern);
-                        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords());
+                        ClearMatchingPatternDB(appContext);
+                        WritePattern(appContext, pattern);
+                        FillMatchingPatternDB(appContext, pattern);
+                        LstSetListChoicesEx(list, NULL, NumMatchingPatternRecords(appContext));
                         LstSetDrawFunction(list, PatternListDrawFunc);
                         LstDrawList(list);
                     }
@@ -847,8 +854,8 @@ Boolean FindPatternFormHandleEventNoahLite(EventType * event)
             break;
 
         case lstSelectEvent:
-            lastWordPos = gd.listItemOffset + (UInt32) event->data.lstSelect.selection;
-            ReadMatchingPatternRecord(lastWordPos, &gd.currentWord);
+            appContext->wmpLastWordPos = appContext->listItemOffset + (UInt32) event->data.lstSelect.selection;
+            ReadMatchingPatternRecord(appContext, appContext->wmpLastWordPos, &appContext->currentWord);
             SendNewWordSelected();
             FrmReturnToForm(0);
             return true;
@@ -874,10 +881,10 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
             frm = FrmGetActiveForm();
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listOfDicts));
             LstSetDrawFunction(list, ListDbDrawFunc);
-            LstSetListChoices(list, NULL, gd.dictsCount);
+            LstSetListChoices(list, NULL, appContext->dictsCount);
             LstSetSelection(list, selectedDb);
             LstMakeItemVisible(list, selectedDb);
-            if (-1 == gd.currentDb)
+            if (-1 == appContext->currentDb)
             {
                 FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
             }
@@ -898,9 +905,9 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
             switch (event->data.ctlSelect.controlID)
             {
                 case buttonSelect:
-                    if (gd.currentDb != selectedDb)
+                    if (appContext->currentDb != selectedDb)
                     {
-                        if (-1 != gd.currentDb)
+                        if (-1 != appContext->currentDb)
                             DictCurrentFree();
                         DictInit(selectedDb);
                     }
@@ -910,7 +917,7 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
                     FrmReturnToForm(0);
                     return true;
                 case buttonCancel:
-                    if (-1 == gd.currentDb)
+                    if (-1 == appContext->currentDb)
                         Assert(0);
                     FrmReturnToForm(0);
                     return true;
@@ -923,7 +930,7 @@ Boolean SelectDictFormHandleEventNoahLite(EventType * event)
 }
 #endif
 
-Boolean HandleEventNoahLite(EventType * event)
+static Boolean HandleEventNoahLite(AppContext* appContext, EventType * event)
 {
     FormPtr frm;
     Int formId;
@@ -935,7 +942,7 @@ Boolean HandleEventNoahLite(EventType * event)
         formId = event->data.frmLoad.formID;
         frm = FrmInitForm(formId);
         FrmSetActiveForm(frm);
-        error=DefaultFormInit(frm);    
+        error=DefaultFormInit(appContext, frm);    
 
         switch (formId)
         {
@@ -963,7 +970,7 @@ Boolean HandleEventNoahLite(EventType * event)
     return handled;
 }
 
-void EventLoopNoahLite(void)
+static void EventLoopNoahLite(AppContext* appContext)
 {
     EventType event;
     Word error;
@@ -971,16 +978,38 @@ void EventLoopNoahLite(void)
     event.eType = (eventsEnum) 0;
     while (event.eType != appStopEvent)
     {
-        EvtGetEvent(&event, gd.ticksEventTimeout);
+        EvtGetEvent(&event, appContext->ticksEventTimeout);
         if (SysHandleEvent(&event))
             continue;
         if (MenuHandleEvent(0, &event, &error))
             continue;
-        if (HandleEventNoahLite(&event))
+        if (HandleEventNoahLite(appContext, &event))
             continue;
         FrmDispatchEvent(&event);
     }
 }
+
+static Err AppLaunch() 
+{
+    Err error=errNone;
+    AppContext* appContext=(AppContext*)MemPtrNew(sizeof(AppContext));
+    if (!appContext)
+    {
+        error=!errNone;
+        goto OnError;
+    }     
+    error=InitNoahLite(appContext);
+    if (error) 
+        goto OnError;
+    FrmGotoForm(formDictMain);
+    EventLoopNoahLite(appContext);
+    StopNoahLite(appContext);
+OnError: 
+    if (appContext) 
+        MemPtrFree(appContext);
+    return error;
+}
+
 
 DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
 {
@@ -988,23 +1017,17 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     switch (cmd)
     {
         case sysAppLaunchCmdNormalLaunch:
-            err = InitNoahLite();
-            if (err)
-                return err;
-            FrmGotoForm(formDictMain);
-            EventLoopNoahLite();
-            StopNoahLite();
+            err=AppLaunch();
             break;
 
-// 2003-11-28 andrzejc DynamicInputArea     
         case sysAppLaunchCmdNotify:
-            AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
+            err=AppHandleSysNotify((SysNotifyParamType*)cmdPBP);
             break;
         
             
         default:
             break;
     }
-    return 0;
+    return err;
 }
 

@@ -5,9 +5,7 @@
 #ifndef _EP_SUPPORT_H_
 #define _EP_SUPPORT_H_
 
-#include "display_info.h"
-#include "extensible_buffer.h"
-#include "word_compress.h"
+#include "common.h"
 
 typedef struct
 {
@@ -41,6 +39,8 @@ typedef struct _EngPolInfo
     int         curDefLen;
     PackContext     packContext;
     unsigned char * curDefData;
+    AbstractFile* file;
+    ExtensibleBuffer buffer;
 } EngPolInfo;
 
 /* PROTOTYPES for private interface */
@@ -50,7 +50,7 @@ enum EP_RENDER_TYPE
     eprt_multiline 
 };
 
-void *  epNew(void);
+void *  epNew(AbstractFile* file);
 void    epDelete(void *data);
 long    epGetWordsCount(void *data);
 long    epGetFirstMatching(void *data, char *word);

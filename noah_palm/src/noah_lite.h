@@ -6,22 +6,22 @@
 #define _NOAH_LITE_H_
 
 #include "noah_lite_rcp.h"
-#include <PalmOS.h>
-/* #include <PalmCompatibility.h> */
-
-#include "common.h"
-#include "display_info.h"
-#include "extensible_buffer.h"
-#include "fs.h"
-#include "fs_mem.h"
 
 #define  NOAH_LITE_CREATOR     'NoaH'
+#define APP_CREATOR NOAH_LITE_CREATOR
+
 
 typedef struct
 {
     char                lastWord[WORD_MAX_LEN];
 } NoahLitePrefs;
 
+typedef NoahLitePrefs AppPrefs;
+
+#define APP_NAME "Noah Lite"
+
+
+/*
 typedef struct
 {
     AbstractFile  *     dicts[MAX_DICTS];
@@ -47,5 +47,6 @@ typedef struct
 #include "common_global_data.h"
 
 } GlobalData;
+*/
 
 #endif

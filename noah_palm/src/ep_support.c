@@ -4,22 +4,17 @@
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
-#include "cw_defs.h"
+#include "ep_support.h"
 
 #ifndef EP_DICT
 #error "EP_DICT not defined"
 #endif
 
-#include "ep_support.h"
-#include "common.h"
-#include "fs.h"
-
-static char polishChars[] = "±êæ³ñó¶¼¿";
-static char latinChars[] = "aeclnószz";
-static ExtensibleBuffer g_buf = { 0 };
+static const char polishChars[] = "±êæ³ñó¶¼¿";
+static const char latinChars[] = "aeclnószz";
 
 /* change all polish characters into latin ones */
-static void unplishString(char *str, int strLen)
+static void unpolishString(char *str, int strLen)
 {
     char c;
     int i, j;
@@ -41,7 +36,7 @@ type:
     0 - long polish
     1 - short english
 */
-static char *getCatName(int cat, int type)
+static char *getCatName(AbstractFile* file, int cat, int type)
 {
     unsigned char *data = NULL;
     int i = 0;
@@ -50,7 +45,7 @@ static char *getCatName(int cat, int type)
 
     /* have to keep this record locked from outside,
        since this returns pointer inside record */
-    data = (unsigned char *) CurrFileLockRecord(1);
+    data = (unsigned char *) fsLockRecord(file, 1);
     if (NULL == data)
         return NULL;
     names_count = ((int *) data)[0];
@@ -68,11 +63,11 @@ static char *getCatName(int cat, int type)
         ++data;
     }
 
-    CurrFileUnlockRecord(1);
+    fsUnlockRecord(file, 1);
     return (char *) data;
 }
 
-void *epNew(void)
+void *epNew(AbstractFile* file)
 {
     EngPolInfo *epi = NULL;
     FirstRecord *first_rec;
@@ -83,12 +78,15 @@ void *epNew(void)
     epi = (EngPolInfo *) new_malloc_zero(sizeof(EngPolInfo));
     if (NULL == epi)
         return NULL;
+        
+    epi->file=file;
+    ebufInit(&epi->buffer, 0);      
 
-    if (!pcInit(&epi->packContext, 4))
+    if (!pcInit(file, &epi->packContext, 4))
         goto Error;
 
-    epi->recordsCount = CurrFileGetRecordsCount();
-    first_rec = (FirstRecord *) CurrFileLockRecord(0);
+    epi->recordsCount = fsGetRecordsCount(file);
+    first_rec = (FirstRecord *) fsLockRecord(file, 0);
     if (NULL == first_rec)
         goto Error;
 
@@ -104,28 +102,26 @@ void *epNew(void)
     if (NULL == epi->curDefData)
         goto Error;
 
-    epi->wci = wcInit(epi->wordsCount, 3, 2, 6,  epi->wordRecordsCount, epi->maxWordLen);
+    epi->wci = wcInit(file, epi->wordsCount, 3, 2, 6,  epi->wordRecordsCount, epi->maxWordLen);
     if (NULL == epi->wci)
         goto Error;
 
   Exit:
-    CurrFileUnlockRecord(0);
-    return (void *) epi;
+    fsUnlockRecord(file, 0);
+    return epi;
   Error:
-    epDelete((void *) epi);
+    epDelete(epi);
     epi = NULL;
     goto Exit;
 }
 
 void epDelete(void *data)
 {
-    EngPolInfo *epi;
-
-    epi = (EngPolInfo *) data;
-
-    ebufFreeData(&g_buf);
+    EngPolInfo *epi=(EngPolInfo *) data;
     if (!epi)
         return;
+
+    ebufFreeData(&epi->buffer);
 
     pcFree(&epi->packContext);
 
@@ -145,7 +141,7 @@ long epGetWordsCount(void *data)
 
 long epGetFirstMatching(void *data, char *word)
 {
-    return wcGetFirstMatching(((EngPolInfo *) data)->wci, word);
+    return wcGetFirstMatching(((EngPolInfo *) data)->file, ((EngPolInfo *) data)->wci, word);
 }
 
 char *epGetWord(void *data, long wordNo)
@@ -156,7 +152,7 @@ char *epGetWord(void *data, long wordNo)
 
     if (wordNo >= epi->wordsCount)
         return NULL;
-    return wcGetWord(epi->wci, wordNo);
+    return wcGetWord(epi->file, epi->wci, wordNo);
 }
 
 static void epGetDef(void *data, long wordNo)
@@ -172,12 +168,12 @@ static void epGetDef(void *data, long wordNo)
     Assert(epi);
     Assert(wordNo < epi->wordsCount);
 
-    if ( !get_defs_record(wordNo, 5, 1, 5 + epi->defLenRecordsCount + epi->wordRecordsCount, &record, &offset, &defLen) )
+    if ( !get_defs_record(epi->file, wordNo, 5, 1, 5 + epi->defLenRecordsCount + epi->wordRecordsCount, &record, &offset, &defLen) )
     {
         return;
     }
 
-    defData = CurrFileLockRecord(record);
+    defData = fsLockRecord(epi->file, record);
     if (NULL == defData)
         return;
 
@@ -187,7 +183,7 @@ static void epGetDef(void *data, long wordNo)
     pcUnpack(&epi->packContext, defLen, epi->curDefData, &epi->curDefLen);
     Assert(epi->curDefLen <= epi->maxDefLen);
 
-    CurrFileUnlockRecord(record);
+    fsUnlockRecord(epi->file, record);
 }
 
 static int epd_get_homonyms_count(EngPolDef * epd)
@@ -479,7 +475,7 @@ static void ep_fix_description_formatting(ExtensibleBuffer * buf)
 }
 
 
-static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **rawTxt, enum EP_RENDER_TYPE renderType)
+static void ep_dsc_to_raw_txt(EngPolInfo* epi, unsigned char *defData, int defData_len, char **rawTxt, enum EP_RENDER_TYPE renderType)
 {
     int len = 0;
     int defLen = 0;
@@ -499,23 +495,23 @@ static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **ra
 
     *rawTxt = NULL;
 
-    ebufReset(&g_buf);
+    ebufReset(&epi->buffer);
 
     /* need this for getCatName() to work correctly */
-    if (NULL == CurrFileLockRecord(1))
+    if (NULL == fsLockRecord(epi->file, 1))
         return;
 
     homonymsCount = epd_get_homonyms_count(epDsc);
     for (i = 0; i < homonymsCount; i++)
     {
-        ebufAddChar(&g_buf, '1' + i);
-        ebufAddStr(&g_buf, ". ");
+        ebufAddChar(&epi->buffer, '1' + i);
+        ebufAddStr(&epi->buffer, ". ");
         gramCat = epd_get_homonym_gram(epDsc, i);
 
-        ebufAddStr(&g_buf, getCatName(gramCat, 0));
+        ebufAddStr(&epi->buffer, getCatName(epi->file, gramCat, 0));
         if (renderType == eprt_multiline)
         {
-            ebufAddChar(&g_buf, '\n');
+            ebufAddChar(&epi->buffer, '\n');
         }
 
         meaningsCount = epd_get_meanings_count(epDsc, i);
@@ -524,18 +520,18 @@ static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **ra
             dsc = epd_get_meaning_dsc(epDsc, i, j);
             if (dsc)
             {
-                ebufAddStr(&g_buf, "  ");
-                ebufAddChar(&g_buf, 'a' + j);
-                ebufAddStr(&g_buf, ". ");
+                ebufAddStr(&epi->buffer, "  ");
+                ebufAddChar(&epi->buffer, 'a' + j);
+                ebufAddStr(&epi->buffer, ". ");
                 defLen = epd_get_meaning_dsc_len(epDsc, i, j);
-                ebufAddStrN(&g_buf, dsc, defLen);
+                ebufAddStrN(&epi->buffer, dsc, defLen);
                 if (renderType == eprt_multiline)
                 {
-                    ebufAddChar(&g_buf, '\n');
+                    ebufAddChar(&epi->buffer, '\n');
                 }
                 else
                 {
-                    ebufAddChar(&g_buf, ' ');
+                    ebufAddChar(&epi->buffer, ' ');
                 }
             }
             examplesCount = epd_get_examples_count(epDsc, i, j);
@@ -543,35 +539,35 @@ static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **ra
             {
                 if (renderType == eprt_multiline)
                 {
-                    ebufAddStr(&g_buf, "    ");
+                    ebufAddStr(&epi->buffer, "    ");
                 }
                 else
                 {
-                    ebufAddStr(&g_buf, "  ");
+                    ebufAddStr(&epi->buffer, "  ");
                 }
                 txt = epd_get_example_eng(epDsc, i, j, k);
                 len = epd_get_example_eng_len(epDsc, i, j, k);
-                ebufAddStrN(&g_buf, txt, len);
-                ebufAddStr(&g_buf, " - ");
+                ebufAddStrN(&epi->buffer, txt, len);
+                ebufAddStr(&epi->buffer, " - ");
                 txt = epd_get_example_pol(epDsc, i, j, k);
                 len = epd_get_example_pol_len(epDsc, i, j, k);
-                ebufAddStrN(&g_buf, txt, len);
+                ebufAddStrN(&epi->buffer, txt, len);
                 if (renderType == eprt_multiline)
                 {
-                    ebufAddChar(&g_buf, '\n');
+                    ebufAddChar(&epi->buffer, '\n');
                 }
             }
         }
     }
-    ebufAddChar(&g_buf, '\0');
+    ebufAddChar(&epi->buffer, '\0');
 
-    ep_fix_description_formatting(&g_buf);
+    ep_fix_description_formatting(&epi->buffer);
 
-    ebufWrapBigLines(&g_buf);
-    txt = ebufGetTxtCopy(&g_buf);
-    unplishString(txt, StrLen(txt));
+    ebufWrapBigLines(&epi->buffer);
+    txt = ebufGetTxtCopy(&epi->buffer);
+    unpolishString(txt, StrLen(txt));
     *rawTxt = txt;
-    CurrFileUnlockRecord(1);
+    fsUnlockRecord(epi->file, 1);
 }
 
 /*
@@ -600,7 +596,7 @@ Err epGetDisplayInfo(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
     epGetDef(data, wordNo);
 
-    ep_dsc_to_raw_txt(epi->curDefData, epi->curDefLen, &rawTxt, eprt_multiline);
+    ep_dsc_to_raw_txt(epi, epi->curDefData, epi->curDefLen, &rawTxt, eprt_multiline);
     if (!rawTxt)
     {
         return NULL;

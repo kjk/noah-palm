@@ -1,8 +1,6 @@
-#include "common.h"
+#include "word_matching_pattern.h"
 #include "word_compress.h"
 #include <ctype.h>
-
-DmOpenRef g_wmpDB = NULL;
 
 Boolean TappedInRect(RectangleType * rect)
 {
@@ -17,7 +15,7 @@ Boolean TappedInRect(RectangleType * rect)
     return false;
 }
 
-Err OpenMatchingPatternDB()
+Err OpenMatchingPatternDB(AppContext* appContext)
 {
     Err err;
     LocalID dbID;
@@ -25,7 +23,7 @@ Err OpenMatchingPatternDB()
 
     Assert(StrLen(wmpDBName) < dmDBNameLength);
     
-    if (g_wmpDB == NULL)
+    if (appContext->wmpCacheDb == NULL)
     {
         dbID = DmFindDatabase(0, wmpDBName);
         if (!dbID)
@@ -35,41 +33,41 @@ Err OpenMatchingPatternDB()
             dbID = DmFindDatabase(0, wmpDBName);
             if (!dbID) return dmErrCantOpen;
         }
-        g_wmpDB = DmOpenDatabase(0, dbID, dmModeReadWrite);
-        if (NULL == g_wmpDB)
+        appContext->wmpCacheDb = DmOpenDatabase(0, dbID, dmModeReadWrite);
+        if (NULL == appContext->wmpCacheDb)
             return dmErrCantOpen;
     }
     return errNone;
 }
 
-Err CloseMatchingPatternDB()
+Err CloseMatchingPatternDB(AppContext* appContext)
 {
-	if (g_wmpDB != NULL)
+	if (appContext->wmpCacheDb != NULL)
 	{
-		DmCloseDatabase(g_wmpDB);
-		g_wmpDB = NULL;
+		DmCloseDatabase(appContext->wmpCacheDb);
+		appContext->wmpCacheDb = NULL;
 	}
     return errNone;
 }
 
-Err ClearMatchingPatternDB()
+Err ClearMatchingPatternDB(AppContext* appContext)
 {
     Err err;
 
-    while (DmNumRecords(g_wmpDB))
+    while (DmNumRecords(appContext->wmpCacheDb))
     {
-        err = DmRemoveRecord(g_wmpDB, 0);
+        err = DmRemoveRecord(appContext->wmpCacheDb, 0);
         if (err) return err;
     }
     return errNone;
 }
 
-Err ReadPattern(char * pattern)
+Err ReadPattern(AppContext* appContext, char * pattern)
 {
     MemHandle rh;
     char * rp;
 
-    rh = DmQueryRecord(g_wmpDB, 0);
+    rh = DmQueryRecord(appContext->wmpCacheDb, 0);
     if (!rh) {
         pattern[0] = 0;
         return dmErrCantFind;
@@ -80,7 +78,7 @@ Err ReadPattern(char * pattern)
 }
 
 // Writes a pattern into the DB at record no 0
-Err WritePattern(char * pattern)
+Err WritePattern(AppContext* appContext, char * pattern)
 {
     Err err;
     MemHandle rh;
@@ -88,34 +86,34 @@ Err WritePattern(char * pattern)
     char * rp;
 
     len = StrLen(pattern);
-    num = DmNumRecords(g_wmpDB);
+    num = DmNumRecords(appContext->wmpCacheDb);
     if (num > 0)
-        rh = DmGetRecord(g_wmpDB, 0);
+        rh = DmGetRecord(appContext->wmpCacheDb, 0);
     else {
         pos = dmMaxRecordIndex;
-        rh = DmNewRecord(g_wmpDB, &pos, len + 1);
+        rh = DmNewRecord(appContext->wmpCacheDb, &pos, len + 1);
     }
     if (!rh) return DmGetLastErr();
     rp = MemHandleLock(rh);
     err = DmWrite(rp, 0, pattern, len + 1);
     MemHandleUnlock(rh);
-    DmReleaseRecord(g_wmpDB, 0, true);
+    DmReleaseRecord(appContext->wmpCacheDb, 0, true);
     return err;
 }
 
-Err ReadMatchingPatternRecord(long pos, long * elem)
+Err ReadMatchingPatternRecord(AppContext* appContext, long pos, long * elem)
 {
     MemHandle rh;
     long *rp;
 
-    rh = DmQueryRecord(g_wmpDB, pos / WMP_REC_PACK_SIZE + 1);
+    rh = DmQueryRecord(appContext->wmpCacheDb, pos / WMP_REC_PACK_SIZE + 1);
     if (!rh) return DmGetLastErr();
     rp = MemHandleLock(rh);
     *elem = rp[pos % WMP_REC_PACK_SIZE];
     return MemHandleUnlock(rh);
 }
 
-Err WriteMatchingPatternRecord(long elem)
+Err WriteMatchingPatternRecord(AppContext* appContext, long elem)
 {
     Err err;
     MemHandle rh;
@@ -123,46 +121,46 @@ Err WriteMatchingPatternRecord(long elem)
     UInt16 pos, offset;
     Int32 num;
 
-    num = DmNumRecords(g_wmpDB);
+    num = DmNumRecords(appContext->wmpCacheDb);
     if (num > 1)
     {
         pos = num - 1;
-        rh = DmGetRecord(g_wmpDB, pos);
+        rh = DmGetRecord(appContext->wmpCacheDb, pos);
         offset = MemHandleSize(rh);
         if (offset < WMP_REC_PACK_SIZE * WMP_REC_SIZE)
-            DmResizeRecord(g_wmpDB, pos, offset + WMP_REC_SIZE);
+            DmResizeRecord(appContext->wmpCacheDb, pos, offset + WMP_REC_SIZE);
         else
         {
             offset = 0;
             pos = dmMaxRecordIndex;
-            rh = DmNewRecord(g_wmpDB, &pos, WMP_REC_SIZE);
+            rh = DmNewRecord(appContext->wmpCacheDb, &pos, WMP_REC_SIZE);
         }
     }
     else
     {
         offset = 0;
         pos = dmMaxRecordIndex;
-        rh = DmNewRecord(g_wmpDB, &pos, WMP_REC_SIZE);
+        rh = DmNewRecord(appContext->wmpCacheDb, &pos, WMP_REC_SIZE);
     }
     if (!rh) return DmGetLastErr();
         
     rp = MemHandleLock(rh);
     err = DmWrite(rp, offset, &elem, WMP_REC_SIZE);
     MemHandleUnlock(rh);
-    DmReleaseRecord(g_wmpDB, pos, true);
+    DmReleaseRecord(appContext->wmpCacheDb, pos, true);
     return err;
 }
 
-long NumMatchingPatternRecords()
+long NumMatchingPatternRecords(AppContext* appContext)
 {
     UInt16 num;
     long count;
     MemHandle rh;
     
-    num = DmNumRecords(g_wmpDB);
+    num = DmNumRecords(appContext->wmpCacheDb);
     if (num > 1)
     {
-        rh = DmQueryRecord(g_wmpDB, num - 1);
+        rh = DmQueryRecord(appContext->wmpCacheDb, num - 1);
         // full record packs = all records - first record (pattern's there) - last record (doesn't have to be full)
         // so 2 records are definetely not full
         count = (num - 2) * WMP_REC_PACK_SIZE;
@@ -206,20 +204,21 @@ int WordMatchesPattern(char * word, char * pattern)
     }
 }
 
-void FillMatchingPatternDB(char * pattern)
+void FillMatchingPatternDB(AppContext* appContext, char * pattern)
 {
     char tmp[5];
     RectangleType rc = {{30, 40}, {100, 60}};
     RectangleType rcStop = {{60, 80}, {40, 12}};
     long i, num;
     char * str;
+    AbstractFile* currFile=GetCurrentFile(appContext);
 
-    num = dictGetWordsCount();
+    num = dictGetWordsCount(currFile);
     WinEraseRectangle(&rc, 7);
     WinDrawRectangleFrame(roundFrame, &rc);
-    DrawCenteredString(SEARCH_TXT, rc.topLeft.y + 5);
+    DrawCenteredString(appContext, SEARCH_TXT, rc.topLeft.y + 5);
     WinDrawRectangleFrame(roundFrame, &rcStop);
-    DrawCenteredString("Stop", rcStop.topLeft.y);
+    DrawCenteredString(appContext, "Stop", rcStop.topLeft.y);
     if (pattern[0] != '*' && pattern[0] != '?')
     {
         // special case: we can optimize the searching
@@ -239,19 +238,19 @@ void FillMatchingPatternDB(char * pattern)
         }
         tmpPattern[i] = 0;
         tmpLen = StrLen(tmpPattern);
-        pos = dictGetFirstMatching(tmpPattern);
-        str = dictGetWord(pos);
+        pos = dictGetFirstMatching(currFile, tmpPattern);
+        str = dictGetWord(currFile, pos);
         while (1)
         {
             // word prefix has changed and is not fitting to pattern, we quit
             if (StrNCaselessCompare(str, tmpPattern, tmpLen)) break;
             if (WordMatchesPattern(str, pattern))
-                WriteMatchingPatternRecord(pos);
+                WriteMatchingPatternRecord(appContext, pos);
             StrPrintF(tmp, "%d%%", (int)((long)(pos * 100) / (long)num));
-            DrawCenteredString(tmp, rc.topLeft.y + 20);
+            DrawCenteredString(appContext, tmp, rc.topLeft.y + 20);
             if (TappedInRect(&rcStop)) break;
-            if (++pos >= dictGetWordsCount()) break;
-            str = dictGetWord(pos);
+            if (++pos >= dictGetWordsCount(currFile)) break;
+            str = dictGetWord(currFile, pos);
         }
         new_free(tmpPattern);
     }
@@ -261,11 +260,11 @@ void FillMatchingPatternDB(char * pattern)
         
         for (i = 0; i < num; i++)
         {
-            str = dictGetWord(i);
+            str = dictGetWord(currFile, i);
             if (WordMatchesPattern(str, pattern))
-                WriteMatchingPatternRecord(i);
+                WriteMatchingPatternRecord(appContext, i);
             StrPrintF(tmp, "%d%%", (int)((long)(i * 100) / (long)num));
-            DrawCenteredString(tmp, rc.topLeft.y + 20);
+            DrawCenteredString(appContext, tmp, rc.topLeft.y + 20);
             if (TappedInRect(&rcStop)) break;
         }
     }
@@ -278,12 +277,13 @@ void PatternListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Int16       stringLenP;
     Boolean     truncatedP = false;
     long        realItemNo;
+    AppContext* appContext=GetAppContext();
 
     Assert(itemNum >= 0);
 
-    if (ReadMatchingPatternRecord(itemNum, &realItemNo) == errNone)
+    if (ReadMatchingPatternRecord(appContext, itemNum, &realItemNo) == errNone)
     {
-        str = dictGetWord(realItemNo);
+        str = dictGetWord(GetCurrentFile(appContext), realItemNo);
         stringLenP = StrLen(str);
 
         FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);

@@ -6,6 +6,7 @@
 #define _ROGET_SUPPORT_H_
 
 #include "word_compress.h"
+#include "extensible_buffer.h"
 #include "display_info.h"
 
 typedef struct
@@ -37,12 +38,16 @@ typedef struct _RogetInfo
 
     WcInfo *    wci;
     PackContext defPackContext;
+    
+    AbstractFile* file;
+    ExtensibleBuffer buffer;
+    
 } RogetInfo;
 
-RogetInfo * RogetNew(void);
-void        RogetDelete(struct _RogetInfo *info);
-long        RogetGetWordsCount(struct _RogetInfo *info);
-long        RogetGetFirstMatching(struct _RogetInfo *info, char *word);
-char *      RogetGetWord(struct _RogetInfo *info, long wordNo);
-Err         RogetGetDisplayInfo(struct _RogetInfo *info, long wordNo, int dx, DisplayInfo * di);
+RogetInfo * RogetNew(AbstractFile* file);
+void        RogetDelete(RogetInfo* info);
+long        RogetGetWordsCount(RogetInfo *info);
+long        RogetGetFirstMatching(RogetInfo *info, char *word);
+char *      RogetGetWord(RogetInfo *info, long wordNo);
+Err         RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di);
 #endif

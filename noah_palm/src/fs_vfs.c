@@ -3,16 +3,9 @@
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
+#include "common.h"
 #include "extensible_buffer.h"
-
-#include "fs.h"
 #include "fs_ex.h"
-#include "fs_vfs.h"
-
-#define MAX_VFS_VOLUMES 3
-static Boolean g_fVfsPresent = false;
-static int     g_VfsVolumeCount = 0;
-static UInt16  g_VfsVolumeRef[MAX_VFS_VOLUMES];
 
 typedef struct
 {
@@ -21,24 +14,18 @@ typedef struct
     char    uniqueId[3];
 } PdbRecordHeader;
 
-// Return true if VFS is present. Should call VfsInit before calling it.
-Boolean FVfsPresent(void)
-{
-    return g_fVfsPresent;
-}
-
 // Initialize vfs, return false if couldn't be initialized.
 // Should only be called once
-Boolean FsVfsInit(void)
+Boolean FsVfsInit(FS_Settings* fsSettings)
 {
     Boolean   fPresent = true;
     Err       err;
     UInt32    vfsMgrVersion;
     UInt16    volRef;
     UInt32    volIterator;
+    Assert(fsSettings);      
+    Assert(!fsSettings->vfsPresent);
 
-    /* should not be called twice */
-    Assert( !g_fVfsPresent );
     err = FtrGet(sysFileCVFSMgr, vfsFtrIDVersion, &vfsMgrVersion);
     if (err)
     {
@@ -48,12 +35,12 @@ Boolean FsVfsInit(void)
     }
 
     volIterator = expIteratorStart;
-    while ( (volIterator != vfsIteratorStop) && (g_VfsVolumeCount < MAX_VFS_VOLUMES))
+    while ( (volIterator != vfsIteratorStop) && (fsSettings->vfsVolumeCount < MAX_VFS_VOLUMES))
     {
         err = VFSVolumeEnumerate(&volRef, &volIterator);
         if (errNone == err)
         {
-            g_VfsVolumeRef[g_VfsVolumeCount++] = volRef;
+            fsSettings->vfsVolumeRef[fsSettings->vfsVolumeCount ++] = volRef;
         }
         else
         {
@@ -62,12 +49,12 @@ Boolean FsVfsInit(void)
         }
     }
 Exit:
-    g_fVfsPresent = fPresent;
+    fsSettings->vfsPresent = fPresent;
+    
 #ifdef DEBUG
     if ( fPresent )
     {
-        StrPrintF( g_logBuf, "FsVfsInit(): VFS present, %d volumes", g_VfsVolumeCount );    
-        LogG( g_logBuf );
+        LogV1("FsVfsInit(): VFS present, %d volumes", fsSettings->vfsVolumeCount );    
     }
     else
     {
@@ -78,20 +65,19 @@ Exit:
 }
 
 /* De-initialize vfs, should only be called once */
-void FsVfsDeinit(void)
+void FsVfsDeinit(FS_Settings* fsSettings)
 {
 #ifdef DEBUG
-    if ( g_fVfsPresent )
+    if ( fsSettings->vfsPresent )
     {
-        StrPrintF( g_logBuf, "FsVfsDeinit(): VFS present, %d volumes", g_VfsVolumeCount );    
-        LogG( g_logBuf );
+        LogV1("FsVfsDeinit(): VFS present, %d volumes", fsSettings->vfsVolumeCount );    
     }
     else
     {
         LogG( "FsVfsDeinit(): VFS not present");
     }
 #endif
-    g_fVfsPresent = false;
+    fsSettings->vfsPresent = false;
 }
 
 /* return true if given file attributes represent a file
@@ -186,7 +172,7 @@ Error:
 
 /* Iterate over all files on the vfs file system and call the callback
 for each file */
-void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
+void FsVfsFindDb( FS_Settings* fsSettings, FIND_DB_CB *cbCheckFile, void* context )
 {
     Err             err;
     FileRef         dirRef;
@@ -202,7 +188,7 @@ void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
     AbstractFile *  file;
     int             currVolume;
 
-    if (!FVfsPresent())
+    if (!FVfsPresent(fsSettings))
     {
         LogG( "FsVfsFindDb(): VFS not present" );
         return;
@@ -215,8 +201,8 @@ void FsVfsFindDb( FIND_DB_CB *cbCheckFile )
 
     currVolume = 0;
 ScanNextVolume:
-    if (currVolume >= g_VfsVolumeCount) goto NoMoreFiles;
-    currVolRef = g_VfsVolumeRef[currVolume++];
+    if (currVolume >= fsSettings->vfsVolumeCount) goto NoMoreFiles;
+    currVolRef = fsSettings->vfsVolumeRef[currVolume++];
 
     /* restart iterating over directories */
     currDir = strdup( "/" );
@@ -269,7 +255,7 @@ ScanNextDir:
             if (file)
             {
                 file->volRef = currVolRef;
-                (*cbCheckFile)(file);
+                (*cbCheckFile)(context, file);
                 AbstractFileFree(file);
             }
         }

@@ -17,12 +17,18 @@ extern "C" {
  * Structure that holds settings related with Dynamic Input Area implementation.
  */
 typedef struct DIA_Settings_ {
+
+    /**
+     * Configuration flags determined by <code>DIA_Init()</code>.
+     * @see DIA_Flag
+     */
     UInt16 flags;
     
     /**
      * Reference number of Sony SilkLib. 
      */
     UInt16 sonySilkLibRefNum;
+    
 } DIA_Settings;
 
 /**
@@ -77,13 +83,47 @@ extern Err DIA_FrmEnableDIA(const DIA_Settings* diaSettings, FormType* form, Coo
 }
 #endif
 
+/**
+ * Tests whether flag is set in <code>DIA_Settings</code> structure.
+ * @param diaSettings pointer to (optionally <code>const</code>) <code>DIA_Settings</code> structure.
+ * @param flag flag to test.
+ * @return nonzero if flag is set.
+ * @see DIA_Flag
+ */
 #define DIA_TestFlag(diaSettings, flag) ((diaSettings)->flags & (1 << flag))
+
+/**
+ * Sets flag in <code>DIA_Settings</code> structure.
+ * @param diaSettings pointer to <code>DIA_Settings</code> structure.
+ * @param flag flag to set.
+ * @see DIA_Flag
+ */
 #define DIA_SetFlag(diaSettings, flag) ((diaSettings)->flags |= (1 << flag))
+
+/**
+ * Resets flag in <code>DIA_Settings</code> structure.
+ * @param diaSettings pointer to <code>DIA_Settings</code> structure.
+ * @param flag flag to reset.
+ * @see DIA_Flag
+ */
 #define DIA_ResetFlag(diaSettings, flag) ((diaSettings)->flags &= ~(1 << flag))
 
+/**
+ * Tests if <code>diaHasPenInputMgr</code> flag is set in given <code>DIA_Settings</code> structure.
+ * @param diaSettings pointer to <code>DIA_Settings</code> structure.
+ */
 #define DIA_HasPenInputMgr(diaSettings) DIA_TestFlag(diaSettings, diaHasPenInputMgr)
+
+/**
+ * Tests if <code>diaHasSonySilkLib</code> flag is set in given <code>DIA_Settings</code> structure.
+ * @param diaSettings pointer to <code>DIA_Settings</code> structure.
+ */
 #define DIA_HasSonySilkLib(diaSettings) DIA_TestFlag(diaSettings, diaHasSonySilkLib)
 
+/**
+ * Tests if dynamic input area features are available.
+ * @param diaSettings pointer to <code>DIA_Settings</code> structure.
+ */
 #define DIA_Supported(diaSettings) (DIA_HasSonySilkLib(diaSettings) || DIA_HasPenInputMgr(diaSettings))
 
 #endif

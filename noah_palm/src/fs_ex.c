@@ -89,7 +89,7 @@ long dcGetRecordSize(struct DbCacheData *cache, UInt16 recNo)
    real database has been read, so we have enough information
    to do the job (number of records and database name)
    Also create the first record.*/
-LocalID dcCreateCacheDb(struct DbCacheData *cache)
+LocalID dcCreateCacheDb(AbstractFile* file, struct DbCacheData *cache)
 {
     Err             err = errNone;
     CacheDBInfoRec  *dbFirstRec = NULL;
@@ -149,9 +149,9 @@ LocalID dcCreateCacheDb(struct DbCacheData *cache)
     }
 
     dbFirstRec->signature = VFS_CACHE_DB_SIG_V1;
-    dbFirstRec->realDbRecsCount = CurrFileGetRecordsCount();
+    dbFirstRec->realDbRecsCount = fsGetRecordsCount(file);
 
-    err = dcUpdateFirstCacheRec(cache, dbFirstRec);
+    err = dcUpdateFirstCacheRec(file, cache, dbFirstRec);
     if (err)
     {
         LogV1( "dcCreateCacheDb(), dcUpdateFirstCacheRec() failed with err=%d", err );
@@ -208,7 +208,7 @@ Error:
    If yes but for different database delete and and create new.
    If exist read info for cacheDbInfoRec
  */
-Err dcCacheDbRef(struct DbCacheData *cache)
+Err dcCacheDbRef(AbstractFile* file, struct DbCacheData *cache)
 {
     Err             err = errNone;
     LocalID         dbId = 0;
@@ -228,7 +228,7 @@ Err dcCacheDbRef(struct DbCacheData *cache)
     if (0 == dbId)
     {
         /* no such database, create */
-        err = dcCreateCacheDb(cache);
+        err = dcCreateCacheDb(file, cache);
         if (errNone != err)
         {
             LogV1("dcCacheDbRef(), dcCreateCacheDb() failed with err=%d", err );
@@ -251,11 +251,11 @@ Err dcCacheDbRef(struct DbCacheData *cache)
         goto Error;
     }
     reslFirstRecSize = MemHandleSize(recHandle);
-    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * CurrFileGetRecordsCount());
+    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * fsGetRecordsCount(file));
 
     /* is this a correct record? */
     if ((VFS_CACHE_DB_SIG_V1 == dbFirstRec->signature) &&
-        (dbFirstRec->realDbRecsCount == CurrFileGetRecordsCount()) &&
+        (dbFirstRec->realDbRecsCount == fsGetRecordsCount(file)) &&
         (reslFirstRecSize == firstRecSize))
     {
         /* yes, it's a good cache database */
@@ -282,7 +282,7 @@ Err dcCacheDbRef(struct DbCacheData *cache)
             LogV1("dcCacheDbRef(), DmDeleteDatabase() failed with err=%d", err );
             goto Error;
         }
-        err = dcCreateCacheDb(cache);
+        err = dcCreateCacheDb(file, cache);
         if (errNone != err)
         {
             LogV1("dcCacheDbRef(), dcCreateCacheDb() failed with err=%d", err );
@@ -347,7 +347,7 @@ return an error.
 How to choose a record to delete: Last Recently Used? Least Frequently Used?
 
 */
-Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
+Err dcCacheRecord(AbstractFile* file, struct DbCacheData *cache, UInt16 recNo)
 {
     Err             err = errNone;
     UInt16          recPos = dmMaxRecordIndex;
@@ -402,7 +402,7 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
     }
 
     recData = (char*) MemHandleLock(recHandle);
-    err = vfsCopyExternalToMem( GetCurrentFile(), offsetInPdbFile, recSize, recData);
+    err = vfsCopyExternalToMem( file, offsetInPdbFile, recSize, recData);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, recPos, false );
     if (err)
@@ -411,7 +411,7 @@ Err dcCacheRecord(struct DbCacheData *cache, UInt16 recNo)
     }
 
     cache->recRealCachedNoMap[recNo] = recPos;
-    err = dcUpdateFirstCacheRec(cache, cache->cacheDbInfoRec);
+    err = dcUpdateFirstCacheRec(file, cache, cache->cacheDbInfoRec);
     if (err)
     {
         goto Error;
@@ -434,7 +434,7 @@ Error:
 /* Update the first record in cache with info in dbFirstRec.
    Assumes that the database is created and open and first record
    already exists. */
-Err dcUpdateFirstCacheRec(struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec)
+Err dcUpdateFirstCacheRec(AbstractFile* file, struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec)
 {
     MemHandle   recHandle = 0;
     Err         err = errNone;
@@ -449,7 +449,7 @@ Err dcUpdateFirstCacheRec(struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec
 
     recData = MemHandleLock(recHandle);
 
-    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * CurrFileGetRecordsCount());
+    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * fsGetRecordsCount(file));
     DmWrite(recData, 0, (void *) dbFirstRec, firstRecSize);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, 0, false);
@@ -465,7 +465,7 @@ Err dcUpdateFirstCacheRec(struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec
     return err;
 }
 
-void *dcLockRecord(struct DbCacheData *cache, UInt16 recNo)
+void *dcLockRecord(AbstractFile* file, struct DbCacheData *cache, UInt16 recNo)
 {
     UInt16      cachedRecNo;
     MemHandle   recHandle;
@@ -474,7 +474,7 @@ void *dcLockRecord(struct DbCacheData *cache, UInt16 recNo)
 
     LogV1("dcLockRecord(%d)", recNo );
 
-    err = dcCacheDbRef(cache);
+    err = dcCacheDbRef(file, cache);
     if (errNone != err)
     {
         LogV1( "dcLockRecord(), dcCacheDbRef() failed with err=%d", err );
@@ -493,7 +493,7 @@ void *dcLockRecord(struct DbCacheData *cache, UInt16 recNo)
     if (0 == cache->recRealCachedNoMap[recNo])
     {
         /* not cached yet, so cache it */
-        err = dcCacheRecord(cache,recNo);
+        err = dcCacheRecord(file, cache,recNo);
         if (errNone != err)
         {
             /* bad, bad, bad */
@@ -540,7 +540,7 @@ void dcUnlockRecord(struct DbCacheData *cache, UInt16 recNo)
   (number 1) to copy the data from recNo at given offset to it.
 */
 
-void *dcLockRegion(struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
+void *dcLockRegion(AbstractFile* file, struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
 {
     char        *recData;
     void        *dstData;
@@ -556,7 +556,7 @@ void *dcLockRegion(struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt1
     dstData = MemHandleLock(recHandle);
     /* copy data from CF to memory record */
     offsetInPdbFile = cache->recsInfo[recNo].offset + offset;
-    err = vfsCopyExternalToMem(GetCurrentFile(), offsetInPdbFile, size, dstData);
+    err = vfsCopyExternalToMem(file, offsetInPdbFile, size, dstData);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, cache->lockRegionCacheRec, false);
     if (err)

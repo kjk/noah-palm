@@ -7,33 +7,34 @@
 #include "common.h"
 
 /* temporary buffer for keeping the data gathered during unpacking */
-ExtensibleBuffer g_buf = { 0 };
+//ExtensibleBuffer g_buf = { 0 };
 
 static char *GetPosTxt(int pos, int type)
 {
     return GetNthTxt(type * 4 + pos, "(noun)\0(verb)\0(adj.)\0(adv.)\0N.\0V.\0Adj.\0Adv.\0Noun\0Verb\0Adjective\0Adverb\0");
 }
 
-struct _RogetInfo *RogetNew(void)
+RogetInfo * RogetNew(AbstractFile* file)
 {
-    struct _RogetInfo *info = NULL;
-    RogetFirstRecord *firstRecord;
+    RogetInfo* info = NULL;
+    RogetFirstRecord* firstRecord;
 #ifdef DEBUG
     long recSize;
 #endif
-    Assert( GetCurrentFile() );
+    Assert( file );
 
     info = (RogetInfo *) new_malloc_zero(sizeof(RogetInfo));
     if (NULL == info) goto Error;
-
-    info->recordsCount = CurrFileGetRecordsCount();
+    ebufInit(&info->buffer, 0);
+    info->file=file;
+    info->recordsCount = fsGetRecordsCount(file);
     if ( info->recordsCount > 100 )
     {
         // TODO: report corruption
         return NULL;
     }
 
-    firstRecord = (RogetFirstRecord *) CurrFileLockRecord(0);
+    firstRecord=(RogetFirstRecord*)fsLockRecord(file, 0);
 
     if ( NULL == firstRecord )
     {
@@ -53,22 +54,22 @@ struct _RogetInfo *RogetNew(void)
     info->wordsInSynCountRec = info->wordsInSynFirstRec + info->wordsInSynRecs;
     info->synPosRec = info->wordsInSynCountRec + 1;
 
-    info->wci = wcInit(info->wordsCount, info->wordPackDataRec,
+    info->wci = wcInit(file, info->wordsCount, info->wordPackDataRec,
                         info->wordCacheInfoRec,
                         info->firstWordsRec,
                         info->wordsRecordsCount, info->maxWordLen);
 
     if (NULL == info->wci)
     {
-        CurrFileUnlockRecord(0);
+        fsUnlockRecord(file, 0);
         goto Error;
     }
 #ifdef DEBUG
-    recSize = CurrFileGetRecordSize(info->wordsInSynCountRec);
+    recSize = fsGetRecordSize(file, info->wordsInSynCountRec);
     Assert(recSize == info->synsetsCount);
 #endif
 
-    CurrFileUnlockRecord(0);
+    fsUnlockRecord(file, 0);
     return info;
 Error:
     LogG( "RogetNew() failed" );
@@ -77,38 +78,37 @@ Error:
 }
 
 
-void RogetDelete(struct _RogetInfo *info)
+void RogetDelete(RogetInfo *info)
 {
-    ebufFreeData(&g_buf);
-
     if (info)
     {
         if (info->wci)
             wcFree(info->wci);
+        ebufFreeData(&info->buffer); 
         new_free(info);
     }
 }
 
-long RogetGetWordsCount(struct _RogetInfo *info)
+long RogetGetWordsCount(RogetInfo *info)
 {
     return info->wordsCount;
 }
 
-long RogetGetFirstMatching(struct _RogetInfo *info, char *word)
+long RogetGetFirstMatching(RogetInfo *info, char *word)
 {
-    return wcGetFirstMatching(info->wci, word);
+    return wcGetFirstMatching(info->file, info->wci, word);
 }
 
-char *RogetGetWord(struct _RogetInfo *info, long wordNo)
+char *RogetGetWord(RogetInfo *info, long wordNo)
 {
     Assert(wordNo < info->wordsCount);
 
     if (wordNo >= info->wordsCount)
         return NULL;
-    return wcGetWord(info->wci, wordNo);
+    return wcGetWord(info->file, info->wci, wordNo);
 }
 
-Err RogetGetDisplayInfo(struct _RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
+Err RogetGetDisplayInfo(RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
 {
     long            wordCount = 0;
     unsigned char * posRecData;
@@ -130,13 +130,13 @@ Err RogetGetDisplayInfo(struct _RogetInfo *info, long wordNo, int dx, DisplayInf
     Assert(dx > 0);
     Assert(di);
 
-    ebufReset(&g_buf);
+    ebufReset(&info->buffer);
 
-    posRecData = (unsigned char *) CurrFileLockRecord(info->synPosRec);
-    words_in_syn_count_data = (unsigned char *) CurrFileLockRecord(info->wordsInSynCountRec);
+    posRecData = (unsigned char *) fsLockRecord(info->file, info->synPosRec);
+    words_in_syn_count_data = (unsigned char *) fsLockRecord(info->file, info->wordsInSynCountRec);
     wordsInSynRec = info->wordsInSynFirstRec;
-    wordNums = (UInt16 *) CurrFileLockRecord(wordsInSynRec);
-    words_left = CurrFileGetRecordSize(wordsInSynRec) / 2;
+    wordNums = (UInt16 *) fsLockRecord(info->file, wordsInSynRec);
+    words_left = fsGetRecordSize(info->file, wordsInSynRec) / 2;
 
     for (i = 0; i < info->synsetsCount; i++)
     {
@@ -156,49 +156,49 @@ Err RogetGetDisplayInfo(struct _RogetInfo *info, long wordNo, int dx, DisplayInf
 
         if (word_present_p)
         {
-            ebufAddChar(&g_buf, 149);
-            ebufAddChar(&g_buf, ' ');
+            ebufAddChar(&info->buffer, 149);
+            ebufAddChar(&info->buffer, ' ');
 
             pos = posRecData[i / 4];
 
             pos = (pos >> (2 * (i % 4))) & 0x3;
 
             posTxt = GetPosTxt(pos, 0);
-            ebufAddStr(&g_buf, posTxt);
-            ebufAddChar(&g_buf, ' ');
+            ebufAddStr(&info->buffer, posTxt);
+            ebufAddChar(&info->buffer, ' ');
 
             for (j = 0; j < wordCount; j++)
             {
                 thisWordNo = (UInt32) wordNums[j];
                 word = RogetGetWord(info, thisWordNo);
-                ebufAddStr(&g_buf, word);
+                ebufAddStr(&info->buffer, word);
                 if (j != (wordCount - 1))
                 {
-                    ebufAddStr(&g_buf, ", ");
+                    ebufAddStr(&info->buffer, ", ");
                 }
             }
-            ebufAddChar(&g_buf, '\n');
+            ebufAddChar(&info->buffer, '\n');
         }
         wordNums += wordCount;
         words_left -= wordCount;
         Assert(words_left >= 0);
         if (0 == words_left)
         {
-            CurrFileUnlockRecord(wordsInSynRec);
+            fsUnlockRecord(info->file, wordsInSynRec);
             ++wordsInSynRec;
-            wordNums = (UInt16 *) CurrFileLockRecord(wordsInSynRec);
-            words_left = CurrFileGetRecordSize(wordsInSynRec) / 2;
+            wordNums = (UInt16 *) fsLockRecord(info->file, wordsInSynRec);
+            words_left = fsGetRecordSize(info->file, wordsInSynRec) / 2;
         }
     }
 
-    CurrFileUnlockRecord(info->wordsInSynCountRec);
-    CurrFileUnlockRecord(info->wordsInSynCountRec);
-    CurrFileUnlockRecord(info->synPosRec);
+    fsUnlockRecord(info->file, info->wordsInSynCountRec);
+    fsUnlockRecord(info->file, info->wordsInSynCountRec);
+    fsUnlockRecord(info->file, info->synPosRec);
 
-    ebufAddChar(&g_buf, '\0');
-    ebufWrapBigLines(&g_buf);
+    ebufAddChar(&info->buffer, '\0');
+    ebufWrapBigLines(&info->buffer);
 
-    rawTxt = ebufGetDataPointer(&g_buf);
+    rawTxt = ebufGetDataPointer(&info->buffer);
     diSetRawTxt(di, rawTxt);
     return 0;
 }

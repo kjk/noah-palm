@@ -5,10 +5,8 @@
 #ifndef _WN_SUPPORT_H_
 #define _WN_SUPPORT_H_
 
-#include <PalmOS.h>
-#include "noah_pro.h"
+#include "common.h"
 #include "word_compress.h"
-#include "display_info.h"
 
 typedef struct
 {
@@ -77,9 +75,15 @@ typedef struct _WnInfo
 
     PackContext     defPackContext;
     SynsetsInfo *   si;
-}WnInfo;
+    
+    AbstractFile* file;
+    ExtensibleBuffer bufferTemp;
+    ExtensibleBuffer buffer;
+    DisplayInfo displayInfo;
+    
+} WnInfo;
 
-void *  wn_new(void);
+void *  wn_new(AbstractFile* file);
 void    wn_delete(void *data);
 long    wn_get_words_count(void *data);
 long    wn_get_first_matching(void *data, char *word);

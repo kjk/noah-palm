@@ -7,8 +7,6 @@
 
 #include "common.h"
 #include "word_compress.h"
-#include "display_info.h"
-
 
 typedef struct
 {
@@ -44,9 +42,11 @@ typedef struct
     SynsetDef       *synsets;
     unsigned char   *curDefData;
     PackContext     defPackContext;
+    AbstractFile* file;
+    ExtensibleBuffer buffer;
 }WnLiteInfo;
 
-void    *wnlex_new(void);
+void    *wnlex_new(AbstractFile* file);
 void    wnlex_delete(void *data);
 long    wnlex_get_words_count(void *data);
 long    wnlex_get_first_matching(void *data, char *word);

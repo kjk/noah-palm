@@ -5,10 +5,7 @@
 #ifndef _SIMPLE_SUPPORT_H_
 #define _SIMPLE_SUPPORT_H_
 
-#include <PalmOS.h>
 #include "common.h"
-#include "display_info.h"
-#include "word_compress.h"
 
 typedef struct
 {
@@ -43,10 +40,12 @@ typedef struct
     SynsetDef       *synsets;
     unsigned char   *curDefData;
     PackContext     defPackContext;
+    ExtensibleBuffer buffer;
+    AbstractFile*       file;
 } SimpleInfo;
 
 void simple_delete(void *data);
-void *simple_new(void);
+void *simple_new(AbstractFile* file);
 long simple_get_words_count(void *data);
 long simple_get_first_matching(void *data, char *word);
 char *simple_get_word(void *data, long wordNo);

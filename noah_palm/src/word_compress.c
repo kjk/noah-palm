@@ -4,7 +4,6 @@
  */
 #include "common.h"
 #include "word_compress.h"
-#include "fs.h"
 
 typedef struct
 {
@@ -98,7 +97,7 @@ Initialize the PackContext structure.
 
 Return true if success, false on failure.
 */
-Boolean pcInit(PackContext * pc, int recWithComprData)
+Boolean pcInit(AbstractFile* file, PackContext * pc, int recWithComprData)
 {
     unsigned char   *data;
     int             *dataInt;
@@ -108,11 +107,11 @@ Boolean pcInit(PackContext * pc, int recWithComprData)
 
     Assert(recWithComprData > 0);
 
-    data = (unsigned char *) CurrFileLockRecord(recWithComprData);
+    data = (unsigned char *) fsLockRecord(file, recWithComprData);
     if (NULL == data)
         return false;
 
-    dataLen = CurrFileGetRecordSize(recWithComprData);
+    dataLen = fsGetRecordSize(file, recWithComprData);
 
     dataInt = (int *) data;
     maxComprStrLen = dataInt[0];
@@ -138,11 +137,11 @@ Boolean pcInit(PackContext * pc, int recWithComprData)
         }
     }
     Assert(j == 256);
-    CurrFileUnlockRecord(recWithComprData);
+    fsUnlockRecord(file, recWithComprData);
     return true;
   Error:
     pcFree(pc);
-    CurrFileUnlockRecord(recWithComprData);
+    fsUnlockRecord(file, recWithComprData);
     return false;
 }
 
@@ -253,7 +252,7 @@ Input:
    recordsWithwordsCount  number of records with compressed words
    maxWordLen             maximum length of uncompressed word
  */
-WcInfo *wcInit(UInt32 wordsCount, int recWithComprData,
+WcInfo *wcInit(AbstractFile* file, UInt32 wordsCount, int recWithComprData,
         int recWithWordCache, int firstRecWithWords,
         int recsWithWordsCount, int maxWordLen)
 {
@@ -264,7 +263,7 @@ WcInfo *wcInit(UInt32 wordsCount, int recWithComprData,
     if (NULL == wci)
         goto Error;
 
-    if (!pcInit(&wci->packContext, recWithComprData))
+    if (!pcInit(file, &wci->packContext, recWithComprData))
     {
         goto Error;
     }
@@ -285,7 +284,7 @@ WcInfo *wcInit(UInt32 wordsCount, int recWithComprData,
     wci->recWithWordCache = recWithWordCache;
     wci->firstRecWithWords = firstRecWithWords;
     wci->recsWithWordsCount = recsWithWordsCount;
-    recordSize = CurrFileGetRecordSize(recWithWordCache);
+    recordSize = fsGetRecordSize(file, recWithWordCache);
     wci->cacheEntriesCount = recordSize / sizeof(WordCacheEntry);
     Assert(recordSize == wci->cacheEntriesCount * sizeof(WordCacheEntry));
 
@@ -319,7 +318,7 @@ Boolean wcFree(WcInfo * wci)
     return true;
 }
 
-UInt32 last_word_in_cache(WcInfo * wci, WordCacheEntry * cache, int cacheNo)
+static UInt32 last_word_in_cache(WcInfo * wci, WordCacheEntry * cache, int cacheNo)
 {
     if (cacheNo < (wci->cacheEntriesCount - 1))
     {
@@ -333,7 +332,7 @@ UInt32 last_word_in_cache(WcInfo * wci, WordCacheEntry * cache, int cacheNo)
 /*
   wordNo   - 0...wordsCount-1
 */
-char *wcGetWord(WcInfo * wci, UInt32 wordNo)
+char *wcGetWord(AbstractFile* file, WcInfo * wci, UInt32 wordNo)
 {
     WordCacheEntry  *cache;
     int             cacheNo = 0;
@@ -353,7 +352,7 @@ char *wcGetWord(WcInfo * wci, UInt32 wordNo)
     if (word)
         return word;
 
-    cache = (WordCacheEntry *) CurrFileLockRecord(wci->recWithWordCache);
+    cache = (WordCacheEntry *) fsLockRecord(file, wci->recWithWordCache);
     if (NULL == cache)
         return NULL;
 
@@ -365,10 +364,10 @@ char *wcGetWord(WcInfo * wci, UInt32 wordNo)
     record = cache[cacheNo].record + wci->firstRecWithWords;
     offset = cache[cacheNo].offset;
     firstWord = cache[cacheNo].wordNo;
-    CurrFileUnlockRecord(wci->recWithWordCache);
+    fsUnlockRecord(file, wci->recWithWordCache);
 
-    data = (char *) CurrFileLockRecord(record);
-    recordSize = CurrFileGetRecordSize(record);
+    data = (char *) fsLockRecord(file, record);
+    recordSize = fsGetRecordSize(file, record);
 
     /* special case - this is the first word in this cache entry */
     if (firstWord == wordNo)
@@ -404,11 +403,12 @@ char *wcGetWord(WcInfo * wci, UInt32 wordNo)
     while (currWord != wordNo);
   Exit:
     wci->lastWord = wordNo;
-    CurrFileUnlockRecord(record);
+    fsUnlockRecord(file, record);
     word_cache_add_word(&wci->wordCache, wordNo, wci->prevWord);
     return wci->prevWord;
 }
-void wc_get_firstWord_from_cache(WcInfo * wci, WordCacheEntry * cache, int cacheNo, char *buf)
+
+static void wc_get_firstWord_from_cache(AbstractFile* file, WcInfo * wci, WordCacheEntry * cache, int cacheNo, char *buf)
 {
     char    *data;
     UInt16  record;
@@ -423,21 +423,21 @@ void wc_get_firstWord_from_cache(WcInfo * wci, WordCacheEntry * cache, int cache
     record = cache[cacheNo].record + wci->firstRecWithWords;
     offset = cache[cacheNo].offset;
 
-    data = (char *) CurrFileLockRecord(record);
+    data = (char *) fsLockRecord(file, record);
     if (NULL == data)
         return;
-    recordSize = CurrFileGetRecordSize(record);
+    recordSize = fsGetRecordSize(file, record);
     buf[0] = '\0';
     pcReset(&wci->packContext, (unsigned char *) (data + offset), 0);
     wci->packContext.lastCharInRecordOffset = recordSize - offset;
     wcUnpackWord(wci, buf, buf);
-    CurrFileUnlockRecord(record);
+    fsUnlockRecord(file, record);
 }
 
 /*
   return the number of a first word that is matching
   a given word */
-UInt32 wcGetFirstMatching(WcInfo * wci, char *word)
+UInt32 wcGetFirstMatching(AbstractFile* file, WcInfo * wci, char *word)
 {
     WordCacheEntry  *cache;
     int             cacheNo = 0;
@@ -452,7 +452,7 @@ UInt32 wcGetFirstMatching(WcInfo * wci, char *word)
     Assert(wci);
     Assert(word);
 
-    cache = (WordCacheEntry *) CurrFileLockRecord(wci->recWithWordCache);
+    cache = (WordCacheEntry *) fsLockRecord(file, wci->recWithWordCache);
     if (NULL == cache)
     {
         return 0;
@@ -460,7 +460,7 @@ UInt32 wcGetFirstMatching(WcInfo * wci, char *word)
 
     for (cacheNo=0;cacheNo<=wci->cacheEntriesCount-2;cacheNo++)
     {
-        wc_get_firstWord_from_cache(wci,cache,cacheNo+1,wci->buf);
+        wc_get_firstWord_from_cache(file, wci,cache,cacheNo+1,wci->buf);
         compRes = p_istrcmp(word, wci->buf);
         if (compRes<0)
         {
@@ -474,12 +474,12 @@ UInt32 wcGetFirstMatching(WcInfo * wci, char *word)
     record = cache[cacheNo].record + wci->firstRecWithWords;
     offset = cache[cacheNo].offset;
 
-    data = (char *) CurrFileLockRecord(record);
+    data = (char *) fsLockRecord(file, record);
     if (NULL == data)
     {
         return 0;
     }
-    recordSize = CurrFileGetRecordSize(record);
+    recordSize = fsGetRecordSize(file, record);
     pcReset(&wci->packContext, (unsigned char *) data, offset);
     wci->packContext.lastCharInRecordOffset = recordSize;
 
@@ -514,8 +514,8 @@ UInt32 wcGetFirstMatching(WcInfo * wci, char *word)
     {
         currWord = lastWordNo - 1;
     }
-    CurrFileUnlockRecord(record);
-    CurrFileUnlockRecord(wci->recWithWordCache);
+    fsUnlockRecord(file, record);
+    fsUnlockRecord(file, wci->recWithWordCache);
     /* make sure we won't try to be too smart in wcGetWord */
     wci->lastWord = 0xffffff;
     return currWord;
@@ -557,7 +557,7 @@ void wcUnpackWord(WcInfo * wci, char *prevWord, char *unpacked)
     *unpacked = 0;
 }
 
-char char_to_lower(char c)
+static char char_to_lower(char c)
 {
     if ((c >= 'A') && (c <= 'Z'))
         return c - 'A' + 'a';

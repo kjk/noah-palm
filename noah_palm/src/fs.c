@@ -3,27 +3,13 @@
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
-#include "cw_defs.h"
-
-#ifdef NOAH_PRO
-#include "noah_pro.h"
-#endif
-
-#ifdef NOAH_LITE
-#include "noah_lite.h"
-#endif
-
-#ifdef THESAURUS
-#include "thes.h"
-#endif
+#include "common.h"
 
 #include "fs.h"
 #include "fs_mem.h"
 #include "fs_vfs.h"
 
-AbstractFile *currFile=NULL;
-
-void SetCurrentFile(AbstractFile *file)
+void SetCurrentFile(AppContext* appContext, AbstractFile *file)
 {
 #ifdef DEBUG
     if ( NULL == file )
@@ -35,24 +21,20 @@ void SetCurrentFile(AbstractFile *file)
         LogV1( "SetCurrentFile(%s)", file->fileName);
     }
 #endif       
-    currFile = file;
+    appContext->currentFile=file;
 }
 
-AbstractFile *GetCurrentFile(void)
-{
-    return currFile;
-}
 
 /* Initialize all file systems i.e. VFS at present. */
-void FsInit()
+void FsInit(FS_Settings* fsSettings)
 {
-    FsVfsInit();
+    FsVfsInit(fsSettings);
 }
 
 /* De-initialize all file systems i.e. VFS at present. */
-void FsDeinit()
+void FsDeinit(FS_Settings* fsSettings)
 {
-    FsVfsDeinit();
+    FsVfsDeinit(fsSettings);
 }
 
 AbstractFile *AbstractFileNew(void)
@@ -174,9 +156,9 @@ AbstractFile *AbstractFileDeserialize( char *blob )
     return file;
 }
 
-Boolean FsFileOpen(AbstractFile *file)
+Boolean FsFileOpen(AppContext* appContext, AbstractFile *file)
 {
-    Assert( NULL == GetCurrentFile() );
+    Assert( NULL == GetCurrentFile(appContext) );
     LogV1( "FsFileOpen(%s)", file->fileName );
     switch(file->fsType)
     {
@@ -190,13 +172,9 @@ Boolean FsFileOpen(AbstractFile *file)
             }
             break;
         case eFS_VFS:
-#ifdef THESAURUS
-            file->data.cacheData = dcNew(file, THES_CREATOR);
-#endif
-#ifdef NOAH_PRO
-            file->data.cacheData = dcNew(file, NOAH_PRO_CREATOR);
-#endif
-#ifdef NOAH_LITE
+#ifndef NOAH_LITE        
+            file->data.cacheData = dcNew(file, APP_CREATOR);
+#else            
             Assert(0);
 #endif
             if ( NULL == file->data.cacheData )
@@ -209,7 +187,7 @@ Boolean FsFileOpen(AbstractFile *file)
             Assert(0);
             break;
     }
-    SetCurrentFile(file);
+    SetCurrentFile(appContext, file);
     return true;
 }
 
@@ -267,18 +245,21 @@ UInt16 fsGetRecordSize(AbstractFile *file, UInt16 recNo)
     }
 }
 
-void *fsLockRecord(AbstractFile *file, UInt16 recNo)
+void* fsLockRecord(AbstractFile *file, UInt16 recNo)
 {
+    void* res=NULL;
     switch (file->fsType)
     {
         case eFS_MEM:
-            return memLockRecord(file->data.memData, recNo);
+            res=memLockRecord(file->data.memData, recNo);
+            break;
         case eFS_VFS:
-            return dcLockRecord(file->data.cacheData, recNo);
+            res=dcLockRecord(file, file->data.cacheData, recNo);
+            break;
         default:
-            Assert(0);
-            return NULL;
+            Assert(false);
     }
+    return res;
 }
 
 void fsUnlockRecord(AbstractFile *file, UInt16 recNo)
@@ -296,14 +277,14 @@ void fsUnlockRecord(AbstractFile *file, UInt16 recNo)
     }
 }
 
-void *fsLockRegion(AbstractFile *file, UInt16 recNo, UInt16 offset, UInt16 size)
+void* fsLockRegion(AbstractFile *file, UInt16 recNo, UInt16 offset, UInt16 size)
 {
     switch(file->fsType)
     {
         case eFS_MEM:
             return memLockRegion(file->data.memData, recNo, offset, size );
         case eFS_VFS:
-            return dcLockRegion(file->data.cacheData, recNo, offset, size );
+            return dcLockRegion(file, file->data.cacheData, recNo, offset, size );
         default:
             Assert(0);
             return NULL;
@@ -323,44 +304,6 @@ void fsUnlockRegion(AbstractFile *file, char *data)
         default:
             Assert(0);
     }
-}
-
-/* Number of records in "current" database */
-UInt16 CurrFileGetRecordsCount(void)
-{
-    return fsGetRecordsCount(currFile);
-}
-
-/* get the size of a given record */
-long CurrFileGetRecordSize(UInt16 recNo)
-{
-    return fsGetRecordSize(currFile,recNo);
-}
-
-/* lock a given record and return a pointer to its data. It should
-   only be used for records that are fully cacheable */
-void * CurrFileLockRecord(UInt16 recNo)
-{
-    return fsLockRecord(currFile,recNo);
-}
-
-/* unlock a given record. Should only be used for records that are
-   fully cacheable */
-void CurrFileUnlockRecord(UInt16 recNo)
-{
-    fsUnlockRecord(currFile, recNo);
-}
-
-/* lock a region of a record and return a pointer to its data*/
-void *CurrFileLockRegion(UInt16 recNo, UInt16 offset, UInt16 size)
-{
-    return fsLockRegion(currFile,recNo,offset,size);
-}
-
-/* unlock a region of a record */
-void CurrFileUnlockRegion(char *data)
-{
-    fsUnlockRegion(currFile,data);
 }
 
 

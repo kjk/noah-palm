@@ -3,7 +3,7 @@
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
 
-#include "cw_defs.h"
+#include "simple_support.h"
 
 #ifndef NOAH_PRO
 #error "only works in NOAH_PRO"
@@ -13,22 +13,15 @@
 #error "SIMPLE_DICT not defined"
 #endif
 
-#include "simple_support.h"
-#include "extensible_buffer.h"
-#include "fs.h"
- 
-static ExtensibleBuffer g_buf = { 0 };
+//static ExtensibleBuffer g_buf = { 0 };
 
 void simple_delete(void *data)
 {
-    SimpleInfo *si;
-
-    ebufFreeData(&g_buf);
-
-    if (!data)
+    SimpleInfo *si=(SimpleInfo*)data;
+    if (!si)
         return;
 
-    si = (SimpleInfo *) data;
+    ebufFreeData(&si->buffer);
 
     pcFree(&si->defPackContext);
 
@@ -41,7 +34,7 @@ void simple_delete(void *data)
     new_free(data);
 }
 
-void *simple_new(void)
+void *simple_new(AbstractFile* file)
 {
     SimpleInfo *        si = NULL;
     SimpleFirstRecord * firstRecord;
@@ -53,13 +46,14 @@ void *simple_new(void)
     if (NULL == si)
         goto Error;
 
-    firstRecord = (SimpleFirstRecord *) CurrFileLockRecord(0);
+    firstRecord = (SimpleFirstRecord *) fsLockRecord(file, 0);
     if (NULL == firstRecord)
         goto Error;
 
-    Assert(sizeof(SimpleFirstRecord) == CurrFileGetRecordSize(0));
-
-    si->recordsCount = CurrFileGetRecordsCount();
+    Assert(sizeof(SimpleFirstRecord) == fsGetRecordSize(file, 0));
+    si->file=file;
+    ebufInit(&si->buffer, 0);
+    si->recordsCount = fsGetRecordsCount(file);
     si->wordsCount = firstRecord->wordsCount;
 
     si->wordsRecsCount = firstRecord->wordsRecsCount;
@@ -69,8 +63,8 @@ void *simple_new(void)
     si->maxWordLen = firstRecord->maxWordLen;
     si->maxDefLen = firstRecord->maxDefLen;
     si->posRecsCount = firstRecord->posRecsCount;
-
     si->curDefData = (unsigned char *) new_malloc(si->maxDefLen + 2);
+    
     if (NULL == si->curDefData)
         goto Error;
 
@@ -78,21 +72,21 @@ void *simple_new(void)
     recWithComprData = 2;
     firstRecWithWords = 4;
 
-    si->wci = wcInit(si->wordsCount, recWithComprData, recWithWordCache, 
+    si->wci = wcInit(file, si->wordsCount, recWithComprData, recWithWordCache, 
                         firstRecWithWords, si->wordsRecsCount, si->maxWordLen);
 
     if (NULL == si->wci)
         goto Error;
 
-    if (!pcInit(&si->defPackContext, 3))
+    if (!pcInit(file, &si->defPackContext, 3))
         goto Error;
 
   Exit:
-    CurrFileUnlockRecord(0);
-    return (void *) si;
+    fsUnlockRecord(file, 0);
+    return si;
   Error:
     if (si)
-        simple_delete((void *) si);
+        simple_delete(si);
     si = NULL;
     goto Exit;
 }
@@ -104,7 +98,7 @@ long simple_get_words_count(void *data)
 
 long simple_get_first_matching(void *data, char *word)
 {
-    return wcGetFirstMatching(((SimpleInfo *) data)->wci, word);
+    return wcGetFirstMatching(((SimpleInfo *) data)->file, ((SimpleInfo *) data)->wci, word);
 }
 
 char *simple_get_word(void *data, long wordNo)
@@ -118,7 +112,7 @@ char *simple_get_word(void *data, long wordNo)
     {
         return NULL;
     }
-    return wcGetWord(si->wci, wordNo);
+    return wcGetWord(si->file, si->wci, wordNo);
 }
 
 #ifndef DEMO
@@ -157,7 +151,7 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     defLensDataLeft = 0;
     defLensData = NULL;
     idxInRec = 0;
-    ebufReset(&g_buf);
+    ebufReset(&si->buffer);
 
     for (i = 0; i < wordNo; i++)
     {
@@ -165,12 +159,12 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         {
             if (defLensData)
             {
-                CurrFileUnlockRecord(recWithDefLens - 1);
+                fsUnlockRecord(si->file, recWithDefLens - 1);
             }
-            defLensData = (unsigned char *) CurrFileLockRecord(recWithDefLens);
+            defLensData = (unsigned char *) fsLockRecord(si->file, recWithDefLens);
             if (NULL == defLensData)
                 return NULL;
-            defLensDataLeft = CurrFileGetRecordSize(recWithDefLens);
+            defLensDataLeft = fsGetRecordSize(si->file, recWithDefLens);
             ++recWithDefLens;
             idxInRec = 0;
         }
@@ -188,12 +182,12 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     {
         if (defLensData)
         {
-            CurrFileUnlockRecord(recWithDefLens - 1);
+            fsUnlockRecord(si->file, recWithDefLens - 1);
         }
-        defLensData = (unsigned char *) CurrFileLockRecord(recWithDefLens);
+        defLensData = (unsigned char *) fsLockRecord(si->file, recWithDefLens);
         if (!defLensData)
             return NULL;
-        defLensDataLeft = CurrFileGetRecordSize(recWithDefLens);
+        defLensDataLeft = fsGetRecordSize(si->file, recWithDefLens);
         ++recWithDefLens;
         idxInRec = 0;
     }
@@ -203,35 +197,35 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     {
         defDataSize = (UInt32) ((UInt32) defLensData[idxInRec] * 256 +  defLensData[idxInRec + 1]);
     }
-    CurrFileUnlockRecord(recWithDefLens - 1);
+    fsUnlockRecord(si->file, recWithDefLens - 1);
 
-    while (defOffset >= CurrFileGetRecordSize(defRecord))
+    while (defOffset >= fsGetRecordSize(si->file, defRecord))
     {
-        defOffset -= CurrFileGetRecordSize(defRecord);
+        defOffset -= fsGetRecordSize(si->file, defRecord);
         ++defRecord;
     }
 
-    ebufAddChar(&g_buf, 149);
-    ebufAddChar(&g_buf, ' ');
+    ebufAddChar(&si->buffer, 149);
+    ebufAddChar(&si->buffer, ' ');
 
     Assert(si->posRecsCount <= 1);
-    posData = (unsigned char *) CurrFileLockRecord(posRecord);
+    posData = (unsigned char *) fsLockRecord(si->file, posRecord);
     if (NULL == posData)
         return NULL;
     posData += wordNo / 4;
 
     partOfSpeech = (posData[0] >> (2 * (wordNo % 4))) & 3;
-    ebufAddStr(&g_buf, GetWnPosTxt(partOfSpeech));
-    ebufAddChar(&g_buf, ' ');
+    ebufAddStr(&si->buffer, GetWnPosTxt(partOfSpeech));
+    ebufAddChar(&si->buffer, ' ');
     word = simple_get_word((void *) si, wordNo);
-    ebufAddStr(&g_buf, word);
-    ebufAddChar(&g_buf, '\n');
+    ebufAddStr(&si->buffer, word);
+    ebufAddChar(&si->buffer, '\n');
 
-    CurrFileUnlockRecord(posRecord);
+    fsUnlockRecord(si->file, posRecord);
     Assert((defOffset >= 0) && (defOffset < 66000));
     Assert((defDataSize >= 0));
 
-    defData = (unsigned char *) CurrFileLockRecord(defRecord);
+    defData = (unsigned char *) fsLockRecord(si->file, defRecord);
     if (NULL == defData)
         return NULL;
     defData += defOffset;
@@ -242,13 +236,13 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     Assert((unpackedLen > 0) && (unpackedLen <= si->maxDefLen));
     si->curDefLen = unpackedLen;
     unpackedDef = si->curDefData;
-    CurrFileUnlockRecord(defRecord);
+    fsUnlockRecord(si->file, defRecord);
 
-    ebufAddStrN(&g_buf, (char *) unpackedDef, unpackedLen);
-    ebufAddChar(&g_buf, '\0');
-    ebufWrapBigLines(&g_buf);
+    ebufAddStrN(&si->buffer, (char *) unpackedDef, unpackedLen);
+    ebufAddChar(&si->buffer, '\0');
+    ebufWrapBigLines(&si->buffer);
 
-    rawTxt = ebufGetDataPointer(&g_buf);
+    rawTxt = ebufGetDataPointer(&si->buffer);
 
     diSetRawTxt(di, rawTxt);
     return 0;
@@ -270,24 +264,24 @@ Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     Assert(dx > 0);
     Assert(di);
 
-    ebufReset(&g_buf);
+    ebufReset(&si->buffer);
 
-    ebufAddChar(&g_buf, 149);
-    ebufAddChar(&g_buf, ' ');
-    word = simple_get_word((void *) si, wordNo);
-    ebufAddStr(&g_buf, word);
-    ebufAddChar(&g_buf, '\n');
+    ebufAddChar(&si->buffer, 149);
+    ebufAddChar(&si->buffer, ' ');
+    word = simple_get_word(si, wordNo);
+    ebufAddStr(&si->buffer, word);
+    ebufAddChar(&si->buffer, '\n');
 
-    ebufAddStr(&g_buf, "\n    This is only a DEMO version of");
-    ebufAddStr(&g_buf, "\n    Noah Pro without definitions. To");
-    ebufAddStr(&g_buf, "\n    find out how to get full version");
-    ebufAddStr(&g_buf, "\n    go to:");
-    ebufAddStr(&g_buf, "\n                WWW.ARSLEXIS.COM\n");
+    ebufAddStr(&si->buffer, "\n    This is only a DEMO version of");
+    ebufAddStr(&si->buffer, "\n    Noah Pro without definitions. To");
+    ebufAddStr(&si->buffer, "\n    find out how to get full version");
+    ebufAddStr(&si->buffer, "\n    go to:");
+    ebufAddStr(&si->buffer, "\n                WWW.ARSLEXIS.COM\n");
 
-    ebufAddChar(&g_buf, '\0');
-    ebufWrapBigLines(&g_buf);
+    ebufAddChar(&si->buffer, '\0');
+    ebufWrapBigLines(&si->buffer);
 
-    rawTxt = ebufGetTxtCopy(&g_buf);
+    rawTxt = ebufGetTxtCopy(&si->buffer);
     diSetRawTxt(di, rawTxt);
     return 0;
 }

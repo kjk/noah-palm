@@ -65,20 +65,20 @@ struct DbCacheData
 
 /* dc stands for Database Cache */
 struct DbCacheData *dcNew(AbstractFile *file, UInt32 cacheCreator);
-void         dcDelCacheDb(void);
-void         dcInit(struct DbCacheData *cache);
-void         dcDeinit(struct DbCacheData *cache);
-UInt16       dcGetRecordsCount(struct DbCacheData *cache);
-long         dcGetRecordSize(struct DbCacheData *cache, UInt16 recNo);
-LocalID      dcCreateCacheDb(struct DbCacheData *cache);
-Err          dcCacheDbRef(struct DbCacheData *cache);
-void         dcCloseCacheDb(struct DbCacheData *cache);
-Err          dcCacheRecord(struct DbCacheData *cache, UInt16 recNo);
-Err          dcUpdateFirstCacheRec(struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec);
-void        *dcLockRecord(struct DbCacheData *cache, UInt16 recNo);
-void        *dcLockRegion(struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size);
-void         dcUnlockRecord(struct DbCacheData *cache, UInt16 recNo);
-void         dcUnlockRegion(struct DbCacheData *cache,char *regionPtr);
+extern void dcDelCacheDb(void);
+extern void dcInit(struct DbCacheData *cache);
+extern void dcDeinit(struct DbCacheData *cache);
+extern UInt16 dcGetRecordsCount(struct DbCacheData *cache);
+extern long dcGetRecordSize(struct DbCacheData *cache, UInt16 recNo);
+extern LocalID dcCreateCacheDb(AbstractFile* file, struct DbCacheData *cache);
+extern Err dcCacheDbRef(AbstractFile* file, struct DbCacheData *cache);
+extern void dcCloseCacheDb(struct DbCacheData *cache);
+extern Err dcCacheRecord(AbstractFile* file, struct DbCacheData *cache, UInt16 recNo);
+extern Err dcUpdateFirstCacheRec(AbstractFile* file, struct DbCacheData *cache, CacheDBInfoRec * dbFirstRec);
+extern void* dcLockRecord(AbstractFile* file, struct DbCacheData *cache, UInt16 recNo);
+extern void* dcLockRegion(AbstractFile* file, struct DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size);
+extern void dcUnlockRecord(struct DbCacheData *cache, UInt16 recNo);
+extern void dcUnlockRegion(struct DbCacheData *cache,char *regionPtr);
 //Boolean dcCacheRecords(struct DbCacheData *cache, int recsCount, UInt16 * recs);
 
 #endif

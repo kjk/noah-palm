@@ -14,7 +14,7 @@
 /* iterate over all dbs in internal memory and call pCB for each db that
 matches creator/type/name. creator/type/name can be null.
 It passes AbstractFile allocated here, caller needs to free it.*/
-void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB)
+void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB, void* context)
 {
     AbstractFile        *file;
     char                dbName[32];
@@ -52,7 +52,7 @@ void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB)
         file->dbId = dbId;
 
         /* call the callback function to notify that matching db has been found */
-        (*pCB)(file);
+        (*pCB)(context, file);
     }
 }
 
@@ -73,7 +73,7 @@ void memInit(struct MemData *memData,AbstractFile *file)
     memData->openDb = 0;
 }
 
-void memCloseDb(struct MemData *memData)
+static void memCloseDb(struct MemData *memData)
 {
 #ifdef DEBUG
     int i;

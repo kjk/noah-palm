@@ -5,79 +5,33 @@
   All the common code shared between my other apps.
 */
 
-#include "cw_defs.h"
-
-#ifdef NOAH_PRO
-#include "noah_pro.h"
-#include "noah_pro_rcp.h"
-#endif
-
-#ifdef NOAH_LITE
-#include "noah_lite.h"
-#include "noah_lite_rcp.h"
-#endif
-
-#ifdef THESAURUS
-#include "thes.h"
-#include "thes_rcp.h"
-#endif
-
-#include <PalmCompatibility.h>
-#include "extensible_buffer.h"
-#include "fs.h"
-
-#ifdef THESAURUS
-#include "roget_support.h"
-#endif
-
-#ifdef WNLEX_DICT
-#include "wn_lite_ex_support.h"
-#endif
-
-#ifdef WN_PRO_DICT
-#include "wn_pro_support.h"
-#endif
-
-#ifdef SIMPLE_DICT
-#include "simple_support.h"
-#endif
-
-#ifdef EP_DICT
-#include "ep_support.h"
-#endif
-
 #include "common.h"
-
-extern GlobalData gd;
-
-#ifdef DEBUG
-LogInfo g_Log;
-char    g_logBuf[512];
-#endif
+#include "five_way_nav.h"
+#include "menu_support_database.h"
 
 /* those functions are not available for Noah Lite */
 #ifndef NOAH_LITE
 
-void HistoryListInit(FormType *frm)
+void HistoryListInit(AppContext* appContext, FormType *frm)
 {
     ListType *  list;
 
     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-    LstSetListChoices(list, NULL, gd.historyCount);
+    LstSetListChoices(list, NULL, appContext->historyCount);
     LstSetDrawFunction(list, HistoryListDrawFunc);
-    HistoryListSetState(frm);
+    HistoryListSetState(appContext, frm);
 }
 
-void HistoryListSetState(FormType *frm)
+void HistoryListSetState(AppContext* appContext, FormType *frm)
 {
     ListType *  list;
 
     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm,  listHistory));
-    if (0 == gd.historyCount)
+    if (0 == appContext->historyCount)
         CtlHideControlEx(frm,popupHistory);
     else
     {
-        LstSetListChoices(list, NULL, gd.historyCount);
+        LstSetListChoices(list, NULL, appContext->historyCount);
         CtlShowControlEx(frm,popupHistory);
     }
 }
@@ -86,14 +40,15 @@ void HistoryListSetState(FormType *frm)
 void HistoryListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char *  str;
+    AppContext* appContext=GetAppContext();
     /* max width of the string in the list selection window */
     Int16   stringWidthP = 64;
     Int16   stringLenP;
     Boolean truncatedP = false;
+    Assert(appContext);
+    Assert((itemNum >= 0) && (itemNum <= appContext->historyCount));
 
-    Assert((itemNum >= 0) && (itemNum <= gd.historyCount));
-
-    str = gd.wordHistory[itemNum];
+    str = appContext->wordHistory[itemNum];
     stringLenP = StrLen(str);
 
     FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
@@ -112,60 +67,57 @@ void strtolower(char *txt)
     }
 }
 
-void AddToHistory(UInt32 wordNo)
+void AddToHistory(AppContext* appContext, UInt32 wordNo)
 {
     char *  word;
 
-    word = strdup(dictGetWord(wordNo));
+    word = strdup(dictGetWord(GetCurrentFile(appContext), wordNo));
     if (!word)
         return;
 
-    MemMove(&(gd.wordHistory[1]), &(gd.wordHistory[0]), ((HISTORY_ITEMS - 1) * sizeof(gd.wordHistory[0])));
-    gd.wordHistory[0] = word;
+    MemMove(&(appContext->wordHistory[1]), &(appContext->wordHistory[0]), ((HISTORY_ITEMS - 1) * sizeof(appContext->wordHistory[0])));
+    appContext->wordHistory[0] = word;
 
-    if (gd.historyCount < HISTORY_ITEMS)
-        ++gd.historyCount;
+    if (appContext->historyCount < HISTORY_ITEMS)
+        ++appContext->historyCount;
 }
 
-void FreeHistory(void)
+void FreeHistory(AppContext* appContext)
 {
     int i;
-    for (i=0;i<gd.historyCount;i++)
+    for (i=0;i<appContext->historyCount;i++)
     {
-        new_free(gd.wordHistory[i]);
+        new_free(appContext->wordHistory[i]);
     }
-    gd.historyCount = 0;
+    appContext->historyCount = 0;
 }
 
-void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, char *txtBuf)
+void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx)
 {
     ListType *list = NULL;
-    char *listTxt;
-
+    char* listTxt;
     Assert(frm);
-    Assert(txtBuf);
 
     list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listID));
     LstSetSelection(list, txtIdx);
     listTxt = LstGetSelectionText(list, txtIdx);
-    MemMove(txtBuf, listTxt, StrLen(listTxt) + 1);
-    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupID)), txtBuf);
+    CtlSetLabel((ControlType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, popupID)), listTxt);
 }
 
 
 // return false if didn't find anything in clipboard, true if 
 // got word from clipboard
-Boolean FTryClipboard(void)
+Boolean FTryClipboard(AppContext* appContext)
 {
     MemHandle   clipItemHandle;
-    char        txt[30];
+    char        txt[WORD_MAX_LEN+1];
     char *      clipTxt;
     char *      word;
     UInt32      wordNo;
     int         idx;
     UInt16      itemLen;
 
-    Assert( GetCurrentFile() );
+    Assert(GetCurrentFile(appContext));
 
     clipItemHandle = ClipboardGetItem(clipboardText, &itemLen);
     if (!clipItemHandle || (0==itemLen))
@@ -191,12 +143,12 @@ Boolean FTryClipboard(void)
 
     MemHandleUnlock(clipItemHandle);
 
-    wordNo = dictGetFirstMatching(txt);
-    word = dictGetWord(wordNo);
+    wordNo = dictGetFirstMatching(GetCurrentFile(appContext), txt);
+    word = dictGetWord(GetCurrentFile(appContext), wordNo);
 
     if (0 == StrNCaselessCompare(&(txt[idx]), word,  ((UInt16) StrLen(word) <  itemLen) ? StrLen(word) : itemLen))
     {
-        DrawDescription(wordNo);
+        DrawDescription(appContext, wordNo);
         return true;
     }
     return false;
@@ -205,13 +157,13 @@ Boolean FTryClipboard(void)
 
 #endif
 
-void FreeDicts(void)
+void FreeDicts(AppContext* appContext)
 {
     // make sure to call DictCurrentFree() before calling here
-    Assert( NULL == GetCurrentFile() );
-    while(gd.dictsCount>0)
+    Assert( NULL == GetCurrentFile(appContext) );
+    while(appContext->dictsCount>0)
     {
-        AbstractFileFree( gd.dicts[--gd.dictsCount] );
+        AbstractFileFree( appContext->dicts[--appContext->dictsCount] );
     }
 }
 
@@ -220,19 +172,17 @@ void FreeDicts(void)
 Detect an Palm OS version and return it in a way easy for later
 examination (20 for 2.0, 35 for 3.5 etc.)
 */
-int GetOsVersion(void)
+int GetOsVersion(AppContext* appContext)
 {
     UInt32      osVersionPart;
-    static int  osVersion=0;
-
-    if ( osVersion==0 )
+    if ( appContext->osVersion==0 )
     {
         FtrGet( sysFtrCreator, sysFtrNumROMVersion, &osVersionPart );
-        osVersion = sysGetROMVerMajor(osVersionPart)*10;
+        appContext->osVersion = sysGetROMVerMajor(osVersionPart)*10;
         if ( sysGetROMVerMinor(osVersionPart) < 10 )
-            osVersion += sysGetROMVerMinor(osVersionPart);
+            appContext->osVersion += sysGetROMVerMinor(osVersionPart);
     }
-    return osVersion;
+    return appContext->osVersion;
 }
 
 /*
@@ -240,33 +190,34 @@ Find out and return the max screen depth supported by the given os.
 Number of supported colors is 2^screen_depth
 OS less than 30 only supports 1 (2 colors).
 */
-int GetMaxScreenDepth()
+int GetMaxScreenDepth(AppContext* appContext)
 {
     UInt32    supportedDepths;
     UInt32    i;
-    int       maxDepth;
 
-    maxDepth = 1;
-    if ( GetOsVersion() >= 35 )
-    {
-        WinScreenMode( winScreenModeGetSupportedDepths, NULL, NULL, &supportedDepths, NULL );
-        for ( i = 1; supportedDepths; i++ )
+    if (!appContext->maxScreenDepth) {
+        appContext->maxScreenDepth = 1;
+        if ( GetOsVersion(appContext) >= 35 )
         {
-            if ( ( supportedDepths & 0x01 ) == 0x01 )
-                maxDepth = i;
-            supportedDepths >>= 1;
+            WinScreenMode( winScreenModeGetSupportedDepths, NULL, NULL, &supportedDepths, NULL );
+            for ( i = 1; supportedDepths; i++ )
+            {
+                if ( ( supportedDepths & 0x01 ) == 0x01 )
+                    appContext->maxScreenDepth = i;
+                supportedDepths >>= 1;
+            }
         }
-    }
-    return maxDepth;
+    }      
+    return appContext->maxScreenDepth;
 }
 
 /*
 Find out and return current depth of the screen.
 */
-int GetCurrentScreenDepth()
+int GetCurrentScreenDepth(AppContext* appContext)
 {
     UInt32    depth;
-    int       osVersion = GetOsVersion();
+    int       osVersion = GetOsVersion(appContext);
 
     if ( osVersion >= 35 )
     {
@@ -279,11 +230,11 @@ int GetCurrentScreenDepth()
 /*
 Check if color is supported on this device
 */
-Boolean IsColorSupported()
+Boolean IsColorSupported(AppContext* appContext)
 {
     Boolean     fSupported;
 
-    if ( GetOsVersion() >= 35 )
+    if ( GetOsVersion(appContext) >= 35 )
     {
         WinScreenMode( winScreenModeGet, NULL, NULL, NULL, &fSupported);
         return fSupported;
@@ -291,30 +242,30 @@ Boolean IsColorSupported()
     return false;
 }
 
-static RGBColorType rgb_color;
-
-static void SetTextColor(RGBColorType *color)
+void SetTextColor(AppContext* appContext, RGBColorType *color)
 {
-    if ( GetOsVersion() >= 40 )
+    if ( GetOsVersion(appContext) >= 40 )
     {
         WinSetTextColorRGB (color, NULL);
     }
 }
 
-void SetTextColorBlack(void)
+void SetTextColorBlack(AppContext* appContext)
 {
+    RGBColorType rgb_color;
     rgb_color.index = 0;
     rgb_color.r = 0;
     rgb_color.g = 0;
     rgb_color.b = 0;
-    SetTextColor( &rgb_color );
+    SetTextColor( appContext, &rgb_color );
 }
-void SetTextColorRed(void)
+void SetTextColorRed(AppContext* appContext)
 {
+    RGBColorType rgb_color;
     rgb_color.r = 255;
     rgb_color.g = 0;
     rgb_color.b = 0;
-    SetTextColor( &rgb_color );
+    SetTextColor( appContext, &rgb_color );
 
 }
 
@@ -354,41 +305,40 @@ void SetScrollbarState(DisplayInfo * di, int maxLines, int firstLine)
     SclSetScrollBar((ScrollBarType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, scrollDef)), value, min, max, page_size);
 }
 
-void DisplayHelp(void)
+void DisplayHelp(AppContext* appContext)
 {
     char *rawTxt;
 
-    if (NULL == gd.currDispInfo)
+    if (NULL == appContext->currDispInfo)
     {
-        gd.currDispInfo = diNew();
-        if (NULL == gd.currDispInfo)
+        appContext->currDispInfo = diNew();
+        if (NULL == appContext->currDispInfo)
         {
             /* TODO: we should rather exit, since this means totally
                out of ram */
             return;
         }
     }
-    rawTxt = ebufGetDataPointer(gd.helpDispBuf);
-    diSetRawTxt(gd.currDispInfo, rawTxt);
-
-    gd.firstDispLine = 0;
-    ClearDisplayRectangle();
-    DrawDisplayInfo(gd.currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
-    SetScrollbarState(gd.currDispInfo, gd.dispLinesCount, gd.firstDispLine);
+    rawTxt = ebufGetDataPointer(appContext->helpDispBuf);
+    diSetRawTxt(appContext->currDispInfo, rawTxt);
+    appContext->firstDispLine = 0;
+    ClearDisplayRectangle(appContext);
+    DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
 }
 
-extern void DisplayAbout(void);
+extern void DisplayAbout(AppContext* appContext);
 
-void RedrawWordDefinition()
+static void RedrawWordDefinition(AppContext* appContext)
 {
     Int16 wordLen = 0;
     char *word = NULL;
 
     // might happen if there is no word chosen yet, in which case we
     // display about screen
-    if (NULL == gd.currDispInfo)
+    if (NULL == appContext->currDispInfo)
     {
-        DisplayAbout();
+        DisplayAbout(appContext);
         return;
     }
 
@@ -396,21 +346,21 @@ void RedrawWordDefinition()
     // (during rescanning of databases in selecting of new databases)
     // in that case do nothing
     // UNDONE: find a better solution?
-    if ( NULL == GetCurrentFile() )
+    if ( NULL == GetCurrentFile(appContext) )
         return;
 
 
     /* write the word at the bottom */
-    word = dictGetWord(gd.currentWord);
+    word = dictGetWord(GetCurrentFile(appContext), appContext->currentWord);
 
     wordLen = StrLen(word);
-    MemSet(gd.prefs.lastWord, 32, 0);
-    MemMove(gd.prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
+    MemSet(appContext->prefs.lastWord, 32, 0);
+    MemMove(appContext->prefs.lastWord, word, wordLen < 31 ? wordLen : 31);
 
-    DrawWord(word, gd.screenHeight-FONT_DY);
-    ClearDisplayRectangle();
-    DrawDisplayInfo(gd.currDispInfo, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
-    SetScrollbarState(gd.currDispInfo, gd.dispLinesCount, gd.firstDispLine);
+    DrawWord(word, appContext->screenHeight-FONT_DY);
+    ClearDisplayRectangle(appContext);
+    DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
 
 }
 
@@ -422,29 +372,26 @@ void SendNewWordSelected(void)
     EvtAddEventToQueue(&newEvent);
 }
 
-void RedrawMainScreen()
+void RedrawMainScreen(AppContext* appContext)
 {
     FrmDrawForm(FrmGetActiveForm());
-// 2003-11-25 andrzejc DynamicInputArea  
-//  WinDrawLine(0, 145, 160, 145);
-//  WinDrawLine(0, 144, 160, 144);
-    WinDrawLine(0, gd.screenHeight-FRM_RSV_H+1, gd.screenWidth, gd.screenHeight-FRM_RSV_H+1);
-    WinDrawLine(0, gd.screenHeight-FRM_RSV_H, gd.screenWidth, gd.screenHeight-FRM_RSV_H);
-    RedrawWordDefinition();
+    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
+    WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
+    RedrawWordDefinition(appContext);
 }
 
-void DrawDescription(long wordNo)
+void DrawDescription(AppContext* appContext, long wordNo)
 {
     Err err;
 
-    Assert(wordNo < gd.wordsCount);
+    Assert(wordNo < appContext->wordsCount);
 
     // if currDispInfo has not been yet allocated, allocate it now.
     // It'll be reused
-    if (NULL == gd.currDispInfo)
+    if (NULL == appContext->currDispInfo)
     {
-        gd.currDispInfo = diNew();
-        if (NULL == gd.currDispInfo)
+        appContext->currDispInfo = diNew();
+        if (NULL == appContext->currDispInfo)
         {
             // UNDONE: we should rather exit, since this means totally
             // out of ram
@@ -452,26 +399,23 @@ void DrawDescription(long wordNo)
         }
     }
 
-    DrawCentered(SEARCH_TXT);
+    DrawCentered(appContext, SEARCH_TXT);
 
-    err = dictGetDisplayInfo(wordNo, 120, gd.currDispInfo);
+    err = dictGetDisplayInfo(GetCurrentFile(appContext), wordNo, 120, appContext->currDispInfo);
     if (err != 0)
     {
         return;
     }
 
-    gd.currentWord = wordNo;
-    gd.firstDispLine = 0;
+    appContext->currentWord = wordNo;
+    appContext->firstDispLine = 0;
 
-    RedrawWordDefinition();
+    RedrawWordDefinition(appContext);
 }
 
-void ClearDisplayRectangle()
+void ClearDisplayRectangle(AppContext* appContext)
 {
-// 2003-11-25 andrzejc DynamicInputArea
-//    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 160 - DRAW_DI_X,
-//                    160 - DRAW_DI_Y - 16);
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth - DRAW_DI_X, gd.screenHeight - DRAW_DI_Y - FRM_RSV_H);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth - DRAW_DI_X, appContext->screenHeight - DRAW_DI_Y - FRM_RSV_H);
 }
 
 void ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey)
@@ -484,18 +428,18 @@ void ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey)
     WinEraseRectangle(&r, 0);
 }
 
-void DrawCentered(char *txt)
+void DrawCentered(AppContext* appContext, char *txt)
 {
     FontID prev_font;
 
-    ClearDisplayRectangle();
+    ClearDisplayRectangle(appContext);
     prev_font = FntGetFont();
     FntSetFont((FontID) 1);
-    WinDrawChars(txt, StrLen(txt), 46, (gd.screenHeight - 20) / 2);
+    WinDrawChars(txt, StrLen(txt), 46, (appContext->screenHeight - 20) / 2);
     FntSetFont(prev_font);
 }
 
-void DrawCenteredString(const char *str, int dy)
+void DrawCenteredString(AppContext* appContext, const char *str, int dy)
 {
     Int16 strDx;
     int strLen;
@@ -503,26 +447,24 @@ void DrawCenteredString(const char *str, int dy)
     Assert(str);
     strLen = StrLen(str);
     strDx = FntCharsWidth(str, strLen);
-    WinDrawChars(str, strLen, (gd.screenWidth - strDx) / 2, dy);
+    WinDrawChars(str, strLen, (appContext->screenWidth - strDx) / 2, dy);
 }
 
 #define WAIT_CACHE_TXT "Caching rec:  "
 
-void DrawCacheRec(int recNum)
+void DrawCacheRec(AppContext* appContext, int recNum)
 {
     char buf[30];
     StrCopy(buf, WAIT_CACHE_TXT);
     StrIToA(buf + sizeof(WAIT_CACHE_TXT) - 2, recNum);
-// 2003-11-26 andrzejc DynamicInputArea    
-//    DrawWord(buf, 149 );
-    DrawWord(buf, gd.screenHeight - FRM_RSV_H + 5);
+    DrawWord(buf, appContext->screenHeight - FRM_RSV_H + 5);
     /*DrawCentered(buf);*/
 }
 
-static int curr_y;
-static FontID curr_font;
-static FontID original_font;
-
+//static int curr_y;
+//static FontID curr_font;
+//static FontID original_font;
+/*
 void dh_set_current_y(int y)
 {
     curr_y = y;
@@ -550,6 +492,7 @@ void dh_display_string(const char *str, int font, int dy)
     DrawCenteredString(str, curr_y);
     curr_y += dy;
 }
+*/
 
 /* display maxLines from DisplayInfo, starting with first line,
 starting at x,y  coordinates */
@@ -623,8 +566,7 @@ void DrawWord(char *word, int pos_y)
   Given entry number find out entry's definition (record,
   offset within the record and the definitions' length)
  */
-Boolean get_defs_record(long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs,
-                int *record_out, long *offset_out, long *len_out)
+Boolean get_defs_record(AbstractFile* file, long entry_no, int first_record_with_defs_len, int defs_len_rec_count, int first_record_with_defs, int *record_out, long *offset_out, long *len_out)
 {
     SynsetDef synset_def = { 0 };
 
@@ -637,7 +579,7 @@ Boolean get_defs_record(long entry_no, int first_record_with_defs_len, int defs_
     Assert(len_out);
 
     synset_def.synsetNo = entry_no;
-    if ( !get_defs_records(1, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def) )
+    if ( !get_defs_records(file, 1, first_record_with_defs_len, defs_len_rec_count, first_record_with_defs, &synset_def) )
     {
         return false;
     }
@@ -648,8 +590,7 @@ Boolean get_defs_record(long entry_no, int first_record_with_defs_len, int defs_
     return true;
 }
 
-Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs,
-                 SynsetDef * synsets)
+Boolean get_defs_records(AbstractFile* file, long entry_count, int first_record_with_defs_len,  int defs_len_rec_count, int first_record_with_defs, SynsetDef * synsets)
 {
     long offset = 0;
     long curr_len;
@@ -668,12 +609,12 @@ Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int 
     Assert(first_record_with_defs >= 0);
 
     curr_record = first_record_with_defs_len;
-    def_lens = (unsigned char *) CurrFileLockRecord(curr_record);
+    def_lens = (unsigned char *) fsLockRecord(file, curr_record);
     if (NULL == def_lens)
     {
         return false;
     }
-    curr_rec_size = CurrFileGetRecordSize(curr_record);
+    curr_rec_size = fsGetRecordSize(file, curr_record);
 
     /* calculate the length and offset of all entries */
     idx_in_rec = 0;
@@ -703,18 +644,18 @@ Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int 
         Assert( idx_in_rec <= curr_rec_size );
         if (idx_in_rec == curr_rec_size)
         {
-            CurrFileUnlockRecord(curr_record);
+            fsUnlockRecord(file, curr_record);
             ++curr_record;
             Assert(curr_record < first_record_with_defs_len + defs_len_rec_count);
-            def_lens = (unsigned char *) CurrFileLockRecord(curr_record);
-            curr_rec_size = CurrFileGetRecordSize(curr_record);
+            def_lens = (unsigned char *) fsLockRecord(file, curr_record);
+            curr_rec_size = fsGetRecordSize(file, curr_record);
             idx_in_rec = 0;
         }
         ++current_entry;
     }
     while (true);
 
-    CurrFileUnlockRecord(curr_record);
+    fsUnlockRecord(file, curr_record);
 
     /* -1 means that we haven't yet found record for this one */
     for (entry_index = 0; entry_index < entry_count; ++entry_index)
@@ -733,9 +674,9 @@ Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int 
             if (-1 == synsets[entry_index].record)
             {
                 /* didn't find the record yet for this one */
-                if (synsets[entry_index].offset >= CurrFileGetRecordSize(curr_record))
+                if (synsets[entry_index].offset >= fsGetRecordSize(file, curr_record))
                 {
-                    synsets[entry_index].offset -= CurrFileGetRecordSize(curr_record);
+                    synsets[entry_index].offset -= fsGetRecordSize(file, curr_record);
                     loop_end_p = false;
                 }
                 else
@@ -765,49 +706,30 @@ char *GetNthTxt(int n, char *txt)
     return txt;
 }
 
-static const Char* const wnPosTexts[]={
-    "(noun) ",
-    "(verb) ",
-    "(adj.) ",
-    "(adv.) "
-};
-
 char* GetWnPosTxt(int pos)
 {
-//    return GetNthTxt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
-
-    Assert(pos< sizeof(wnPosTexts)/sizeof(const Char*));
-    return (char*)wnPosTexts[pos];
+    return GetNthTxt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
 }
 
-/* return the dictionary type for the current file */
-UInt32 CurrFileDictType(void)
+#define GetFileType(file) ((file)->type)
+
+Boolean dictNew(AbstractFile* file)
 {
-    AbstractFile *file = GetCurrentFile();
-    return file->type;
-}
-
-Boolean dictNew(void)
-{
-    AbstractFile *file;
-
-    file = GetCurrentFile();
-
-    switch (CurrFileDictType())
+    switch (GetFileType(file))
     {
 #ifdef THESAURUS
         case ROGET_TYPE:
-            file->dictData.roget = RogetNew();
+            file->dictData.roget = RogetNew(file);
             if (NULL == file->dictData.roget)
             {
-                LogG( "dictNew(): RogetNew() failed" );
+                LogG("dictNew(): RogetNew() failed" );
                 return false;
             }
             break;
 #endif
 #ifdef WN_PRO_DICT
         case WORDNET_PRO_TYPE:
-            file->dictData.wn = (struct _WnInfo*) wn_new();
+            file->dictData.wn = (struct _WnInfo*) wn_new(file);
             if (NULL == file->dictData.wn)
             {
                 LogG( "dictNew(): wn_new() failed" );
@@ -817,7 +739,7 @@ Boolean dictNew(void)
 #endif
 #ifdef WNLEX_DICT
         case WORDNET_LITE_TYPE:
-            file->dictData.wnLite = (struct _WnLiteInfo*) wnlex_new();
+            file->dictData.wnLite = (struct _WnLiteInfo*) wnlex_new(file);
             if (NULL == file->dictData.wnLite)
             {
                 LogG( "dictNew(): wnlex_new() failed" );
@@ -827,7 +749,7 @@ Boolean dictNew(void)
 #endif
 #ifdef SIMPLE_DICT
         case SIMPLE_TYPE:
-            file->dictData.simple = (struct _SimpleInfo*)simple_new();
+            file->dictData.simple = (struct _SimpleInfo*)simple_new(file);
             if ( NULL == file->dictData.simple )
             {
                 LogG( "dictNew(): simple_new() failed" );
@@ -837,7 +759,7 @@ Boolean dictNew(void)
 #endif
 #ifdef EP_DICT
         case ENGPOL_TYPE:
-            file->dictData.engpol = (EngPolInfo*)epNew();
+            file->dictData.engpol = (EngPolInfo*)epNew(file);
             if ( NULL == file->dictData.engpol )
             {
                 LogG( "dictNew(): epNew() failed" );
@@ -855,11 +777,10 @@ Boolean dictNew(void)
 }
 
 /* free all resources allocated by dictionary */
-void dictDelete(void)
+void dictDelete(AbstractFile* file)
 {
-    AbstractFile *file = GetCurrentFile();
     if ( NULL == file ) return;
-    switch (CurrFileDictType())
+    switch (GetFileType(file))
     {
 #ifdef THESAURUS
         case ROGET_TYPE:
@@ -897,10 +818,9 @@ void dictDelete(void)
     }
 }
 
-long dictGetWordsCount(void)
+long dictGetWordsCount(AbstractFile* file)
 {
-    AbstractFile *file = GetCurrentFile();
-    switch (CurrFileDictType())
+    switch (GetFileType(file))
     {
 #ifdef THESAURUS
         case ROGET_TYPE:
@@ -930,10 +850,9 @@ long dictGetWordsCount(void)
     return 0;
 }
 
-long dictGetFirstMatching(char *word)
+long dictGetFirstMatching(AbstractFile* file, char *word)
 {
-    AbstractFile *file = GetCurrentFile();
-    switch (CurrFileDictType())
+    switch (GetFileType(file))
     {
 #ifdef THESAURUS
         case ROGET_TYPE:
@@ -962,10 +881,9 @@ long dictGetFirstMatching(char *word)
     return 0;
 }
 
-char *dictGetWord(long wordNo)
+char* dictGetWord(AbstractFile* file, long wordNo)
 {
-    AbstractFile *file = GetCurrentFile();
-    switch (CurrFileDictType())
+    switch (GetFileType(file))
     {
 #ifdef THESAURUS
         case ROGET_TYPE:
@@ -994,10 +912,9 @@ char *dictGetWord(long wordNo)
     return NULL;
 }
 
-Err dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di)
+Err dictGetDisplayInfo(AbstractFile* file, long wordNo, int dx, DisplayInfo * di)
 {
-    AbstractFile *file = GetCurrentFile();
-    switch (CurrFileDictType())
+    switch (GetFileType(file))
     {
 #ifdef THESAURUS
         case ROGET_TYPE:
@@ -1026,7 +943,7 @@ Err dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di)
     return 0;
 }
 
-char helpText[] =
+static const char helpText[] =
     " Instructions:\n" \
     "\255 to lookup a definition of a word\n" \
     "  press the find button in the right\n" \
@@ -1040,26 +957,26 @@ char helpText[] =
     " For more information go to\n" \
     " www.arslexis.com\n";
 
-Boolean CreateHelpData(void)
+Boolean CreateHelpData(AppContext* appContext)
 {
-    gd.helpDispBuf = ebufNew();
-    ebufAddStr(gd.helpDispBuf, helpText);
-    ebufAddChar(gd.helpDispBuf, '\0');
-    ebufWrapBigLines(gd.helpDispBuf);
+    appContext->helpDispBuf = ebufNew();
+    ebufAddStr(appContext->helpDispBuf, (char*)helpText);
+    ebufAddChar(appContext->helpDispBuf, '\0');
+    ebufWrapBigLines(appContext->helpDispBuf);
     return true;
 }
 
-void FreeInfoData(void)
+void FreeInfoData(AppContext* appContext)
 {
-    if (gd.helpDispBuf)
+    if (appContext->helpDispBuf)
     {
-        ebufDelete(gd.helpDispBuf);
-        gd.helpDispBuf = NULL;
+        ebufDelete(appContext->helpDispBuf);
+        appContext->helpDispBuf = NULL;
     }
-    if (gd.currDispInfo)
+    if (appContext->currDispInfo)
     {
-        diFree(gd.currDispInfo);
-        gd.currDispInfo = NULL;
+        diFree(appContext->currDispInfo);
+        appContext->currDispInfo = NULL;
     }
 }
 
@@ -1116,13 +1033,13 @@ long CalcListOffset(long itemsCount, long itemNo)
     return next_offset;
 } 
 
-void DefScrollUp(ScrollType scroll_type)
+void DefScrollUp(AppContext* appContext, ScrollType scroll_type)
 {
     DisplayInfo *di = NULL;
     int to_scroll = 0;
 
-    di = gd.currDispInfo;
-    if ((scrollNone == scroll_type) || (NULL == di) || (0 == gd.firstDispLine))
+    di = appContext->currDispInfo;
+    if ((scrollNone == scroll_type) || (NULL == di) || (0 == appContext->firstDispLine))
         return;
 
     switch (scroll_type)
@@ -1131,40 +1048,38 @@ void DefScrollUp(ScrollType scroll_type)
         to_scroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = gd.dispLinesCount / 2;
+        to_scroll = appContext->dispLinesCount / 2;
         break;
     case scrollPage:
-        to_scroll = gd.dispLinesCount;
+        to_scroll = appContext->dispLinesCount;
         break;
     default:
         Assert(0);
         break;
     }
 
-    if (gd.firstDispLine >= to_scroll)
-        gd.firstDispLine -= to_scroll;
+    if (appContext->firstDispLine >= to_scroll)
+        appContext->firstDispLine -= to_scroll;
     else
-        gd.firstDispLine = 0;
+        appContext->firstDispLine = 0;
 
-// 2003-11-25 andrzejc DynamicInputArea   
-//    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth-FRM_RSV_W+2, gd.screenHeight-FRM_RSV_H);
-    DrawDisplayInfo(di, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
-    SetScrollbarState(di, gd.dispLinesCount, gd.firstDispLine);
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H);
+    DrawDisplayInfo(di, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+    SetScrollbarState(di, appContext->dispLinesCount, appContext->firstDispLine);
 }
 
-void DefScrollDown(ScrollType scroll_type)
+void DefScrollDown(AppContext* appContext, ScrollType scroll_type)
 {
     DisplayInfo *di;
     int invisible_lines = 0;
     int to_scroll = 0;
 
-    di = gd.currDispInfo;
+    di = appContext->currDispInfo;
 
     if ((scrollNone == scroll_type) || (NULL == di))
         return;
 
-    invisible_lines = diGetLinesCount(di) - gd.firstDispLine - gd.dispLinesCount;
+    invisible_lines = diGetLinesCount(di) - appContext->firstDispLine - appContext->dispLinesCount;
     if (invisible_lines <= 0)
         return;
 
@@ -1174,10 +1089,10 @@ void DefScrollDown(ScrollType scroll_type)
         to_scroll = 1;
         break;
     case scrollHalfPage:
-        to_scroll = gd.dispLinesCount / 2;
+        to_scroll = appContext->dispLinesCount / 2;
         break;
     case scrollPage:
-        to_scroll = gd.dispLinesCount;
+        to_scroll = appContext->dispLinesCount;
         break;
     default:
         Assert(0);
@@ -1185,36 +1100,35 @@ void DefScrollDown(ScrollType scroll_type)
     }
 
     if (invisible_lines >= to_scroll)
-        gd.firstDispLine += to_scroll;
+        appContext->firstDispLine += to_scroll;
     else
-        gd.firstDispLine += invisible_lines;
-// 2003-11-25 andrzejc DynamicInputArea   
-//    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, 152, 144);
-    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, gd.screenWidth-FRM_RSV_W+2, gd.screenHeight-FRM_RSV_H);
-    DrawDisplayInfo(di, gd.firstDispLine, DRAW_DI_X, DRAW_DI_Y, gd.dispLinesCount);
-    SetScrollbarState(di, gd.dispLinesCount, gd.firstDispLine);
+        appContext->firstDispLine += invisible_lines;
+
+    ClearRectangle(DRAW_DI_X, DRAW_DI_Y, appContext->screenWidth-FRM_RSV_W+2, appContext->screenHeight-FRM_RSV_H);
+    DrawDisplayInfo(di, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+    SetScrollbarState(di, appContext->dispLinesCount, appContext->firstDispLine);
 }
 
 
-// gd.selectedWord is currently highlighted word, highlight word+dx (dx can
+// appContext->selectedWord is currently highlighted word, highlight word+dx (dx can
 // be negative in which case we highlight previous words). Used for scrolling
 // by page up/down and 5-way scroll
-void ScrollWordListByDx(FormType *frm, int dx)
+void ScrollWordListByDx(AppContext* appContext, FormType *frm, int dx)
 {
     ListType *  lst;
 
-    if ( (gd.selectedWord + dx < gd.wordsCount) && (gd.selectedWord + dx >= 0) )
+    if ( (appContext->selectedWord + dx < appContext->wordsCount) && (appContext->selectedWord + dx >= 0) )
     {
-        gd.selectedWord += dx;
+        appContext->selectedWord += dx;
         lst = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listMatching));
-        LstSetSelectionMakeVisibleEx(lst, gd.selectedWord);
+        LstSetSelectionMakeVisibleEx(appContext, lst, appContext->selectedWord);
     }
 }
 
-char *GetDatabaseName(int dictNo)
+char *GetDatabaseName(AppContext* appContext, int dictNo)
 {
-    Assert((dictNo >= 0) && (dictNo < gd.dictsCount));
-    return gd.dicts[dictNo]->fileName;
+    Assert((dictNo >= 0) && (dictNo < appContext->dictsCount));
+    return appContext->dicts[dictNo]->fileName;
 }
 
 void LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount)
@@ -1227,56 +1141,56 @@ void LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount)
     LstSetListChoices(list, itemText, itemsCount);
 }
 
-void LstSetSelectionEx(ListType * list, long itemNo)
+void LstSetSelectionEx(AppContext* appContext, ListType * list, long itemNo)
 {
     Assert(list);
-    gd.listItemOffset = CalcListOffset(gd.wordsCount, itemNo);
-    Assert(gd.listItemOffset <= itemNo);
-    gd.prevSelectedWord = itemNo;
-    LstSetSelection(list, itemNo - gd.listItemOffset);
+    appContext->listItemOffset = CalcListOffset(appContext->wordsCount, itemNo);
+    Assert(appContext->listItemOffset <= itemNo);
+    appContext->prevSelectedWord = itemNo;
+    LstSetSelection(list, itemNo - appContext->listItemOffset);
 }
 
-void LstMakeItemVisibleEx(ListType * list, long itemNo)
+void LstMakeItemVisibleEx(AppContext* appContext, ListType * list, long itemNo)
 {
     Assert(list);
-    gd.listItemOffset = CalcListOffset(itemNo, gd.wordsCount);
-    Assert(gd.listItemOffset <= itemNo);
-    LstMakeItemVisible(list, itemNo - gd.listItemOffset);
+    appContext->listItemOffset = CalcListOffset(itemNo, appContext->wordsCount);
+    Assert(appContext->listItemOffset <= itemNo);
+    LstMakeItemVisible(list, itemNo - appContext->listItemOffset);
 }
 
-void LstSetSelectionMakeVisibleEx(ListType * list, long itemNo)
+void LstSetSelectionMakeVisibleEx(AppContext* appContext, ListType * list, long itemNo)
 {
     long    newTopItem;
 
     Assert(list);
 
-    if (itemNo == gd.prevSelectedWord)
+    if (itemNo == appContext->prevSelectedWord)
         return;
 
-    gd.prevSelectedWord = itemNo;
+    appContext->prevSelectedWord = itemNo;
 
-    if (GetOsVersion() < 35)
+    if (GetOsVersion(appContext) < 35)
     {
         /* special case when we don't exceed palm's list limit:
            do it the easy way */
-        if (gd.wordsCount < GetMaxListItems())
+        if (appContext->wordsCount < GetMaxListItems())
         {
-            gd.listItemOffset = 0;
+            appContext->listItemOffset = 0;
             LstSetSelection(list, itemNo);
             return;
         }
 
-        newTopItem = CalcListOffset(gd.wordsCount, itemNo);
-        if ((gd.listItemOffset == newTopItem) && (newTopItem != (gd.wordsCount - GetMaxListItems())) && (itemNo > 30))
+        newTopItem = CalcListOffset(appContext->wordsCount, itemNo);
+        if ((appContext->listItemOffset == newTopItem) && (newTopItem != (appContext->wordsCount - GetMaxListItems())) && (itemNo > 30))
         {
-            gd.listItemOffset = newTopItem + 30;
+            appContext->listItemOffset = newTopItem + 30;
         }
         else
         {
-            gd.listItemOffset = newTopItem;
+            appContext->listItemOffset = newTopItem;
         }
-        LstMakeItemVisible(list, itemNo - gd.listItemOffset);
-        LstSetSelection(list, itemNo - gd.listItemOffset);
+        LstMakeItemVisible(list, itemNo - appContext->listItemOffset);
+        LstSetSelection(list, itemNo - appContext->listItemOffset);
         LstEraseList(list);
         LstDrawList(list);
         return;
@@ -1284,32 +1198,32 @@ void LstSetSelectionMakeVisibleEx(ListType * list, long itemNo)
 
     // more convoluted version for PalmOS versions that only support
     // 15 bits for number of items
-    gd.listItemOffset = CalcListOffset(gd.wordsCount, itemNo);
-    Assert(gd.listItemOffset <= itemNo);
-    newTopItem = itemNo - gd.listItemOffset;
-    if (gd.prevTopItem == newTopItem)
+    appContext->listItemOffset = CalcListOffset(appContext->wordsCount, itemNo);
+    Assert(appContext->listItemOffset <= itemNo);
+    newTopItem = itemNo - appContext->listItemOffset;
+    if (appContext->prevTopItem == newTopItem)
     {
-        if (gd.listItemOffset > 14)
+        if (appContext->listItemOffset > 14)
         {
             newTopItem += 13;
-            gd.listItemOffset -= 13;
+            appContext->listItemOffset -= 13;
         }
         else
         {
             newTopItem -= 13;
-            gd.listItemOffset += 13;
+            appContext->listItemOffset += 13;
         }
     }
-    if (newTopItem > gd.prevTopItem)
+    if (newTopItem > appContext->prevTopItem)
     {
-        LstScrollList(list, winDown, newTopItem - gd.prevTopItem);
+        LstScrollList(list, winDown, newTopItem - appContext->prevTopItem);
     }
     else
     {
-        LstScrollList(list, winUp, gd.prevTopItem - newTopItem);
+        LstScrollList(list, winUp, appContext->prevTopItem - newTopItem);
     }
-    LstSetSelection(list, itemNo - gd.listItemOffset);
-    gd.prevTopItem = newTopItem;
+    LstSetSelection(list, itemNo - appContext->listItemOffset);
+    appContext->prevTopItem = newTopItem;
 }
 
 void CtlShowControlEx( FormType *frm, UInt16 objID)
@@ -1325,19 +1239,21 @@ void CtlHideControlEx( FormType *frm, UInt16 objID)
 void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     char        *str;
-    Int16       stringWidthP = gd.screenWidth; /* max width of the string in the list selection window */
+    AppContext* appContext=GetAppContext();
+    Int16       stringWidthP;
     Int16       stringLenP;
     Boolean     truncatedP = false;
     long        realItemNo;
-
+    Assert(appContext);
+    stringWidthP= appContext->screenWidth; /* max width of the string in the list selection window */
     Assert(itemNum >= 0);
-    realItemNo = gd.listItemOffset + itemNum;
-    Assert((realItemNo >= 0) && (realItemNo < gd.wordsCount));
-    if (realItemNo >= gd.wordsCount)
+    realItemNo = appContext->listItemOffset + itemNum;
+    Assert((realItemNo >= 0) && (realItemNo < appContext->wordsCount));
+    if (realItemNo >= appContext->wordsCount)
     {
         return;
     }
-    str = dictGetWord(realItemNo);
+    str = dictGetWord(GetCurrentFile(appContext), realItemNo);
     stringLenP = StrLen(str);
 
     FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
@@ -1346,7 +1262,7 @@ void ListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 
 // return a position of the last occurence of character c in string str
 // return NULL if no c in str
-char *StrFindLastCharPos(char *str, char c)
+static char *StrFindLastCharPos(char *str, char c)
 {
     char    *lastPos = NULL;
     while( *str )
@@ -1363,7 +1279,7 @@ char *StrFindLastCharPos(char *str, char c)
 // readable way i.e. "myFile.pdb (/foo/bar)".
 // Special case: "/myFile.pdb" produces "myFile.pdb" and not "myFile.pdb ()"
 // Client must free the memory.
-char *FilePathDisplayFriendly(char *filePath)
+static char *FilePathDisplayFriendly(char *filePath)
 {
     char * newPath, *strTmp, *lastSlash;
     int    newPathLen;
@@ -1402,9 +1318,11 @@ void ListDbDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Int16   strDx = bounds->extent.x - bounds->topLeft.x;
     Int16   strLen;
     Boolean truncatedP = false;
+    AppContext* appContext=GetAppContext();
+    Assert(appContext);
 
     Assert(itemNum >= 0);
-    str = GetDatabaseName(itemNum);
+    str = GetDatabaseName(appContext, itemNum);
     Assert(NULL != str);
     strLen = StrLen(str);
 
@@ -1457,7 +1375,7 @@ Boolean ssPush( StringStack *ss, char *str )
         newStrings = (char**)new_malloc( newSlots * sizeof(char*) );
         if ( NULL == newStrings )
         {
-            gd.err = ERR_NO_MEM;
+//            appContext->err = ERR_NO_MEM;
             return false;
         }
 
@@ -1500,7 +1418,7 @@ char *ssPop( StringStack *ss )
 }
 
 #ifdef DEBUG
-void LogInitFile(LogInfo *logInfo)
+static void LogInitFile(LogInfo* logInfo)
 {
     HostFILE        *hf = NULL;
 
@@ -1515,18 +1433,17 @@ void LogInitFile(LogInfo *logInfo)
     logInfo->fCreated = true;
 }
 
-void LogInit( LogInfo *logInfo, char *fileName )
+void LogInit(AppContext* appContext, char *fileName )
 {
-    logInfo->fCreated = false;
-    logInfo->fileName = fileName;
+    appContext->log.fCreated = false;
+    appContext->log.fileName = fileName;
 }
 
-void Log(LogInfo *logInfo, char *txt)
+void Log(AppContext* appContext, char *txt)
 {
     HostFILE        *hf = NULL;
-
-    LogInitFile(logInfo);
-    hf = HostFOpen(logInfo->fileName, "a");
+    LogInitFile(&appContext->log);
+    hf = HostFOpen(appContext->log.fileName, "a");
     if (hf)
     {
         HostFPrintF(hf, "%s\n", txt );
@@ -1588,7 +1505,7 @@ unsigned char deserByte(unsigned char **data, long *pBlobSizeLeft)
     return val;
 }
 
-int getInt(unsigned char *data)
+static int getInt(unsigned char *data)
 {
     int val;
     val = data[0]*256+data[1];
@@ -1669,17 +1586,17 @@ void deserStringToBuf(char *buf, int bufSize, unsigned char **data, long *pCurrB
     deserData( (unsigned char*)buf, strLen, data, pCurrBlobSize );
 }
 
-void SetWordAsLastWord( char *txt, int wordLen )
+static void SetWordAsLastWord(AppContext* appContext, char *txt, int wordLen )
 {
-    MemSet((void *) &(gd.lastWord[0]), WORD_MAX_LEN, 0);
+    MemSet((void *) &(appContext->lastWord[0]), WORD_MAX_LEN, 0);
     if ( -1 == wordLen )
         wordLen = StrLen( txt );
     if (wordLen >= (WORD_MAX_LEN - 1))
         wordLen = WORD_MAX_LEN - 1;
-    MemMove((void *) &(gd.lastWord[0]), txt, wordLen);
+    MemMove((void *) &(appContext->lastWord[0]), txt, wordLen);
 }
 
-void RememberLastWord(FormType * frm)
+void RememberLastWord(AppContext* appContext, FormType * frm)
 {
     char *      word = NULL;
     int         wordLen;
@@ -1690,11 +1607,11 @@ void RememberLastWord(FormType * frm)
     fld = (FieldType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, fieldWord));
     word = FldGetTextPtr(fld);
     wordLen = FldGetTextLength(fld);
-    SetWordAsLastWord( word, wordLen );
+    SetWordAsLastWord( appContext, word, wordLen );
     FldDelete(fld, 0, wordLen - 1);
 }
 
-void DoFieldChanged(void)
+void DoFieldChanged(AppContext* appContext)
 {
     char        *word;
     FormPtr     frm;
@@ -1710,13 +1627,13 @@ void DoFieldChanged(void)
     newSelectedWord = 0;
     if (word && *word)
     {
-        newSelectedWord = dictGetFirstMatching(word);
+        newSelectedWord = dictGetFirstMatching(GetCurrentFile(appContext), word);
     }
-    if (gd.selectedWord != newSelectedWord)
+    if (appContext->selectedWord != newSelectedWord)
     {
-        gd.selectedWord = newSelectedWord;
-        Assert(gd.selectedWord < gd.wordsCount);
-        LstSetSelectionMakeVisibleEx(list, gd.selectedWord);
+        appContext->selectedWord = newSelectedWord;
+        Assert(appContext->selectedWord < appContext->wordsCount);
+        LstSetSelectionMakeVisibleEx(appContext, list, appContext->selectedWord);
     }
 }
 
@@ -1758,51 +1675,16 @@ char *strdup(char *s)
     return newStr;
 }
 
-long FindCurrentDbIndex(void)
+long FindCurrentDbIndex(AppContext* appContext)
 {
     long i;
-    for(i=0; i<gd.dictsCount; i++)
+    for(i=0; i<appContext->dictsCount; i++)
     {
-        if (gd.dicts[i] == GetCurrentFile() )
+        if (appContext->dicts[i] == GetCurrentFile(appContext) )
             return i;
     }
     return 0;
 }
-
-static Boolean haveFiveWay = false;
-static Boolean haveHsNav = false;
-
-void InitFiveWay(void)
-{
-    UInt32      value;
-    Err         err;
-
-    err = FtrGet( navFtrCreator, navFtrVersion, &value );
-    if ( err == errNone )
-        haveFiveWay = true;
-
-    err = FtrGet( sysFileCSystem, sysFtrNumUIHardwareHas5Way, &value );
-    if ( err == errNone )
-    {
-        haveFiveWay = true;
-        err = FtrGet( hsFtrCreator, hsFtrIDNavigationSupported, &value );
-        if ( err == errNone )
-            haveHsNav = true;
-    }
-}
-
-/* Do we have a FiveWay controller? */
-Boolean HaveFiveWay( void )
-{
-    return haveFiveWay;
-}
-
-/* Do we have a Handspring's FiveWay controller? */
-Boolean HaveHsNav( void )
-{
-    return haveHsNav;
-}
-
 
 void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16 ex, Int16 ey) {
     UInt16 index;
@@ -1818,34 +1700,255 @@ void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16
     FrmSetObjectBounds(frm, index, &objBounds);
 }
 
-void SyncScreenSize() 
+void SyncScreenSize(AppContext* appContext) 
 {
     RectangleType screenBounds;
     WinGetBounds(WinGetDisplayWindow(), &screenBounds);
-    gd.screenWidth=screenBounds.extent.x;
-    gd.screenHeight=screenBounds.extent.y;
-    gd.dispLinesCount=(gd.screenHeight-FRM_RSV_H)/FONT_DY;
+    appContext->screenWidth=screenBounds.extent.x;
+    appContext->screenHeight=screenBounds.extent.y;
+    appContext->dispLinesCount=(appContext->screenHeight-FRM_RSV_H)/FONT_DY;
 }
 
-Err DefaultFormInit(FormType* frm)
+Err DefaultFormInit(AppContext* appContext, FormType* frm)
 {
-    return DIA_FrmEnableDIA(&gd.diaSettings, frm, FRM_MIN_H, FRM_PREF_H, FRM_MAX_H, FRM_MIN_W, FRM_PREF_W, FRM_MAX_W);
+    return DIA_FrmEnableDIA(&appContext->diaSettings, frm, FRM_MIN_H, FRM_PREF_H, FRM_MAX_H, FRM_MIN_W, FRM_PREF_W, FRM_MAX_W);
 }
 
-void AppHandleSysNotify(SysNotifyParamType* param) 
+#ifndef NOAH_LITE
+static Err AppHandleResidentLookup()
 {
-    Assert(param);
-    switch (param->notifyType) {
+    UInt16 cardNo=0;
+    LocalID localId=0;
+    FieldType* field=FrmGetActiveField(NULL);
+    Err error=SysCurAppDatabase(&cardNo, &localId);
+    Char* buffer=NULL;
+    UInt16 length=0;
+    if (error) 
+        goto Exit;
+    error=SysNotifyUnregister(cardNo, localId, appNotifyResidentLookupEvent, sysNotifyNormalPriority);
+    if (sysNotifyErrEntryNotFound==error) 
+        Assert(false);
+    if (error) 
+        goto Exit;
+    if (field) 
+    {    
+        length=FldGetSelectedText(field, NULL, 0);
+        if (length) 
+        {
+            // This MUST be MemPtrNew as we don't have AppContext yet.
+            buffer=(Char*)MemPtrNew((++length)*sizeof(Char));
+            if (buffer)
+            {
+                length=FldGetSelectedText(field, buffer, length);
+                Assert(length==StrLen(buffer));
+                error=AppPerformResidentLookup(buffer);
+                MemPtrFree(buffer);
+            }
+            else
+                error=memErrNotEnoughSpace;        
+        }
+        else
+            goto NoWordSelected;
+    }
+    else 
+        goto NoWordSelected;       
+Exit:
+    return error;
     
+NoWordSelected:
+//    error=AppPerformResidentLookup(NULL);
+//! @todo Decide whether to show word list or alert that word is not selected
+    goto Exit;
+}
+
+static Err AppHandleMenuCmdBarOpen() 
+{
+    Err error=errNone;
+    UInt16 cardNo;
+    LocalID localId;
+    error=PrepareSupportDatabase(SUPPORT_DATABASE_NAME, bmpMenuBarIcon);
+    if (error) 
+        goto OnError;
+    error=MenuCmdBarAddButton(menuCmdBarOnLeft, bmpMenuBarIcon, menuCmdBarResultNotify, appNotifyResidentLookupEvent, APP_NAME);
+    if (error) 
+        goto OnError;
+    error=SysCurAppDatabase(&cardNo, &localId);
+    if (error) 
+        goto OnError;
+    error=SysNotifyRegister(cardNo, localId, appNotifyResidentLookupEvent, NULL, sysNotifyNormalPriority, NULL);
+    if (sysNotifyErrDuplicateEntry==error) 
+        error=errNone;
+OnError:	
+    return error;
+}
+#endif
+
+
+Err AppHandleSysNotify(SysNotifyParamType* param) 
+{
+    Err error=errNone;
+    AppContext* appContext=GetAppContext();
+    Assert(param);
+    switch (param->notifyType) 
+    {
         case sysNotifyDisplayChangeEvent:
         case sysNotifyDisplayResizedEvent:
-            SyncScreenSize();
+            Assert(appContext);
+            SyncScreenSize(appContext);
             DIA_HandleResizeEvent();
             break;
             
+#ifndef NOAH_LITE
+        case sysNotifyMenuCmdBarOpenEvent:
+            error=AppHandleMenuCmdBarOpen();
+            break;
+
+        case appNotifyResidentLookupEvent:
+            error=AppHandleResidentLookup();
+            param->handled=true;
+            break;			
+#endif
+
          default:
             Assert(false); 
     }
+    return error;
+}
+
+AppContext* GetAppContext() 
+{
+    AppContext* res=0;
+    Err error=FtrGet(APP_CREATOR, appFtrContext, (UInt32*)&res);
+    return res;
+}
+
+UInt16 FldGetSelectedText(FieldType* field, Char* buffer, UInt16 bufferSize) 
+{
+    UInt16 start=0;
+    UInt16 len=0;
+    Char* text=NULL;
+    Assert(field);
+    FldGetSelection(field, &start, &len);
+    len-=start;
+    if (buffer!=NULL)
+    {
+        text=FldGetTextPtr(field);
+        if (len<bufferSize)
+        {
+            StrNCopy(buffer, text+start, len);
+            buffer[len]=chrNull;
+        }
+        else 
+            StrNCopy(buffer, text+start, bufferSize);
+    }
+    return len;      
 }
 
 
+Err AppNotifyInit(AppContext* appContext)
+{
+    Err error=errNone;
+    UInt32 value=0;
+    UInt16 cardNo=0;
+    LocalID localId=0;
+    Assert(appContext);
+    if (!FtrGet(sysFtrCreator, sysFtrNumNotifyMgrVersion, &value) && value) 
+    {
+        AppSetFlag(appContext, appHasNotifyMgr);
+#ifndef NOAH_LITE            
+        error=SysCurAppDatabase(&cardNo, &localId);
+        if (error) 
+            goto OnError;
+        error=SysNotifyUnregister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, sysNotifyNormalPriority);
+        if (sysNotifyErrEntryNotFound==error) 
+            error=errNone;
+        if (error) 
+            goto OnError;
+        error=SysNotifyUnregister(cardNo, localId, appNotifyResidentLookupEvent, sysNotifyNormalPriority);
+        if (sysNotifyErrEntryNotFound==error) 
+            error=errNone;
+        if (error) 
+            goto OnError;
+#endif            
+    }       
+OnError:
+    return error;    
+}
+
+Err AppNotifyFree(AppContext* appContext, Boolean beResident)
+{
+    Err error=errNone;
+#ifndef NOAH_LITE    
+    UInt16 cardNo=0;
+    LocalID localId=0;
+    Err tmpErr=errNone;
+    if (AppHasNotifyMgr(appContext)) 
+    {
+        error=SysCurAppDatabase(&cardNo, &localId);
+        if (error) 
+            goto OnError;
+        error=SysNotifyRegister(cardNo, localId, sysNotifyMenuCmdBarOpenEvent, NULL, sysNotifyNormalPriority, NULL);	
+        if (error) 
+            goto OnError;
+    }
+OnError:
+    if (!beResident)
+    {
+        tmpErr=DisposeSupportDatabase(SUPPORT_DATABASE_NAME);
+        if (tmpErr)
+            Assert(false);
+    }
+#endif    
+    return error;
+}
+
+AbstractFile* FindOpenDatabase(AppContext* appContext, const Char* name)
+{
+    int i;
+    AbstractFile* foundFile=NULL;
+    Assert(name);
+    Assert(appContext);
+    for( i=0; i<appContext->dictsCount; i++)
+    {
+        if (0==StrCompare( name, appContext->dicts[i]->fileName ) )
+        {
+            foundFile = appContext->dicts[i];
+            LogV1("found db=%s", foundFile->fileName );
+            break;
+        }
+    }
+    return foundFile;
+}
+
+Err PrepareWordDefinitionByWordNumber(AppContext* appContext, long wordNo)
+{
+    Err error=errNone;
+    Assert(wordNo);
+    if (NULL == appContext->currDispInfo)
+    {
+        appContext->currDispInfo = diNew();
+        if (NULL == appContext->currDispInfo)
+        {
+            error=memErrNotEnoughSpace;
+            goto OnError;
+        }               
+    }
+    Assert(appContext->currDispInfo);
+    error = dictGetDisplayInfo(GetCurrentFile(appContext), wordNo, 120, appContext->currDispInfo);
+    if (error)
+        goto OnError;
+    appContext->currentWord = wordNo;
+    appContext->firstDispLine = 0;
+OnError:
+    return error;   
+}
+
+Err PrepareWordDefinition(AppContext* appContext, Char* term)
+{
+    Err error=appErrWordNotFound;
+    long wordNo = dictGetFirstMatching(GetCurrentFile(appContext), term);
+    if (wordNo)
+        error=PrepareWordDefinitionByWordNumber(appContext, wordNo);
+OnError:
+    return error;
+}

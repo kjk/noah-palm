@@ -6,6 +6,8 @@
 #define _WORD_COMPRESS_H_
 
 #include <PalmOS.h>
+#include "fs.h"
+
 
 typedef struct
 {
@@ -47,7 +49,7 @@ typedef struct
     WordCache   wordCache;
 } WcInfo;
 
-Boolean         pcInit(PackContext * pc, int recWithComprData);
+Boolean pcInit(AbstractFile* file, PackContext * pc, int recWithComprData);
 void            pcFree(PackContext * pc);
 void            pcReset(PackContext * pc, unsigned char *data, long offset);
 unsigned char   pcGetChar(PackContext * pc);
@@ -60,11 +62,11 @@ int     p_strcmp(char *s1, char *s2);
 int     p_istrcmp(char *s1, char *s2);
 int     p_instrcmp(char *s1, char *s2, int maxLen );
 
-WcInfo    *wcInit(UInt32 wordsCount, int recWithComprData,
-                int recWithWordCache, int firstRecWithWords,
-                int recsWithWordsCount, int maxWordLen);
+WcInfo *wcInit(AbstractFile* file, UInt32 wordsCount, int recWithComprData,
+        int recWithWordCache, int firstRecWithWords,
+        int recsWithWordsCount, int maxWordLen);
 Boolean   wcFree(WcInfo * wci);
-char      *wcGetWord(WcInfo * wci, UInt32 wordNo);
-UInt32    wcGetFirstMatching(WcInfo * wci, char *word);
+char*   wcGetWord(AbstractFile* file, WcInfo * wci, UInt32 wordNo);
+UInt32 wcGetFirstMatching(AbstractFile* file, WcInfo * wci, char *word);
 void      wcUnpackWord(WcInfo * wci, char *prevWord, char *unpacked);
 #endif
