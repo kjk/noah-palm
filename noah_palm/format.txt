@@ -1,0 +1,43 @@
+Simpe data format
+
+Record 0:
+  0  4 long wordsCount
+  4  2 int  wordsRecsCount   - number of records with compressed words
+  6  2 int  defsLenRecsCount - number of records with lengths of definitions
+  8  2 int  defsRecsCount    - number of records with definitions
+ 10  2 int  maxWordLen
+ 12  2 int  maxDefLen
+ 14  2 int  hasPosInfoP
+ 16  2 int  posRecsCount
+
+Record 1:
+  record with word cache
+  cache entries = recordSize/sizeof(WordCacheEntry)=recordSize/8
+WordCacheEntry:
+  0 4 ulong  word number
+  4 2 uint   record number
+  6 2 uint   offset in the record
+
+Record 2:
+  record with compression data (for words)
+
+Record 3:
+  record with compression data (for definition)
+
+Record 4:
+  first record with words
+
+Record 4 + wordsRecsCount:
+  first record with def lens
+
+Record 4 + wordsRecsCount + defsLenRecsCount:
+  first rec with definitions
+
+Record 4 + wordsRecsCount + defsLenRecsCount + defsRecsCount:
+  first rec with pos info
+
+Structure of the record with compression data (for words and definitions):
+  0  2                   int     maxComprStrLen
+  2  2+2*maxComprStrLen  int[]   number of coded strings of a given length (1..maxComprStrLen)
+  .. ..                  char[]  compressed strings, starting with those of length 1
+
