@@ -10,14 +10,16 @@
 #error "EP_DICT not defined"
 #endif
 
-static const char polishChars[] = "±êæ³ñó¶¼¿";
-static const char latinChars[] = "aeclnószz";
+#define POLISH_CHARS "±êæ³ñó¶¼¿"
+#define LATIN_CHARS "aeclnószz"
 
 /* change all polish characters into latin ones */
 static void unpolishString(char *str, int strLen)
 {
     char c;
     int i, j;
+    const char* polishChars=POLISH_CHARS;
+    const char* latinChars=LATIN_CHARS;
 
     for (i = 0; i < strLen; i++)
     {
