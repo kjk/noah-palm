@@ -449,8 +449,6 @@ static void RedrawFormElements(ActualTag actTag, DisplayPrefs *displayPrefs, App
 //    FntSetFont(prev_font);
 }
 
-#ifndef I_NOAH
-
 /* Makes definition and draw it! */
 static void RedrawExampleDefinition(AppContext* appContext)
 {
@@ -616,7 +614,7 @@ static void CopyParamsFromTo(DisplayPrefs *src, DisplayPrefs *dst)
 Boolean DisplayPrefFormHandleEvent(EventType * event)
 {
     int  setColor = 0;
-    ActualTag  actTag = 0;
+    ActualTag  actTag = actTagWord;
     FormType *  frm = NULL;
     ListType *  list = NULL;
     char *      listTxt = NULL;
@@ -640,9 +638,9 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
         case frmOpenEvent:
             cbNoSelection(appContext);
             InitOldDisplayPrefs(appContext);
-            CopyParamsFromTo(&appContext->prefs.displayPrefs, appContext->ptrOldDisplayPrefs);    
+            CopyParamsFromTo(&appContext->prefs.displayPrefs, (DisplayPrefs*)appContext->ptrOldDisplayPrefs);    
             FrmDrawForm(FrmGetActiveForm());
-            actTag = 0;
+            actTag = actTagWord;
             SetPopupLabel(frm, listListStyle, popupListStyle, 2 - appContext->prefs.displayPrefs.listStyle);
             SetPopupLabel(frm, listActTag, popupActTag, actTag);
             RedrawExampleDefinition(appContext);
@@ -828,13 +826,17 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
                     //SavePreferencesThes(appContext);
 #endif                  
                     bfFreePTR(appContext);
+#ifndef I_NOAH                    
                     SendNewWordSelected();
+#endif                    
                     FrmReturnToForm(0);
                     break;
                 case buttonCancel:
-                    CopyParamsFromTo(appContext->ptrOldDisplayPrefs, &appContext->prefs.displayPrefs);    
+                    CopyParamsFromTo((DisplayPrefs*)appContext->ptrOldDisplayPrefs, &appContext->prefs.displayPrefs);    
                     bfFreePTR(appContext);
+#ifndef I_NOAH                    
                     SendNewWordSelected();
+#endif                    
                     FrmReturnToForm(0);
                     break;
                 default:
@@ -860,8 +862,6 @@ Boolean DisplayPrefFormHandleEvent(EventType * event)
     }
     return false;
 }
-
-#endif I_NOAH
 
 Err DisplayPrefsFormLoad(AppContext* appContext)
 {

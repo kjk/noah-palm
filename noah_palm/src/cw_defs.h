@@ -93,6 +93,7 @@ to provide per-target defines. In gcc version they're set via Makefile.
 
 #if __ide_target("iNoah Release")
 #define I_NOAH  1
+#define NDEBUG
 #endif
 
 #endif /* __MWERKS__ */

@@ -25,7 +25,8 @@ static Boolean PreferencesFormControlSelected(AppContext* appContext, FormType* 
                     
         case buttonCancel:
             FrmReturnToForm(0);
-            handled=true;            break;
+            handled=true;
+            break;
         
     }
     return handled;

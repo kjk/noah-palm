@@ -7,7 +7,6 @@
 #include "five_way_nav.h"
 #include "main_form.h"
 #include "preferences_form.h"
-
 #include "inet_word_lookup.h"
 
 #ifdef DEBUG
@@ -19,6 +18,29 @@ unsigned char deviceGlibResponse[] = "HTTP/1.0 200 OK\xd" "\xa" "Date: Thu, 25 D
 static const char *txt = "hello";
 static const UInt32 ourMinVersion = sysMakeROMVersion(3,0,0,sysROMStageDevelopment,0);
 static const UInt32 kPalmOS20Version = sysMakeROMVersion(2,0,0,sysROMStageDevelopment,0);
+
+static void LoadPreferences(AppContext* appContext)
+{
+    UInt16 size=0;
+    Int16 version=PrefGetAppPreferences(APP_CREATOR, appPreferencesId, NULL, &size, true);
+    if (noPreferenceFound!=version)
+    {
+        if (appPreferencesVersion==version && sizeof(appContext->prefs)==size)
+        {
+            version=PrefGetAppPreferences(APP_CREATOR, appPreferencesId, &appContext->prefs, &size, true);            Assert(appPreferencesVersion==version);
+            Assert(size==sizeof(appContext->prefs));
+        }            
+        else
+        {
+            //! @todo Add support for other versions preferences as format changes.
+        }
+    }
+}
+
+inline static void SavePreferences(const AppContext* appContext)
+{
+    PrefSetAppPreferences(APP_CREATOR, appPreferencesId, appPreferencesVersion, &appContext->prefs, sizeof(appContext->prefs), true);
+}
 
 static Err RomVersionCompatible(UInt32 requiredVersion, UInt16 launchFlags)
 {
@@ -66,6 +88,8 @@ static Err AppInit(AppContext* appContext)
     appContext->prefs.displayPrefs.listStyle = 2;
     SetDefaultDisplayParam(&appContext->prefs.displayPrefs, false, false);
 
+    LoadPreferences(appContext);
+
     SyncScreenSize(appContext);
 
 // define _DONT_DO_HANDLE_DYNAMIC_INPUT_ to disable Pen Input Manager operations
@@ -82,7 +106,7 @@ OnError:
 static void AppDispose(AppContext* appContext)
 {
     Err error=errNone;
-    FrmSaveAllForms();
+    SavePreferences(appContext);
     FrmCloseAllForms();
     error=DIA_Free(&appContext->diaSettings);
     Assert(!error);
@@ -110,6 +134,10 @@ static void AppLoadForm(AppContext* appContext, const EventType* event)
             
         case formPrefs:
             error=PreferencesFormLoad(appContext);
+            break;
+            
+        case formDisplayPrefs:
+            error=DisplayPrefsFormLoad(appContext);
             break;
         
         default:

@@ -12,13 +12,7 @@
  * @todo Tweak iNoah settings.
  */
 #define  I_NOAH_CREATOR      'STRT'
-#define  I_NOAH_PREF_TYPE    'thpr'
-
 #define APP_CREATOR I_NOAH_CREATOR
-#define APP_PREF_TYPE I_NOAH_PREF_TYPE
-
-#define AppPrefId 0
-
 
 /* structure of the general preferences record */
 typedef struct
@@ -35,10 +29,8 @@ typedef struct
 
 typedef iNoahPrefs AppPrefs;
 
-#define PREF_REC_MIN_SIZE 4
-
-#define SUPPORT_DATABASE_NAME "iNoah_Temp"
-#define APP_NAME "iNoah"
+#define appPreferencesVersion 0x0100
+#define appPreferencesId    0
 
 typedef enum AppEvent_
 {
