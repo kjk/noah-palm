@@ -109,7 +109,7 @@ class PDBRecordFromDisk(PDBRecord):
 
     def _getData(self):
         if self._data == None:
-            fo = open(self._fileName, "r")
+            fo = open(self._fileName, "rb")
             fo.seek( self._offset )
             self._data = fo.read( _size )
             fo.close()
@@ -154,7 +154,7 @@ class PDB:
         # 72,  4, next-record-list, set to 0, only used when in memory
         # 76,  2, records-count, number of records in the database file
 
-        fo = open(self._fileName,"r")
+        fo = open(self._fileName,"rb")
         fileSize = _getFileSizeFromFileObject(fo)
 
         if fileSize <= 78: self._raiseInvalidFile() # sanity check
@@ -177,7 +177,6 @@ class PDB:
         if self._nextRecordList != 0:
             # TODO: not sure about that, maybe it's valid
             self._raiseInvalidFile()
-
 
         # read info about records, need to accumulate to calc sizes from offsets
         recHeaderList = []

@@ -7,11 +7,12 @@
 # Todo:
 #  - interpreting Noah's dictionary databases
 
+import palmdb
+
 def dumpPDBInfo(fileName):
+    print "Dumping file %s" % fileName
     db = palmdb.PDB(fileName)
     print "Name: %s" % db.name
-    db.name = "test"
-    print "New name: %s" % db.name
     print "Number of records: %d" % len(db.records)
     recNo = 0
     for rec in db.records:
@@ -19,5 +20,7 @@ def dumpPDBInfo(fileName):
         recNo += 1
 
 _fileMediumNew = "c:\\kjk\\src\\mine\\noah_dicts\\pdb\\new_converts\\wn_medium.pdb"
+_fileMediumOld = "c:\\kjk\\src\\mine\\noah_dicts\\pdb\\originals\\wn_medium.pdb"
 if __name__ == '__main__':
+    dumpPDBInfo( _fileMediumOld )
     dumpPDBInfo( _fileMediumNew )
