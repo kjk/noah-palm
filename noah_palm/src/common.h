@@ -153,6 +153,10 @@ typedef struct
 #include "noah_pro_rcp.h"
 #endif
 
+#ifdef NOAH_PRO
+#include "pronunciation.h"
+#endif 
+
 #ifdef NOAH_LITE
 #include "noah_lite.h"
 #include "noah_lite_rcp.h"
@@ -198,7 +202,7 @@ typedef enum _AppErr
 {
     appErrWordNotFound=appErrorClass,
     appErrMalformedResponse,
-    appErrBadAuthorization,
+    appErrBadAuthorization
 } AppErr;    
 
 #define appNotifyResidentLookupEvent APP_CREATOR
@@ -238,6 +242,11 @@ typedef struct _AppContext
 
     /*Stores all info about actual selection*/
     CopyBlock          copyBlock;
+    
+#ifdef NOAH_PRO
+    /*Stores info about pronunciation records*/
+    PronunciationData  pronData;
+#endif
 
 #ifndef I_NOAH    
     long               listItemOffset;

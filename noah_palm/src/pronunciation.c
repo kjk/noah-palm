@@ -16,8 +16,7 @@
  *  Remove '//' if you want to work without selection
  */
 
-#define DONT_DO_PRONUNCIATION 1
-
+//#define DONT_DO_PRONUNCIATION 1
 
 /**
  *  Version with AA, AO, ...
@@ -114,55 +113,374 @@ char* pronTranslateDecompresed(struct _AppContext *appContext, unsigned char *de
  */
 static void pronDecomprese(unsigned char *decompresed,unsigned char *compresed)
 {
-    unsigned char a,b,c;
-    unsigned char A,B,C,D;
-    int i,j;
-    Boolean end = false;
-    
-    i = 0;
-    j = 0;
-    do
+    unsigned char a,b,c,d;
+    unsigned char A,B,C;
+    int i,j,k;
+
+    j = (unsigned char) compresed[0];
+    i = 1;
+    k = 0;
+    while(j >= 3)
     {
-        a = compresed[i++];
-        if((a & 0x3F)!=0)
-            b = compresed[i++];
-        else
-            b = 0x00;
-        if((b & 0x3F)!=0)
-            c = compresed[i++];
-        else
-            c = 0x00;
-            
-        A = a & 0x3F;
-        B = b & 0x3F;
-        C = c & 0x3F;
-        D = (a & 0xc0)>>2 + (b & 0xc0)>>4 + (c & 0xc0)>>6;
+        j -= 3;
+        A = compresed[i++];
+        B = compresed[i++];
+        C = compresed[i++];
+        //a,b,c,d <- A,B,C
+        a = A & 0x3F;
+        b = B & 0x3F;
+        c = C & 0x3F;
+        d = ((A & 0x0c0)>>2) + ((B & 0x0c0)>>4) + ((C & 0x0c0)>>6);
         
-        if(!end)
+        decompresed[k++] = a;
+        decompresed[k++] = b;
+        decompresed[k++] = c;
+        decompresed[k++] = d;
+    }
+    while(j > 0)
+    {
+        decompresed[k++] = (0x3F & (compresed[i++]));
+        j--;
+    }
+    decompresed[k++] = 0;
+}
+
+/**
+ *  Called only by "pronFillHelpBuffer" to make it shorter
+ */
+static void pronFillOneWord(struct _AppContext *appContext, ExtensibleBuffer *buf,
+                            int nr, char *word, unsigned char * decompresed)
+{
+    char *pron;
+    char pronTag[3];
+    char wordTag[3];
+    unsigned char oneChar[3];
+    
+    pronTag[0] = wordTag[0] = FORMAT_TAG;
+    pronTag[1] = FORMAT_PRONUNCIATION;
+    wordTag[1] = FORMAT_WORD;
+    pronTag[2] = wordTag[2] = 0;
+
+    ebufAddStr(buf,pronTag);
+    oneChar[0] = (unsigned char) nr;
+    oneChar[1] = 0;
+    pron = pronTranslateDecompresed(appContext, oneChar);
+    ebufAddStr(buf,pron);
+    new_free(pron);
+    ebufAddStr(buf,wordTag);
+    ebufAddStr(buf,"    ");
+    ebufAddStr(buf,word);
+    ebufAddStr(buf,"    ");
+    ebufAddStr(buf,pronTag);
+    pron = pronTranslateDecompresed(appContext, decompresed);
+    ebufAddStr(buf,pron);
+    new_free(pron);
+    ebufAddStr(buf,"\n");
+}
+
+/**
+ *  Fill buffer with help about pronunciation
+ */
+static void pronFillHelpBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf)
+{
+    unsigned char decompresed[10];
+    int i = 1;
+    
+    //AA	odd	AA D   
+    decompresed[0] = 1;
+    decompresed[1] = 9;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "odd", decompresed);
+    //AE	at	AE T 
+    decompresed[0] = 2;
+    decompresed[1] = 31;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "at", decompresed);
+    //AH	hut	HH AH T 
+    decompresed[0] = 16;
+    decompresed[1] = 3;
+    decompresed[2] = 31;
+    decompresed[3] = 0;
+    pronFillOneWord(appContext,buf,i++, "hut", decompresed);
+    //AO	ought	AO T
+    decompresed[0] = 4;
+    decompresed[1] = 31;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "ought", decompresed);
+    //AW	cow	K AW
+    decompresed[0] = 20;
+    decompresed[1] = 5;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "cow", decompresed);
+
+    //AY	hide	HH AY D
+    decompresed[0] = 16;
+    decompresed[1] = 6;
+    decompresed[2] = 9;
+    decompresed[3] = 0;
+    pronFillOneWord(appContext,buf,i++, "hide", decompresed);
+    //B	    be	B IY
+    decompresed[0] = 7;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "be", decompresed);
+    //CH	cheese	CH IY Z
+    decompresed[0] = 8;
+    decompresed[1] = 18;
+    decompresed[2] = 38;
+    decompresed[3] = 0;
+    pronFillOneWord(appContext,buf,i++, "cheese", decompresed);
+    //D	    dee	D IY
+    decompresed[0] = 9;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "dee", decompresed);
+    //DH	thee	DH IY
+    decompresed[0] = 10;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "thee", decompresed);
+    
+    //EH	Ed	EH D
+    decompresed[0] = 11;
+    decompresed[1] = 9;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "Ed", decompresed);
+    //ER	hurt	HH ER T
+    decompresed[0] = 16;
+    decompresed[1] = 12;
+    decompresed[2] = 31;
+    decompresed[3] = 0;
+    pronFillOneWord(appContext,buf,i++, "hurt", decompresed);
+    //EY	ate	EY T
+    decompresed[0] = 13;
+    decompresed[1] = 31;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "ate", decompresed);
+    //F	    fee	F IY
+    decompresed[0] = 14;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "fee", decompresed);
+    //G	    green	G R IY N
+    decompresed[0] = 15;
+    decompresed[1] = 28;
+    decompresed[2] = 18;
+    decompresed[3] = 23;
+    decompresed[4] = 0;
+    pronFillOneWord(appContext,buf,i++, "green", decompresed);
+    
+    //HH	he	HH IY
+    decompresed[0] = 16;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "he", decompresed);
+    //IH	it	IH T
+    decompresed[0] = 17;
+    decompresed[1] = 31;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "it", decompresed);
+    //IY	eat	IY T
+    decompresed[0] = 18;
+    decompresed[1] = 31;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "eat", decompresed);
+    //JH	gee	JH IY
+    decompresed[0] = 19;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "gee", decompresed);
+    //K 	key	K IY
+    decompresed[0] = 20;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "key", decompresed);
+    
+    //L	    lee	L IY
+    decompresed[0] = 21;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "lee", decompresed);
+    //M	    me	M IY
+    decompresed[0] = 22;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "me", decompresed);
+    //N	    knee	N IY
+    decompresed[0] = 23;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "knee", decompresed);
+    //NG	ping	P IH NG
+    decompresed[0] = 27;
+    decompresed[1] = 17;
+    decompresed[2] = 24;
+    decompresed[3] = 0;
+    pronFillOneWord(appContext,buf,i++, "ping", decompresed);
+    //OW	oat	OW T
+    decompresed[0] = 25;
+    decompresed[1] = 31;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "oat", decompresed);
+    
+    //OY	toy	T OY
+    decompresed[0] = 31;
+    decompresed[1] = 26;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "toy", decompresed);
+    //P 	pee	P IY
+    decompresed[0] = 27;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "pee", decompresed);
+    //R	    read	R IY D
+    decompresed[0] = 28;
+    decompresed[1] = 18;
+    decompresed[2] = 9;
+    decompresed[3] = 0;
+    pronFillOneWord(appContext,buf,i++, "read", decompresed);
+    //S	    sea	S IY
+    decompresed[0] = 29;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "sea", decompresed);
+    //SH	she	SH IY
+    decompresed[0] = 30;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "she", decompresed);
+    
+    //T	    tea	T IY
+    decompresed[0] = 31;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "tea", decompresed);
+    //TH	theta	TH EY T AH
+    decompresed[0] = 32;
+    decompresed[1] = 13;
+    decompresed[2] = 31;
+    decompresed[3] = 3;
+    decompresed[4] = 0;
+    pronFillOneWord(appContext,buf,i++, "theta", decompresed);
+    //UH	hood	HH UH D
+    decompresed[0] = 16;
+    decompresed[1] = 33;
+    decompresed[2] = 9;
+    decompresed[3] = 0;
+    pronFillOneWord(appContext,buf,i++, "hood", decompresed);
+    //UW	two	T UW
+    decompresed[0] = 31;
+    decompresed[1] = 34;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "two", decompresed);
+    //V	    vee	V IY
+    decompresed[0] = 35;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "vee", decompresed);
+    
+    //W	    we	W IY
+    decompresed[0] = 36;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "we", decompresed);
+    //Y	    yield	Y IY L D
+    decompresed[0] = 37;
+    decompresed[1] = 18;
+    decompresed[2] = 21;
+    decompresed[3] = 9;
+    decompresed[4] = 0;
+    pronFillOneWord(appContext,buf,i++, "yield", decompresed);
+    //Z	    zee	Z IY
+    decompresed[0] = 38;
+    decompresed[1] = 18;
+    decompresed[2] = 0;
+    pronFillOneWord(appContext,buf,i++, "zee", decompresed);
+    //ZH	seizure	S IY ZH ER
+    decompresed[0] = 29;
+    decompresed[1] = 18;
+    decompresed[2] = 39;
+    decompresed[3] = 12;
+    decompresed[4] = 0;
+    pronFillOneWord(appContext,buf,i++, "seizure", decompresed);
+}
+
+/**
+ *  Display help screen - examples of all 39 phonems
+ *  Works like "DisplayHelp(AppContext* appContext)"
+ */
+
+void pronDisplayHelp(AppContext* appContext)
+{
+    char *rawTxt;
+    ExtensibleBuffer *Buf;
+
+    if (NULL == appContext->currDispInfo)
+    {
+        appContext->currDispInfo = diNew();
+        if (NULL == appContext->currDispInfo)
         {
-            decompresed[j++] = A;
-            if(A==0)
-                end = true;        
+            /* TODO: we should rather exit, since this means totally
+               out of ram */
+            return;
         }
-        if(!end)
-        {
-            decompresed[j++] = B;
-            if(B==0)
-                end = true;        
-        }
-        if(!end)
-        {
-            decompresed[j++] = C;
-            if(C==0)
-                end = true;        
-        }
-        if(!end)
-        {
-            decompresed[j++] = D;
-            if(D==0)
-                end = true;        
-        }
-    }while(!end);
+    }
+    
+    Buf = ebufNew();
+    Assert(Buf);
+
+    pronFillHelpBuffer(appContext, Buf);
+    
+    rawTxt = ebufGetDataPointer(Buf);
+    
+    diSetRawTxt(appContext->currDispInfo, rawTxt);
+    appContext->firstDispLine = 0;
+    ClearDisplayRectangle(appContext);
+    cbNoSelection(appContext);    
+
+    DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
+    SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
+    ebufDelete(Buf);
+}
+
+/**
+ *  Struct to move in index 
+ */
+typedef struct
+{
+    unsigned long   wordNo;
+    unsigned int    recordNo;
+    unsigned int    offset;
+}PrIndex;
+
+/**
+ *  Sets prIndex on this one in witch is hidden pron for given wordNo
+ */
+static void pronGetIndex(PrIndex *prIndex, AbstractFile *file, UInt16 recordWithIndex, long wordNo)
+{
+    PrIndex         *prIndexNext;
+    unsigned char   *data;
+    long    offset = 0;
+    long    maxOffset;
+    
+    data = (unsigned char *) fsLockRecord(file, recordWithIndex);
+    maxOffset = fsGetRecordSize(file, recordWithIndex);
+    
+    prIndexNext = (PrIndex *) data;
+   
+    while((unsigned long)wordNo >= (unsigned long)prIndexNext->wordNo && offset < maxOffset)
+    {
+        offset += sizeof(PrIndex);
+        if(offset < maxOffset)
+            prIndexNext = (PrIndex *) &data[offset];
+    }
+    
+    offset -= sizeof(PrIndex);
+    prIndexNext = (PrIndex *) &data[offset];
+    prIndex->wordNo = (unsigned long) prIndexNext->wordNo;
+    prIndex->recordNo = prIndexNext->recordNo;
+    prIndex->offset = prIndexNext->offset;
+    fsUnlockRecord(file, recordWithIndex);
 }
 
 /**
@@ -170,45 +488,45 @@ static void pronDecomprese(unsigned char *decompresed,unsigned char *compresed)
  *  Indexed by wordNo.
  *  return true if found else return false if not found.
  */
-static Boolean pronGetCompresedWord(struct _AppContext *appContext, unsigned char *compresed, long wordNo)
+static Boolean pronGetCompresedWord(struct _AppContext *appContext, AbstractFile *file, unsigned char *compresed, long wordNo)
 {
-    /*
-        THIS IS ONLY TEST !!!
-        TODO:!!!!!!!!!!!!!!!!
-    */
-    unsigned char testData[40];
-    int i=0;
-    
-    switch(wordNo%3)
+    PrIndex  prIndex;
+    long     actWord;
+    UInt16   recordWithPron;
+    unsigned char i;
+    unsigned char *data;
+
+    //eh    
+    //set it:)
+    //appContext->pronData.recordWithPronIndex = 34;
+    //appContext->pronData.firstRecordWithPron = 34 + 1;
+    //appContext->pronData.numberOfPronRecords = 2;
+
+
+
+
+   
+    //find index...
+    pronGetIndex(&prIndex, file, appContext->pronData.recordWithPronIndex, wordNo);
+    recordWithPron = prIndex.recordNo + appContext->pronData.firstRecordWithPron;
+    //now find compresed pronunciation    
+    data = (unsigned char *) fsLockRecord(file, recordWithPron);
+    data += prIndex.offset;
+    actWord = (long) prIndex.wordNo;
+    //skip prons until wordNo reached
+    while(actWord < wordNo)
     {
-        case 0:
-            testData[0] = 0x01;
-            testData[1] = 0x02;
-            testData[2] = 0x03;
-            testData[3] = 0x00;
-            break;
-        case 1:
-            testData[0] = 0x04;
-            testData[1] = 0x99;
-            testData[2] = 0x45;
-            testData[3] = 0xc0;
-            testData[4] = 0x00;
-            break;
-        case 2:
-            testData[0] = 0x01;
-            testData[1] = 0x00;
-            break;
+        actWord++;
+        data += 1 + (unsigned char)data[0];
     }
-    
-    while(testData[i])
-    {
-        compresed[i] = testData[i];
-        i++;
-    }
-    if(i>0)
+
+    for(i=0;i <= (unsigned char)data[0];i++)
+        compresed[i] = data[i];    
+
+    fsUnlockRecord(file, recordWithPron);
+    if(compresed[0] > 0)
         return true;
-    else
-        return false;
+    return false;
 }
 
 /**
@@ -220,7 +538,7 @@ static Boolean pronGetCompresedWord(struct _AppContext *appContext, unsigned cha
  *  return true if pronunciation found
  *  else return false (no pronunciation in DB, no pronunciation for word with wordNo)
  */
-Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf, long wordNo)
+Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleBuffer *buf, AbstractFile *file, long wordNo)
 {
     unsigned char compresed[PRON_COMPRESED_MAX_LEN];
     unsigned char decompresed[PRON_DECOMPRESED_MAX_LEN];
@@ -230,7 +548,7 @@ Boolean pronAddPronunciationToBuffer(struct _AppContext *appContext, ExtensibleB
     return false;
 #endif    
     
-    if(!pronGetCompresedWord(appContext,compresed,wordNo))
+    if(!pronGetCompresedWord(appContext,file,compresed,wordNo))
         return false;
       
     pronDecomprese(decompresed,compresed);

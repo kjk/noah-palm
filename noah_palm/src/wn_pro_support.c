@@ -5,6 +5,7 @@
 
 /* only supported for Noah Pro, will bomb if tried with Noah Lite */
 #include "wn_pro_support.h"
+#include "pronunciation.h"
 
 static SynsetsInfo *si_new(AbstractFile* file, long synsetsCount, int firstWordsNumRec,
                            int firstSynsetInfoRec,
@@ -32,6 +33,10 @@ void *wn_new(AbstractFile* file)
     int rec_with_defs_compr_data;
     int recWithWordCache;
     int firstRecWithWords;
+    //to handle pronunciation
+    unsigned char     *data = NULL;
+    PronInFirstRecord *pronInFirstRecord = NULL;
+    AppContext        *appContext = GetAppContext();
 
     wi = (WnInfo *) new_malloc_zero(sizeof(WnInfo));
     if (NULL == wi)
@@ -78,7 +83,8 @@ void *wn_new(AbstractFile* file)
     rec_with_defs_compr_data  = 3;
     rec_with_words_compr_data = 2;
 #endif
-
+    //set false by default
+    appContext->pronData.isPronInUsedDictionary = false;
     if (sizeof(WnFirstRecord) == fsGetRecordSize(file, 0))
     {
         wi->fastP = false;
@@ -89,8 +95,37 @@ void *wn_new(AbstractFile* file)
         wi->cacheEntries = fsGetRecordSize(file, 0) - sizeof(WnFirstRecord);
         if (wi->cacheEntries % sizeof(SynWordCountCache) != 0)
         {
-            // TODO: invalid data
+            /*sizeof(SynWordCountCache) = 8
+              data and identifier about pronunciation is added at the end
+              of first record. It looks like this: "pronunXXYYZZ"
+              where XX - recordNo with Index
+                    YY - first record with pronData
+                    ZZ - number of that records
+                    pronunc - string to detect if it's pronunciation
+                    sizeof(data and id) = 12
+            */
+            
+            data = (unsigned char *) firstRecord;
+            data += (fsGetRecordSize(file, 0) - sizeof(PronInFirstRecord));
+            pronInFirstRecord = (PronInFirstRecord *) &data[0];
+                
+            if(StrNCompare("pronun",(char *)pronInFirstRecord->idString,6)==0)
+            {
+                appContext->pronData.isPronInUsedDictionary = true;
+                appContext->pronData.recordWithPronIndex = (unsigned int) pronInFirstRecord->recordWithPronIndex;
+                appContext->pronData.firstRecordWithPron = (unsigned int) pronInFirstRecord->firstRecordWithPron;
+                appContext->pronData.numberOfPronRecords = (unsigned int) pronInFirstRecord->numberOfPronRecords;
+                //change cacheEntries
+                wi->cacheEntries -= sizeof(PronInFirstRecord);
+                wi->synCountRec -= (pronInFirstRecord->numberOfPronRecords + 1); //+1 for index
+                if(wi->cacheEntries == 0)
+                    wi->fastP = false;
+            }
 
+            if (wi->cacheEntries % sizeof(SynWordCountCache) != 0)
+            {
+                // TODO: invalid data
+            }
         }
         wi->cacheEntries = wi->cacheEntries / sizeof(SynWordCountCache);
     }
@@ -916,6 +951,17 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         word = wn_get_word((void *) wi, wordNo);
         ebufAddStr(&wi->buffer, word);
         ebufAddChar(&wi->buffer, '\n');
+        //pronunciation
+        if(appContext->pronData.isPronInUsedDictionary
+            /*&& appContext->prefs.displayPrefs.enablePronunciation*/
+        )
+        
+        {
+            ebufAddChar(&wi->buffer, FORMAT_TAG);
+            ebufAddChar(&wi->buffer, FORMAT_PRONUNCIATION);
+            if(pronAddPronunciationToBuffer(appContext, &wi->buffer, wi->file, wordNo))
+                ebufAddChar(&wi->buffer, '\n');
+        }
     }
 
     while (!end_p)

@@ -131,6 +131,7 @@ void SavePreferencesNoahPro(AppContext* appContext)
     long           blobSize;
     Boolean        fRecordBusy = false;
 
+
     prefsBlob = SerializePreferencesNoahPro( appContext, &blobSize );
     if ( NULL == prefsBlob ) return;
 
