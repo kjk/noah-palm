@@ -25,11 +25,11 @@
 
 typedef struct
 {
-    AbstractFile        *dicts[MAX_DICTS];
+    AbstractFile  *     dicts[MAX_DICTS];
     int                 dictsCount;
     NoahErrors          err;
-    DisplayInfo         *currDispInfo;
-    ExtensibleBuffer    *helpDipsBuf;
+    DisplayInfo *       currDispInfo;
+    ExtensibleBuffer *  helpDipsBuf;
     long                currentWord;
     long                wordsCount;
     int                 firstDispLine;
@@ -39,6 +39,10 @@ typedef struct
     long                prevSelectedWord;
     long                selectedWord;
     char                lastWord[WORD_MAX_LEN];
+    long                ticksEventTimeout;
+#ifdef DEBUG
+    long                currentStressWord;
+#endif
 } GlobalData;
 
 #endif

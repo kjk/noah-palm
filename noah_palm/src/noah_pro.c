@@ -392,11 +392,15 @@ Err InitNoahPro(void)
     SetCurrentFile( NULL );
 
     gd.err = ERR_NONE;
-/*     gd.current_timeout = -1; */
     gd.prevSelectedWord = 0xfffff;
 
     gd.firstDispLine = -1;
     gd.prevSelectedWord = -1;
+    // disable getting nilEvent
+    gd.ticksEventTimeout = evtWaitForever;
+#ifdef DEBUG
+    gd.currentStressWord = 0;
+#endif
 
     /* fill out the default values for Noah preferences
        and try to load them from pref database */
@@ -1033,7 +1037,11 @@ ChooseDatabase:
                     break;
 #ifdef DEBUG
                 case menuItemStress:
-                    stress(2);
+                    // initiate stress i.e. going through all the words
+                    // 0 means that stress is not in progress
+                    gd.currentStressWord = -1;
+                    // get nilEvents as fast as possible
+                    gd.ticksEventTimeout = 0;
                     break;
 #endif
                 case menuItemPrefs:
@@ -1045,6 +1053,25 @@ ChooseDatabase:
             }
             handled = true;
             break;
+        case nilEvent:
+#ifdef DEBUG
+            if ( 0 != gd.currentStressWord )
+            {
+                if ( -1 == gd.currentStressWord )
+                    gd.currentStressWord = 0;
+                DrawDescription(gd.currentStressWord++);
+                if (gd.currentStressWord==dictGetWordsCount())
+                {
+                    // disable running the stress
+                    gd.currentStressWord = 0;
+                    // disable getting nilEvent
+                    gd.ticksEventTimeout = evtWaitForever;
+                }
+            }
+#endif
+            handled = true;
+            break;
+
 #if 0
         case nilEvent:
             if (-1 != gd.start_seconds_count)
@@ -1422,7 +1449,7 @@ void EventLoopNoahPro(void)
     event.eType = (eventsEnum) 0;
     while ( (event.eType != appStopEvent) && (ERR_NONE == gd.err) )
     {
-        EvtGetEvent(&event, -1);
+        EvtGetEvent(&event, gd.ticksEventTimeout);
         if (SysHandleEvent(&event))
             continue;
         // according to docs error is always set to 0

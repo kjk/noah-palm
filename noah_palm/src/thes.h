@@ -80,6 +80,10 @@ typedef struct
     long               wordHistory[HISTORY_ITEMS];
     ThesPrefs          prefs;
     Boolean            fFirstRun; /* is this first run or not */
+    long               ticksEventTimeout;
+#ifdef DEBUG
+    long               currentStressWord;
+#endif
 } GlobalData;
 
 #endif

@@ -8,6 +8,10 @@
 #include "display_info.h"
 #include "roget_support.h"
 
+#define PREF_REC_MIN_SIZE 4
+#define FONT_DY  11
+#define WORDS_IN_LIST 15
+
 #ifdef DEMO
 char helpText[] =
     " This is a demo version. It's fully\n functional but has only 10% of\n the thesaurus data.\n"
@@ -220,8 +224,6 @@ CloseDbExit:
     new_free( prefsBlob );
 }
 
-#define PREF_REC_MIN_SIZE 4
-
 void LoadPreferencesThes()
 {
     DmOpenRef    db;
@@ -296,7 +298,11 @@ Err InitThesaurus(void)
 
     SetCurrentFile( NULL );
 
-/*     gd.current_timeout = -1; */
+    // disable getting nilEvent
+    gd.ticksEventTimeout = evtWaitForever;
+#ifdef DEBUG
+    gd.currentStressWord = 0;
+#endif
     gd.prevSelectedWord = 0xfffff;
 
     gd.firstDispLine = -1;
@@ -473,7 +479,6 @@ int LastUsedDatabase(void)
     return -1;
 }
 
-#define FONT_DY  11
 /*
 Given a point on the screen calculate the bounds of the character that 
 this point belongs to and also line & position in the line of this character.
@@ -871,7 +876,11 @@ ChooseDatabase:
             break;
 #ifdef DEBUG
         case menuItemStress:
-            stress(1);
+            // initiate stress i.e. going through all the words
+            // 0 means that stress is not in progress
+            gd.currentStressWord = -1;
+            // get nilEvents as fast as possible
+            gd.ticksEventTimeout = 0;
             break;
 #endif
         case menuItemSelectDB:
@@ -889,6 +898,25 @@ ChooseDatabase:
         }
         handled = true;
         break;
+    case nilEvent:
+#ifdef DEBUG
+        if ( 0 != gd.currentStressWord )
+        {
+            if ( -1 == gd.currentStressWord )
+                gd.currentStressWord = 0;
+            DrawDescription(gd.currentStressWord++);
+            if (gd.currentStressWord==dictGetWordsCount())
+            {
+                // disable running the stress
+                gd.currentStressWord = 0;
+                // disable getting nilEvent
+                gd.ticksEventTimeout = evtWaitForever;
+            }
+        }
+#endif
+        handled = true;
+        break;
+
 #ifdef NEVER
     case nilEvent:
         if (-1 != gd.start_seconds_count)
@@ -921,7 +949,6 @@ ChooseDatabase:
     return handled;
 }
 
-#define WORDS_IN_LIST 15
 
 Boolean FindFormHandleEventThes(EventType * event)
 {
@@ -1261,8 +1288,7 @@ void EventLoopThes(void)
     event.eType = (eventsEnum) 0;
     while (event.eType != appStopEvent)
     {
-/*      EvtGetEvent(&event, gd.current_timeout); */
-        EvtGetEvent(&event, -1);
+        EvtGetEvent(&event, gd.ticksEventTimeout);
         if (SysHandleEvent(&event))
             continue;
         if (MenuHandleEvent(0, &event, &error))

@@ -64,11 +64,14 @@ Err InitNoahLite(void)
 
     SetCurrentFile(NULL);
 
-/*     gd.current_timeout = -1; */
-
     gd.penUpsToConsume = 0;
     gd.selectedWord = 0;
     gd.prevSelectedWord = 0xfffff;
+    // disable getting nilEvent
+    gd.ticksEventTimeout = evtWaitForever;
+#ifdef DEBUG
+    gd.currentStressWord = 0;
+#endif
 
     FsInit();
 
@@ -389,7 +392,11 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
                     break;
 #ifdef DEBUG
                 case menuItemStress:
-                    stress(20);
+                    // initiate stress i.e. going through all the words
+                    // 0 means that stress is not in progress
+                    gd.currentStressWord = -1;
+                    // get nilEvents as fast as possible
+                    gd.ticksEventTimeout = 0;
                     break;
 #endif
                 case menuItemHelp:
@@ -406,6 +413,25 @@ Boolean MainFormHandleEventNoahLite(EventType * event)
             }
             handled = true;
             break;
+        case nilEvent:
+#ifdef DEBUG
+            if ( 0 != gd.currentStressWord )
+            {
+                if ( -1 == gd.currentStressWord )
+                    gd.currentStressWord = 0;
+                DrawDescription(gd.currentStressWord++);
+                if (gd.currentStressWord==dictGetWordsCount())
+                {
+                    // disable running the stress
+                    gd.currentStressWord = 0;
+                    // disable getting nilEvent
+                    gd.ticksEventTimeout = evtWaitForever;
+                }
+            }
+#endif
+            handled = true;
+            break;
+
 #ifdef NEVER
         case nilEvent:
             if (-1 != gd.start_seconds_count)
@@ -673,15 +699,10 @@ void EventLoopNoahLite(void)
     EventType event;
     Word error;
 
-#ifdef DEBUG
-    event.eType = (eventsEnum) 0;
-#endif
-
     event.eType = (eventsEnum) 0;
     while (event.eType != appStopEvent)
     {
-/*      EvtGetEvent(&event, gd.current_timeout); */
-        EvtGetEvent(&event, -1);
+        EvtGetEvent(&event, gd.ticksEventTimeout);
         if (SysHandleEvent(&event))
             continue;
         if (MenuHandleEvent(0, &event, &error))

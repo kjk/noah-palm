@@ -668,20 +668,6 @@ char * GetWnPosTxt(int pos)
     return GetNthTxt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
 }
 
-#ifdef DEBUG
-void stress(long step)
-{
-    long wordNo;
-    long wordsCount;
-
-    wordsCount = dictGetWordsCount();
-    for (wordNo = 0; wordNo < wordsCount; wordNo += step)
-    {
-        DrawDescription(wordNo);
-    }
-}
-#endif
-
 /* return the dictionary type for the current file */
 UInt32 CurrFileDictType(void)
 {

@@ -62,30 +62,32 @@ typedef struct
     char *                  lastDbUsedName;
 } NoahPrefs;
 
-/*
-  Structure with global data.
-  */
+/* Global data for Noah Pro */
 typedef struct
 {
-    AbstractFile *      dicts[MAX_DICTS];
-    int                 dictsCount;
-    NoahErrors          err;
-    DisplayInfo *       currDispInfo;
-    ExtensibleBuffer *  helpDipsBuf;
-    long                currentWord;
-    long                wordsCount;
-    int                 firstDispLine;
-    long                listItemOffset;
-    long                prevTopItem;
-    int                 penUpsToConsume;
-    long                prevSelectedWord;
-    long                selectedWord;
-    Boolean             prefsPresentP;
-    char                lastWord[WORD_MAX_LEN];
-    int                 historyCount;
-    long                wordHistory[HISTORY_ITEMS];
-    NoahPrefs           prefs;
-    Boolean             fFirstRun; /* is this first run or not */
+    AbstractFile *     dicts[MAX_DICTS];
+    int                dictsCount;
+    NoahErrors         err;
+    DisplayInfo *      currDispInfo;
+    ExtensibleBuffer * helpDipsBuf;
+    long               currentWord;
+    long               wordsCount;
+    int                firstDispLine;
+    long               listItemOffset;
+    long               prevTopItem;
+    int                penUpsToConsume;
+    long               prevSelectedWord;
+    long               selectedWord;
+    Boolean            prefsPresentP;
+    char               lastWord[WORD_MAX_LEN];
+    int                historyCount;
+    long               wordHistory[HISTORY_ITEMS];
+    NoahPrefs          prefs;
+    Boolean            fFirstRun; /* is this first run or not */
+    long               ticksEventTimeout;
+#ifdef DEBUG
+    long               currentStressWord;
+#endif
 } GlobalData;
 
 #endif
