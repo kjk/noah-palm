@@ -1,30 +1,18 @@
 #include "noah_pro_rcp.h"
 
 STRING ID helpPrefs
-"If those controls are not clear please take a look "\
-"at the html documentation that has been included "\
-"with this program"
-
-/*
-STRING ID 8004
 "\'Startup action:\' choose what will happen when"\
-"Noah starts\n"\
+"Noah Pro starts\n"\
 "Nothing - display standard About info\n"\
 "Last word - display definition of the last visited word\n"\
 "Clipboard - display definition of the word in a clipboard (if any)\n\n"\
-"\'Startup database:\' Choose what to do at startup when there is"\
-"more than one database\n"\
-"Ask - ask which database to use\n"\
-"Last - use previously used database\n\n"\
 "\'Up/Down buttons:\' What to do when you press up/down"\
 "hardware buttons\n"\
 "Nothing\n"\
 "Line Scroll - scroll the definition by one line\n"\
 "1/2 Page Scroll - scroll the definition by half a page\n"\
 "Page Scroll - scroll the definition by one page\n\n"\
-"\'Tap:\' What to do when you tap at the definition. The same"\
-"Options as for up/down buttons"
-*/
+"For more info see the documentation"
 
 #ifdef DEBUG
 MENU ID menuMain
@@ -154,6 +142,7 @@ END
 FORM formDisplayPrefs AT (0 0 160 160)
 USABLE
 FRAME
+HELPID helpPrefs
 BEGIN
    TITLE  "Display"
 
@@ -221,7 +210,6 @@ FRAME
 MODAL
 USABLE
 DEFAULTBTNID buttonOk
-HELPID helpPrefs
 BEGIN
    TITLE "Preferences"
 
@@ -341,8 +329,8 @@ END
 
 BITMAPFAMILYEX ID bmpMenuBarIcon  
 BEGIN
-    BITMAP "icons/no15x2.bmp"   BPP 1 DENSITY 1
-    BITMAP "icons/no15x256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
-    BITMAP "icons/no30x2.bmp"   BPP 1 DENSITY 2
-    BITMAP "icons/no30x256.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
+    BITMAP "icons/no_mb_smallx2.bmp"   BPP 1 DENSITY 1
+    BITMAP "icons/no_mb_smallx256.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 255 204
+    BITMAP "icons/no_mb_bigx2.bmp"     BPP 1 DENSITY 2
+    BITMAP "icons/no_mb_bigx256.bmp"   BPP 8 DENSITY 2 TRANSPARENCY 255 255 204
 END

@@ -22,7 +22,7 @@
 /* Open one of the bookmark databases. If sortType is bkmSortByName
    use bookmarks sorted by name, if bkmSortByTime use bookmarks
    sorted by the bookmarking time */
-Err OpenBookmarksDB(AppContext* appContext, BookmarkSortType sortType)
+static Err OpenBookmarksDB(AppContext* appContext, BookmarkSortType sortType)
 {
     Err      err;
     char *   dbName;
@@ -79,7 +79,7 @@ Err CloseBookmarksDB(AppContext* appContext)
     return errNone;
 }
 
-void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
+static void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
     Int16       stringWidthP = 160; // max width of the string in the list selection window
     Int16       stringLenP;
@@ -91,6 +91,7 @@ void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Assert(itemNum >= 0);
     
     recHandle = DmQueryRecord(appContext->bookmarksDb, itemNum);
+    Assert(recHandle); // no reason it shouldn't work
     if (recHandle)
     {
         str = MemHandleLock(recHandle);
@@ -99,17 +100,34 @@ void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
         WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
         MemHandleUnlock(recHandle);
     }
-    else
-    {
-        WinDrawChars("-- NOT FOUND --", 15, bounds->topLeft.x, bounds->topLeft.y);
-    }
 }
 
 /* Return the number of bookmarked words */
-UInt16 BookmarksWordCount(AppContext* appContext)
+static UInt16 BookmarksWordCount(AppContext* appContext)
 {
     Assert(appContext->bookmarksDb);
     return DmNumRecords(appContext->bookmarksDb);
+}
+
+/* Get number of bookmarked words. Doesn't depend on the database being open */
+UInt16 GetBookmarksCount(AppContext *appContext)
+{
+    Boolean     fOpenedDatabase = false;
+    UInt16      bookmarksCount = 0;
+
+    if (NULL == appContext->bookmarksDb)
+    {
+        OpenBookmarksDB(appContext, bkmSortByName);
+        fOpenedDatabase = true;
+    }
+
+    if (appContext->bookmarksDb)
+        bookmarksCount = BookmarksWordCount(appContext);
+
+    if (fOpenedDatabase)
+        CloseBookmarksDB(appContext);
+
+    return bookmarksCount;
 }
 
 Boolean BookmarksFormHandleEvent(EventType * event)
@@ -129,7 +147,8 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             bkmList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listBookmarks));
             LstSetDrawFunction(bkmList, BookmarksListDrawFunc);
             bookmarksCount = BookmarksWordCount(appContext);
-            LstSetListChoices(bkmList, NULL, bookmarksCount);
+            if (0!=bookmarksCount)
+                LstSetListChoices(bkmList, NULL, bookmarksCount);
 
             sortTypeList = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listSortBy));
             // list position matches enums for simplicity
@@ -139,7 +158,10 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
 
             FrmDrawForm(frm);
-
+            if (0==bookmarksCount)
+            {
+                DrawCenteredString(appContext, "No bookmarks !", 60);
+            }
             handled = true;
             break;
 
@@ -219,7 +241,7 @@ Boolean BookmarksFormHandleEvent(EventType * event)
     return handled;
 }
 
-Int16 BookmarksByNameCompare(char * r1, char * r2, Int16 sortOrder, SortRecordInfoPtr /* info1 */, 
+static Int16 BookmarksByNameCompare(char * r1, char * r2, Int16 sortOrder, SortRecordInfoPtr /* info1 */, 
     SortRecordInfoPtr /* info2 */, MemHandle /* appInfoH */)
 {
     // need to use that to have the same sorting as in list of words

@@ -349,6 +349,7 @@ extern Boolean get_defs_records(AbstractFile* file, long entry_count, int first_
 void    ClearRectangle(Int16 sx, Int16 sy, Int16 ex, Int16 ey);
 void    ClearDisplayRectangle(AppContext* appContext);
 void    DrawCenteredString(AppContext* appContext, const char *str, int dy);
+void    DrawStringCenteredInRectangle(AppContext* appContext, const char *str, int dy);
 void    DrawWord(char *word, int pos_y);
 char *  GetNthTxt(int n, char *txt);
 char *  GetWnPosTxt(int partOfSpeech);

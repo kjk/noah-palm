@@ -230,7 +230,8 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
     char *          str;
     AbstractFile *  currFile=GetCurrentFile(appContext);
 
-    // prevents "global variable @212 is accessed using A5 register" warning
+    // usually we would do just rc = { {30,40}, {40,100} } but that causes
+    // using global variables and we have to avoid that
     rc.topLeft.x = 30;
     rc.topLeft.y = 40;
     rc.extent.x = 100;
@@ -246,6 +247,7 @@ void FillMatchingPatternDB(AppContext* appContext, char * pattern)
     DrawCenteredString(appContext, SEARCH_TXT, rc.topLeft.y + 5);
     WinDrawRectangleFrame(roundFrame, &rcStop);
     DrawCenteredString(appContext, "Stop", rcStop.topLeft.y);
+
     if (pattern[0] != '*' && pattern[0] != '?')
     {
         // special case: we can optimize the searching

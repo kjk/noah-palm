@@ -510,6 +510,25 @@ void DrawCentered(AppContext* appContext, char *txt)
     FntSetFont(prev_font);
 }
 
+void DrawStringCenteredInRectangle(AppContext* appContext, const char *str, int dy)
+{
+    RectangleType   rc;
+    Int16           strDx;
+    int             strLen;
+
+    Assert(str);
+    strLen = StrLen(str);
+    strDx = FntCharsWidth(str, strLen);
+
+    rc.topLeft.x = ((appContext->screenWidth - strDx) / 2) - 3;
+    rc.topLeft.y = dy;
+    rc.extent.x  = strDx+6;
+    rc.extent.y  = 12;  // TODO: should be font dy?
+
+    WinDrawRectangleFrame(roundFrame, &rc);
+    DrawCenteredString(appContext, str, dy);
+}
+
 void DrawCenteredString(AppContext* appContext, const char *str, int dy)
 {
     Int16 strDx;

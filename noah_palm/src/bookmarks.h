@@ -31,11 +31,7 @@ struct _AppContext;
 Err     AddBookmark(struct _AppContext* appContext, char * word);
 void    DeleteBookmark(struct _AppContext* appContext, char * word);
 Boolean BookmarksFormHandleEvent(EventType * event);
-void    BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data);
-Err     OpenBookmarksDB(struct _AppContext* appContext, BookmarkSortType sortType);
 Err     CloseBookmarksDB(struct _AppContext* appContext);
-UInt16  BookmarksWordCount(struct _AppContext* appContext);
-Int16   BookmarksByNameCompare(char * r1, char * r2, Int16 sortOrder, SortRecordInfoPtr /* info1 */, 
-                        SortRecordInfoPtr /* info2 */, MemHandle /* appInfoH */);
+UInt16  GetBookmarksCount(struct _AppContext *appContext);
 
 #endif

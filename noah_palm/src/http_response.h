@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000-2004 Krzysztof Kowalczyk
-  Author: Krzysztof Kowalczyi
+  Owner: Krzysztof Kowalczyi
 */
 
 #ifndef _HTTP_RESPONSE_H_

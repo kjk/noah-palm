@@ -14,8 +14,6 @@ STRING ID helpPrefs
 "Line Scroll - scroll the definition by one line\n"\
 "1/2 Page Scroll - scroll the definition by half a page\n"\
 "Page Scroll - scroll the definition by one page\n\n"\
-"\'Tap:\' What to do when you tap at the definition. The same"\
-"Options as for up/down buttons\n\n"\
 "For more info see the documentation"
 
 #ifdef DEBUG
