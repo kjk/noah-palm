@@ -29,9 +29,7 @@
 # eSellerate/PalmGear/Handango. The format of this file:
 #  eSellerate: serial number per line, at least 500 serial numbers
 #
-#
 #  TODO:
-#    - generate files for PalmGear, Handango
 #    - don't generate multiple special codes for the same special thing
 #
 # Usage:
@@ -225,7 +223,6 @@ def usageAndExit():
     print "e.g. inoah_gen_reg_codes.py es 700"
     sys.exit(0)
 
-
 #  eSellerate: serial number per line
 def createEsellerateFile(codes):
     fileName = getEsellerateFileName()
@@ -236,17 +233,21 @@ def createEsellerateFile(codes):
         fo.write( "%s\r\n" % code )
     fo.close()
 
+# Handango: comma separated list of registration codes
 def createHandangoFile(codes):
     fileName = getHandangoFileName()
     assert not fFileExists(fileName)
     assert len(codes)>=MIN_H_CODES
-
-    # TODO: find out the format of Handango file
-    assert False
-    #fo = open(fileName, "wb")
-    #for code in codes.keys():
-    #    fo.write( "%s\n" % code )
-    #fo.close()
+    fo = open(fileName, "wb")
+    fFirst = True
+    for code in codes.keys():
+        if fFirst:
+            fo.write("%s" % code)
+            fFirst=False
+        else:
+            fo.write( ",%s" % code )
+    fo.write("\n")
+    fo.close()
 
 # PalmGear. From their site:
 # Text only
