@@ -34,11 +34,9 @@ BEGIN
 
   PULLDOWN "Bookmarks"
   BEGIN
-#ifdef _ADD_BOOKMARKS_
     MENUITEM "Add bookmark"            ID menuItemBookmarkWord   "A"
     MENUITEM "Delete bookmark"         ID menuItemBookmarkDelete "D"
     MENUITEM "View bookmarks"          ID menuItemBookmarkView   "V"
-#endif
   END
 
   PULLDOWN "Options"
@@ -67,11 +65,9 @@ BEGIN
 
   PULLDOWN "Bookmarks"
   BEGIN
-#ifdef _ADD_BOOKMARKS_
     MENUITEM "Add bookmark"            ID menuItemBookmarkWord   "A"
     MENUITEM "Delete bookmark"         ID menuItemBookmarkDelete "D"
     MENUITEM "View bookmarks"          ID menuItemBookmarkView   "V"
-#endif
   END
 
   PULLDOWN "Options"
