@@ -1,0 +1,113 @@
+/*
+  Copyright (C) 2000,2001, 2002 Krzysztof Kowalczyk
+  Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
+ */
+#ifndef _NOAH_PRO_H_
+#define _NOAH_PRO_H_
+
+#include <PalmOS.h>
+#include <PalmCompatibility.h>
+
+#include "extensible_buffer.h"
+#include "display_info.h"
+#include "common.h"
+
+#include "fs.h"
+
+#include "fs_mem.h"
+
+#ifdef FS_VFS
+#include "fs_vfs.h"
+#endif
+
+#define  NOAH_PRO_CREATOR    'NoAH'
+#define  NOAH_PREF_TYPE      'pref'
+
+/* information about the area for displaying definitions:
+   start x, start y, number of lines (dy).
+   assume that width is full screen (160) */
+#define DRAW_DI_Y 0
+#define DRAW_DI_LINES 13
+
+/* id for Noah Pro v1.0/v2.0 preferences, no longer used */
+/* #define Noah10Pref      0x43212205 */
+
+/* id for Noah Pro >v2.0 preferences */
+#define Noah21Pref      0x43212206
+
+/* if for Noah Pro v 1.0 per-database preferences */
+#define NoahDB10Pref    0x43212213
+
+
+#define MAX_DBS  8
+
+
+/* Preferences database consists of multiple records.
+   Every record contains preferences for a given module
+   (ie. separate record for main Noah preferences, sepearate
+   module for WordNet-specific preferences etc.
+   Each record begins with a 4-byte id. If a program doesn't
+   know the id, it just ignores the record. This allows a flexible
+   upgrades of the program.
+ */
+
+/* structure of the general preferences record */
+typedef struct
+{
+    int                      delVfsCacheOnExitP;
+    StartupAction            startupAction;
+    ScrollType               tapScrollType;
+    ScrollType               hwButtonScrollType;
+    DatabaseStartupAction    dbStartupAction;
+    /* number of dbs found on the external mem card during the scan */
+    int                      externalDbsCount;
+    /* type and name of the database used most recently */
+    VFSDBType                lastDbType;
+    unsigned char            lastDbName[DB_NAME_SIZE];
+    unsigned char            lastWord[WORD_MAX_LEN];
+} NoahPrefs;
+
+/*
+  Structure with global data.
+  */
+typedef struct
+{
+    NoahErrors          err;
+    void                *dictData;
+    int                 currentDb;
+    int                 newDb;
+    Dict                currentDict;
+    int                 dbsCount;
+    DBInfo              foundDbs[MAX_DBS];
+    DisplayInfo         *currDispInfo;
+    ExtensibleBuffer    *helpDipsBuf;
+    long                currentWord;
+    long                wordsCount;
+    int                 firstDispLine;
+    int                 osVersion;
+    int                 maxScreenDepth;
+    long                listItemOffset;
+    Boolean             listDisabledP;
+    long                prevTopItem;
+    long                maxListItems;
+    int                 penUpsToConsume;
+    long                prevSelectedWord;
+    long                selectedWord;
+    Boolean             prefsPresentP;
+    NoahPrefs           prefs;
+    Vfs                 *currVfs;
+
+    Boolean             memInitedP;
+    Boolean             memWorksP;
+    Vfs                 memVfs;
+    MemData             memVfsData;
+
+#ifdef FS_VFS
+    Boolean             stdInitedP;
+    Boolean             stdWorksP;
+    Vfs                 stdVfs;
+    StdData             stdVfsData;
+#endif
+} GlobalData;
+
+#endif

@@ -1,0 +1,62 @@
+
+CC = m68k-palmos-gcc
+LNFLAGS = -g
+CFLAGS = -g -Wall -I res -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMPLE_DICT -DFS_EX -DFS_STD -DFS_MEM -DMEM_LEAKS -DERROR_CHECK_LEVEL=2 -DDEBUG -DSTRESS
+OBJS=obj/noah_pro.o obj/wn_lite_ex_support.o obj/wn_pro_support.o obj/simple_support.o obj/ep_support.o obj/word_compress.o obj/mem_leak.o obj/display_info.o obj/common.o obj/extensible_buffer.o obj/fs.o obj/fs_ex.o obj/fs_mem.o obj/fs_vfs.o 
+
+obj/noah_pro.o:
+	$(CC) $(CFLAGS) -c src/noah_pro.c -o $@
+
+obj/wn_lite_ex_support.o:
+	$(CC) $(CFLAGS) -c src/wn_lite_ex_support.c -o $@
+
+obj/wn_pro_support.o:
+	$(CC) $(CFLAGS) -c src/wn_pro_support.c -o $@
+
+obj/simple_support.o:
+	$(CC) $(CFLAGS) -c src/simple_support.c -o $@
+
+obj/ep_support.o:
+	$(CC) $(CFLAGS) -c src/ep_support.c -o $@
+
+obj/word_compress.o:
+	$(CC) $(CFLAGS) -c src/word_compress.c -o $@
+
+obj/mem_leak.o:
+	$(CC) $(CFLAGS) -c src/mem_leak.c -o $@
+
+obj/display_info.o:
+	$(CC) $(CFLAGS) -c src/display_info.c -o $@
+
+obj/common.o:
+	$(CC) $(CFLAGS) -c src/common.c -o $@
+
+obj/extensible_buffer.o:
+	$(CC) $(CFLAGS) -c src/extensible_buffer.c -o $@
+
+obj/fs.o:
+	$(CC) $(CFLAGS) -c src/fs.c -o $@
+
+obj/fs_ex.o:
+	$(CC) $(CFLAGS) -c src/fs_ex.c -o $@
+
+obj/fs_mem.o:
+	$(CC) $(CFLAGS) -c src/fs_mem.c -o $@
+
+obj/fs_vfs.o:
+	$(CC) $(CFLAGS) -c src/fs_vfs.c -o $@
+
+
+noah_pro.prc: $(OBJS) obj/noah_pro.res
+	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH obj/*.o
+	mv *.grc obj
+	mv *.out obj
+	build-prc --copy-prevention $@ "Noah Pro" "NoAH" obj/*.bin obj/*.grc
+	ls -la *.prc
+
+obj/noah_pro.res: res/noah_pro.rcp res/noah_pro_rcp.h
+	pilrc -D STRESS -q -I res res/noah_pro.rcp obj
+	touch $@
+    
+clean:
+	rm -rf obj/* obj/*.out obj/*.grc

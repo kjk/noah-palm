@@ -1,0 +1,20 @@
+* bring Noah Pro to using only vfs/mem
+* figure out the "wordHistory" business in thes.c
+* "Timo Laitinen" <timolai@utu.fi> can beta-test MemPlug version (e-mail 4 Nov
+2002)
+* make Noah Lite compile
+* change the way we iterate over dbs
+* save which db is used in preferences
+* split globals into common globals and per-thing globals
+
+We have:
+- abstracted acess to files (either vfs or internal memory db api), it mimics the internal db api. vfs implementation adds caching of records in internal memory
+- abstracted dictionary access api i.e. have the same api regardless of what kind of dictionary we access (thesarus, noah lite, noah pro etc.). It uses the abstracted access to files
+
+* [DONE 2002/10/07] make thesaurus compile
+
+
+file api:
+  vfs implementation
+  internal memory db implementation
+  

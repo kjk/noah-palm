@@ -1,0 +1,111 @@
+#include "thes_rcp.h"
+
+VERSION ID 1 "1.0a"
+
+STRING ID helpPrefs
+"\'Startup action:\' choose what will happen when"\
+"Thesaurus starts\n"\
+"Nothing - display standard About info\n"\
+"Last word - display definition of the last visited word\n"\
+"Clipboard - display definition of the word in a clipboard (if any)\n\n"\
+"\'Up/Down buttons:\' What to do when you press up/down"\
+"hardware buttons\n"\
+"Nothing\n"\
+"Line Scroll - scroll the definition by one line\n"\
+"1/2 Page Scroll - scroll the definition by half a page\n"\
+"Page Scroll - scroll the definition by one page\n\n"\
+"\'Tap:\' What to do when you tap at the definition. The same"\
+"Options as for up/down buttons\n\n"\
+"For more info see the documentation"
+
+MENU ID menuMain
+BEGIN
+  PULLDOWN "Main"
+  BEGIN
+    MENUITEM "Preferences"             ID menuItemPrefs "P"
+    MENUITEM "Find word"               ID menuItemFind "F"
+    MENUITEM "Info"                    ID menuItemHelp "I"
+    MENUITEM "About"                   ID menuItemAbout "A"
+  END
+END
+
+FORM formDictMain AT (0 0 160 160)
+USABLE
+NOFRAME
+MENUID menuMain
+BEGIN
+   SCROLLBAR ID scrollDef AT (152 1 7 142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+   BUTTON "\002" ctlArrowLeft AT (0 148 8 11) FONT 4 NOFRAME
+   BUTTON "\003" ctlArrowRight AT (8 148 10 11) FONT 4 NOFRAME
+   POPUPTRIGGER "" ID popupHistory AT (128 147 17 13) LEFTANCHOR FONT 0
+   LIST "" ID listHistory AT (80 100 72 58) NONUSABLE FONT 0
+   POPUPLIST ID popupHistory listHistory
+   FORMBITMAP AT (147 147) BITMAP bmpFind
+   BUTTON "" buttonFind AT (146 146 14 14) NOFRAME
+END
+
+FORM formSelectDict AT (0 0 160 160)
+USABLE
+FRAME
+BEGIN
+   TITLE "Select database"
+   LIST "" listOfDicts AT (10 24 140 80) USABLE
+   BUTTON "Select" buttonSelect AT (40 120 AUTO AUTO) FONT 0
+   BUTTON "Cancel" buttonCancel AT (80 120 AUTO AUTO) NONUSABLE FONT 0
+END
+
+FORM formDictFind AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+   LIST "" listMatching AT (4 4 88 AUTO) USABLE VISIBLEITEMS 14
+   LABEL "Find word:" AUTOID AT (PrevRight+9 PrevTop) FONT 1
+   FIELD fieldWord AT (100 PrevTop+12 160 PrevTop+20) UNDERLINED MAXCHARS 20
+   BUTTON "Cancel" buttonCancel AT (107 160-15 AUTO AUTO) FONT 0
+END
+
+FORM formPrefs AT (0 0 160 160)
+FRAME
+MODAL
+USABLE
+DEFAULTBTNID buttonOk
+HELPID helpPrefs
+BEGIN
+   TITLE "Preferences"
+   LABEL "Startup action:" AUTOID AT (5 20) FONT 1
+   POPUPTRIGGER "Clipboard" popupStartupAction AT (PREVRIGHT+8 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST "Nothing" "Clipboard" "Last word" ID listStartupAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 3
+   POPUPLIST popupStartupAction listStartupAction
+
+   LABEL "Up/Down buttons:" AUTOID AT (5 PREVTOP+12) FONT 1
+   POPUPTRIGGER  "1/2 Page Scroll" popuphwButtonsAction AT (PREVRIGHT-28 PREVTOP+14 AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listhwButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
+   POPUPLIST popuphwButtonsAction listhwButtonsAction
+
+   LABEL "Tap:" AUTOID AT (5 PREVTOP+14) FONT 1
+   POPUPTRIGGER  "1/2 Page Scroll" popupTapAction AT (PREVRIGHT+43 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listTapAction AT (PREVLEFT PREVTOP PREVWIDTH PREVHEIGHT) NONUSABLE VISIBLEITEMS 4
+   POPUPLIST popupTapAction listTapAction
+
+   BUTTON "Ok"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
+   BUTTON "CANCEL" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 
+END
+
+ALERT alertMemError
+INFORMATION
+BEGIN
+    TITLE "Fatal Error"
+    MESSAGE "Not enough dynamic memory."
+    BUTTONS "OK"
+END
+
+ALERT alertNoDB
+INFORMATION
+BEGIN
+    TITLE "Error"
+    MESSAGE "Cannot find database."
+    BUTTONS "OK"
+END
+
+ICON              "thes.pbitm"
+BITMAP ID bmpFind "find.pbitm"

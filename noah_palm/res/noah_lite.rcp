@@ -1,0 +1,66 @@
+#include "noah_lite_rcp.h"
+
+VERSION ID 1 "0.7"
+
+MENU ID menuMain
+BEGIN
+  PULLDOWN "Main"
+  BEGIN
+    MENUITEM "Select database"         ID menuItemSelectDB "S"
+    MENUITEM "Find word"               ID menuItemFind "F"
+    MENUITEM "Stress"				ID menuItemStress
+    MENUITEM "Info"                    ID menuItemHelp "I"
+    MENUITEM "About"                   ID menuItemAbout "A"
+  END
+END
+
+FORM formDictMain AT (0 0 160 160)
+USABLE
+NOFRAME
+MENUID menuMain
+BEGIN
+   BUTTON "\002" ctlArrowLeft AT (0 2 8 11) FONT 4 NOFRAME
+   BUTTON "\003" ctlArrowRight AT (8 2 10 11) FONT 4 NOFRAME
+   BUTTON "F" buttonFind AT (160-17 1 AUTO AUTO)
+   SCROLLBAR ID scrollDef AT (160-8 20 7 140) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
+END
+
+FORM formSelectDict AT (0 0 160 160)
+USABLE
+FRAME
+BEGIN
+   TITLE "Select database"
+   LIST "" listOfDicts AT (10 24 140 80) USABLE
+   BUTTON "Select" buttonSelect AT (40 120 AUTO AUTO) FONT 0
+   BUTTON "Cancel" buttonCancel AT (80 120 AUTO AUTO) NONUSABLE FONT 0
+END
+
+FORM formDictFind AT (0 0 160 160)
+USABLE
+NOFRAME
+MENUID menuMain
+BEGIN
+   LIST "" listMatching AT (4 4 88 AUTO) USABLE VISIBLEITEMS 14
+   LABEL "Find word:" AUTOID AT (PrevRight+9 PrevTop) FONT 1
+   FIELD fieldWord AT (100 PrevTop+12 160 PrevTop+20) UNDERLINED MAXCHARS 20
+   BUTTON "Cancel" buttonCancel AT (107 160-15 AUTO AUTO) FONT 0
+END
+
+ALERT alertMemError
+INFORMATION
+BEGIN
+    TITLE "Fatal Error"
+    MESSAGE "Not enough dynamic memory."
+    BUTTONS "OK"
+END
+
+ALERT alertNoDB
+INFORMATION
+BEGIN
+    TITLE "Error"
+    MESSAGE "Cannot find database. Please see http://www.arslexis.com/nlfaq.html for more information."
+    BUTTONS "OK"
+END
+
+ICON   "noah_lite.pbitm"
+
