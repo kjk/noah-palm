@@ -1,6 +1,25 @@
 #include "common.h"
 #include "bookmarks.h"
 
+void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
+{
+/*
+    char        *str;
+    Int16       stringWidthP = 160; // max width of the string in the list selection window
+    Int16       stringLenP;
+    Boolean     truncatedP = false;
+    long        realItemNo;
+    AppContext* appContext=GetAppContext();
+
+    Assert(itemNum >= 0);
+    str = dictGetWord(GetCurrentFile(appContext), realItemNo);
+    stringLenP = StrLen(str);
+
+    FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
+    WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
+*/
+}
+
 Boolean BookmarksFormHandleEvent(EventType * event)
 {
     Boolean handled = false;
@@ -13,6 +32,8 @@ Boolean BookmarksFormHandleEvent(EventType * event)
     switch (event->eType)
     {
         case frmOpenEvent:
+            list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+            LstSetDrawFunction(list, BookmarksListDrawFunc);
             FrmDrawForm(frm);
             handled = true;
             break;

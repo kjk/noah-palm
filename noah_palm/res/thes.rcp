@@ -38,6 +38,14 @@ BEGIN
     MENUITEM "About"                   ID menuItemAbout     "A"
     MENUITEM "Stress"                  ID menuItemStress    "T"
   END
+  PULLDOWN "Bookmarks"
+  BEGIN
+#ifdef _ADD_BOOKMARKS_
+    MENUITEM "Bookmark word"           ID menuItemBookmarkWord "B"
+    MENUITEM "View bookmarks"          ID menuItemBookmarkView "V"
+    MENUITEM "Delete bookmarks"        ID menuItemBookmarkDelete "D"
+#endif
+  END
 END
 #else
 MENU ID menuMain
@@ -57,6 +65,14 @@ BEGIN
 #endif
     MENUITEM "Help"                    ID menuItemHelp      "H"
     MENUITEM "About"                   ID menuItemAbout     "A"
+  END
+  PULLDOWN "Bookmarks"
+  BEGIN
+#ifdef _ADD_BOOKMARKS_
+    MENUITEM "Bookmark word"           ID menuItemBookmarkWord "B"
+    MENUITEM "View bookmarks"          ID menuItemBookmarkView "V"
+    MENUITEM "Delete bookmarks"        ID menuItemBookmarkDelete "D"
+#endif
   END
 END
 #endif
@@ -135,6 +151,20 @@ BEGIN
    BUTTON "Cancel"  buttonCancel    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
    BUTTON "?"       buttonOneChar   AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
    BUTTON "*"       buttonAnyChar   AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
+END
+
+FORM ID formBookmarks   AT ( 0 0 160 160 )
+FRAME
+MODAL
+USABLE
+BEGIN
+   LABEL "Sort by:" AUTOID AT (1 147)
+   POPUPTRIGGER "name" popupSortBy  AT (PREVRIGHT+2 PREVTOP AUTO AUTO) LEFTANCHOR
+   LIST    "name" "time" ID listSortBy    AT (PREVLEFT PREVTOP PREVWIDTH 24) NONUSABLE VISIBLEITEMS 2 
+   POPUPLIST popupSortBy  listSortBy
+
+   LIST   ""        listMatching    AT (  0   0  160 145) USABLE VISIBLEITEMS 13
+   BUTTON "Cancel"  buttonCancel    AT (121 146 AUTO AUTO) FONT 0
 END
 
 FORM formPrefs AT (0 0 160 160)

@@ -105,10 +105,10 @@ Err ReadMatchingPatternRecord(AppContext* appContext, long pos, long * elem)
     MemHandle rh;
     long *rp;
 
-    rh = DmQueryRecord(appContext->wmpCacheDb, pos / WMP_REC_PACK_SIZE + 1);
+    rh = DmQueryRecord(appContext->wmpCacheDb, pos / WMP_REC_PACK_COUNT + 1);
     if (!rh) return DmGetLastErr();
     rp = MemHandleLock(rh);
-    *elem = rp[pos % WMP_REC_PACK_SIZE];
+    *elem = rp[pos % WMP_REC_PACK_COUNT];
     return MemHandleUnlock(rh);
 }
 
@@ -126,7 +126,7 @@ Err WriteMatchingPatternRecord(AppContext* appContext, long elem)
         pos = num - 1;
         rh = DmGetRecord(appContext->wmpCacheDb, pos);
         offset = MemHandleSize(rh);
-        if (offset < WMP_REC_PACK_SIZE * WMP_REC_SIZE)
+        if (offset < WMP_REC_PACK_COUNT * WMP_REC_SIZE)
             DmResizeRecord(appContext->wmpCacheDb, pos, offset + WMP_REC_SIZE);
         else
         {
@@ -162,7 +162,7 @@ long NumMatchingPatternRecords(AppContext* appContext)
         rh = DmQueryRecord(appContext->wmpCacheDb, num - 1);
         // full record packs = all records - first record (pattern's there) - last record (doesn't have to be full)
         // so 2 records are definetely not full
-        count = (num - 2) * WMP_REC_PACK_SIZE;
+        count = (num - 2) * WMP_REC_PACK_COUNT;
         count += MemHandleSize(rh) / WMP_REC_SIZE;
         return count;
     }
