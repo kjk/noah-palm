@@ -12,6 +12,7 @@
 
 #include "dynamic_input_area.h"
 #include "word_matching_pattern.h"
+#include "bookmarks.h"
 
 #include "mem_leak.h"
 #include "display_info.h"

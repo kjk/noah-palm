@@ -1,4 +1,5 @@
 #define _ADD_FIND_WORD_PATTERN_ 1
+#define _ADD_BOOKMARKS_ 1
 
 #define   formDictMain        1008
 #define   formDictFind        1002
@@ -7,6 +8,7 @@
 #define   formPrefs           1005
 #define   formDisplayPrefs    1006
 #define   formResidentLookup  1007
+#define   formBookmarks       1009
 
 #define   fieldWord           1200
 
@@ -41,6 +43,9 @@
 #define   menuItemCopy        2014
 #define   menuItemTranslate   2016
 #define   menuItemDispPrefs   2018
+#define   menuItemBookmarkWord 2020
+#define   menuItemBookmarkView 2022
+#define   menuItemBookmarkDelete 2024
 
 #define   buttonCancel        3001
 #define   buttonFind          3002
@@ -53,6 +58,8 @@
 #define   buttonOneChar       3009
 #define   buttonAnyChar       3010
 #define   buttonClose         3011
+#define   buttonByName        3012
+#define   buttonByTime        3013
 
 #define   scrollDef           4008
 

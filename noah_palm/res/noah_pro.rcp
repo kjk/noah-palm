@@ -44,6 +44,14 @@ BEGIN
     MENUITEM "About"                   ID menuItemAbout         "A"
     MENUITEM "Stress"                  ID menuItemStress        "T"
   END
+  PULLDOWN "Bookmarks"
+  BEGIN
+#ifdef _ADD_BOOKMARKS_
+    MENUITEM "Bookmark word"           ID menuItemBookmarkWord "B"
+    MENUITEM "View bookmarks"          ID menuItemBookmarkView "V"
+    MENUITEM "Delete bookmarks"        ID menuItemBookmarkDelete "D"
+#endif
+  END
 END
 #else
 MENU ID menuMain
@@ -62,6 +70,14 @@ BEGIN
     MENUITEM "Help"                    ID menuItemHelp         "H"
     MENUITEM "About"                   ID menuItemAbout        "A"
   END
+  PULLDOWN "Bookmarks"
+  BEGIN
+#ifdef _ADD_BOOKMARKS_
+    MENUITEM "Bookmark word"           ID menuItemBookmarkWord "B"
+    MENUITEM "View bookmarks"          ID menuItemBookmarkView "V"
+    MENUITEM "Delete bookmarks"        ID menuItemBookmarkDelete "D"
+#endif
+  END
 END
 #endif
 
@@ -78,6 +94,16 @@ BEGIN
    POPUPLIST ID popupHistory listHistory
    FORMBITMAP AT (147 147) BITMAP bmpFind
    BUTTON "" buttonFind AT (146 146 14 14) NOFRAME
+END
+
+FORM formBookmarks AT (0 0 160 160)
+USABLE
+NOFRAME
+MENUID menuMain
+BEGIN
+   BUTTON "By name" buttonByName    AT (2 146 AUTO AUTO) FONT 0
+   BUTTON "By time" buttonByTime    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
+   BUTTON "Cancel"  buttonCancel    AT (PREVRIGHT+2 PREVTOP AUTO AUTO) FONT 0
 END
 
 FORM formResidentLookup AT (0 0 160 160)

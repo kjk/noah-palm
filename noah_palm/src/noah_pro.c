@@ -1092,6 +1092,9 @@ ChooseDatabase:
                 case menuItemFindPattern:
                     FrmPopupForm(formDictFindPattern);
                     break;
+                case menuItemBookmarkView:
+                    FrmPopupForm(formBookmarks);
+                    break;
                 case menuItemAbout:
                     if (NULL != gd.currDispInfo)
                     {
@@ -1817,6 +1820,10 @@ Boolean HandleEventNoahPro(EventType * event)
 
             case formDisplayPrefs:
                 FrmSetEventHandler(frm, DisplayPrefFormHandleEventNoahPro);
+                return true;
+
+            case formBookmarks:
+                FrmSetEventHandler(frm, BookmarksFormHandleEvent);
                 return true;
 
             default:
