@@ -91,9 +91,7 @@ BEGIN
    LIST  "Nothing" "Line Scroll" "1/2 Page Scroll" "Page Scroll" ID listNavButtonsAction AT (PREVLEFT PREVTOP PREVWIDTH 46) NONUSABLE VISIBLEITEMS 4
    POPUPLIST popupNavButtonsAction listNavButtonsAction
 
-#ifndef _DONT_DO_PRONUNCIATION_
-   /* CHECKBOX "Show pronunciation" cbShowPronunctiation AT (2 PREVTOP+14 AUTO AUTO) */
-#endif
+   CHECKBOX "Show pronunciation" cbShowPronunctiation AT (2 PREVTOP+14 AUTO AUTO)
 
    BUTTON "OK"     ID buttonOk      AT (center@39 BOTTOM@160-13 50 AUTO) 
    BUTTON "Cancel" ID buttonCancel  AT (center@117 BOTTOM@160-13 50 AUTO) 

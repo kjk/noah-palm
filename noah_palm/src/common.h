@@ -469,7 +469,7 @@ char *  ssPop   ( StringStack *ss );
 #ifdef DEBUG
 
 void LogInit(AppContext* appContext, char* fileName);
-void Log(AppContext* appContext, char* txt);
+void Log(AppContext* appContext, const char* txt);
 
 #define LogG(f) Log(GetAppContext(), f)
 

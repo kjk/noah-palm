@@ -1778,7 +1778,7 @@ void LogInit(AppContext* appContext, char *fileName )
     appContext->log.fileName = fileName;
 }
 
-void Log(AppContext* appContext, char *txt)
+void Log(AppContext* appContext, const char *txt)
 {
     HostFILE        *hf = NULL;
     LogInitFile(&appContext->log);
@@ -1906,7 +1906,7 @@ void serString(char *str, char *prefsBlob, long *pCurrBlobSize)
 char *deserString(unsigned char **data, long *pCurrBlobSize)
 {
     char *  str;
-    int     strLen;
+    int   home  strLen;
 
     strLen = deserInt( data, pCurrBlobSize );
     Assert( 0 == (*data)[strLen-1] );

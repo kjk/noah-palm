@@ -86,17 +86,16 @@ Err DIA_Init(DIA_Settings* diaSettings)
 {
     UInt16      cardNo;
     LocalID     localId;
-    UInt32      value=0;
-    Err         error=errNone;
+    UInt32      value;
+    Err         error;
     Err         tmpErr;
 
     Assert(diaSettings);
     MemSet(diaSettings, sizeof(*diaSettings), 0);
     
-#ifndef _DONT_DO_SONY_DIA_SUPPORT_
     error=SonySilkLibInit(diaSettings);
-    if (error) goto OnError;
-#endif
+    if (error) 
+        goto OnError;
 
     if (!DIA_HasSonySilkLib(diaSettings))
     {
@@ -168,7 +167,7 @@ Err DIA_Free(DIA_Settings* diaSettings)
         }
 
     }
-OnErrorFreeLib:	
+OnErrorFreeLib:
     if (DIA_HasSonySilkLib(diaSettings)) {
         tmpErr=SonySilkLibFree(diaSettings);
         if (tmpErr) error=tmpErr;

@@ -147,16 +147,17 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const char* wo
         if (pronBegin<end)
         {
             const char* pronEnd=StrFind(pronBegin, end, "\n");
-#ifndef _DONT_DO_PRONUNCIATION_            
-            if (!appContext->prefs.dontShowPronunciation)
+            if (appContext->prefs.fEnablePronunciation)
             {
-                ebufAddChar(out, FORMAT_TAG);
-                ebufAddChar(out, FORMAT_PRONUNCIATION);
-                ebufAddStr(out, " (");
-                ebufAddStrN(out, const_cast<char*>(pronBegin), pronEnd-pronBegin);
-                ebufAddChar(out, ')');
-            }            
-#endif            
+                if (appContext->prefs.fShowPronunciation)
+                {
+                    ebufAddChar(out, FORMAT_TAG);
+                    ebufAddChar(out, FORMAT_PRONUNCIATION);
+                    ebufAddStr(out, " (");
+                    ebufAddStrN(out, const_cast<char*>(pronBegin), pronEnd-pronBegin);
+                    ebufAddChar(out, ')');
+                }
+            }
             begin=pronEnd+1;
         }
         else 

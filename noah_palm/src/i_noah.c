@@ -59,6 +59,25 @@ static void DeserializePreferencesInoah(AppContext* appContext, unsigned char *p
     MemMove((char*)prefs,prefsBlob, blobSize);
 }
 
+#if 0
+/* format of preferences database for 0.5 version. We need that for migration
+   code */
+typedef struct
+{
+    StartupAction           startupAction;
+    ScrollType              hwButtonScrollType;
+    ScrollType              navButtonScrollType;
+    char                    lastWord[WORD_MAX_LEN];
+    DisplayPrefs            displayPrefs;
+
+    // how do we sort bookmarks
+    BookmarkSortType        bookmarksSortType;
+
+    char                    cookie[MAX_COOKIE_LENGTH+1];
+    Boolean                 fShowPronunciation;
+} iNoah05Prefs;
+#endif
+
 static void LoadPreferencesInoah(AppContext* appContext)
 {
     DmOpenRef    db;
@@ -85,6 +104,50 @@ static void LoadPreferencesInoah(AppContext* appContext)
     DmCloseDatabase(db);
 
 }
+
+#include "PrefsStore.hpp"
+
+#define PREFS_DB_NAME "iNoah Prefs"
+
+#define p_startupAction         0
+#define p_hwButtonScrolType     1
+#define p_navButtonScrollType   2
+#define p_lastWord              3
+#define p_bookmarksSortType     4
+#define p_cookie                5
+#define p_fShowPronunciation    6
+
+#if 0
+    StartupAction           startupAction;
+    ScrollType              hwButtonScrollType;
+    ScrollType              navButtonScrollType;
+    char                    lastWord[WORD_MAX_LEN];
+    DisplayPrefs            displayPrefs;
+
+    // how do we sort bookmarks
+    BookmarkSortType        bookmarksSortType;
+
+    char                    cookie[MAX_COOKIE_LENGTH+1];
+    Boolean                 fShowPronunciation;
+    /* run-time switch for pron-related features. It's just so that I can develop
+    code for pronunciation and ship it without pronunciation enabled. */
+    Boolean                 fEnablePronunciation;
+#endif
+
+static void SavePreferencesInoah2(AppContext* appContext)
+{
+    Err                 err;
+    AppPrefs *          prefs = &(appContext->prefs);
+    PrefsStoreWriter    prefsStore(PREFS_DB_NAME, APP_CREATOR, APP_PREF_TYPE);
+
+    err = prefsStore.ErrSetInt(p_startupAction, (int)prefs->startupAction );
+    Assert( errNone != err );
+    err = prefsStore.ErrSetInt(p_hwButtonScrolType, (int)prefs->hwButtonScrollType);
+    Assert( errNone != err );
+    err = prefsStore.ErrSavePreferences();
+    Assert( errNone == err ); // can't do much more
+
+};
 
 static void SavePreferencesInoah(AppContext* appContext)
 {
@@ -198,7 +261,7 @@ static Err AppInit(AppContext* appContext)
     if (error) 
         goto OnError;
     
-    LogInit( appContext, "c:\\iNoah_log.txt" );
+    LogInit( appContext, "c:\\inoah_log.txt" );
     InitFiveWay(appContext);
     
     ebufInit(&appContext->currentDefinition, 0);
@@ -224,6 +287,8 @@ static Err AppInit(AppContext* appContext)
     }
 
     LoadPreferencesInoah(appContext);
+
+    appContext->prefs.fEnablePronunciation = false;
 
     SyncScreenSize(appContext);
     

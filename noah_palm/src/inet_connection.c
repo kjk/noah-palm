@@ -2,12 +2,12 @@
 #include "http_response.h"
 
 // this is a test server running on my pc, accessible from internet
-//#define serverAddress                "dict-pc.arslexis.com"
-//#define serverPort                   3000
+#define serverAddress                "dict-pc.arslexis.com"
+#define serverPort                   3000
 
 // this is an official server running on arslexis.com
-#define serverAddress                "dict.arslexis.com"
-#define serverPort                   80
+//#define serverAddress                "dict.arslexis.com"
+//#define serverPort                   80
 
 #define maxResponseLength         8192               // reasonable limit so malicious response won't use all available memory
 #define responseBufferSize         256               // size of single chunk used to retrieve server response
@@ -69,7 +69,7 @@ static void AdvanceConnectionStage(ConnectionData* connData)
     connData->connectionStage = newStage;
 }
 
-const Char* GetConnectionStatusText(AppContext* appContext)
+const char* GetConnectionStatusText(AppContext* appContext)
 {
     Assert(appContext);
     ConnectionData* connData=static_cast<ConnectionData*>(appContext->currentConnectionData);
@@ -83,8 +83,9 @@ const Char* GetConnectionStatusText(AppContext* appContext)
 
 inline static void CloseSocket(ConnectionData* connData)
 {
-    Int16 status=0;
-    Err error=errNone;
+    Int16   status;
+    Err     error;
+
     Assert(connData->socket);
     status=NetLibSocketClose(connData->netLibRefNum, connData->socket, evtWaitForever, &error);
     Assert(status==0 && !error);
@@ -93,7 +94,8 @@ inline static void CloseSocket(ConnectionData* connData)
 
 inline static void DisposeNetLib(ConnectionData* connData) 
 {
-    Err error=errNone;
+    Err error;
+
     Assert(connData->netLibRefNum);
     error=NetLibClose(connData->netLibRefNum, false);
     Assert(!error);
@@ -102,12 +104,13 @@ inline static void DisposeNetLib(ConnectionData* connData)
 
 static Err InitializeNetLib(ConnectionData* connData)
 {
-    Err error=errNone;
+    Err error;
+
     Assert(connData);
     error=SysLibFind(netLibName, &connData->netLibRefNum);
     if (!error)
     {
-        Err ifError=errNone;
+        Err ifError;
         UInt16 openCount=0;
         NetLibOpenCount(connData->netLibRefNum, &openCount);
         error=NetLibOpen(connData->netLibRefNum, &ifError);
@@ -142,7 +145,7 @@ inline static ConnectionData* CreateConnectionData(void* context, NetIPAddr* ser
     if (connData)
     {
         ebufInitWithStr(&connData->request, "GET ");
-        ebufAddStr(&connData->request, const_cast<Char*>(requestUrl));
+        ebufAddStr(&connData->request, const_cast<char*>(requestUrl));
         ebufAddStr(&connData->request, " HTTP/1.0\r\nHost: ");
         ebufAddStr(&connData->request, serverAddress);
         ebufAddStr(&connData->request, "\r\nAccept-Encoding: identity\r\nAccept: text/plain\r\nConnection: close\r\n\r\n");
@@ -209,7 +212,8 @@ OnError:
 
 static Err OpenConnection(ConnectionData* connData)
 {
-    Err error=errNone;
+    Err     error;
+
     Assert(*connData->serverIpAddress);
     connData->socket=NetLibSocketOpen(connData->netLibRefNum, netSocketAddrINET, netSocketTypeStream, netSocketProtoIPTCP, 
         MillisecondsToTicks(socketOpenTimeout), &error);
@@ -221,7 +225,7 @@ static Err OpenConnection(ConnectionData* connData)
     }
     else
     {
-        Int16 result=0;
+        Int16 result;
         NetSocketAddrINType address;
         address.family=netSocketAddrINET;
         address.port=NetHToNS(serverPort);
@@ -242,12 +246,16 @@ static Err OpenConnection(ConnectionData* connData)
 
 static Err SendRequest(ConnectionData* connData)
 {
-    Err error=errNone;
+    Err error;
     UInt16 totalSize=ebufGetDataSize(&connData->request);
-    const Char* request=ebufGetDataPointer(&connData->request)+connData->bytesSent;
+    const char* request=ebufGetDataPointer(&connData->request)+connData->bytesSent;
     UInt16 requestLeft=totalSize-connData->bytesSent;
-    Int16 result=NetLibSend(connData->netLibRefNum, connData->socket, const_cast<Char*>(request), requestLeft, 0, NULL, 0, 
+
+    Log(GetAppContext(),request);
+
+    Int16 result=NetLibSend(connData->netLibRefNum, connData->socket, const_cast<char*>(request), requestLeft, 0, NULL, 0, 
         MillisecondsToTicks(transmitTimeout), &error);
+
     if (result>0)
     {
         Assert(!error);

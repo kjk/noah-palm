@@ -7,11 +7,12 @@ static Boolean PreferencesFormOpen(AppContext* appContext, FormType* form, Event
     SetPopupLabel(form, listhwButtonsAction, popuphwButtonsAction, prefs.hwButtonScrollType);
     SetPopupLabel(form, listNavButtonsAction, popupNavButtonsAction, prefs.navButtonScrollType);
 
-#ifndef _DONT_DO_PRONUNCIATION_
-    UInt16 index=FrmGetObjectIndex(form, cbShowPronunctiation);
-    Assert(frmInvalidObjectId!=index);
-    FrmSetControlValue(form, index, !appContext->prefs.dontShowPronunciation);
-#endif
+    if (prefs.fEnablePronunciation)
+    {
+        UInt16 index=FrmGetObjectIndex(form, cbShowPronunctiation);
+        Assert(frmInvalidObjectId!=index);
+        FrmSetControlValue(form, index, appContext->prefs.fShowPronunciation);
+    }
     
     FrmUpdateForm(formPrefs, frmRedrawUpdateCode);
     return true;
@@ -23,11 +24,12 @@ static void PreferencesFormSaveSettings(AppPrefs& prefs, FormType* form)
     prefs.hwButtonScrollType=static_cast<ScrollType>(LstGetSelectionByListID(form, listhwButtonsAction));
     prefs.navButtonScrollType=static_cast<ScrollType>(LstGetSelectionByListID(form, listNavButtonsAction));
 
-#ifndef _DONT_DO_PRONUNCIATION_
-    UInt16 index=FrmGetObjectIndex(form, cbShowPronunctiation);
-    Assert(frmInvalidObjectId!=index);
-    prefs.dontShowPronunciation=!FrmGetControlValue(form, index);
-#endif
+    if (prefs.fEnablePronunciation)
+    {
+        UInt16 index=FrmGetObjectIndex(form, cbShowPronunctiation);
+        Assert(frmInvalidObjectId!=index);
+        prefs.fShowPronunciation=FrmGetControlValue(form, index);
+    }
 }
 
 static Boolean PreferencesFormControlSelected(AppContext* appContext, FormType* form, EventType* event)

@@ -27,9 +27,12 @@ typedef struct
 
     // how do we sort bookmarks
     BookmarkSortType        bookmarksSortType;
-    
-    Char                    cookie[MAX_COOKIE_LENGTH+1];
-    Boolean                 dontShowPronunciation;
+
+    char                    cookie[MAX_COOKIE_LENGTH+1];
+    Boolean                 fShowPronunciation;
+    /* run-time switch for pron-related features. It's just so that I can develop
+    code for pronunciation and ship it without pronunciation enabled. */
+    Boolean                 fEnablePronunciation;
 } iNoahPrefs;
 
 #define HasCookie(prefs) (StrLen((prefs).cookie)>0)
