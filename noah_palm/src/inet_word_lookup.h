@@ -16,4 +16,8 @@
 
 extern Err INetWordLookup(const Char* word, NetIPAddr* serverIpAddress, Char** response, UInt16* responseLength);
 
+#ifdef DEBUG
+void testParseResponse(char *txt);
+#endif
+
 #endif

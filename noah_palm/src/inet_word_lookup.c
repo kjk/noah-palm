@@ -651,3 +651,16 @@ OnError:
         FreeConnectionData(connData);
     return error;
 }
+
+#ifdef DEBUG
+void testParseResponse(char *txt)
+{
+    Err              err;
+    ConnectionData   connData;
+
+    ebufInitWithStr(&connData.response, txt);
+
+    err = ParseResponse(&connData);
+    Assert( errNone == err );
+}
+#endif
