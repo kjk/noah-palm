@@ -1,6 +1,6 @@
 #include "noah_pro_rcp.h"
 
-VERSION ID 1 "2.0"
+VERSION ID 1 "2.1"
 STRING ID helpPrefs
 "If those controls are not clear please take a look "\
 "at the html documentation that has been included "\
@@ -195,6 +195,23 @@ BEGIN
     MESSAGE "Failed to open database. Please choose another one."
     BUTTONS "OK"
 END
-ICON   "noah_pro.pbitm"
-BITMAP ID bmpFind "find.pbitm"
+
+ICONFAMILYEX
+BEGIN
+    BITMAP "noahpro.bmp" BPP 1 DENSITY 1
+    BITMAP "noahpro-2bpp.bmp" BPP 2 DENSITY 1
+    BITMAP "noahpro-8bpp.bmp" BPP 8 DENSITY 1 TRANSPARENCY 255 48 154
+    BITMAP "noahpro-x2.bmp" BPP 1 DENSITY 2
+    BITMAP "noahpro-x2-8bpp.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 207 255
+END
+
+SMALLICONFAMILY
+    "noahpro-small.bmp"
+    TRANSPARENCY 255 255 255
+
+BITMAPFAMILYEX ID bmpFind
+BEGIN
+	BITMAP "find.bmp" BPP 1 DENSITY 1
+	BITMAP "find-x2.bmp" BPP 1 DENSITY 2
+END
 

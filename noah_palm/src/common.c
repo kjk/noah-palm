@@ -948,9 +948,14 @@ void RemoveWhiteSpaces( char *src )
    nly Int so list can only handle 2^15 items) */
 long GetMaxListItems()
 {
+#if 0
+	// doesn't seem to work on OS 35 (e.g. Treo 300).
+	// I'm puzzled since I think it did work
     if (GetOsVersion()>35)
         return 20000;
     return 65000;
+#endif
+	return 20000;
 }
 
 long CalcListOffset(long itemsCount, long itemNo)

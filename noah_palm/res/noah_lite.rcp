@@ -91,5 +91,15 @@ BEGIN
     BUTTONS "OK"
 END
 
-ICON   "noah_lite.pbitm"
+ICONFAMILYEX
+BEGIN
+    BITMAP "noahlite.bmp"         BPP 1 DENSITY 1
+    BITMAP "noahlite-2bpp.bmp"    BPP 2 DENSITY 1
+    BITMAP "noahlite-8bpp.bmp"    BPP 8 DENSITY 1 TRANSPARENCY 255 255 207
+    BITMAP "noahlite-x2.bmp"      BPP 1 DENSITY 2
+    BITMAP "noahlite-x2-8bpp.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 207
+END
 
+SMALLICONFAMILY
+    "noahlite-small.bmp"
+    TRANSPARENCY 255 255 255

@@ -1,6 +1,6 @@
 #include "thes_rcp.h"
 
-VERSION ID 1 "1.0a"
+VERSION ID 1 "1.2"
 
 STRING ID helpPrefs
 "\'Startup action:\' choose what will happen when"\
@@ -139,15 +139,21 @@ BEGIN
 	BUTTONS "OK"
 END
 
-/*ICONFAMILY
-    "thes.bmp"
-    "thes-4bpp.bmp"
-    TRANSPARENCY 0 255 0
+ICONFAMILYEX
+BEGIN
+    BITMAP "thes.bmp"         BPP 1 DENSITY 1
+    BITMAP "thes-2bpp.bmp"    BPP 2 DENSITY 1
+    BITMAP "thes-8bpp.bmp"    BPP 8 DENSITY 1 TRANSPARENCY 255 255 207
+    BITMAP "thes-x2.bmp"      BPP 1 DENSITY 2
+    BITMAP "thes-x2-8bpp.bmp" BPP 8 DENSITY 2 TRANSPARENCY 255 255 207
+END
 
 SMALLICONFAMILY
-    "thessm.bmp"
-    TRANSPARENCY 255 255 255*/
+    "thes-small.bmp"
+    TRANSPARENCY 255 255 255
     
-ICON "thes.pbitm"
-
-BITMAP ID bmpFind "find.pbitm"
+BITMAPFAMILYEX ID bmpFind
+BEGIN
+	BITMAP "find.bmp"    BPP 1 DENSITY 1
+	BITMAP "find-x2.bmp" BPP 1 DENSITY 2
+END
