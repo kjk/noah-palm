@@ -1,23 +1,81 @@
 #include "common.h"
 #include "bookmarks.h"
 
+Err OpenBookmarksDB(AppContext* appContext, Int16 bookmarksSortBySelection)
+{
+    Err err;
+    LocalID dbID;
+    char * bookmarksDBByName = "Noah_bookmarks_n";
+    char * bookmarksDBByTime = "Noah_bookmarks_t";
+    char * bookmarksDB;
+
+    if (bookmarksSortBySelection == 0)   // we open the bookmarks-sorted-by-name database
+    {
+        bookmarksDB = bookmarksDBByName;
+        Assert(StrLen(bookmarksDB) < dmDBNameLength);
+    }
+    else if (bookmarksSortBySelection == 1)
+    {
+        bookmarksDB = bookmarksDBByTime;
+        Assert(StrLen(bookmarksDB) < dmDBNameLength);
+    }
+    
+    CloseBookmarksDB(appContext);
+    if (appContext->bookmarksDb == NULL)
+    {
+        dbID = DmFindDatabase(0, bookmarksDB);
+        if (!dbID)
+        {
+            err = DmCreateDatabase(0, bookmarksDB, 'NoAH', 'data', false);
+            if (err) return err;
+            dbID = DmFindDatabase(0, bookmarksDB);
+            if (!dbID) return dmErrCantOpen;
+        }
+        appContext->bookmarksDb = DmOpenDatabase(0, dbID, dmModeReadWrite);
+        if (NULL == appContext->bookmarksDb)
+            return dmErrCantOpen;
+    }
+    return errNone;
+}
+
+Err CloseBookmarksDB(AppContext* appContext)
+{
+    if (appContext->bookmarksDb != NULL)
+    {
+        DmCloseDatabase(appContext->bookmarksDb);
+        appContext->bookmarksDb = NULL;
+    }
+    return errNone;
+}
+
 void BookmarksListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
 {
-/*
-    char        *str;
     Int16       stringWidthP = 160; // max width of the string in the list selection window
     Int16       stringLenP;
     Boolean     truncatedP = false;
-    long        realItemNo;
+    MemHandle   recHandle;
+    char        *str;
     AppContext* appContext=GetAppContext();
 
     Assert(itemNum >= 0);
-    str = dictGetWord(GetCurrentFile(appContext), realItemNo);
-    stringLenP = StrLen(str);
+    
+    recHandle = DmQueryRecord(appContext->bookmarksDb, itemNum);
+    if (recHandle)
+    {
+        str = MemHandleLock(recHandle);
+        stringLenP = StrLen(str);
+        FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
+        WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
+    }
+    else
+    {
+        WinDrawChars("-- NOT FOUND --", 15, bounds->topLeft.x, bounds->topLeft.y);
+    }
+}
 
-    FntCharsInWidth(str, &stringWidthP, &stringLenP, &truncatedP);
-    WinDrawChars(str, stringLenP, bounds->topLeft.x, bounds->topLeft.y);
-*/
+UInt16 BookmarksNumRecords(AppContext* appContext)
+{
+    return DmNumRecords(appContext->bookmarksDb);
 }
 
 Boolean BookmarksFormHandleEvent(EventType * event)
@@ -33,8 +91,14 @@ Boolean BookmarksFormHandleEvent(EventType * event)
     {
         case frmOpenEvent:
             list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+            OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
             LstSetDrawFunction(list, BookmarksListDrawFunc);
+            LstSetListChoicesEx(list, NULL, BookmarksNumRecords(appContext));
             FrmDrawForm(frm);
+            list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listSortBy));
+            listTxt = LstGetSelectionText(list, appContext->bookmarksSortBySelection);
+            LstSetSelection(list, appContext->bookmarksSortBySelection);
+            CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
             handled = true;
             break;
 
@@ -58,6 +122,11 @@ Boolean BookmarksFormHandleEvent(EventType * event)
             {
                 case listSortBy:
                     CtlSetLabel((ControlType *)FrmGetObjectPtr(frm,FrmGetObjectIndex(frm,popupSortBy)), listTxt);
+                    appContext->bookmarksSortBySelection = LstGetSelection(list);
+                    OpenBookmarksDB(appContext, appContext->bookmarksSortBySelection);
+                    list = (ListType *) FrmGetObjectPtr(frm,  FrmGetObjectIndex(frm, listMatching));
+                    LstSetListChoicesEx(list, NULL, BookmarksNumRecords(appContext));
+                    FrmDrawForm(frm);
                     break;
 
                 default:

@@ -347,6 +347,9 @@ Err AppCommonFree(AppContext* appContext)
     
     if (appContext->wmpCacheDb) // this way it won't be called in resident mode and won't put PalmOS to it's knees
     	CloseMatchingPatternDB(appContext);
+
+    if (appContext->bookmarksDb)
+    	CloseBookmarksDB(appContext);
     	
     FsDeinit(&appContext->fsSettings);
     return error;

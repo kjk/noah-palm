@@ -293,6 +293,12 @@ typedef struct _AppContext
     long wmpLastWordPos;
 #endif // I_NOAH    
                   
+    DmOpenRef bookmarksDb;
+
+    /**
+     * Which bookmarks view method was selected.
+     */
+     Int16 bookmarksSortBySelection;
 } AppContext;
 
 #define AppTestFlag(appContext, flag) (((appContext)->flags & (1<<(flag)))!=0)

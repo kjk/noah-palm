@@ -6,6 +6,7 @@
 #include "five_way_nav.h"
 #include "resident_lookup_form.h"
 #include "word_matching_pattern.h"
+#include "bookmarks.h"
 
 #ifdef NEVER
 static const char helpText[] =
@@ -538,7 +539,12 @@ Err AppCommonFree(AppContext* appContext)
     if ( NULL != appContext->prefs.lastDbUsedName )
         new_free( appContext->prefs.lastDbUsedName );
     
-    CloseMatchingPatternDB(appContext);
+    if (appContext->wmpCacheDb)
+        CloseMatchingPatternDB(appContext);
+
+    if (appContext->bookmarksDb)
+    	CloseBookmarksDB(appContext);
+
     FsDeinit(&appContext->fsSettings);
     return error;
 }
@@ -1106,6 +1112,18 @@ ChooseDatabase:
                     FrmPopupForm(formDictFindPattern);
                     break;
                     
+                case menuItemBookmarkView:
+                    FrmPopupForm(formBookmarks);
+                    break;
+
+                case menuItemBookmarkWord:
+                    AddBookmark(appContext, appContext->lastWord);
+                    break;
+
+                case menuItemBookmarkDelete:
+                    DeleteBookmark(appContext, appContext->lastWord);
+                    break;
+
                 default:
                     Assert(0);
                     break;
@@ -1791,7 +1809,9 @@ static Boolean HandleEventThes(AppContext* appContext, EventType * event)
             FrmSetEventHandler(frm, FindPatternFormHandleEventThes);
             handled = true;
             break;
-            
+        case formBookmarks:
+            FrmSetEventHandler(frm, BookmarksFormHandleEvent);
+            return true;
         default:
             Assert(0);
             handled = false;

@@ -206,11 +206,21 @@ int WordMatchesPattern(char * word, char * pattern)
 void FillMatchingPatternDB(AppContext* appContext, char * pattern)
 {
     char tmp[5];
-    RectangleType rc = {{30, 40}, {100, 60}};
-    RectangleType rcStop = {{60, 80}, {40, 12}};
+    RectangleType rc;
+    RectangleType rcStop;
     long i, num;
     char * str;
     AbstractFile* currFile=GetCurrentFile(appContext);
+
+    // prevents "global variable @212 is accessed using A5 register" warning
+    rc.topLeft.x = 30;
+    rc.topLeft.y = 40;
+    rc.extent.x = 100;
+    rc.extent.x = 60;
+    rcStop.topLeft.x = 60;
+    rcStop.topLeft.y = 80;
+    rcStop.extent.x = 40;
+    rcStop.extent.x = 12;
 
     num = dictGetWordsCount(currFile);
     WinEraseRectangle(&rc, 7);
@@ -278,7 +288,7 @@ void PatternListDrawFunc(Int16 itemNum, RectangleType * bounds, char **data)
     Int16       stringLenP;
     Boolean     truncatedP = false;
     long        realItemNo;
-    AppContext* appContext=GetAppContext();
+    AppContext* appContext = GetAppContext();
 
     Assert(itemNum >= 0);
 
