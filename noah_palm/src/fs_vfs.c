@@ -78,12 +78,12 @@ Exit:
 #ifdef DEBUG
     if ( fPresent )
     {
-        StrPrintF( g_logBuf, "VFS present, %d volumes", g_VfsVolumeCount );    
+        StrPrintF( g_logBuf, "FsVfsInit(): VFS present, %d volumes", g_VfsVolumeCount );    
         LogG( g_logBuf );
     }
     else
     {
-        LogG( "VFS not present");
+        LogG( "FsVfsInit(): VFS not present");
     }
 #endif
     return fPresent;
@@ -94,11 +94,13 @@ void FsVfsDeinit(void)
 {
 #ifdef DEBUG
     if ( g_fVfsPresent )
-        LogG( "FsVfsDeinit(): VFS not present");
+    {
+        StrPrintF( g_logBuf, "FsVfsDeinit(): VFS present, %d volumes", g_VfsVolumeCount );    
+        LogG( g_logBuf );
+    }
     else
     {
-        StrPrintF( g_logBuf, "VFS present, %d volumes", g_VfsVolumeCount );    
-        LogG( g_logBuf );
+        LogG( "FsVfsDeinit(): VFS not present");
     }
 #endif
     g_fVfsPresent = false;

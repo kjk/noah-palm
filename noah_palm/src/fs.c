@@ -23,6 +23,16 @@ AbstractFile *currFile=NULL;
 
 void SetCurrentFile(AbstractFile *file)
 {
+#ifdef DEBUG
+    if ( NULL == file )
+    {
+        LogG( "SetCurrentFile() called with NULL" );
+    }
+    else
+    {
+        LogG( "SetCurrentFile() called with non-NULL" );
+    }
+#endif       
     currFile = file;
 }
 
@@ -79,6 +89,7 @@ AbstractFile *AbstractFileNewFull( eFsType fsType, UInt32 creator, UInt32 type, 
 void AbstractFileFree(AbstractFile *file)
 {
     Assert( NULL != file );
+    FsFileClose( file );
     Assert( NULL == file->data.memData );
     Assert( NULL == file->data.cacheData );
     if (file->fileName) new_free(file->fileName);
@@ -217,6 +228,7 @@ void FsFileClose(AbstractFile *file)
         default:
             Assert(0);
     }
+    SetCurrentFile(NULL);
 }
 
 UInt16 fsGetRecordsCount(AbstractFile *file)

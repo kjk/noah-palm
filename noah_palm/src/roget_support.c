@@ -23,22 +23,17 @@ struct RogetInfo *RogetNew(void)
 #endif
     Assert( GetCurrentFile() );
 
-    LogG( "RogetNew() 1" );
-
     info = (struct RogetInfo *) new_malloc_zero(sizeof(struct RogetInfo));
-    if (NULL == info)
-        goto Error;
+    if (NULL == info) goto Error;
 
     info->recordsCount = CurrFileGetRecordsCount();
-    LogG( "RogetNew() after CurrFileGetRecordsCount()" );
 
     firstRecord = (RogetFirstRecord *) CurrFileLockRecord(0);
-    LogG( "RogetNew() after CurrFileLockRecord()" );
 
     if ( NULL == firstRecord )
     {
         LogG( "RogetNew(): CurrFileLockRecord(0) returned NULL" );
-        return NULL;
+        goto Error;
     }
 
     info->wordsCount = firstRecord->wordsCount;
@@ -53,35 +48,27 @@ struct RogetInfo *RogetNew(void)
     info->wordsInSynCountRec = info->wordsInSynFirstRec + info->wordsInSynRecs;
     info->synPosRec = info->wordsInSynCountRec + 1;
 
-    LogG( "RogetNew() before wcInit()" );
     info->wci = wcInit(info->wordsCount, info->wordPackDataRec,
                         info->wordCacheInfoRec,
                         info->firstWordsRec,
                         info->wordsRecordsCount, info->maxWordLen);
 
-    LogG( "RogetNew() after wcInit()" );
+    if (NULL == info->wci)
+    {
+        CurrFileUnlockRecord(0);
+        goto Error;
+    }
 #ifdef DEBUG
     recSize = CurrFileGetRecordSize(info->wordsInSynCountRec);
     Assert(recSize == info->synsetsCount);
 #endif
-    if (NULL == info->wci)
-        goto Error;
 
-Exit:
     CurrFileUnlockRecord(0);
-    LogG( "RogetNew() after CurrFileUnlockRecord()" );
     return info;
 Error:
-#ifdef DEBUG
-    if ( NULL == info )
-    {
-        LogG( "RogetNew() failed" );
-    }
-#endif
-    if (info)
-        RogetDelete(info);
-    info = NULL;
-    goto Exit;
+    LogG( "RogetNew() failed" );
+    if (info)  RogetDelete(info);
+    return NULL;
 }
 
 

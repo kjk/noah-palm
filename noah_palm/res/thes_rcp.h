@@ -18,6 +18,8 @@
 
 #define   alertMemError       1100
 #define   alertNoDB           1109
+#define   alertDbFailed       1110
+#define   alertDbFailedGetAnother 1111
 
 #define   menuMain            2000
 #define   menuItemFind        2020

@@ -296,6 +296,7 @@ WcInfo *wcInit(UInt32 wordsCount, int recWithComprData,
         wcFree(wci);
         new_free(wci);
     }
+    LogG( "wcInit() failed" );
     return NULL;
 }
 

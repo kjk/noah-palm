@@ -174,8 +174,9 @@ void ScanForDictsThes(void)
 Err InitThesaurus(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
-
     LogInit( &g_Log, "c:\\thes_log.txt" );
+
+    SetCurrentFile( NULL );
 
 /*     gd.current_timeout = -1; */
     gd.prevSelectedWord = 0xfffff;
@@ -206,7 +207,9 @@ Boolean DictInit(AbstractFile *file)
         return false;
 
     if ( !dictNew() )
+    {
         return false;
+    }
 
     LogG( "DictInit() after dictNew()" );
     // TODO: save last used database in preferences
@@ -237,7 +240,6 @@ void DictCurrentFree(void)
 
     dictDelete();
     FsFileClose( GetCurrentFile() );
-    SetCurrentFile( NULL );
     if (gd.currDispInfo)
     {
         diFree(gd.currDispInfo);
@@ -387,15 +389,29 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     return true;
 }
 
+void EvtSetInt( EventType *event, int i)
+{
+    int *pInt = (int*) (&event->data.generic);
+    *pInt = i;
+}
+
+int EvtGetInt( EventType *event )
+{
+    int *pInt = (int*) (&event->data.generic);
+    return *pInt;
+}
+
 Boolean MainFormHandleEventThes(EventType * event)
 {
-    Boolean handled = false;
-    FormType *frm;
-    Short newValue;
-    ListType *list;
-    long wordNo;
-    EventType   newEvent;
-    AbstractFile *fileToOpen;
+    Boolean         handled = false;
+    FormType        *frm;
+    Short           newValue;
+    ListType        *list;
+    long            wordNo;
+    EventType       newEvent;
+    AbstractFile    *fileToOpen;
+    int             i;
+    int             selectedDb;
 /*      RectangleType r; */
 /*      static     UInt16 start_x; */
 /*      static     UInt16 start_y; */
@@ -420,6 +436,7 @@ Boolean MainFormHandleEventThes(EventType * event)
             return true;
         }
 
+ChooseDatabase:
         fileToOpen = NULL;
         if (1 == gd.dictsCount )
         {
@@ -443,7 +460,37 @@ Boolean MainFormHandleEventThes(EventType * event)
         }
         else
         {
-            DictInit(fileToOpen);
+            if ( !DictInit(fileToOpen) )
+            {
+                // failed to initialize dictionary. If we have more - retry,
+                // if not - just quit
+                if ( gd.dictsCount > 1 )
+                {
+                    i = 0;
+                    while ( fileToOpen != gd.dicts[i] )
+                    {
+                        ++i;
+                        Assert( i<gd.dictsCount );
+                    }
+                    AbstractFileFree( gd.dicts[i] );
+                    while ( i<gd.dictsCount )
+                    {
+                        gd.dicts[i] = gd.dicts[i+1];
+                        ++i;
+                    }
+                    --gd.dictsCount;
+                    FrmAlert( alertDbFailed);
+                    goto ChooseDatabase;
+                }
+                else
+                {
+                    FrmAlert( alertDbFailed);
+                    MemSet(&newEvent, sizeof(EventType), 0);
+                    newEvent.eType = appStopEvent;
+                    EvtAddEventToQueue(&newEvent);
+                    return true;                    
+                }
+            }
             if (!TryClipboard())
             {
                 DisplayAboutThes();
@@ -535,6 +582,59 @@ Boolean MainFormHandleEventThes(EventType * event)
         break;
 
     case evtNewDatabaseSelected:
+        selectedDb = EvtGetInt( event );
+        fileToOpen = gd.dicts[selectedDb];
+        if ( GetCurrentFile() != fileToOpen )
+        {
+            DictCurrentFree();
+            if ( !DictInit(fileToOpen) )
+            {
+                // failed to initialize dictionary. If we have more - retry,
+                // if not - just quit
+                if ( gd.dictsCount > 1 )
+                {
+                    i = 0;
+                    while ( fileToOpen != gd.dicts[i] )
+                    {
+                        ++i;
+                        Assert( i<gd.dictsCount );
+                    }
+                    AbstractFileFree( gd.dicts[i] );
+                    while ( i<gd.dictsCount )
+                    {
+                        gd.dicts[i] = gd.dicts[i+1];
+                        ++i;
+                    }
+                    --gd.dictsCount;
+                    LstSetListChoices(list, NULL, gd.dictsCount);
+                    if ( gd.dictsCount > 1 )
+                    {
+                        FrmAlert( alertDbFailedGetAnother );
+                        FrmPopupForm( formSelectDict );
+                    }
+                    else
+                    {
+                        /* only one dictionary left - try this one */
+                        FrmAlert( alertDbFailed );
+                        MemSet(&newEvent, sizeof(EventType), 0);
+                        newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
+                        EvtSetInt( &newEvent, 0 );
+                        EvtAddEventToQueue(&newEvent);
+                    }
+                    return true;
+                }
+                else
+                {
+                    FrmAlert( alertDbFailed);
+                    MemSet(&newEvent, sizeof(EventType), 0);
+                    newEvent.eType = appStopEvent;
+                    EvtAddEventToQueue(&newEvent);
+                    return true;                    
+                }
+            }
+        }
+
+
         if (!TryClipboard())
         {
             DisplayAboutThes();
@@ -895,10 +995,10 @@ Boolean FindFormHandleEvent(EventType * event)
 
 Boolean SelectDictFormHandleEvent(EventType * event)
 {
-    FormPtr frm;
-    ListPtr list;
-    static int selectedDb = 0;
-    EventType newEvent;
+    FormPtr     frm;
+    ListPtr     list;
+    static int  selectedDb = 0;
+    EventType   newEvent;
 
     switch (event->eType)
     {
@@ -909,12 +1009,14 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         LstSetListChoices(list, NULL, gd.dictsCount);
         LstSetSelection(list, selectedDb);
         LstMakeItemVisible(list, selectedDb);
-        if (NULL == GetCurrentFile)
+        if (NULL == GetCurrentFile())
         {
+            LogG( "SelDictFH(): current file doesn't exist" );
             FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
         }
         else
         {
+            LogG( "SelDictFH(): current file exists" );
             FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
         }
         FrmDrawForm(frm);
@@ -930,13 +1032,10 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         switch (event->data.ctlSelect.controlID)
         {
         case buttonSelect:
-            if ( GetCurrentFile() != gd.dicts[selectedDb] )
-            {
-                DictCurrentFree();
-                DictInit(gd.dicts[selectedDb]);
-            }
             MemSet(&newEvent, sizeof(EventType), 0);
             newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
+            EvtSetInt( &newEvent, selectedDb );
+            selectedDb = 0;
             EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
@@ -944,6 +1043,7 @@ Boolean SelectDictFormHandleEvent(EventType * event)
             Assert( NULL != GetCurrentFile() );
             MemSet(&newEvent, sizeof(EventType), 0);
             newEvent.eType = (eventsEnum) evtRedisplayCurrentWord;
+            selectedDb = 0;
             EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
