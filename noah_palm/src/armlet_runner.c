@@ -22,13 +22,13 @@ static UInt32 armPceNativeResourceCall(DmResType resType, DmResID resID, char* D
 	MemPtr    armP;
 	UInt32    result;
 
-	WinDrawChars("TEST RUN",8,10,10);
+//	WinDrawChars("TEST RUN",8,10,10);
 	// get the processor type
 	FtrGet(sysFileCSystem, sysFtrNumProcessorID, &processorType);
 	
 	if (sysFtrNumProcessorIsARM(processorType))
 		{
-        	WinDrawChars("ARM  RUN",8,10,20);
+//      	WinDrawChars("ARM  RUN",8,10,20);
 			// running on ARM; call the actual ARM resource
 			armH = DmGetResource(resType, resID);
 			armP = MemHandleLock(armH);
@@ -41,18 +41,18 @@ static UInt32 armPceNativeResourceCall(DmResType resType, DmResID resID, char* D
 		}
 	else if (processorType == sysFtrNumProcessorx86)
 		{
-        	WinDrawChars("DLL  RUN",8,10,20);
+//        	WinDrawChars("DLL  RUN",8,10,20);
 			// running on Simulator; call the DLL
 			result = PceNativeCall( (NativeFuncType*)DLLEntryPointP, userDataP);
 		}
 	else
 		{
 			// some other processor; fail gracefully
-        	WinDrawChars("NONE RUN",8,10,20);
-			result = -1;
-		}
+//          WinDrawChars("NONE RUN",8,10,20);
+            result = -1;
+        }
 	
-   	WinDrawChars("TEST END",8,10,30);
+// 	WinDrawChars("TEST END",8,10,30);
 	return result;
 }
 
