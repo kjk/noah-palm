@@ -82,13 +82,7 @@ function get_word_def($word)
 function get_words_count()
 {
     # TODO: get words count as select count(*) from words;
-    return 50000;
-}
-
-function get_error_msg($err)
-{
-    $txt = "ERROR: $err";
-    return $txt;
+    return 123497;
 }
 
 function validate_protocol_version( $pv )
@@ -115,7 +109,7 @@ function report_error( $err )
 # write MSG response to returning stream
 function write_MSG( $msg )
 {
-    print "MSG";
+    print "MESSAGE";
     print $msg;
 }
 
@@ -145,11 +139,23 @@ function serve_get_cookie($di)
     exit;
 }
 
+function serve_register($reg_code)
+{
+    if ( $reg_code == 'valid' )
+        write_MSG("Registration has been succesful. Enjoy!");
+    else
+        write_MSG("Registration failed");
+    exit;
+}
+
 function serve_get_random_word()
 {
     global $sample_def;
-    word_no = rand( 1, get_words_count()-1);
-    # TODO: get the word as select def from words where word_no=$word_no
+
+    // word_no = rand( 1, get_words_count()-1);
+
+    // TODO: get the word as select def from words where word_no=$word_no
+
     write_DEF($sample_def);
     exit;
 }
@@ -218,11 +224,14 @@ if ( !is_null($get_cookie) )
 }
 
 # all other requests require cookie to be present
-$cookie = $HTTP_GET_VARS['cookie'];
+$cookie = $HTTP_GET_VARS['c'];
 if ( is_null($cookie) )
     report_error(ERR_NO_COOKIE);
-
 validate_cookie($cookie);
+
+$reg_code = $HTTP_GET_VARS['register'];
+if ( !is_null($reg_code) )
+    serve_register($reg_code);
 
 $get_random_word = $HTTP_GET_VARS['get_random_word'];
 if ( !is_null($get_random_word) )
