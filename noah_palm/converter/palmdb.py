@@ -8,7 +8,7 @@
 
 # Author: Krzysztof Kowalczyk krzysztofk@pobox.com
 
-import string,sys,os,struct,stat
+import string,sys,os,os.path,struct,stat
 
 def _getFileSizeFromFileObject(fo):
     """Return size of a file object."""
@@ -71,6 +71,7 @@ class PDBRecord(object):
             self._size = 0
             self._data = None
         else:
+            assert not isinstance(data,list)
             self._size = len(data)
             self._data = data
     def _getData(self):
@@ -88,12 +89,14 @@ class PDBRecord(object):
 
 class PDBRecordFromData(PDBRecord):
     def __init__(self,data,attrs=0):
-        DBRecord.setData(data)
+        PDBRecord._setData(self,data)
         self.attrs = attrs
+    def _getData(self):
+        return self._data
+    data = property(_getData,PDBRecord._setData,PDBRecord._delData)
 
 class PDBRecordFromDisk(PDBRecord):
     """PDB record record read from disk.
-
     Lazily fetches the data from the file."""
     def __init__(self,fileName,attrs,offset,size):
         assert fileName != None
@@ -113,15 +116,33 @@ class PDBRecordFromDisk(PDBRecord):
             self._data = fo.read( self._size )
             fo.close()
         return self._data
-    data = property(_getData,PDBRecord._setData)
+    data = property(_getData,PDBRecord._setData,PDBRecord._delData)
 
 class PDB(object):
     def __init__(self,fileName=None):
         self._fileName = fileName
-        self._name = None
         self._records = []
-        if fileName==None: return
-        self._readHeader()
+        if fileName != None:
+            self._readHeader()
+        else:
+            self._initNew()
+
+    def _initNew(self):
+        """set all the variables that describe a PDB and would otherwise be
+        read directly from pdb via _readHeader()"""
+        self._name = None
+        self._attr = 0
+        self._version = 0
+        self._creationDate = 867745189 # UNDONE! some random number. Should be current date
+        self._modificationDate = self._creationDate
+        self._lastBackupDate = self._creationDate # UNDONE: really needed?
+        self._modificationNum = 0
+        self._appInfoArea = 0
+        self._sortInfoArea = 0
+        self._dbType = None
+        self._creatorId = None
+        self._seedId = 0
+        self._nextRecordList = 0
 
     def _raiseInvalidFile(self):
         # TODO: better exception
@@ -174,18 +195,14 @@ class PDB(object):
 
         headerData = fo.read(78)
 
-        (self._name, self._attr, self._version, self._creationdate,
+        (self._name, self._attr, self._version, self._creationDate,
          self._modificationDate, self._lastBackupDate, self._modificationNum,self._appInfoArea,
          self._sortInfoArea, self._dbType, self._creatorId, self._seedId,
-         self._nextRecordList,recordsCount) = struct.unpack(">32sHHLLLLLL4s4sLLH", headerData)
+         self._nextRecordList,_recordsCount) = struct.unpack(">32sHHLLLLLL4s4sLLH", headerData)
         self._name = self._name.strip("\x00")
 
-        #self._header = structhelper.UnpackData(hdrDef,headerData,isBigEndian=True)
-        #self._header["name"] = self._header["name"].strip("\x00")
-
         # sanity checkig of the pdb file
-        #recordsCount = self._header["recordsCount"]
-        if fileSize < 78+8*recordsCount:
+        if fileSize < 78+8*_recordsCount:
             self._raiseInvalidFile()
         if self._seedId != 0:
             # TODO: not sure about that, maybe it's valid
@@ -197,7 +214,7 @@ class PDB(object):
         # read info about records, need to accumulate to calc sizes from offsets
         recHeaderList = []
         (_OFFSET,_ATTR) = 0,1
-        for n in range(recordsCount):
+        for n in range(_recordsCount):
             # record header format:
             # offset, len, what
             # 0, 4, offset of the record in the file (counting from 0)
@@ -212,8 +229,8 @@ class PDB(object):
             if recHeaderList[n][_OFFSET] >= fileSize:
                 self._raiseInvalidFile()
 
-        for n in range(recordsCount):
-            if n < recordsCount-1:
+        for n in range(_recordsCount):
+            if n < _recordsCount-1:
                 recSize = recHeaderList[n+1][_OFFSET] - recHeaderList[n][_OFFSET];
             else:
                 recSize = fileSize - recHeaderList[n][_OFFSET]
@@ -245,6 +262,24 @@ class PDB(object):
         self._creatorId = creator
     creator = property(_getCreator,_setCreator)
 
+    def _getCreationDate(self):
+        return self._creationDate
+    def _setCreationDate(self,date):
+        self._creationDate = date
+    creationDate = property(_getCreationDate,_setCreationDate)
+
+    def _getModificationDate(self):
+        return self._modificationDate
+    def _setModificationDate(self,date):
+        self._modificationDate = date
+    modificationDate = property(_getModificationDate,_setModificationDate)
+
+    def _getLastBackupDate(self):
+        return self._lastBackupDate
+    def _setLastBackupDate(self,date):
+        self._lastBackupDate = date
+    lastBackupDate = property(_getLastBackupDate,_setLastBackupDate)
+
     def _getType(self):
         assert len(self._dbType) == 4
         return self._dbType
@@ -254,11 +289,16 @@ class PDB(object):
         if len(type) != 4:
             raise ValueError("type must be exactly 4 bytes in length, and is '%s' (%d bytes)" % (type,len(type)))
         self._dbType = type
+
     dbType = property(_getType,_setType)
 
     def _getRecords(self):
         return self._records
-    records = property(_getRecords)
+
+    def _setRecords(self,recs):
+        self._records = recs
+
+    records = property(_getRecords,_setRecords)
 
     def _checkRecords(self):
         """All records should be of proper type"""
@@ -267,15 +307,46 @@ class PDB(object):
             if not (isinstance(rec,PDBRecordFromDisk) or isinstance(rec,PDBRecordFromData)):
                 raise ValueError("all records must be of type PDBRecordFromDisk or PDBRecordFromData")
 
-    def saveAs(self,fileName,overwrite=False):
+    def _getPdbHeaderBlob(self):
+        assert len(self._dbType) == 4
+        assert len(self._creatorId) == 4
+        assert len(self._name) <= 31
+        assert len(self._name) > 0
+        assert self._seedId == 0
+        assert self._sortInfoArea == 0
+        assert self._appInfoArea == 0
+        assert self._modificationNum == 0
+        recsCount = len(self.records)
+        blob = struct.pack( ">32sHHLLLLLL4s4sLLH",
+         self._name, self._attr, self._version, self._creationDate,
+         self._modificationDate, self._lastBackupDate, self._modificationNum,self._appInfoArea,
+         self._sortInfoArea, self._dbType, self._creatorId, self._seedId,
+         self._nextRecordList,recsCount)
+        return blob
+
+    def _getRecsInfoBlob(self):
+        recsCount = len(self.records)
+        currOffset = 78 + recsCount * 8
+        oneRecInfo = []
+        for rec in self.records:
+            oneRecInfo.append( struct.pack(">LB3s", currOffset, 0, "\x00\x00\x00") )
+            currOffset += len(rec.data)
+        return string.join(oneRecInfo, "")
+
+    def saveAs(self,fileName,fOverwrite=False):
         assert fileName != None
-        if not overwrite:
-            # TODO: bail out if file exists
-            pass
-        # trick: if we're writing to the same file, force reading data in memory for PDBRecordFromDisk
-        if fileName == self._fileName:
-            for rec in self._records:
-                # TODO: only if this is instance of PDBRecordFromDisk
-                d = rec.data  # force reading data into memory
+        if not fOverwrite:
+            # bail out if file exists
+            if os.path.exists(fileName):
+                # UNDONE: should I raise an exception?
+                return
         self._checkRecords()
-        raise NotImplementedError
+        headerBlob = self._getPdbHeaderBlob()
+        recsInfoBlob = self._getRecsInfoBlob()
+        fo = open(fileName,"w")
+        fo.write(headerBlob)
+        fo.write(recsInfoBlob)
+        for rec in self.records:
+            data = rec.data
+            fo.write(data)
+        fo.close()

@@ -48,5 +48,15 @@ class PDBTest(unittest.TestCase):
         db.dbType = newType
         self.assertEqual(newType,db.dbType)
 
+    def test_CreateNew(self):
+        db = palmdb.PDB()
+        db.dbType = "type"
+        db.creator = "crea"
+        db.name = "kjk test db"
+        db.saveAs( "test_0rec.pdb", True )
+        recs = db.records
+        recs.append( palmdb.PDBRecordFromData("Hello") )
+        db.saveAs( "test_1rec.pdb", True )
+
 if __name__ == '__main__':
     unittest.main()

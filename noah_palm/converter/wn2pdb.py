@@ -6,8 +6,9 @@
 # Convert dictionary files to Noah for Palm *.pdb format
 
 from __future__ import generators
-import sys,os,string,struct,pickle,time,copy
+import sys,os,string,struct,structhelper,pickle,time,copy
 import palmdb
+import noahpdbdump # probably should extract things needed to a separate file
 
 # constants for controlling builiding a word cache
 MAX_RECORD_LEN = 63900
@@ -173,17 +174,22 @@ def SimpleDictEntriesSortedGen(fileName):
     for lemma in allLemmasSorted:
         yield allEntries[lemma]
 
+profData = 'log.dat'
 def mainProf():
     import hotshot
-    profData = 'log2.dat'
+    global profData
+    print "doing profiling"
     prof = hotshot.Profile(profData)
-    prof.run("DoPlantDict()")
+    prof.run("DoDevilDict()")
     prof.close()
-    # this is the code to dump profiling stats
-    #import hotshot.stats
-    #stats = hotshot.stats.load(profData)
-    #stats.sort_stats("cumulative")
-    #stats.print_stats()
+
+def dumpProfileStats():
+    import hotshot.stats
+    global profData
+    print "dump profiling data"
+    stats = hotshot.stats.load(profData)
+    stats.sort_stats("cumulative")
+    stats.print_stats()
 
 _PREFIX_LEN_LIMIT = 31
 
@@ -262,18 +268,50 @@ class StringCompressor:
     def __init__(self,packStrings):
         # packStrings must be passed in from outside
         self.packStrings = packStrings
-        self.revPackStrings = copy.copy(packStrings)
-        self.revPackStrings.reverse()
+        #UNDONE: turn those into real constants
+        self.NEXT_TABLE_IDX = 0
+        self.CODE_IDX = 1
+        self.mainTable = self.buildCompressTable(packStrings)
+
+    def buildCompressTable(self,packStrings):
+        """given an array of pack strings build a table for fast compression"""
+        table = {}
+        code = 0
+        for str in packStrings:
+            # build an entry for a given pack string
+            currTable = table
+            prevTable = None
+            # construct a stream of hash-tables leading to the end-point
+            # for this string
+            for c in str:
+                if not currTable.has_key(c):
+                    # first one points to a dictionary for longer strings
+                    # second for the code (if this is also a terminal string)
+                    currTable[c] = [{},None]
+                    prevTable = currTable
+                    currTable = currTable[c][self.NEXT_TABLE_IDX]
+                else:
+                    prevTable = currTable
+                    currTable = currTable[c][self.NEXT_TABLE_IDX]
+            # put the code of the string in the end-point
+            prevTable[c][self.CODE_IDX] = code
+            code += 1
+        return table
 
     def _findCodeForStr(self,str):
-        code = 255
-        for packStr in self.revPackStrings:
-            if len(str) >= len(packStr):
-                if packStr == str[:len(packStr)]:
-                    return code
-            code -= 1
-            assert code >= 0
-        assert 0, "Didn't find compression code"
+        currTable = self.mainTable
+        lastValidCode = -1
+        for c in str:
+            if currTable.has_key(c):
+                if currTable[c][self.CODE_IDX] != None:
+                    lastValidCode = currTable[c][self.CODE_IDX]
+                currTable = currTable[c][self.NEXT_TABLE_IDX]
+            else:
+                assert lastValidCode != -1
+                return lastValidCode
+        # the whole string matched
+        assert lastValidCode != -1
+        return lastValidCode
 
     def compress(self,str):
         strLeft = str
@@ -518,13 +556,93 @@ def buildDefsRecs(defsList):
     print "buildDefsRecs end"
     return (defLensRecs,compressionRecData,defRecs)
 
+SIMPLE_TYPE             = "simp"
+WORDNET_LITE_TYPE       = "wnet"
+WORDNET_PRO_DEMO_TYPE   = "wnde"
+WORDNET_PRO_TYPE        = "wn20"
+NOAH_PRO_CREATOR        = "NoAH"
+NOAH_LITE_CREATOR       = "NoaH"
+THES_CREATOR            = "TheS"
+ROGET_TYPE              = "rget"
+
+class SimplePdbBuilder:
+    """Simplify building pdb out of records built. Usage: build and set
+    records with required data, when done call buildPdb() to retrieve
+    built pdb object"""
+    def __init__(self):
+        # variables that need to be set from outside before
+        # we can write out the full pdb file
+        self.wordsCount = None
+        self.maxWordLen = None
+        self.maxDefLen = None
+        self.wordsRecs = None
+        self.wordCacheRecs = None
+        self.wordsCompressInfoRec = None
+        self.defsCompressInfoRec = None
+        self.defLensRecs = None
+        self.defsRecs = None
+        self.posInfoRecs = None
+
+    def _buildFirstRecBlob(self):
+        wordsRecsCount = len(self.wordsRecs)
+        assert wordsRecsCount > 0
+        defsLenRecsCount = len(self.defLensRecs)
+        assert defsLenRecsCount > 0
+        defsRecsCount = len(self.defsRecs)
+        assert defsRecsCount > 0
+        fHasPosInfo = 1
+        posRecsCount = len(self.posInfoRecs)
+        assert posRecsCount > 0
+        fmt = structhelper.GetFmtFromMetadata(noahpdbdump.simpleFirstRecDef)
+        blob = struct.pack( fmt,self.wordsCount, wordsRecsCount, defsLenRecsCount,
+            defsRecsCount, self.maxWordLen, self.maxDefLen, fHasPosInfo, posRecsCount )
+        return blob
+
+    def writePdb(self,dictName,fileName):
+        # make sure that we were given all the info necessary to
+        # create full pdb file
+        assert None != self.wordsCount
+        assert None != self.maxWordLen
+        assert self.maxWordLen > 4
+        assert None != self.maxDefLen
+        assert self.maxDefLen > 4
+        assert None != self.wordsRecs
+        assert None != self.wordCacheRecs
+        assert None != self.wordsCompressInfoRec
+        assert None != self.defsCompressInfoRec
+        assert None != self.defLensRecs
+        assert None != self.defsRecs
+        assert None != self.posInfoRecs
+        recs = []
+        recs.append( palmdb.PDBRecordFromData(self._buildFirstRecBlob()) )
+        for rec in self.wordCacheRecs:
+            recs.append( palmdb.PDBRecordFromData(rec) )
+        recs.append( palmdb.PDBRecordFromData(self.wordsCompressInfoRec) )
+        recs.append( palmdb.PDBRecordFromData(self.defsCompressInfoRec) )
+        for rec in self.wordsRecs:
+            recs.append(palmdb.PDBRecordFromData(rec))
+        for rec in self.defLensRecs:
+            recs.append(palmdb.PDBRecordFromData(rec))
+        for rec in self.defsRecs:
+            recs.append(palmdb.PDBRecordFromData(rec))
+        recs.append( palmdb.PDBRecordFromData(self.posInfoRecs) )
+        pdb = palmdb.PDB()
+        pdb.name = dictName
+        pdb.creator = NOAH_PRO_CREATOR
+        pdb.dbType = SIMPLE_TYPE
+        pdb.records = recs
+        pdb.saveAs(fileName)
+        print "consider pdb written"
+        
+
 def DoSimpleDict(sourceDataFileName, dictName, dictOutFileName):
     # Undone: maybe automatically version (e.g. filename.pdb-N or filename-N.pdb ?)
     if os.path.exists(dictOutFileName):
         print sys.stderr, "skipped creating %s as it already exists" % dictOutFileName
     print "doing %s, %s, %s" % (sourceDataFileName,dictName,dictOutFileName)
-
+    pdbBuilder = SimplePdbBuilder()
     posRecsData = buildPosRecs(SimpleDictEntriesGen(sourceDataFileName))
+    pdbBuilder.posInfoRecs = posRecsData
     print "pos recs: %d" % len(posRecsData)
     for posRecData in posRecsData:
         print "len of posRecData: %d" % len(posRecData)
@@ -544,51 +662,29 @@ def DoSimpleDict(sourceDataFileName, dictName, dictOutFileName):
         wordsList.append(word)
         defsList.append(definition)
         # print word
+    pdbBuilder.wordsCount = wordsCount
+    pdbBuilder.maxWordLen = maxWordLen
+    pdbBuilder.maxDefLen = maxDefLen
     print "wordsCount: %d " % (wordsCount)
     posRecs = buildPosRecs(SimpleDictEntriesGen(sourceDataFileName))
     hasPosInfoP = 1
     posRecsCount = len(posRecs)
+
     (wordsCompressDataRec, wordCacheEntries, wordsRecs) = buildWordsRecs(wordsList)
-    (defsLensRecs,defCompressDataRec,defsRecs) = buildDefsRecs(defsList)
+    pdbBuilder.wordsRecs = wordsRecs
+    pdbBuilder.wordCacheRecs = wordCacheEntries
+    pdbBuilder.wordsCompressInfoRec = wordsCompressDataRec
+    
+    (defsLensRecs,defsCompressDataRec,defsRecs) = buildDefsRecs(defsList)
+    pdbBuilder.defsCompressInfoRec = defsCompressDataRec
+    pdbBuilder.defLensRecs = defsLensRecs
+    pdbBuilder.defsRecs = defsRecs
     print "len of wordsCompressDataRec=%d" % len(wordsCompressDataRec)
-    print "len of defCompressDataRec=%d" % len(defCompressDataRec)
+    print "len of defsCompressDataRec=%d" % len(defsCompressDataRec)
     print "%d recs with words" % len(wordsRecs)
     print "%d recs with defs" % len(defsRecs)
     print "%d recs with defs lens" % len(defsLensRecs)
-
-class SimplePdbBuilder:
-    """Simplify building pdb out of records built. Usage: build and set
-    records with required data, when done call buildPdb() to retrieve
-    built pdb object"""
-    def __init__(self):
-        # variables that need to be set from outside before
-        # we can write out the full pdb file
-        self.wordsCount = None
-        self.maxWordLen = None
-        self.maxDefLen = None
-        self.wordsRecs = None
-        self.wordCacheRec = None
-        self.wordsCompressInfoRec = None
-        self.defsCompressInfoRec = None
-        self.defLensRecs = None
-        self.defsRecs = None
-        self.posInfoRecs = None
-
-    def writePdb(self,fileName):
-        # make sure that we were given all the info necessary to
-        # create full pdb file
-        assert None != self.wordsCount
-        assert None != self.maxWordLen
-        assert None != self.maxDefLen
-        assert None != self.wordsRecs
-        assert None != self.wordCacheRec
-        assert None != self.wordsCompressInfoRec
-        assert None != self.defsCompressInfoRec
-        assert None != self.defLensRecs
-        assert None != self.defsRecs
-        assert None != self.posInfoRecs
-
-
+    pdbBuilder.writePdb(dictName,dictOutFileName)    
 
 def DoPlantDict():
     DoSimpleDict(r"c:\kjk\noah\dicts\plant_dictionary.txt", r"Plant dict", r"c:\plant.pdb")
@@ -601,7 +697,10 @@ def DoAllSimpleDicts():
         DoSimpleDict(simpleDictDef[0], simpleDictDef[1], simpleDictDef[2])
 
 def _isProfile():
-    return len(sys.argv)>1 and (sys.argv[1] == 'prof' or sys.argv[1] == 'profile')
+    return len(sys.argv)>1 and sys.argv[1] in ['prof', 'profile']
+
+def _isDumpProfile():
+    return len(sys.argv)>1 and sys.argv[1] in ['dump_prof', 'dump_profile', "dumpprof", "dumpprofile"]
 
 def _isTest():
     #return True
@@ -627,6 +726,8 @@ if __name__ == "__main__":
         mainProf()
     elif _isTest():
         testCompress()
+    elif _isDumpProfile():
+        dumpProfileStats()
     else:
         #testPickle()
         #testTiming()
