@@ -394,6 +394,10 @@ void DisplayHelp(AppContext* appContext)
     appContext->firstDispLine = 0;
     ClearDisplayRectangle(appContext);
     cbNoSelection(appContext);    
+
+    // this is a hack - because of other formatting changes help is displayed
+    // in a large font. it has to be small font
+    FntSetFont(stdFont);
     DrawDisplayInfo(appContext->currDispInfo, 0, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
     SetScrollbarState(appContext->currDispInfo, appContext->dispLinesCount, appContext->firstDispLine);
 }
@@ -1820,9 +1824,18 @@ void FrmSetObjectBoundsByID(FormType* frm, UInt16 objId, Int16 x, Int16 y, Int16
 void SyncScreenSize(AppContext* appContext) 
 {
     RectangleType screenBounds;
-    WinGetBounds(WinGetDisplayWindow(), &screenBounds);
-    appContext->screenWidth=screenBounds.extent.x;
-    appContext->screenHeight=screenBounds.extent.y;
+
+    if ( GetOsVersion(appContext) >= 35 )
+    {
+        WinGetBounds(WinGetDisplayWindow(), &screenBounds);
+        appContext->screenWidth=screenBounds.extent.x;
+        appContext->screenHeight=screenBounds.extent.y;
+    }
+    else
+    {
+        appContext->screenWidth = 160;
+        appContext->screenHeight = 160;
+    }
     appContext->dispLinesCount=(appContext->screenHeight-FRM_RSV_H)/FONT_DY;
 }
 
@@ -2315,5 +2328,4 @@ Int16 LstGetSelectionByListID(const FormType* form, UInt16 listID)
     Assert(list);
     return LstGetSelection(list);
 }
-
 

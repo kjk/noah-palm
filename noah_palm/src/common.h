@@ -605,4 +605,5 @@ extern void CreateNewMemo(char *memoBody, int memoBodySize);
 void StartTiming(AppContext* appContext, char * description);
 void StopTiming(AppContext* appContext);
 #endif
+
 #endif

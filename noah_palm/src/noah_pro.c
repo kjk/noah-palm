@@ -222,10 +222,13 @@ void RemoveNonexistingDatabases(AppContext* appContext)
     
 void ScanForDictsNoahPro(AppContext* appContext, Boolean fAlwaysScanExternal)
 {
+#ifdef DEMO
+    FsMemFindDb(NOAH_PRO_CREATOR, WORDNET_PRO_TYPE, NULL, &DictFoundCBNoahPro, appContext);
+#else
     FsMemFindDb(NOAH_PRO_CREATOR, WORDNET_PRO_TYPE, NULL, &DictFoundCBNoahPro, appContext);
     FsMemFindDb(NOAH_PRO_CREATOR, WORDNET_LITE_TYPE, NULL, &DictFoundCBNoahPro, appContext);
     FsMemFindDb(NOAH_PRO_CREATOR, SIMPLE_TYPE, NULL, &DictFoundCBNoahPro, appContext);
-
+#endif
     /* TODO: show a progress dialog with a number of files processed so far */
     
     // only scan external memory card (slow) if this is the first

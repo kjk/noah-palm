@@ -574,7 +574,8 @@ static void StopThesaurus(AppContext* appContext)
 void DisplayAbout(AppContext* appContext)
 {
     UInt16 currentY=0;
-    WinPushDrawState();
+    if (GetOsVersion(appContext)>=35)
+        WinPushDrawState();
     ClearDisplayRectangle(appContext);
     HideScrollbar();
     
@@ -611,7 +612,8 @@ void DisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "Buy at: www.palmgear.com?7423", currentY);
 #endif
 
-    WinPopDrawState();    
+    if (GetOsVersion(appContext)>=35)
+        WinPopDrawState();    
 }
 
 static void DoWord(AppContext* appContext, char *word)

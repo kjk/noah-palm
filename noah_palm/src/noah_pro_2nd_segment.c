@@ -244,7 +244,8 @@ void StopNoahPro(AppContext* appContext)
 void DisplayAbout(AppContext* appContext)
 {
     UInt16 currentY=0;
-    WinPushDrawState();
+    if (GetOsVersion(appContext)>=35)
+        WinPushDrawState();
     ClearDisplayRectangle(appContext);
     HideScrollbar();
     
@@ -279,10 +280,11 @@ void DisplayAbout(AppContext* appContext)
     DrawCenteredString(appContext, "        Product ID: 10421", currentY);
 #endif
 #ifdef DEMO_PALMGEAR
-    DrawCenteredString(appContext, "Buy at: www.palmgear.com?7775", currentY);
+    DrawCenteredString(appContext, "Buy at: www.palmgear.com?6923", currentY);
 #endif
 
-    WinPopDrawState();    
+    if (GetOsVersion(appContext)>=35)
+        WinPopDrawState();    
 }
 
 void DoWord(AppContext* appContext, char *word)
