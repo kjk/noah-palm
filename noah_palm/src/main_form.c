@@ -43,14 +43,10 @@ static void MainFormDisplayAbout(AppContext* appContext)
     FntSetFont(largeFont);
     DrawCenteredString(appContext, "ArsLexis iNoah", currentY);
     currentY+=16;
-#ifdef DEMO
-    DrawCenteredString(appContext, "Ver 1.0 (demo)", currentY);
+#ifdef DEBUG
+    DrawCenteredString(appContext, "Ver 1.0 (debug)", currentY);
 #else
-  #ifdef DEBUG
     DrawCenteredString(appContext, "Ver 1.0", currentY);
-  #else
-    DrawCenteredString(appContext, "Ver 1.0", currentY);
-  #endif
 #endif
     currentY+=20;
     
@@ -76,8 +72,6 @@ static void MainFormDisplayAbout(AppContext* appContext)
         DrawCenteredString(appContext, "Buy at: www.palmgear.com?53831", currentY);
 #endif
     }
-
-
     WinPopDrawState();    
 }
 
@@ -87,7 +81,7 @@ static void MainFormDrawLookupStatus(AppContext* appContext, FormType* form)
     SetGlobalBackColor(appContext);
     UInt16 statusBarStartY=appContext->screenHeight-lookupStatusBarHeight;
     ClearRectangle(0, statusBarStartY, appContext->screenWidth, lookupStatusBarHeight);
-    WinDrawLine(0, statusBarStartY, appContext->screenWidth, statusBarStartY);
+    WinDrawLine(0, statusBarStartY-2, appContext->screenWidth, statusBarStartY-2);
     const char* text=GetConnectionStatusText(appContext);
     Assert(text);
     UInt16 textLen=StrLen(text);    
@@ -107,12 +101,12 @@ static void MainFormDrawCurrentDisplayInfo(AppContext* appContext)
 
 static void MainFormDraw(AppContext* appContext, FormType* form, UInt16 updateCode=redrawAll)
 {
+    UInt16 statusBarStartY=appContext->screenHeight-lookupStatusBarHeight;
     switch (updateCode)
     {
         case redrawAll:
             FrmDrawForm(form);
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H+1, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H+1);
-            WinDrawLine(0, appContext->screenHeight-FRM_RSV_H, appContext->screenWidth, appContext->screenHeight-FRM_RSV_H);
+            WinDrawLine(0, statusBarStartY-2, appContext->screenWidth, statusBarStartY-2);
             switch (appContext->mainFormContent)
             {
                 case mainFormShowsAbout:

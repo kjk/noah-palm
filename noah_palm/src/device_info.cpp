@@ -269,8 +269,7 @@ void RenderDeviceIdentifier(ExtensibleBuffer* out)
     Assert(out);
     RenderDeviceIdentifierToken(out, "HS", GetHotSyncName);
     RenderDeviceIdentifierToken(out, "SN", GetDeviceSerialNumber);
-    // TODO: uncomment later
-    // RenderDeviceIdentifierToken(out, "HN", GetHsSerialNum);
+    RenderDeviceIdentifierToken(out, "HN", GetHsSerialNum);
     RenderDeviceIdentifierToken(out, "PN", GetPhoneNumber);
     RenderDeviceIdentifierToken(out, "OC", GetOEMCompanyId);
     RenderDeviceIdentifierToken(out, "OD", GetOEMDeviceId);

@@ -700,6 +700,7 @@ function user_stats($cookie)
     echo '<a href="stats.php">Summary</a>&nbsp;|&nbsp;';
     echo "<b>User info for user with cookie $cookie</b>";
     echo "<p>";
+    echo "Not implemented yet...";
     exit;
 }
 
