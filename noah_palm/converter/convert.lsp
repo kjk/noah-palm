@@ -1,12 +1,12 @@
-;(load "c:\\kjk\\src\\mine\\noah_palm\\converter\\convert.lsp")
+;(load         "c:\\kjk\\src\\mine\\noah_palm\\converter\\convert.lsp")
 ;(compile-file "c:\\kjk\\src\\mine\\noah_palm\\converter\\convert.lsp")
 ;(setf h (make-engpol-words-hash))
 ;(time (progn (make-engpol-words-hash) nil))
 
 (in-package :common-lisp-user)
 
-(defconstant *file-sets* 'win)
-;(defconstant *file-sets* 'unix)
+(defparameter *file-sets* 'win)
+;(defparameter *file-sets* 'unix)
 
 (if (eq *file-sets* 'unix)
   (progn
@@ -883,7 +883,6 @@ in a record"
       #'(lambda (x) x)
       char-list))
 
-;(char-list->string '(#\a #\b))
 
 (defun whitespacep (c)
     (case c
@@ -897,11 +896,6 @@ in a record"
 ;; empty if number of non-whitespaces is zero (i.e. all of them are whitespaces)
 (defun is-empty-line-p (str)
     (= 0 (count-if-not #'whitespacep str)))
-
-;; tests
-;;(is-empty-line-p "")
-;;(is-empty-line-p "   ")
-;;(is-empty-line-p "  ")
 
 (defun word-char-p (c) (position c "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.'-"))
 
