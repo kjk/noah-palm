@@ -1832,8 +1832,7 @@ Exit:
     return error;
     
 NoWordSelected:
-//    error=AppPerformResidentLookup(NULL);
-//! @todo Decide whether to show word list or alert that word is not selected
+    error=AppPerformResidentLookup(NULL);
     goto Exit;
 }
 
@@ -2049,4 +2048,50 @@ const Char* StrFind(const Char* begin, const Char* end, const Char* subStr)
     }        
     if (!result) result=end;
     return result;         
+}
+
+Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base)
+{
+    Err error=errNone;
+    Boolean negative=false;
+    Int32 res=0;
+    const Char* numbers="0123456789abcdefghijklmnopqrstuvwxyz";
+    UInt16 numLen=StrLen(numbers);
+    Char buffer[2];
+    if (begin>=end || base>numLen)
+    {    
+        error=memErrInvalidParam;
+        goto OnError;           
+    }
+    if (*begin=='-')
+    {
+        negative=true;
+        if (++begin==end)
+        {
+            error=memErrInvalidParam;
+            goto OnError;           
+        }
+    }           
+    buffer[1]=chrNull;
+    while (begin!=end) 
+    {
+        UInt16 num=0;
+        buffer[0]=*(begin++);
+        StrToLower(buffer, buffer); 
+        num=StrFind(numbers, numbers+numLen, buffer)-numbers;
+        if (num==numLen)
+        {   
+            error=memErrInvalidParam;
+            break;
+        }
+        else
+        {
+            res*=base;
+            res+=num;
+        }
+    }
+    if (!error)
+       *result=res;
+OnError:
+    return error;    
 }

@@ -121,7 +121,13 @@ static Boolean ResidentBrowseFormWinEnter(AppContext* appContext, FormType* form
             FldSendChangeNotification(field);
         }
         else
-            LstSetSelectionEx(appContext, list, appContext->selectedWord = appContext->currentWord);
+        {
+            if (-1==appContext->currentWord)
+                appContext->selectedWord=0;
+            else
+                appContext->selectedWord=appContext->currentWord;             
+            LstSetSelectionEx(appContext, list, appContext->selectedWord);
+        }            
         index=FrmGetObjectIndex(form, fieldWord);
         Assert(index!=frmInvalidObjectId);
         FrmSetFocus(form, index);

@@ -86,7 +86,7 @@ static Err AppLaunch()
         goto OnError;
 //    FrmGotoForm(formDictMain);
 //    AppEventLoop(appContext);
-    error=INetWordLookup("word", &appContext->serverIpAddress, &response, &respSize);
+    error=INetWordLookup("werk", &appContext->serverIpAddress, &response, &respSize);
     if (!error)
     {
         Assert(response);

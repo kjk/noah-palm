@@ -7,6 +7,7 @@
 #include "noah_pro_2nd_segment.h"
 #include "five_way_nav.h"
 #include "resident_lookup_form.h"
+#include "resident_browse_form.h"
 #include "word_matching_pattern.h"
 #include "bookmarks.h"
 
@@ -417,8 +418,18 @@ Err AppPerformResidentLookup(Char* term)
             FrmAlert(alertDbFailed);
         else 
         {
-            appContext->currentWord=dictGetFirstMatching(chosenDb, term);
-            error=PopupResidentLookupForm(appContext);
+            if (term)
+            {
+                appContext->currentWord=dictGetFirstMatching(chosenDb, term);
+                error=PopupResidentLookupForm(appContext);
+            }                
+            else
+            {
+                appContext->currentWord=-1;
+                error=PopupResidentBrowseForm(appContext);
+                if (!error && appContext->currentWord!=-1)
+                    error=PopupResidentLookupForm(appContext);
+            }                    
         }          
     }
     AppCommonFree(appContext);

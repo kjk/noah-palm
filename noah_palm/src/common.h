@@ -506,5 +506,7 @@ extern UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 tota
 
 extern const Char* StrFind(const Char* begin, const Char* end, const Char* subStr);
 extern Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length);
+extern Err StrAToIEx(const Char* begin, const Char* end, Int32* result, UInt16 base);
+extern Char ToLower(Char in);
 
 #endif

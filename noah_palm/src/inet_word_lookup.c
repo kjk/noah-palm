@@ -197,7 +197,9 @@ static Err ResolveServerAddress(ConnectionData* connData, Int16* percents, const
         Assert(infoBuf->address[0]);
         *connData->serverIpAddress=infoBuf->address[0];
         connData->connectionStage++;
-    }    
+    } 
+    else
+        *errorMessage="unable to resolve host address";
 OnError: 
     if (infoBuf) 
         new_free(infoBuf);
@@ -312,16 +314,66 @@ OnError:
     return error;    
 }
 
-static Err ParseChunkedBody(const Char* bodyStart, const Char* bodyEnd, ExtensibleBuffer* buffer)
+static Err ParseChunkHeader(const Char* headerBegin, const Char* headerEnd, UInt16* chunkSize)
 {
-    return appErrMalformedResponse;
+    Err error=errNone;
+    const Char* end=StrFind(headerBegin, headerEnd, " ");
+    Int32 size=0;
+    error=StrAToIEx(headerBegin, end, &size, 16);    if (error)
+    {
+        error=appErrMalformedResponse;
+        goto OnError;
+    }
+    Assert(size>=0);
+    *chunkSize=size;
+
+OnError:
+    return error;                
+}
+
+static Err ParseChunkedBody(const Char* bodyBegin, const Char* bodyEnd, ExtensibleBuffer* buffer)
+{
+    Err error=errNone;
+    const Char* lineBegin=bodyBegin;
+    UInt16 chunkSize=0;
+    do 
+    {
+        const Char* lineEnd=StrFind(lineBegin, bodyEnd, strCrLf);
+        if (lineBegin<bodyEnd && lineEnd<bodyEnd && lineBegin<lineEnd)
+        {
+            const Char* chunkBegin=lineEnd+2;
+            const Char* chunkEnd=NULL;
+            error=ParseChunkHeader(lineBegin, lineEnd, &chunkSize);
+            if (error)
+                break;                
+            chunkEnd=chunkBegin+chunkSize;
+            if (chunkBegin<bodyEnd && chunkEnd<bodyEnd)
+            {
+                ebufAddStrN(buffer, (char*)chunkBegin, chunkSize);
+                lineBegin=chunkEnd+2;             
+            }
+            else
+            {
+                error=appErrMalformedResponse;
+                break;
+            }                
+        }
+        else 
+        {
+            error=appErrMalformedResponse;
+            break;
+        }            
+    } while (chunkSize);
+OnError:    
+    return error;
 }
 
 static Err ParseStatusLine(const Char* lineStart, const Char* lineEnd)
 {
     Err error=appErrMalformedResponse;
     const Char* statusBegin=StrFind(lineStart, lineEnd, " ")+1;
-    if (statusBegin<lineEnd-3 && 0==StrNCmp(statusBegin, "200", 3))        error=errNone;
+    if (statusBegin<lineEnd-3 && 0==StrNCmp(statusBegin, "200", 3))
+        error=errNone;
     return error;
 }
 
