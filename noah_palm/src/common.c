@@ -75,6 +75,8 @@ void AddToHistory(AppContext* appContext, UInt32 wordNo)
     if (!word)
         return;
 
+    if (appContext->historyCount==HISTORY_ITEMS) 
+        new_free(appContext->wordHistory[HISTORY_ITEMS-1]);
     MemMove(&(appContext->wordHistory[1]), &(appContext->wordHistory[0]), ((HISTORY_ITEMS - 1) * sizeof(appContext->wordHistory[0])));
     appContext->wordHistory[0] = word;
 
