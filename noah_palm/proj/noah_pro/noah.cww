@@ -51,9 +51,9 @@
         <DOCKINFO>
             <STATUS>1</STATUS>
             <ROW>0</ROW>
-            <COLUMN>1</COLUMN>
+            <COLUMN>0</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.327488</PCTWIDTH>
+            <PCTWIDTH>0.522764</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -78,7 +78,7 @@
             <ROW>0</ROW>
             <COLUMN>2</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.341311</PCTWIDTH>
+            <PCTWIDTH>0.133929</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -101,9 +101,9 @@
         <DOCKINFO>
             <STATUS>1</STATUS>
             <ROW>0</ROW>
-            <COLUMN>0</COLUMN>
+            <COLUMN>1</COLUMN>
             <DOCKBARID>59420</DOCKBARID>
-            <PCTWIDTH>0.331201</PCTWIDTH>
+            <PCTWIDTH>0.343308</PCTWIDTH>
             <HGT>355</HGT>
             <GROUPID>
                 <GIDHIGHPART>0</GIDHIGHPART>
@@ -114,14 +114,14 @@
     <WINDOW>
         <SESSION>-1</SESSION>
         <EDOCTYPE>1</EDOCTYPE>
-        <PATH USERELATIVEPATHS = "true">..\..\res\noah_pro.rcp</PATH>
+        <PATH USERELATIVEPATHS = "true">..\..\src\wn_pro_support.c</PATH>
         <FRAMELOC>
-            <X>4</X>
-            <Y>25</Y>
+            <X>8</X>
+            <Y>27</Y>
         </FRAMELOC>
         <FRAMESIZE>
-            <W>739</W>
-            <H>862</H>
+            <W>646</W>
+            <H>464</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>
@@ -139,14 +139,15 @@
     <WINDOW>
         <SESSION>-1</SESSION>
         <EDOCTYPE>1</EDOCTYPE>
-        <PATH USERELATIVEPATHS = "true">..\..\res\noah_lite.rcp</PATH>
+        <PATH USERELATIVEPATHS = "true">..\..\src\common.c</PATH>
+        <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
-            <X>9</X>
-            <Y>87</Y>
+            <X>30</X>
+            <Y>17</Y>
         </FRAMELOC>
         <FRAMESIZE>
-            <W>765</W>
-            <H>512</H>
+            <W>565</W>
+            <H>884</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>
@@ -164,16 +165,14 @@
     <WINDOW>
         <SESSION>-2147483648</SESSION>
         <EDOCTYPE>36</EDOCTYPE>
-        <DEFAULT>true</DEFAULT>
         <PATH USERELATIVEPATHS = "false"></PATH>
-        <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
-            <X>4</X>
-            <Y>25</Y>
+            <X>8</X>
+            <Y>45</Y>
         </FRAMELOC>
         <FRAMESIZE>
-            <W>691</W>
-            <H>426</H>
+            <W>350</W>
+            <H>300</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>
@@ -191,14 +190,16 @@
     <WINDOW>
         <SESSION>-2147483648</SESSION>
         <EDOCTYPE>23</EDOCTYPE>
+        <DEFAULT>true</DEFAULT>
         <PATH USERELATIVEPATHS = "false"></PATH>
+        <MAXIMIZED>true</MAXIMIZED>
         <FRAMELOC>
-            <X>4</X>
-            <Y>25</Y>
+            <X>0</X>
+            <Y>0</Y>
         </FRAMELOC>
         <FRAMESIZE>
-            <W>952</W>
-            <H>1057</H>
+            <W>662</W>
+            <H>801</H>
         </FRAMESIZE>
         <DOCKINFO>
             <STATUS>0</STATUS>
