@@ -1446,6 +1446,7 @@ Boolean FindPatternFormHandleEventThes(EventType * event)
                 case buttonCancel:
                     CloseMatchingPatternDB();
                     FrmReturnToForm(0);
+                    handled = true;
                     break;
 
                 case buttonFind:
