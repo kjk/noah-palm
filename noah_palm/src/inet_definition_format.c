@@ -12,6 +12,9 @@
 #define definitionResponse      "DEF\n"
 #define definitionResponseLen   4
 
+#define pronunciationTag "PRON"
+#define pronunciationTagLength 4
+
 static Err ExpandPartOfSpeechSymbol(Char symbol, const Char** partOfSpeech)
 {
     Err error=errNone;
@@ -137,63 +140,88 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
         ebufAddChar(out, FORMAT_TAG);
         ebufAddChar(out, FORMAT_SYNONYM);
         ebufAddStr(out, (Char*)word);
-        ebufAddChar(out, '\n');
     }
-    begin=StrFind(begin, end, "!");
-    while (begin<end)
+    if (StrStartsWith(begin, end, pronunciationTag))
     {
-        const Char* partBlock=StrFind(begin, end, "\n$");
-        if (partBlock<end)
+        const char* pronBegin=begin+pronunciationTagLength+1;
+        if (pronBegin<end)
         {
-            const Char* partOfSpeech=(partBlock+=1)+1;
-            if (partOfSpeech<end)
+            const char* pronEnd=StrFind(pronBegin, end, "\n");
+#ifndef _DONT_DO_PRONUNCIATION_            
+            if (!appContext->prefs.dontShowPronunciation)
             {
-                error=ExpandPartOfSpeechSymbol(*partOfSpeech, &partOfSpeech);
-                if (!error)
+                ebufAddChar(out, FORMAT_TAG);
+                ebufAddChar(out, FORMAT_PRONUNCIATION);
+                ebufAddStr(out, " (");
+                ebufAddStrN(out, const_cast<char*>(pronBegin), pronEnd-pronBegin);
+                ebufAddChar(out, ')');
+            }            
+#endif            
+            begin=pronEnd+1;
+        }
+        else 
+            error=appErrMalformedResponse;
+    }
+    if (!error)
+    {
+        if (ebufGetDataSize(out))
+            ebufAddChar(out, '\n');
+        begin=StrFind(begin, end, "!");
+        while (begin<end)
+        {
+            const Char* partBlock=StrFind(begin, end, "\n$");
+            if (partBlock<end)
+            {
+                const Char* partOfSpeech=(partBlock+=1)+1;
+                if (partOfSpeech<end)
                 {
-                    ebufAddChar(out, FORMAT_TAG);
-                    ebufAddChar(out, FORMAT_POS);
-                    ebufAddChar(out, 149);
-                    ebufAddStr(out, " (");
-                    ebufAddStr(out, (Char*)partOfSpeech);
-                    ebufAddStr(out, ") ");
-                    error=ConvertSynonymsBlock(appContext, word, begin, partBlock, out);
+                    error=ExpandPartOfSpeechSymbol(*partOfSpeech, &partOfSpeech);
                     if (!error)
                     {
-                        const Char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
-                        while (defBlock<end)
+                        ebufAddChar(out, FORMAT_TAG);
+                        ebufAddChar(out, FORMAT_POS);
+                        ebufAddChar(out, 149);
+                        ebufAddStr(out, " (");
+                        ebufAddStr(out, (Char*)partOfSpeech);
+                        ebufAddStr(out, ") ");
+                        error=ConvertSynonymsBlock(appContext, word, begin, partBlock, out);
+                        if (!error)
                         {
-                            if (StrStartsWith(defBlock-1, defBlock, "\n"))
+                            const Char* defBlock=StrFindOneOf(partBlock+1, end, "@#");
+                            while (defBlock<end)
+                            {
+                                if (StrStartsWith(defBlock-1, defBlock, "\n"))
+                                    break;
+                                else                    
+                                    defBlock=StrFindOneOf(defBlock+1, end, "@#");
+                            }
+                            if (defBlock<end)
+                            {
+                                begin=StrFind(defBlock, end, "\n!");
+                                if (begin<end) 
+                                    begin++;
+                                error=ConvertDefinitionBlock(defBlock, begin, out);
+                                if (error)
+                                    break;
+                            }
+                            else
+                            {
+                                error=appErrMalformedResponse;
                                 break;
-                            else                    
-                                defBlock=StrFindOneOf(defBlock+1, end, "@#");
+                            }                        
                         }
-                        if (defBlock<end)
-                        {
-                            begin=StrFind(defBlock, end, "\n!");
-                            if (begin<end) 
-                                begin++;
-                            error=ConvertDefinitionBlock(defBlock, begin, out);
-                            if (error)
-                                break;
-                        }
-                        else
-                        {
-                            error=appErrMalformedResponse;
+                        else 
                             break;
-                        }                        
-                    }
+                    }                    
                     else 
                         break;
-                }                    
-                else 
+                }
+                else
+                {
+                    error=appErrMalformedResponse;
                     break;
+                }       
             }
-            else
-            {
-                error=appErrMalformedResponse;
-                break;
-            }       
         }
     }
     return error;
@@ -266,6 +294,13 @@ static UInt16 IterateWordsList(const Char* responseBegin, const Char* responseEn
     return wordsCount;
 }
 
+static Int16 StrSortComparator(void* str1, void* str2, Int32)
+{
+    const char* s1=*(const char**)str1;
+    const char* s2=*(const char**)str2;
+    return StrCompare(s1, s2);
+}
+
 static Err ProcessWordsListResponse(AppContext* appContext, const Char* responseBegin, const Char* responseEnd)
 {
     Err error=errNone;
@@ -277,6 +312,7 @@ static Err ProcessWordsListResponse(AppContext* appContext, const Char* response
         if (wordsStorage)
         {
             IterateWordsList(responseBegin, responseEnd, wordsStorage);
+            SysQSort(wordsStorage, wordsCount, sizeof(const char*), StrSortComparator, NULL);
             appContext->wordsList=wordsStorage;
             appContext->wordsInListCount=wordsCount;
         }

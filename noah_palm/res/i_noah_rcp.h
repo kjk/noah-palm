@@ -55,7 +55,7 @@
 #define buttonCOLpos        4106
 #define buttonBGpos         4107
 #define buttonDefault       4108
-
+#define cbShowPronunctiation    4109
 #define labelBkmSortBy      4200
 #define popupSortBy         4201
 #define listSortBy          4202

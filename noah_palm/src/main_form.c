@@ -347,7 +347,8 @@ static Boolean RegistrationFormHandleEvent(EventType* event)
             {
                 index=FrmGetObjectIndex(form, fieldSerialNumber);
                 Assert(frmInvalidObjectId!=index);
-                FrmSetFocus(form, index);            }
+                FrmSetFocus(form, index);
+            }
             break;
 
         case keyDownEvent:
@@ -369,6 +370,7 @@ static void MainFormHandleRegister(AppContext* appContext)
     FormType* form=FrmInitForm(formRegistration);
     if (form)
     {
+        DefaultFormInit(appContext, form);
         FrmSetEventHandler(form, RegistrationFormHandleEvent);
         UInt16 button=FrmDoDialog(form);
         if (buttonRegister==button)

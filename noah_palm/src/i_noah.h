@@ -26,6 +26,7 @@ typedef struct
     BookmarkSortType        bookmarksSortType;
     
     Char                    cookie[MAX_COOKIE_LENGTH+1];
+    Boolean               dontShowPronunciation;
 } iNoahPrefs;
 
 #define HasCookie(prefs) (0<StrLen((prefs).cookie))

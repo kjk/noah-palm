@@ -61,12 +61,14 @@ static UInt16 WordsListFormFindClosestProposal(AppContext* appContext, const Lis
         Assert(position<=itemCount);
         if (position==itemCount)
             position--;
+/*
         if (position>0)
         {
             const Char* match=LstGetSelectionText(list, position);
             if (StrCompare(match, word)>0)
                 position--;
         }
+*/        
         proposal=position;
     }
     return proposal;
@@ -167,71 +169,70 @@ inline static Boolean WordsListFormItemSelected(AppContext* appContext, FormType
 static Boolean WordsListFormKeyDown(AppContext* appContext, FormType* form, EventType* event)
 {
     Boolean handled=false;
-    switch (event->data.keyDown.chr)
+    if (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event))
     {
-        case returnChr:
-        case linefeedChr:
+        if (FiveWayCenterPressed(appContext, event))
+        {
             UInt16 selected=LstGetSelectionByListID(form, listProposals);
             WordsListFormSelectProposal(appContext, selected);
             handled=true;
-            break;
-
-        case pageUpChr:
-            if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
-            {
-                WordsListFormScrollList(form, -(appContext->dispLinesCount-1));
+        }
+        else if (FiveWayDirectionPressed(appContext, event, Up ))
+        {
+            WordsListFormScrollList(form, -1);
+            handled=true;
+        }
+        else if (FiveWayDirectionPressed(appContext, event, Down ))
+        {
+            WordsListFormScrollList(form, 1);
+            handled=true;
+        }
+        else if (FiveWayDirectionPressed(appContext, event, Left ))
+        {
+            WordsListFormScrollList(form, -(appContext->dispLinesCount-1));
+            handled=true;
+        }
+        else if (FiveWayDirectionPressed(appContext, event, Right ))
+        {
+            WordsListFormScrollList(form, (appContext->dispLinesCount-1));
+            handled=true;
+        }
+    }
+    else
+    {
+        switch (event->data.keyDown.chr)
+        {
+            case returnChr:
+            case linefeedChr:
+                UInt16 selected=LstGetSelectionByListID(form, listProposals);
+                WordsListFormSelectProposal(appContext, selected);
                 handled=true;
-            }
-            break;
-        
-        case pageDownChr:
-            if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
-            {
-                WordsListFormScrollList(form, (appContext->dispLinesCount-1));
-                handled=true;
-            }
-            break;
+                break;
 
-        default:
-            if (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event))
-            {
-                if (FiveWayCenterPressed(appContext, event))
-                {
-                    UInt16 selected=LstGetSelectionByListID(form, listProposals);
-                    WordsListFormSelectProposal(appContext, selected);
-                    handled=true;
-                }
-            
-                if (FiveWayDirectionPressed(appContext, event, Left ))
+            case pageUpChr:
+                if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
                 {
                     WordsListFormScrollList(form, -(appContext->dispLinesCount-1));
                     handled=true;
                 }
-                if (FiveWayDirectionPressed(appContext, event, Right ))
+                break;
+            
+            case pageDownChr:
+                if ( ! (HaveFiveWay(appContext) && EvtKeydownIsVirtual(event) && IsFiveWayEvent(appContext, event) ) )
                 {
                     WordsListFormScrollList(form, (appContext->dispLinesCount-1));
                     handled=true;
                 }
-                if (FiveWayDirectionPressed(appContext, event, Up ))
-                {
-                    WordsListFormScrollList(form, -1);
-                    handled=true;
-                }
-                if (FiveWayDirectionPressed(appContext, event, Down ))
-                {
-                    WordsListFormScrollList(form, 1);
-                    handled=true;
-                }
-            }
-            else
-            {
+                break;
+
+            default:
                 FieldType* field=NULL;
                 UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
                 Assert(index!=frmInvalidObjectId);
                 field=static_cast<FieldType*>(FrmGetObjectPtr(form, index));
                 Assert(field);
                 FldSendChangeNotification(field);
-            }                
+        }
     }
     return handled;
 }    
