@@ -65,7 +65,8 @@ static void MainFormDraw(AppContext* appContext, FormType* form)
     else 
     {
         WinPushDrawState();
-        DrawWord(ebufGetDataPointer(&appContext->currentWord), appContext->screenHeight-FONT_DY);
+        if (mainFormShowingWord==appContext->mainFormMode)
+            DrawWord(ebufGetDataPointer(&appContext->currentWord), appContext->screenHeight-FONT_DY);
         SetBackColorWhite(appContext);
         ClearDisplayRectangle(appContext);
         DrawDisplayInfo(appContext->currDispInfo, appContext->firstDispLine, DRAW_DI_X, DRAW_DI_Y, appContext->dispLinesCount);
@@ -74,10 +75,58 @@ static void MainFormDraw(AppContext* appContext, FormType* form)
     }        
 }
 
+static void MainFormFindButtonPressed(AppContext* appContext, FormType* form)
+{
+    UInt16 index=FrmGetObjectIndex(form, fieldWordInput);
+    Assert(frmInvalidObjectId!=index);
+    if (mainFormShowingWord==appContext->mainFormMode)
+    {
+        appContext->mainFormMode=mainFormShowingField;
+        DrawWord("", appContext->screenHeight-FONT_DY);
+        FrmShowObject(form, index);
+        FrmSetFocus(form, index);
+    }
+    else
+    {
+        const FieldType* field=(const FieldType*)FrmGetObjectPtr(form, index);
+        const Char* newWord=NULL;
+        const Char* prevWord=ebufGetDataPointer(&appContext->currentWord);
+        Assert(field);
+        newWord=FldGetTextPtr(field);
+        FrmHideObject(form, index);
+        appContext->mainFormMode=mainFormShowingWord;
+        if (newWord && (!prevWord || 0!=StrCompare(newWord, prevWord)))
+        {
+            Err error=LookupWord(appContext, newWord);
+            if (!error)
+                FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
+        }
+    }        
+}
+
+static Boolean MainFormControlSelected(AppContext* appContext, FormType* form, EventType* event)
+{
+    Boolean handled=false;
+    switch (event->data.ctlSelect.controlID)
+    {
+        case buttonFind:
+            MainFormFindButtonPressed(appContext, form);
+            handled=true;
+            break;
+            
+        default:
+            Assert(false);
+    }
+    return handled;
+}
+
 static Boolean MainFormOpen(AppContext* appContext, FormType* form, EventType* event)
 {
-    Err error=errNone;
+//    Err error=errNone;
     MainFormDraw(appContext, form);
+//    error=LookupWord(appContext, "art");
+//    if (!error)
+//        FrmUpdateForm(formDictMain, frmRedrawUpdateCode);
     return true;
 }
 
@@ -95,7 +144,11 @@ static Boolean MainFormHandleEvent(EventType* event)
         case frmUpdateEvent:
             MainFormDraw(appContext, form);
             handled=true;
-            break;      
+            break; 
+            
+        case ctlSelectEvent:
+            handled=MainFormControlSelected(appContext, form, event);
+            break;
 
 /*            
         case winEnterEvent:
@@ -125,9 +178,7 @@ Err MainFormLoad(AppContext* appContext)
         FrmSetEventHandler(form, MainFormHandleEvent);
     }
     else 
-    {
         FrmDeleteForm(form);
-    }        
 OnError:
     return error;    
 }

@@ -527,17 +527,24 @@ void DrawWord(char *word, int pos_y)
 {
     Int16 wordLen = 0;
     Int16 word_dx = MAX_WORD_DX;
+    
+#ifndef I_NOAH    
+    Int16 wordStartX=21;
+#else 
+    Int16 wordStartX=1;
+#endif
+        
     Boolean truncatedP = false;
     FontID prev_font;
 
     Assert(NULL != word);
 
     wordLen = StrLen(word);
-    ClearRectangle(21, pos_y - 1, MAX_WORD_DX, 11);
+    ClearRectangle(wordStartX, pos_y - 1, MAX_WORD_DX, FONT_DY);
     prev_font = FntGetFont();
     FntSetFont((FontID) 1);
     FntCharsInWidth(word, &word_dx, &wordLen, &truncatedP);
-    WinDrawChars(word, wordLen, 22, pos_y - 2);
+    WinDrawChars(word, wordLen, wordStartX+1, pos_y - 2);
     FntSetFont(prev_font);
 }
 
@@ -1944,9 +1951,9 @@ UInt16 PercentProgress(optional Char* buffer, UInt32 current, UInt32 total)
     return current;
 }
 
-inline Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length)
+Int16 StrNCmp(const Char* str1, const Char* str2, UInt16 length)
 {
-    while (length--) 
+    while (length-- && *str1 && *str2) 
     {
         if (*str1<*str2) return -1;
         else if (*str1>*str2) return 1;

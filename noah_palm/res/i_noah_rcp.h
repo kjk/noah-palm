@@ -17,3 +17,4 @@
 
 #define	scrollDef	4000
 #define	buttonFind	4001
+#define   fieldWordInput 4002

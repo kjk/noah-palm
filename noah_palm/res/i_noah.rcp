@@ -9,6 +9,7 @@ BEGIN
    SCROLLBAR ID     scrollDef       AT (152   1    7  142) USABLE VALUE 0 MIN 0 MAX 0 PAGESIZE 1
    FORMBITMAP                       AT (147 147)           BITMAP bmpFind
    BUTTON ""        buttonFind      AT (146 146   14   14) NOFRAME
+	FIELD ID fieldWordInput  AT (1 148 100 12) MAXCHARS 255 EDITABLE NONUSABLE 
 END
 
 ALERT alertMemError

@@ -117,6 +117,7 @@ static Err ConvertInetToDisplayableFormat(AppContext* appContext, const Char* wo
     {
         ebufAddChar(out, FORMAT_TAG);
         ebufAddChar(out, FORMAT_SYNONYM);
+        ebufAddChar(out, ' ');
         ebufAddStr(out, (Char*)word);
         ebufAddChar(out, '\n');
     }
