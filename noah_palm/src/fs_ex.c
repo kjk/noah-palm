@@ -131,7 +131,7 @@ LocalID dcCreateCacheDb(DbCacheData *cache)
     dbFirstRec->realDbCreator = vfsGetDbCreator();
     dbFirstRec->realDbType = vfsGetDbType();
     MemMove(dbFirstRec->realDbName, vfsGetDbName(), 32);
-    dbFirstRec->realDbRecsCount = vfsGetRecordsCount();
+    dbFirstRec->realDbRecsCount = CurrFileGetRecordsCount();
 
     err = dcUpdateFirstCacheRec(cache, dbFirstRec);
     if (err)
@@ -233,11 +233,11 @@ Err dcCacheDbRef(DbCacheData *cache)
         goto Error;
     }
     reslFirstRecSize = MemHandleSize(recHandle);
-    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * vfsGetRecordsCount());
+    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * CurrFileGetRecordsCount());
 
     /* is this a correct record? */
     if ((VFS_CACHE_DB_SIG_V1 == dbFirstRec->signature) &&
-        (dbFirstRec->realDbRecsCount == vfsGetRecordsCount()) &&
+        (dbFirstRec->realDbRecsCount == CurrFileGetRecordsCount()) &&
         (reslFirstRecSize == firstRecSize))
     {
         /* yes, it's a good cache database */
@@ -423,7 +423,7 @@ Err dcUpdateFirstCacheRec(DbCacheData *cache, CacheDBInfoRec * dbFirstRec)
 
     recData = MemHandleLock(recHandle);
 
-    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * vfsGetRecordsCount());
+    firstRecSize = sizeof(CacheDBInfoRec) + (sizeof(int) * CurrFileGetRecordsCount());
     DmWrite(recData, 0, (void *) dbFirstRec, firstRecSize);
     MemHandleUnlock(recHandle);
     DmReleaseRecord(cache->cacheDbRef, 0, false);
@@ -507,7 +507,7 @@ void dcUnlockRecord(DbCacheData *cache, UInt16 recNo)
 
 void *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
 {
-    void        *recData;
+    char        *recData;
     void        *dstData;
     MemHandle   recHandle;
     UInt32      offsetInPdbFile;
@@ -530,10 +530,10 @@ void *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
     }
 
     recHandle = DmQueryRecord(cache->cacheDbRef, cache->lockRegionCacheRec);
-    recData = MemHandleLock(recHandle);
+    recData = (char*)MemHandleLock(recHandle);
     cache->lastLockedRegion = recData;
 
-    return recData;
+    return (void*)recData;
   Error:
     DrawDebug("dcLockRegion failed");
     return NULL;
@@ -543,7 +543,7 @@ void *dcLockRegion(DbCacheData *cache, UInt16 recNo, UInt16 offset, UInt16 size)
 /* TODO: optimize by opening the record one with DmGetRecord() at the
    beginning and keeping it open, closing on exit, so this would become
    a no-op */
-void dcUnlockRegion(DbCacheData *cache, void *regionPtr)
+void dcUnlockRegion(DbCacheData *cache, char *regionPtr)
 {
     MemHandle recHandle;
 
@@ -569,11 +569,11 @@ Boolean dcCacheRecords(DbCacheData *cache, int recsCount, UInt16 * recs)
     for (i = 0; i < recsCount; i++)
     {
         DrawCacheRec(i);
-        if (NULL == vfsLockRecord(recs[i]))
+        if (NULL == CurrFileLockRecord(recs[i]))
         {
             return false;
         }
-        vfsUnlockRecord(recs[i]);
+        CurrFileUnlockRecord(recs[i]);
     }
     return true;
 }

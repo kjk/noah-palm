@@ -14,27 +14,27 @@ typedef struct
     int     lockCount;
 } OneMemRecordInfo;
 
-#define dmDBNameLength    32
-
-typedef struct
+struct MemData
 {
-    /* if false, we need to init iteration of findfirst()/findnext() */
-    Boolean             iterationInitedP;
+    AbstractFile        *file; /* link back to the file description */
     DmOpenRef           openDb;
-    DmSearchStateType   stateInfo;
-
-    char                name[32];
-    UInt16              cardNo;
-    LocalID             dbId;
-
-    UInt16              recsCount;  /* number of records in the pdb */
-
-    UInt32              dbCreator;
-    UInt32              dbType;
+    /* number of records in the pdb */
+    UInt16              recsCount;
     /* for each record infor about it's size and the
        offset of the record in the file */
     OneMemRecordInfo     *recsInfo;
-} MemData;
+};
 
-void setVfsToMem(Vfs *vfs);
+Boolean memOpenDb(struct MemData *memData);
+struct MemData *memNew(AbstractFile *file);
+void    memInit(struct MemData *memData,AbstractFile *file);
+void    memDeinit(struct MemData *memData);
+UInt16  memGetRecordsCount(struct MemData *memData);
+void    *memLockRecord(struct MemData *memData,UInt16 recNo);
+void    memUnlockRecord(struct MemData *memData, UInt16 record_no);
+long    memGetRecordSize(struct MemData *memData, UInt16 recNo);
+void    *memLockRegion(struct MemData *memData, UInt16 recNo, UInt16 offset, UInt16 size);
+void    memUnlockRegion(struct MemData *memData, char *regionPtr);
+
+
 #endif

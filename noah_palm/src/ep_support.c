@@ -61,7 +61,7 @@ static char *getCatName(int cat, int type)
 
     /* have to keep this record locked from outside,
        since this returns pointer inside record */
-    data = (unsigned char *) vfsLockRecord(1);
+    data = (unsigned char *) CurrFileLockRecord(1);
     if (NULL == data)
         return NULL;
     names_count = ((int *) data)[0];
@@ -79,7 +79,7 @@ static char *getCatName(int cat, int type)
         ++data;
     }
 
-    vfsUnlockRecord(1);
+    CurrFileUnlockRecord(1);
     return (char *) data;
 }
 
@@ -98,8 +98,8 @@ static void *epNew(void)
     if (!pcInit(&epi->packContext, 4))
         goto Error;
 
-    epi->recordsCount = vfsGetRecordsCount();
-    first_rec = (FirstRecord *) vfsLockRecord(0);
+    epi->recordsCount = CurrFileGetRecordsCount();
+    first_rec = (FirstRecord *) CurrFileLockRecord(0);
     if (NULL == first_rec)
         goto Error;
 
@@ -120,7 +120,7 @@ static void *epNew(void)
         goto Error;
 
   Exit:
-    vfsUnlockRecord(0);
+    CurrFileUnlockRecord(0);
     return (void *) epi;
   Error:
     epDelete((void *) epi);
@@ -188,7 +188,7 @@ static void epGetDef(void *data, long wordNo)
         return;
     }
 
-    defData = vfsLockRecord(record);
+    defData = CurrFileLockRecord(record);
     if (NULL == defData)
         return;
 
@@ -198,7 +198,7 @@ static void epGetDef(void *data, long wordNo)
     pcUnpack(&epi->packContext, defLen, epi->curDefData, &epi->curDefLen);
     Assert(epi->curDefLen <= epi->maxDefLen);
 
-    vfsUnlockRecord(record);
+    CurrFileUnlockRecord(record);
 }
 
 static int epd_get_homonyms_count(EngPolDef * epd)
@@ -513,7 +513,7 @@ static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **ra
     ebufReset(&g_buf);
 
     /* need this for getCatName() to work correctly */
-    if (NULL == vfsLockRecord(1))
+    if (NULL == CurrFileLockRecord(1))
         return;
 
     homonymsCount = epd_get_homonyms_count(epDsc);
@@ -582,7 +582,7 @@ static void ep_dsc_to_raw_txt(unsigned char *defData, int defData_len, char **ra
     txt = ebufGetTxtCopy(&g_buf);
     unplishString(txt, StrLen(txt));
     *rawTxt = txt;
-    vfsUnlockRecord(1);
+    CurrFileUnlockRecord(1);
 }
 
 /*

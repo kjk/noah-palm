@@ -26,62 +26,6 @@ static char wait_str[] = "Searching...";
 
 GlobalData gd;
 
-
-// TODO: share those functions with noah_pro.c
-NoahErrors GetMemVfs(void)
-{
-    NoahErrors err;
- 
-    if (gd.memInitedP)
-    {
-        if (gd.memWorksP)
-        {
-            gd.currVfs = &gd.memVfs;
-            return ERR_NONE;
-        }
-        else
-            return ERR_GENERIC;
-    }
-    else
-    {
-        gd.memVfs.vfsData = (void*) &gd.memVfsData;
-        setVfsToMem( &gd.memVfs );
-        gd.currVfs = &gd.memVfs;
-        err = vfsInit();
-        if ( ERR_NONE != err )
-        {
-           gd.currVfs = NULL;
-           return err;
-        }
-        gd.memInitedP = true;
-        gd.memWorksP = true;
-        return ERR_NONE;
-    }
-}
-
-void DeinitMemVfs(void)
-{
-    if ( ERR_NONE == GetMemVfs() )
-        vfsDeinit();
-}
-
-// TODO: share this with noah_pro.c
-/* Add a db on which a vfs is currently positioned to the list of
-found databases */
-void AddDbToFoundList( VFSDBType vfsDbType )
-{
-    if (gd.dbsCount >= MAX_DBS)
-    {
-        gd.err = ERR_TOO_MANY_DBS;
-        return;
-    }
-    gd.foundDbs[gd.dbsCount].vfsDbType = vfsDbType;
-    StrCopy(gd.foundDbs[gd.dbsCount].dbName, vfsGetDbName() );
-    StrCopy(gd.foundDbs[gd.dbsCount].dbFullPath, vfsGetFullDbPath() );
-    gd.foundDbs[gd.dbsCount].historyCount = 0;
-    gd.foundDbs[gd.dbsCount].lastWord[0] = 0;
-    ++gd.dbsCount;
-}
 Boolean ProgramInitNL(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
@@ -119,13 +63,6 @@ Boolean ProgramInitNL(void)
     {
         //DrawDebug2("WN file found:", vfsGetDbName());
         AddDbToFoundList(DB_SIMPLE_DM );
-#if 0
-        gd.foundDbs[gd.dbsCount].dbType = vfsGetDbType();
-        gd.foundDbs[gd.dbsCount].dbCreator = vfsGetDbCreator();
-        gd.foundDbs[gd.dbsCount].vfsDbType = DB_LEX_DM;
-        StrCopy(gd.foundDbs[gd.dbsCount].name, vfsGetDbName());
-        ++gd.dbsCount;
-#endif
     }
 
     if (gd.dbsCount == 0)
@@ -164,8 +101,6 @@ void DictCurrentFree(void)
 
 Boolean DictInit(int db_num)
 {
-    DBInfo *dbInfo = NULL;
-
     Assert((db_num >= 0) && (db_num < gd.dbsCount));
 
     gd.currentDb = db_num;

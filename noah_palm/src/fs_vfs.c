@@ -2,21 +2,41 @@
   Copyright (C) 2000-2002 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
-#ifdef NOAH_PRO
-/* only supported for Noah Pro, will bomb if used with Noah Lite */
-#include "noah_pro.h"
-#endif
-
-#include "extensible_buffer.h"
 
 #include "fs.h"
 #include "fs_ex.h"
 #include "fs_vfs.h"
+#include "extensible_buffer.h"
 
 #define MAX_VFS_VOLUMES 3
 static Boolean g_fVfsPresent = false;
 static Boolean g_VfsVolumeCount = 0;
 static UInt16  g_VfsVolumeRef[MAX_VFS_VOLUMES];
+
+typedef struct
+{
+    char    name[dmDBNameLength];
+    Int16   flags;
+    Int16   version;
+    UInt32  createTime;
+    UInt32  modifyTime;
+    UInt32  backupTime;
+    UInt32  modificationNumber;
+    UInt32  appInfoID;
+    UInt32  sortInfoID;
+    UInt32  type;
+    UInt32  creator;
+    UInt32  idSeed;
+    UInt32  nextRecordList;
+    Int16   recordsCount;
+} PdbHeader;
+
+typedef struct
+{
+    UInt32  recOffset;
+    char    attrib;
+    char    uniqueId[3];
+} PdbRecordHeader;
 
 /* Initialize vfs, return false if couldn't be initialized.
 Should only be called once */
@@ -87,59 +107,54 @@ void BuildFullPath(char *dir, char *file, char *fullPath)
     StrCat( fullPath, file );
 }
 
-
-UInt16   stdGetRecordsCount(void *data)
+UInt16   VfsUnlockRegion(VfsData *data)
 {
-    StdData *std = (StdData*)data;
-    return dcGetRecordsCount(&std->cacheData);
+    return dcGetRecordsCount(&data->cacheData);
 }
 
-long stdGetRecordSize(void *data, UInt16 recNo)
+long VfsGetRecordSize(VfsData *data, UInt16 recNo)
 {
-    StdData *std = (StdData*)data;
-    return dcGetRecordSize(&std->cacheData, recNo);
+    return dcGetRecordSize(&data->cacheData, recNo);
 }
 
-void *stdLockRecord(void *data, UInt16 recNo)
+void *VfsLockRecord(VfsData *data, UInt16 recNo)
 {
-    StdData *std = (StdData*)data;
-    return dcLockRecord(&std->cacheData, recNo);
-
+    return dcLockRecord(&data->cacheData, recNo);
 }
 
-void  stdUnlockRecord(void *data, UInt16 recNo)
+void  VfsUnlockRecord(VfsData *data, UInt16 recNo)
 {
-    StdData *std = (StdData*)data;
-    return dcUnlockRecord(&std->cacheData, recNo);
+    return dcUnlockRecord(&data->cacheData, recNo);
 }
 
-void  *stdLockRegion(void *data, UInt16 recNo, UInt16 offset, UInt16 size)
+void  *VfsLockRegion(VfsData *data, UInt16 recNo, UInt16 offset, UInt16 size)
 {
-    StdData *std = (StdData*)data;
-    return dcLockRegion( &std->cacheData, recNo, offset, size);
+    return dcLockRegion( &data->cacheData, recNo, offset, size);
 }
 
-void  stdUnlockRegion(void *data, void *dataPtr)
+void  VfsUnlockRegion(VfsData *data, char *dataPtr)
 {
-    StdData *std = (StdData*)data;
-    return dcUnlockRegion(&std->cacheData, dataPtr);
+    return dcUnlockRegion(&data->cacheData, dataPtr);
 }
 
+#if 0
+// TODO: remove ?
 void vfsStdSetCurrentDir(void *data, char *dir)
 {
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
     // undone: really necessary?
     ssDeinit( &std->dirsToVisit );
     ssPush( &std->dirsToVisit, dir );
 }
+#endif
 
 // max size of VFS path. 256+40 is a bit magical, hopefully this is
 // more than enough (256 according to docs)
 #define VFS_MAX_PATH_SIZE 256+40
 
-static void stdDeinit(void *data)
+static void VfsDeinit(void *data)
 {
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
 
     ssDeinit( &std->dirsToVisit );
     dcDeinit(&std->cacheData);
@@ -171,6 +186,11 @@ static void stdDeinit(void *data)
     }
 }
 
+VfsData *stdNew(void)
+{
+    return NULL;
+}
+
 /* Init VFS. Return true if exist and inited properly */
 static Err stdInit(void *data)
 {
@@ -178,9 +198,9 @@ static Err stdInit(void *data)
     UInt32      vfsMgrVersion;
     UInt16      volRef;
     UInt32      volIterator;
-    StdData     *std = (StdData*)data;
+    VfsData     *std = (VfsData*)data;
 
-    MemSet( std, sizeof(StdData), 0 );
+    MemSet( std, sizeof(VfsData), 0 );
     dcInit(&std->cacheData);
 
     std->recursiveP = true;
@@ -189,7 +209,7 @@ static Err stdInit(void *data)
     std->fileInfo.nameP = new_malloc(VFS_MAX_PATH_SIZE);
     if ( NULL == std->fileInfo.nameP )
     {
-        stdDeinit(data);
+        VfsDeinit(data);
         return ERR_NO_MEM;
     }
     std->fileInfo.nameBufLen = VFS_MAX_PATH_SIZE;
@@ -197,7 +217,7 @@ static Err stdInit(void *data)
     std->fullFileName = new_malloc(VFS_MAX_PATH_SIZE);
     if ( NULL == std->fullFileName )
     {
-        stdDeinit(data);
+        VfsDeinit(data);
         return ERR_NO_MEM;
     }
     std->currDir = NULL;
@@ -207,7 +227,7 @@ static Err stdInit(void *data)
     if (err)
     {
         DrawDebug("FtrGet(sysFileCVSMgr) failed");
-        stdDeinit(data);
+        VfsDeinit(data);
         return err;
     }
 
@@ -225,7 +245,7 @@ static Err stdInit(void *data)
         else
         {
             DrawDebug("FtrGet(sysFileCVSMgr) failed");
-            stdDeinit(data);
+            VfsDeinit(data);
             return false;
         }
     }
@@ -258,7 +278,7 @@ static Err stdCopyExternalToMem(void *data, UInt32 offset, UInt32 size, void *ds
     UInt32  currentOffset;
     UInt32  copyThisTime;
     UInt32  bytesRead;
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
 
     leftToCopy = size;
     currentOffset = 0;
@@ -339,7 +359,7 @@ static Boolean stdReadHeader(void *data)
     PdbRecordHeader    pdbRecHeader;
     char               recSizeBuf[30];
     char               recNumBuf[10];
-    StdData            *std = (StdData*)data;
+    VfsData            *std = (VfsData*)data;
 
     if (true == std->headerInitedP)
     {
@@ -456,7 +476,7 @@ static Boolean stdReadHeader(void *data)
 
 static UInt32 stdGetDbCreator(void *data)
 {
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
 
     stdReadHeader(std);
     return std->dbCreator;
@@ -464,40 +484,30 @@ static UInt32 stdGetDbCreator(void *data)
 
 static UInt32 stdGetDbType(void *data)
 {
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
     stdReadHeader(std);
     return std->dbType;
 }
 
 static char *stdGetDbName(void *data)
 {
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
     stdReadHeader(std);
     return std->name;
 }
 
 static char *stdGetDbPath(void *data)
 {
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
 
     stdReadHeader(std);
     return std->fullFileName;
 }
 
-/* set this file as current file to operate on */
-static Boolean stdSetCurrentDict(void *data, DBInfo *dbInfo)
-{
-    StdData *std = (StdData*)data;
-
-    StrCopy( std->fullFileName, dbInfo->dbFullPath );
-    std->headerInitedP = false;
-    return true;
-}
-
 /* Init iteration over files in VFS. */
 static void stdIterateRestart(void *data)
 {
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
     std->iterationInitedP = false;
 }
 
@@ -532,7 +542,7 @@ static Boolean isDirP(UInt32 fileAttr)
 Boolean stdIterateOverDbs(void *data)
 {
     Err     err;
-    StdData *std = (StdData*)data;
+    VfsData *std = (VfsData*)data;
 
     std->headerInitedP = false;
 
@@ -600,32 +610,5 @@ NoMoreFiles:
         std->dirRef = 0;
     }
     return false;
-}
-
-
-void setVfsToStd(Vfs *vfs)
-{
-    vfs->init = &stdInit;
-    vfs->deinit = &stdDeinit;
-    vfs->iterateRestart = &stdIterateRestart;
-    vfs->iterateOverDbs = &stdIterateOverDbs;
-    vfs->findDb = &vfsFindDb;
-
-    vfs->getDbCreator = &stdGetDbCreator;
-    vfs->getDbType = &stdGetDbType;
-    vfs->getDbName = &stdGetDbName;
-    vfs->getDbPath = &stdGetDbPath;
-
-    vfs->getRecordsCount = &stdGetRecordsCount;
-
-    vfs->getRecordSize = &stdGetRecordSize;
-    vfs->lockRecord = &stdLockRecord;
-    vfs->unlockRecord = &stdUnlockRecord;
-    vfs->lockRegion = &stdLockRegion;
-    vfs->unlockRegion = &stdUnlockRegion;
-    //vfs->cacheRecords = &dcCacheRecords;
-    vfs->copyExternalToMem = &stdCopyExternalToMem;
-    vfs->readHeader = &stdReadHeader;
-    vfs->setCurrentDict = &stdSetCurrentDict;
 }
 

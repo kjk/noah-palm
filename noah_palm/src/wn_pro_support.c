@@ -73,11 +73,11 @@ void *wn_new(void)
     if (NULL == wi)
         goto Error;
 
-    firstRecord = (WnFirstRecord *) vfsLockRecord(0);
+    firstRecord = (WnFirstRecord *) CurrFileLockRecord(0);
     if (NULL == firstRecord)
         goto Error;
 
-    wi->recordsCount = vfsGetRecordsCount();
+    wi->recordsCount = CurrFileGetRecordsCount();
     wi->wordsCount = firstRecord->wordsCount;
     wi->synsetsCount = firstRecord->synsetsCount;
 
@@ -109,14 +109,14 @@ void *wn_new(void)
     rec_with_words_compr_data = 3;
 #endif
 
-    if (sizeof(WnFirstRecord) == vfsGetRecordSize(0))
+    if (sizeof(WnFirstRecord) == CurrFileGetRecordSize(0))
     {
         wi->fastP = false;
     }
     else
     {
         wi->fastP = true;
-        wi->cacheEntries = vfsGetRecordSize(0) - sizeof(WnFirstRecord);
+        wi->cacheEntries = CurrFileGetRecordSize(0) - sizeof(WnFirstRecord);
         wi->cacheEntries = wi->cacheEntries / sizeof(SynWordCountCache);
     }
 
@@ -146,7 +146,7 @@ void *wn_new(void)
     }
 
   Exit:
-    vfsUnlockRecord(0);
+    CurrFileUnlockRecord(0);
     return (void *) wi;
   Error:
     if (wi)
@@ -297,11 +297,11 @@ void si_destroy(SynsetsInfo * si)
     Assert(si);
     if (si->curWordsNumRec != -1)
     {
-        vfsUnlockRecord(si->curWordsNumRec);
+        CurrFileUnlockRecord(si->curWordsNumRec);
     }
     if (si->curSynsetInfoRec != -1)
     {
-        vfsUnlockRecord(si->curSynsetInfoRec);
+        CurrFileUnlockRecord(si->curSynsetInfoRec);
     }
     si_init(si, si->firstWordsNumRec, si->firstSynsetInfoRec,
             si->bytesPerWordNum);
@@ -346,24 +346,24 @@ void si_position_at_synset(SynsetsInfo * si, long synset)
     /* find the record that has data for this synset */
     rec_idx = synset;
     rec = si->firstSynsetInfoRec;
-    while (rec_idx >= vfsGetRecordSize(rec))
+    while (rec_idx >= CurrFileGetRecordSize(rec))
     {
-        rec_idx -= vfsGetRecordSize(rec);
+        rec_idx -= CurrFileGetRecordSize(rec);
         ++rec;
     }
     if (si->curSynsetInfoRec != rec)
     {
         if (si->curSynsetInfoRec != -1)
         {
-            vfsUnlockRecord(si->curSynsetInfoRec);
+            CurrFileUnlockRecord(si->curSynsetInfoRec);
         }
         si->curSynsetInfoRec = rec;
-        si->synsetDataStart = (unsigned char *) vfsLockRecord(rec);
+        si->synsetDataStart = (unsigned char *) CurrFileLockRecord(rec);
         if (NULL == si->synsetDataStart)
             return;
     }
     si->synsetData = si->synsetDataStart + rec_idx;
-    si->synsetDataLeft = vfsGetRecordSize(rec) - rec_idx;
+    si->synsetDataLeft = CurrFileGetRecordSize(rec) - rec_idx;
     si->currSynset = synset;
 }
 
@@ -417,7 +417,7 @@ long si_total_words_count(SynsetsInfo * si, long synset)
 
     if (NULL == si->swcc)
     {
-        data = ((unsigned char *) vfsLockRecord(0)) + sizeof(WnFirstRecord);
+        data = ((unsigned char *) CurrFileLockRecord(0)) + sizeof(WnFirstRecord);
         if (NULL == data)
             return 0;
         swcc = (SynWordCountCache *) data;
@@ -440,7 +440,7 @@ long si_total_words_count(SynsetsInfo * si, long synset)
     }
     if (data != NULL)
     {
-        vfsUnlockRecord(0);
+        CurrFileUnlockRecord(0);
     }
     return total_words_count;
 }
@@ -469,23 +469,23 @@ void si_position_at_word(SynsetsInfo * si, long synset, int word_idx)
         /* just do it from scratch */
         if (si->curWordsNumRec != -1)
         {
-            vfsUnlockRecord(si->curWordsNumRec);
+            CurrFileUnlockRecord(si->curWordsNumRec);
         }
         rec = si->firstWordsNumRec;
         total_words_count = si_total_words_count(si, synset) + word_idx;
         rec_idx = total_words_count * si->bytesPerWordNum;
 
-        while (rec_idx >= vfsGetRecordSize(rec))
+        while (rec_idx >= CurrFileGetRecordSize(rec))
         {
-            rec_idx -= vfsGetRecordSize(rec);
+            rec_idx -= CurrFileGetRecordSize(rec);
             ++rec;
         }
         si->curWordsNumRec = rec;
-        si->wordsNumData = (unsigned char *) vfsLockRecord(rec);
+        si->wordsNumData = (unsigned char *) CurrFileLockRecord(rec);
         if (NULL == si->wordsNumData)
             return;
         si->wordsNumData += rec_idx;
-        si->wordsNumDataLeft = vfsGetRecordSize(rec) - rec_idx;
+        si->wordsNumDataLeft = CurrFileGetRecordSize(rec) - rec_idx;
         si->currSynsetWordsNum = synset;
         si->currWord = word_idx;
         return;
@@ -529,12 +529,12 @@ void si_position_at_word(SynsetsInfo * si, long synset, int word_idx)
             /* FIXME: this only work if within the distance of one record */
             move_by -= si->wordsNumDataLeft;
             rec = si->curWordsNumRec;
-            vfsUnlockRecord(rec);
+            CurrFileUnlockRecord(rec);
             ++rec;
-            si->wordsNumData = (unsigned char *) vfsLockRecord(rec);
+            si->wordsNumData = (unsigned char *) CurrFileLockRecord(rec);
             if (NULL == si->wordsNumData)
                 return;
-            si->wordsNumDataLeft = vfsGetRecordSize(rec);
+            si->wordsNumDataLeft = CurrFileGetRecordSize(rec);
             Assert(move_by < si->wordsNumDataLeft);
             si->wordsNumData += move_by;
             si->wordsNumDataLeft -= move_by;
@@ -561,7 +561,7 @@ void si_position_at_word(SynsetsInfo * si, long synset, int word_idx)
             move_by = move_by * si->bytesPerWordNum;
             rec = si->curWordsNumRec;
             if (move_by <=
-                (vfsGetRecordSize(rec) - si->wordsNumDataLeft))
+                (CurrFileGetRecordSize(rec) - si->wordsNumDataLeft))
             {
                 /* within the record */
                 si->wordsNumDataLeft += move_by;
@@ -570,13 +570,13 @@ void si_position_at_word(SynsetsInfo * si, long synset, int word_idx)
             else
             {
                 move_by -=
-                    (vfsGetRecordSize(rec) - si->wordsNumDataLeft);
-                vfsUnlockRecord(rec);
+                    (CurrFileGetRecordSize(rec) - si->wordsNumDataLeft);
+                CurrFileUnlockRecord(rec);
                 --rec;
-                si->wordsNumData = (unsigned char *) vfsLockRecord(rec);
+                si->wordsNumData = (unsigned char *) CurrFileLockRecord(rec);
                 if (NULL == si->wordsNumData)
                     return;
-                si->wordsNumData += (vfsGetRecordSize(rec) - move_by);
+                si->wordsNumData += (CurrFileGetRecordSize(rec) - move_by);
                 si->wordsNumDataLeft = move_by;
                 si->curWordsNumRec = rec;
             }
@@ -596,93 +596,92 @@ void si_position_at_word(SynsetsInfo * si, long synset, int word_idx)
 */
 int si_word_in_synset_forward_p(SynsetsInfo * si, long *synset, long wordNo)
 {
-    long word_num_found;
-    long smallest_word_no = -1;
-    int i, wordsCount;
-    long wordsNumDataLeft;
-    long max_synsets;
-    int ret_value;
+    long    wordNumFound;
+    long    smallestWordNo = -1;
+    int     i, j, wordsCount;
+    long    wordsNumDataLeft;
+    long    maxSynset;
+    int     retValue;
     unsigned char *synsetData = NULL;
-    unsigned char *word_nums = NULL;
-    long j;
+    unsigned char *wordNums = NULL;
 
     si_position_at_synset(si, *synset);
     synsetData = si->synsetData;
-    max_synsets = si->synsetDataLeft;
+    maxSynset = si->synsetDataLeft;
 
     si_position_at_word(si, *synset, 0);
-    word_nums = si->wordsNumData;
+    wordNums = si->wordsNumData;
     wordsNumDataLeft = (long) si->wordsNumDataLeft;
 
     /* we rely on the fact, that data for one synset doesn't
        cross boundaries of records. I hope it's true */
     if (3 == si->bytesPerWordNum)
     {
-        for (j = 0; j < max_synsets; j++)
+        for (j = 0; j < maxSynset; j++)
         {
             wordsCount = *synsetData++ & 63;
             for (i = 0; i < wordsCount; i++)
             {
-                word_num_found =
-                    ((long) (word_nums[0])) * 256 * 256 +
-                    256 * ((long) word_nums[1]) + (long) word_nums[2];
-                if (wordNo == word_num_found)
+                wordNumFound =
+                    ((long) (wordNums[0])) * 256 * 256 +
+                    256 * ((long) wordNums[1]) + (long) wordNums[2];
+                if (wordNo == wordNumFound)
                 {
                     *synset += j;
-                    ret_value = 2;
+                    retValue = 2;
                     goto Exit;
                 }
-                word_nums += 3;
-                if (word_num_found < smallest_word_no)
+                wordNums += 3;
+                if (wordNumFound < smallestWordNo)
                 {
-                    smallest_word_no = word_num_found;
+                    smallestWordNo = wordNumFound;
                 }
             }
             wordsNumDataLeft -= wordsCount * 3;
-            if (smallest_word_no > wordNo)
+            if (smallestWordNo > wordNo)
             {
                 *synset += j;
-                ret_value = 1;
+                retValue = 1;
                 goto Exit;
             }
             Assert(wordsNumDataLeft >= 0);
             if (0 == wordsNumDataLeft)
             {
                 *synset += j;
-                ret_value = 0;
+                retValue = 0;
                 goto Exit;
             }
         }
-        *synset += (max_synsets - 1);
-        ret_value = 0;
+        *synset += (maxSynset - 1);
+        retValue = 0;
         goto Exit;
     }
     else
     {
         Assert(2 == si->bytesPerWordNum);
-        for (j = 0; j < max_synsets; j++)
+        for (j = 0; j < maxSynset; j++)
         {
             wordsCount = *synsetData++ & 63;
             for (i = 0; i < wordsCount; i++)
             {
-                word_num_found =
-                    ((long) (word_nums[0])) * 256 + (long) word_nums[1];
-                word_nums += 2;
-                if (wordNo == word_num_found)
+                wordNumFound =
+                    ((long) (wordNums[0])) * 256 + (long) wordNums[1];
+                wordNums += 2;
+                if (wordNo == wordNumFound)
                 {
                     *synset += j;
-                    ret_value = 2;
+                    retValue = 2;
                     goto Exit;
                 }
-                if (word_num_found < smallest_word_no)
+                if (wordNumFound < smallestWordNo)
                 {
-                    smallest_word_no = word_num_found;
+                    smallestWordNo = wordNumFound;
                 }
             }
-            if (smallest_word_no > wordNo)
+            if (smallestWordNo > wordNo)
             {
                 *synset += j;
-                ret_value = 1;
+                retValue = 1;
                 goto Exit;
             }
             wordsNumDataLeft -= wordsCount * 2;
@@ -690,60 +689,58 @@ int si_word_in_synset_forward_p(SynsetsInfo * si, long *synset, long wordNo)
             if (0 == wordsNumDataLeft)
             {
                 *synset += j;
-                ret_value = 0;
+                retValue = 0;
                 goto Exit;
             }
         }
-        *synset += (max_synsets - 1);
-        ret_value = 0;
+        *synset += (maxSynset - 1);
+        retValue = 0;
         goto Exit;
     }
   Exit:
     si_destroy(si);
-    return ret_value;
+    return retValue;
 }
 
 int si_word_in_synset_backward_p(SynsetsInfo * si, long *synset, long wordNo)
 {
-    long word_num_found;
-    int i, wordsCount;
-    unsigned char *word_nums;
+    long    wordNumFound;
+    int     i, j, wordsCount;
+    unsigned char *wordNums;
     unsigned char *synsetData;
-    long wordsNumDataLeft;
-    long max_synsets;
-    int ret_value;
-    long j;
+    long    wordsNumDataLeft;
+    long    maxSynset;
+    int     retValue;
 
     si_position_at_synset(si, *synset);
     synsetData = si->synsetData;
-    max_synsets =
-        vfsGetRecordSize(si->curSynsetInfoRec) - si->synsetDataLeft;
+    maxSynset = CurrFileGetRecordSize(si->curSynsetInfoRec) - si->synsetDataLeft;
 
     /* position at the last word in this synset, so we can go backward */
     wordsCount = *synsetData & 63;
     si_position_at_word(si, *synset, 0);
     wordsNumDataLeft =
-        vfsGetRecordSize(si->curWordsNumRec) - si->wordsNumDataLeft;
+    CurrFileGetRecordSize(si->curWordsNumRec) - si->wordsNumDataLeft;
     wordsNumDataLeft += wordsCount * si->bytesPerWordNum;
-    word_nums = si->wordsNumData + wordsCount * si->bytesPerWordNum;
+    wordNums = si->wordsNumData + wordsCount * si->bytesPerWordNum;
 
     /* we rely on the fact, that data for one synset doesn't
        cross boundaries of records. I hope it's true */
     if (3 == si->bytesPerWordNum)
     {
-        for (j = 0; j < max_synsets; j++)
+        for (j = 0; j < maxSynset; j++)
         {
             wordsCount = *synsetData-- & 63;
             for (i = 0; i < wordsCount; i++)
             {
-                word_nums -= 3;
-                word_num_found =
-                    ((long) (word_nums[0])) * 256 * 256 +
-                    256 * ((long) word_nums[1]) + (long) word_nums[2];
-                if (wordNo == word_num_found)
+                wordNums -= 3;
+                wordNumFound =
+                    ((long) (wordNums[0])) * 256 * 256 +
+                    256 * ((long) wordNums[1]) + (long) wordNums[2];
+                if (wordNo == wordNumFound)
                 {
                     *synset -= j;
-                    ret_value = 2;
+                    retValue = 2;
                     goto Exit;
                 }
             }
@@ -768,30 +765,30 @@ int si_word_in_synset_backward_p(SynsetsInfo * si, long *synset, long wordNo)
                 {
                     *synset -= (j + 1);
                 }
-                ret_value = 0;
+                retValue = 0;
                 goto Exit;
             }
         }
-        *synset -= max_synsets;
+        *synset -= maxSynset;
 
-        ret_value = 0;
+        retValue = 0;
         goto Exit;
     }
     else
     {
         Assert(2 == si->bytesPerWordNum);
-        for (j = 0; j < max_synsets; j++)
+        for (j = 0; j < maxSynset; j++)
         {
             wordsCount = *synsetData-- & 63;
             for (i = 0; i < wordsCount; i++)
             {
-                word_nums -= 2;
-                word_num_found =
-                    ((long) (word_nums[0])) * 256 + (long) word_nums[1];
-                if (wordNo == word_num_found)
+                wordNums -= 2;
+                wordNumFound =
+                    ((long) (wordNums[0])) * 256 + (long) wordNums[1];
+                if (wordNo == wordNumFound)
                 {
                     *synset -= j;
-                    ret_value = 2;
+                    retValue = 2;
                     goto Exit;
                 }
             }
@@ -815,22 +812,22 @@ int si_word_in_synset_backward_p(SynsetsInfo * si, long *synset, long wordNo)
                 {
                     *synset -= (j + 1);
                 }
-                ret_value = 0;
+                retValue = 0;
                 goto Exit;
             }
         }
-        *synset -= max_synsets;
-        ret_value = 0;
+        *synset -= maxSynset;
+        retValue = 0;
         goto Exit;
     }
   Exit:
     si_destroy(si);
-    return ret_value;
+    return retValue;
 }
 
 long si_get_word_no(SynsetsInfo * si, long synset, int word_idx)
 {
-    long word_num_found;
+    long wordNumFound;
     unsigned char *data;
 
     Assert(word_idx < si_get_words_count(si, synset));
@@ -839,15 +836,15 @@ long si_get_word_no(SynsetsInfo * si, long synset, int word_idx)
     data = si->wordsNumData;
     if (3 == si->bytesPerWordNum)
     {
-        word_num_found =
+        wordNumFound =
             ((long) (data[0])) * 256 * 256 + 256 * ((long) data[1]) +
             (long) data[2];
     }
     else
     {
-        word_num_found = ((long) (data[0])) * 256 + (long) data[1];
+        wordNumFound = ((long) (data[0])) * 256 + (long) data[1];
     }
-    return word_num_found;
+    return wordNumFound;
 }
 
 /*
@@ -863,7 +860,7 @@ int wn_get_synset_count(WnInfo * wi, long wordNo)
     {
         return 0;
     }
-    data = (unsigned char *) vfsLockRecord(wi->synCountRec);
+    data = (unsigned char *) CurrFileLockRecord(wi->synCountRec);
 
     if (NULL == data)
         return 0;
@@ -874,7 +871,7 @@ int wn_get_synset_count(WnInfo * wi, long wordNo)
     synset_count = synset_count >> (2 * (wordNo % 4));
     synset_count &= 0x3;
 
-    vfsUnlockRecord(wi->synCountRec);
+    CurrFileUnlockRecord(wi->synCountRec);
     return synset_count;
 }
 
@@ -892,7 +889,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     int syn_found_count = 0;
     int wordsCount;
     int partOfSpeech;
-    long word_num_found;
+    long wordNumFound;
     long w;
     int first_rec_with_defs_len;
     int first_rec_with_defs;
@@ -962,7 +959,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             ebufAddChar(&g_buf, ' ');
 
             partOfSpeech = si_get_pos(si, syn);
-            txt = get_wn_pos_txt(partOfSpeech);
+            txt = GetWnPosTxt(partOfSpeech);
             ebufAddStr(&g_buf, txt);
 
             wordsCount = si_get_words_count(si, syn);
@@ -970,8 +967,8 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
 
             for (w = 0; w < wordsCount; w++)
             {
-                word_num_found = si_get_word_no(si, syn, w);
-                word = wn_get_word((void *) wi, word_num_found);
+                wordNumFound = si_get_word_no(si, syn, w);
+                word = wn_get_word((void *) wi, wordNumFound);
                 ebufAddStr(&g_buf, word);
                 if (w == wordsCount - 1)
                 {
@@ -1001,7 +998,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             Assert((def_offset >= 0) && (def_offset < 66000));
             Assert((defDataSize >= 0));
 
-            defData = (unsigned char *) vfsLockRecord(defs_record);
+            defData = (unsigned char *) CurrFileLockRecord(defs_record);
             if (NULL == defData)
             {
                 return NULL;
@@ -1016,7 +1013,7 @@ Err wn_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
             unpackedDef = wi->curDefData;
             Assert((1 == unpackedDef[unpackedLen - 1]) ||
                    (0 == unpackedDef[unpackedLen - 1]));
-            vfsUnlockRecord(defs_record);
+            CurrFileUnlockRecord(defs_record);
 
             while (unpackedLen > 0)
             {

@@ -27,6 +27,8 @@ extern GlobalData gd;
 #include "extensible_buffer.h"
 #include "fs.h"
 
+#include "roget_support.h"
+
 /* return a copy of the string. Caller needs to free the memory */
 char *strdup( char *str )
 {
@@ -586,12 +588,12 @@ Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int 
     Assert(first_record_with_defs >= 0);
 
     curr_record = first_record_with_defs_len;
-    def_lens = (unsigned char *) vfsLockRecord(curr_record);
+    def_lens = (unsigned char *) CurrFileLockRecord(curr_record);
     if (NULL == def_lens)
     {
         return false;
     }
-    curr_rec_size = vfsGetRecordSize(curr_record);
+    curr_rec_size = CurrFileGetRecordSize(curr_record);
 
     /* calculate the length and offset of all entries */
     idx_in_rec = 0;
@@ -621,18 +623,18 @@ Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int 
         Assert( idx_in_rec <= curr_rec_size );
         if (idx_in_rec == curr_rec_size)
         {
-            vfsUnlockRecord(curr_record);
+            CurrFileUnlockRecord(curr_record);
             ++curr_record;
             Assert(curr_record < first_record_with_defs_len + defs_len_rec_count);
-            def_lens = (unsigned char *) vfsLockRecord(curr_record);
-            curr_rec_size = vfsGetRecordSize(curr_record);
+            def_lens = (unsigned char *) CurrFileLockRecord(curr_record);
+            curr_rec_size = CurrFileGetRecordSize(curr_record);
             idx_in_rec = 0;
         }
         ++current_entry;
     }
     while (true);
 
-    vfsUnlockRecord(curr_record);
+    CurrFileUnlockRecord(curr_record);
 
     /* -1 means that we haven't yet found record for this one */
     for (entry_index = 0; entry_index < entry_count; ++entry_index)
@@ -651,9 +653,9 @@ Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int 
             if (-1 == synsets[entry_index].record)
             {
                 /* didn't find the record yet for this one */
-                if (synsets[entry_index].offset >= vfsGetRecordSize(curr_record))
+                if (synsets[entry_index].offset >= CurrFileGetRecordSize(curr_record))
                 {
-                    synsets[entry_index].offset -= vfsGetRecordSize(curr_record);
+                    synsets[entry_index].offset -= CurrFileGetRecordSize(curr_record);
                     loop_end_p = false;
                 }
                 else
@@ -669,7 +671,7 @@ Boolean get_defs_records(long entry_count, int first_record_with_defs_len,  int 
     return true;
 }
 
-char *get_nth_txt(int n, char *txt)
+char *GetNthTxt(int n, char *txt)
 {
     while (n > 0)
     {
@@ -683,9 +685,9 @@ char *get_nth_txt(int n, char *txt)
     return txt;
 }
 
-char * get_wn_pos_txt(int pos)
+char * GetWnPosTxt(int pos)
 {
-    return get_nth_txt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
+    return GetNthTxt(pos, "(noun) \0(verb) \0(adj.) \0(adv.) \0");
 }
 
 #ifdef STRESS
@@ -702,39 +704,119 @@ void stress(long step)
 }
 #endif
 
-void *dictNew(void)
+/* return the dictionary type for the current file */
+UInt32 CurrFileDictType(void)
 {
-    return (*gd.currentDict.objectNew) ();
+    AbstractFile *file = GetCurrentFile();
+    return file->type;
+}
+
+Boolean dictNew(void)
+{
+    AbstractFile *file = GetCurrentFile();
+
+    switch (CurrFileDictType())
+    {
+        case ROGET_TYPE:
+            file->dictData.roget = RogetNew();
+            if (NULL == file->dictData.roget)
+                return false;
+            break;
+#if 0
+        case WORDNET_PRO_TYPE:
+            file->dictData.wn = wn_new();
+            break;
+#endif
+        default:
+            Assert(0);
+    }
+    return true;
 }
 
 /* free all resources allocated by dictionary */
 void dictDelete(void)
 {
-    if (gd.dictData)
+    AbstractFile *file = GetCurrentFile();
+    switch (CurrFileDictType())
     {
-        (*gd.currentDict.objectDelete) (gd.dictData);
-        gd.dictData = NULL;
+        case ROGET_TYPE:
+            RogetDelete( file->dictData.roget );
+            file->dictData.roget = NULL;
+            break;
+        case WORDNET_PRO_TYPE:
+#if 0
+            wn_delete( file->dictData.wn );
+            file->dictData.wn = NULL;
+#endif
+            break;
+        default:
+            Assert(0);
+            break;
     }
 }
 
 long dictGetWordsCount(void)
 {
-    return (*gd.currentDict.getWordsCount) (gd.dictData);
+    AbstractFile *file = GetCurrentFile();
+    switch (CurrFileDictType())
+    {
+        case ROGET_TYPE:
+            return RogetGetWordsCount( file->dictData.roget );
+        case WORDNET_PRO_TYPE:
+            Assert(0);
+            return 0;
+        default:
+            Assert(0);
+            return 0;
+    }
 }
 
 long dictGetFirstMatching(char *word)
 {
-    return (*gd.currentDict.getFirstMatching) (gd.dictData, word);
+    AbstractFile *file = GetCurrentFile();
+    switch (CurrFileDictType())
+    {
+        case ROGET_TYPE:
+            return RogetGetFirstMatching( file->dictData.roget, word );
+        case WORDNET_PRO_TYPE:
+            Assert(0);
+            return 0;
+        default:
+            Assert(0);
+            return 0;
+    }
 }
 
 char *dictGetWord(long wordNo)
 {
-    return (*gd.currentDict.getWord) (gd.dictData, wordNo);
+    AbstractFile *file = GetCurrentFile();
+    switch (CurrFileDictType())
+    {
+        case ROGET_TYPE:
+            return RogetGetWord( file->dictData.roget, wordNo );
+        case WORDNET_PRO_TYPE:
+            Assert(0);
+            return 0;
+        default:
+            Assert(0);
+            return NULL;
+    }
 }
 
 Err dictGetDisplayInfo(long wordNo, int dx, DisplayInfo * di)
 {
-    return (*gd.currentDict.getDisplayInfo) (gd.dictData, wordNo, dx, di);
+    AbstractFile *file = GetCurrentFile();
+    switch (CurrFileDictType())
+    {
+        case ROGET_TYPE:
+            return RogetGetDisplayInfo( file->dictData.roget, wordNo, dx, di );
+        case WORDNET_PRO_TYPE:
+            Assert(0);
+            return 0;
+        default:
+            Assert(0);
+            return 0;
+    }
 }
 
 extern char helpText[];
@@ -879,10 +961,10 @@ void DefScrollDown(ScrollType scroll_type)
     SetScrollbarState(di, DRAW_DI_LINES, gd.firstDispLine);
 }
 
-char *GetDatabaseName(int db_num)
+char *GetDatabaseName(int dictNo)
 {
-    Assert((db_num >= 0) && (db_num < gd.dbsCount));
-    return gd.foundDbs[db_num].dbName;
+    Assert((dictNo >= 0) && (dictNo < cgd.dictsCount));
+    return cgd.dicts[dictNo]->fileName;
 }
 
 void LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount)
@@ -1112,40 +1194,4 @@ char *ssPop( StringStack *ss )
     ss->stackedCount -= 1;
     ss->freeSlots += 1;
     return toReturn;
-}
-
-UInt32 GetCreatorFromVfsType( VFSDBType vfsDbType )
-{
-    switch( vfsDbType )
-    {
-#ifdef NOAH_PRO
-        case DB_LEX_STD:
-        case DB_PRO_DM:
-        case DB_SIMPLE_DM:
-            return NOAH_PRO_CREATOR;
-#endif
-#ifdef THESAURUS
-    case DB_ROGET_DM:
-        return THES_CREATOR;
-#endif
-        default:
-            Assert(0);
-            return 0;
-    }
-}
-
-UInt32 GetTypeFromVfsType( VFSDBType vfsDbType )
-{
-    switch( vfsDbType )
-    {
-        case DB_LEX_STD:
-            return WORDNET_LITE_TYPE;
-        case DB_PRO_DM:
-            return WORDNET_PRO_TYPE;
-        case DB_SIMPLE_DM:
-            return SIMPLE_TYPE;
-        default:
-            Assert(0);
-            return 0;
-    }
 }

@@ -18,16 +18,30 @@ STRING ID helpPrefs
 "Options as for up/down buttons\n\n"\
 "For more info see the documentation"
 
+#ifdef STRESS
+MENU ID menuMain
+BEGIN
+  PULLDOWN "Main"
+  BEGIN
+    MENUITEM "Preferences"             ID menuItemPrefs  "P"
+    MENUITEM "Find word"               ID menuItemFind   "F"
+    MENUITEM "Info"                    ID menuItemHelp   "I"
+    MENUITEM "About"                   ID menuItemAbout  "A"
+    MENUITEM "Stress"                  ID menuItemStress "S"
+  END
+END
+#else
 MENU ID menuMain
 BEGIN
   PULLDOWN "Main"
   BEGIN
     MENUITEM "Preferences"             ID menuItemPrefs "P"
-    MENUITEM "Find word"               ID menuItemFind "F"
-    MENUITEM "Info"                    ID menuItemHelp "I"
+    MENUITEM "Find word"               ID menuItemFind  "F"
+    MENUITEM "Info"                    ID menuItemHelp  "I"
     MENUITEM "About"                   ID menuItemAbout "A"
   END
 END
+#endif
 
 FORM formDictMain AT (0 0 160 160)
 USABLE

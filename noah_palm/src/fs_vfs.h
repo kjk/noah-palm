@@ -16,11 +16,6 @@
 
 typedef struct
 {
-    int a;
-} aStruct;
-
-typedef struct
-{
     UInt16          volRef;
     FileRef         dirRef;
     FileInfoType    fileInfo;
@@ -40,10 +35,7 @@ typedef struct
 
     StringStack     dirsToVisit;
     DbCacheData     cacheData;
-}StdData;
-
-void setVfsToStd(Vfs *vfs);
-void vfsStdSetCurrentDir(void *data, char *dir);
+}VfsData;
 
 Boolean FsVfsInit(void);
 void    FsVfsDeinit(void);

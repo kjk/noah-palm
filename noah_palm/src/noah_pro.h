@@ -76,9 +76,7 @@ typedef struct
     void                *dictData;
     int                 currentDb;
     int                 newDb;
-    Dict                currentDict;
     int                 dbsCount;
-    DBInfo              foundDbs[MAX_DBS];
     DisplayInfo         *currDispInfo;
     ExtensibleBuffer    *helpDipsBuf;
     long                currentWord;
@@ -92,19 +90,6 @@ typedef struct
     long                selectedWord;
     Boolean             prefsPresentP;
     NoahPrefs           prefs;
-    Vfs                 *currVfs;
-
-    Boolean             memInitedP;
-    Boolean             memWorksP;
-    Vfs                 memVfs;
-    MemData             memVfsData;
-
-#ifdef FS_VFS
-    Boolean             stdInitedP;
-    Boolean             stdWorksP;
-    Vfs                 stdVfs;
-    StdData             stdVfsData;
-#endif
 } GlobalData;
 
 #endif

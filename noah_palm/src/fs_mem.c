@@ -40,7 +40,7 @@ void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB)
         MemSet(dbName, 32, 0);
         err = DmGetNextDatabaseByTypeCreator(fNewSearch, &stateInfo, type, creator, 0, &cardNo, &dbId);
         fNewSearch = false;
-        Assert( errNone == err );
+
         if ( errNone != err )
             return;
 
@@ -51,28 +51,33 @@ void FsMemFindDb(UInt32 creator, UInt32 type, char *name, FIND_DB_CB *pCB)
 
         file = AbstractFileNewFull( eFS_MEM, creatorFound, typeFound, dbName );
         if (NULL==file) return;
+        file->cardNo = cardNo;
+        file->dbId = dbId;
 
         /* call the callback function to notify that matching db has been found */
         (*pCB)(file);
     }
 }
 
-static void     memDeinit(void *data);
-
-static Err memInit(void *data)
+struct MemData *memNew(AbstractFile *file)
 {
-    MemData     *memData = (MemData*) data;
- 
-    memData->iterationInitedP = false;
-    memData->recsInfo = NULL;
-    memData->openDb = 0;
-    return ERR_NONE;
+    struct MemData *memData = (struct MemData *)new_malloc_zero(sizeof(struct MemData));
+    if (memData)
+    {
+        memInit(memData,file);
+    }
+    return memData;
 }
 
-static void memCloseDb(void *data)
-{
-    MemData     *memData = (MemData*) data;
+void memInit(struct MemData *memData,AbstractFile *file)
+{ 
+    memData->file = file;
+    memData->recsInfo = NULL;
+    memData->openDb = 0;
+}
 
+void memCloseDb(struct MemData *memData)
+{
 #ifdef DEBUG
     int i;
     /* make sure that every opened record has been closed */
@@ -91,11 +96,9 @@ static void memCloseDb(void *data)
 }
 
 
-static void memDeinit(void *data)
+void memDeinit(struct MemData *memData)
 {
-    MemData     *memData = (MemData*) data;
-
-    memCloseDb(data);
+    memCloseDb(memData);
     if (NULL != memData->recsInfo)
     {
         new_free(memData->recsInfo);
@@ -103,31 +106,25 @@ static void memDeinit(void *data)
     }
 }
 
-/* Open the database. May fail, in which case return non-zero value */
-static int memOpenDb(void *data)
+/* Open the database. May fail, in which case return false */
+Boolean memOpenDb(struct MemData *memData)
 {
     UInt16      i;
     Err         err;
-    MemData     *memData = (MemData*) data;
 
-    if (memData->openDb != 0)
-    {
-        return 0;
-    }
-    //memData->openDb = DmOpenDatabase(memData->cardNo, memData->dbId, dmModeReadWrite);
-    memData->openDb = DmOpenDatabase(memData->cardNo, memData->dbId, dmModeReadOnly);
+    Assert ( 0 == memData->openDb != 0);
+
+    memData->openDb = DmOpenDatabase(memData->file->cardNo, memData->file->dbId, dmModeReadOnly);
     if ( 0 == memData->openDb )
     {
         err = DmGetLastErr();
-        return 1;
+        return false;
     }
     memData->recsCount = DmNumRecords(memData->openDb);
     memData->recsInfo = (OneMemRecordInfo *) new_malloc(memData->recsCount *sizeof(OneMemRecordInfo));
 
     if (NULL == memData->recsInfo)
-    {
-        return 1;
-    }
+        return false;
 
     for (i = 0; i < memData->recsCount; i++)
     {
@@ -135,90 +132,20 @@ static int memOpenDb(void *data)
         memData->recsInfo[i].data = NULL;
         memData->recsInfo[i].lockCount = 0;
     }
-    return 0;
-}
-
-static UInt32 memGetDbCreator(void *data)
-{
-    MemData     *memData = (MemData*) data;
-    return memData->dbCreator;
-}
-
-static UInt32 memGetDbType(void *data)
-{
-    MemData     *memData = (MemData*) data;
-    return memData->dbType;
-}
-
-static char *memGetDbName(void *data)
-{
-    MemData     *memData = (MemData*) data;
-    return memData->name;
-}
-
-/* Init iteration over files in TRGPro CF.
-   Return: false if failed somewhere. */
-static void memIterateRestart(void *data)
-{
-    MemData     *memData = (MemData*) data;
-    memData->iterationInitedP = false;
-}
-
-/* Iterate over files on TRGPro CF, but only in top-most directory.
-   Return false if no more files.
- */
-static Boolean memInterateOverDbs(void *data)
-{
-    Err err;
-    MemData     *memData = (MemData*) data;
-
-    MemSet(&memData->name, 32, 0);
-    if (false == memData->iterationInitedP)
-    {
-        err = DmGetNextDatabaseByTypeCreator(1, &memData->stateInfo, 0, 0,
-                                             0, &(memData->cardNo),
-                                             &(memData->dbId));
-        memData->iterationInitedP = true;
-    }
-    else
-    {
-        err = DmGetNextDatabaseByTypeCreator(0, &memData->stateInfo, 0, 0,
-                                             0, &(memData->cardNo),
-                                             &(memData->dbId));
-    }
-
-    if (0 != err)
-    {
-        return false;
-    }
-    DmDatabaseInfo(memData->cardNo, memData->dbId, memData->name,
-                   0, 0, 0, 0, 0, 0, 0, 0, &(memData->dbType),
-                   &(memData->dbCreator));
     return true;
 }
 
 /* find the database with a given creator, type and name. Return
 true if found, false otherwise. Also sets the database as a
 "current" one. */
-static UInt16 memGetRecordsCount(void *data)
+UInt16 memGetRecordsCount(struct MemData *memData)
 {
-    MemData     *memData = (MemData*) data;
-
-    if ( 0 == memData->openDb )
-        memOpenDb(data);
     return memData->recsCount;
 }
 
-static void *memLockRecord(void *data,UInt16 recNo)
+void *memLockRecord(struct MemData *memData,UInt16 recNo)
 {
     MemHandle recHandle;
-    MemData     *memData = (MemData*) data;
-
-    if ( 0 == memData->openDb )
-    {
-        if ( 0 != memOpenDb(data) )
-            return NULL;
-    }
     if (0 == memData->recsInfo[recNo].lockCount)
     {
         recHandle = DmQueryRecord(memData->openDb, recNo);
@@ -229,10 +156,9 @@ static void *memLockRecord(void *data,UInt16 recNo)
     return memData->recsInfo[recNo].data;
 }
 
-static void memUnlockRecord(void *data, UInt16 record_no)
+void memUnlockRecord(struct MemData *memData, UInt16 record_no)
 {
     MemHandle recHandle;
-    MemData     *memData = (MemData*) data;
 
     Assert(memData->recsInfo[record_no].lockCount >= 0);
     --memData->recsInfo[record_no].lockCount;
@@ -243,35 +169,29 @@ static void memUnlockRecord(void *data, UInt16 record_no)
     }
 }
 
-static long memGetRecordSize(void *data, UInt16 recNo)
+long memGetRecordSize(struct MemData *memData, UInt16 recNo)
 {
-    MemData     *memData = (MemData*) data;
-
-    if ( 0 == memData->openDb )
-        memOpenDb(data);
     if (-1 == memData->recsInfo[recNo].size)
     {
-        memLockRecord(data, recNo);
-        memUnlockRecord(data, recNo);
+        memLockRecord(memData, recNo);
+        memUnlockRecord(memData, recNo);
     }
     return memData->recsInfo[recNo].size;
 }
 
-static void *memLockRegion(void *data, UInt16 recNo, UInt16 offset, UInt16 size)
+void *memLockRegion(struct MemData *memData, UInt16 recNo, UInt16 offset, UInt16 size)
 {
     char        *recordPtr;
-    /* MemData     *memData = (MemData*) data; */
 
-    recordPtr = (char *) memLockRecord(data, recNo);
+    recordPtr = (char *) memLockRecord(memData, recNo);
     return (void *) (recordPtr + size);
 }
 
-static void memUnlockRegion(void *data, void *regionPtr)
+void memUnlockRegion(struct MemData *memData, char *regionPtr)
 {
     UInt16      i;
     char        *recDataStart;
     char        *recDataEnd;
-    MemData     *memData = (MemData*) data;
 
     for (i = 0; i < memData->recsCount; i++)
     {
@@ -279,10 +199,9 @@ static void memUnlockRegion(void *data, void *regionPtr)
         if (NULL != recDataStart)
         {
             recDataEnd = recDataStart + memData->recsInfo[i].size;
-            if (((char *) data >= recDataStart)
-                && ((char *) regionPtr <= recDataEnd))
+            if ((regionPtr >= recDataStart) && (regionPtr <= recDataEnd))
             {
-                memUnlockRecord(data, i);
+                memUnlockRecord(memData, i);
                 return;
             }
         }
@@ -290,48 +209,3 @@ static void memUnlockRegion(void *data, void *regionPtr)
     Assert(false);
     return;
 }
-
-#if 0
-static Boolean memCacheRecords(void *data, int recsCount, UInt16 * recs)
-{
-    return true;
-}
-#endif
-
-static Boolean  memSetCurrentDict(void *data, DBInfo *dbInfo)
-{
-    /* MemData     *memData = (MemData*) data; */
-
-    memIterateRestart(data);
-    return vfsFindDb( GetCreatorFromVfsType( dbInfo->vfsDbType ),
-               GetTypeFromVfsType( dbInfo->vfsDbType ), dbInfo->dbName );
-}
-
-void setVfsToMem(Vfs *vfs)
-{
-
-    vfs->init = &memInit;
-    vfs->deinit = &memDeinit;
-    vfs->iterateRestart = &memIterateRestart;
-    vfs->iterateOverDbs = &memInterateOverDbs;
-    vfs->findDb = &vfsFindDb;
-
-    vfs->getDbCreator = &memGetDbCreator;
-    vfs->getDbType = &memGetDbType;
-    vfs->getDbName = &memGetDbName;
-    vfs->getDbPath = NULL;
-
-    vfs->getRecordsCount = &memGetRecordsCount;
-    vfs->getRecordSize = &memGetRecordSize;
-    vfs->lockRecord = &memLockRecord;
-    vfs->unlockRecord = &memUnlockRecord;
-    vfs->lockRegion = &memLockRegion;
-    vfs->unlockRegion = &memUnlockRegion;
-    //vfs->cacheRecords = &memCacheRecords;
-
-    /* those exists only for external memory */
-    vfs->readHeader = NULL;
-    vfs->copyExternalToMem = NULL;
-    vfs->setCurrentDict = &memSetCurrentDict;
-}
-

@@ -5,17 +5,13 @@
 #ifndef _ROGET_SUPPORT_H_
 #define _ROGET_SUPPORT_H_
 
-#include <PalmOS.h>
-#include "thes.h"
 #include "word_compress.h"
 #include "display_info.h"
 
-#ifndef DEMO
-#define  ROGET_TYPE      'rget'
-#endif
-
 #ifdef DEMO
 #define  ROGET_TYPE      'rgde'
+#else
+#define  ROGET_TYPE      'rget'
 #endif
 
 typedef struct
@@ -29,7 +25,7 @@ typedef struct
 
 #define MAX_WORDS_IN_SYNSET 40
 
-typedef struct
+struct RogetInfo
 {
     int     recordsCount;
     long    wordsCount;
@@ -45,10 +41,14 @@ typedef struct
     int     curDefLen;
     int     synPosRec;
 
-    WcInfo  *wci;
+    WcInfo      *wci;
     PackContext defPackContext;
-} RogetInfo;
+};
 
-void setRogetAsCurrentDict(void);
-
+struct RogetInfo   *RogetNew(void);
+void        RogetDelete(struct RogetInfo *info);
+long        RogetGetWordsCount(struct RogetInfo *info);
+long        RogetGetFirstMatching(struct RogetInfo *info, char *word);
+char        *RogetGetWord(struct RogetInfo *info, long wordNo);
+Err         RogetGetDisplayInfo(struct RogetInfo *info, long wordNo, int dx, DisplayInfo * di);
 #endif

@@ -44,89 +44,7 @@ void NP_InitGlobalVars(void)
     gd.prevSelectedWord = 0xfffff;
 #if 0
     gd.prefsPresentP = false;
-    gd.stdInitedP = false;
-    gd.stdWorksP = false;
-    gd.memInitedP = false;
-    gd.memWorksP = false;
-    gd.currVfs = NULL;
 #endif
-}
-
-#ifdef FS_VFS
-NoahErrors GetStdVfs(void)
-{
-    NoahErrors err;
-
-    if (gd.stdInitedP)
-    {
-        if (gd.stdWorksP)
-        {
-            gd.currVfs = &(gd.stdVfs);
-            return ERR_NONE;
-        }
-        else
-            return ERR_GENERIC;
-    }
-    else
-    {
-        gd.stdVfs.vfsData = (void*) &gd.stdVfsData;
-        setVfsToStd( &gd.stdVfs );
-        gd.currVfs = &gd.stdVfs;
-        err = vfsInit();
-        if ( ERR_NONE != err )
-        {
-            gd.currVfs = NULL;
-            return err;
-        }
-        gd.stdInitedP = true;
-        gd.stdWorksP = true;
-        return ERR_NONE;
-    }
-}
-
-void DeinitStdVfs(void)
-{
-    if ( ERR_NONE == GetStdVfs() )
-        vfsDeinit();
-}
-
-#endif
-
-NoahErrors GetMemVfs(void)
-{
-    NoahErrors err;
- 
-    if (gd.memInitedP)
-    {
-        if (gd.memWorksP)
-        {
-            gd.currVfs = &gd.memVfs;
-            return ERR_NONE;
-        }
-        else
-            return ERR_GENERIC;
-    }
-    else
-    {
-        gd.memVfs.vfsData = (void*) &gd.memVfsData;
-        setVfsToMem( &gd.memVfs );
-        gd.currVfs = &gd.memVfs;
-        err = vfsInit();
-        if ( ERR_NONE != err )
-        {
-           gd.currVfs = NULL;
-           return err;
-        }
-        gd.memInitedP = true;
-        gd.memWorksP = true;
-        return ERR_NONE;
-    }
-}
-
-void DeinitMemVfs(void)
-{
-    if ( ERR_NONE == GetMemVfs() )
-        vfsDeinit();
 }
 
 void SavePreferences()
@@ -258,77 +176,9 @@ void AddDbToFoundList( VFSDBType vfsDbType )
     ++gd.dbsCount;
 }
 
-
-#ifdef FS_VFS
-
-#if 0
-void SetCurrentDbStd(char *dbName)
-{
-    setCurrentVfsToStd();
-
-    /* Can happen if the name comes from the previously built list and stored
-       in preferences. Need to tell users something. */
-    // undone! show an alert box and ask if the user wants to re-scan
-    if ( !vfsWorksP() )
-    {
-
-    }
-    vfsSetCurrentDict( dbName );
-}
-#endif
-
-void ScanStd(void)
-{
-    if ( ERR_NONE != GetStdVfs() )
-        return;
- 
-    vfsStdSetCurrentDir(gd.currVfs->vfsData, "/");
-    vfsIterateRestart();
-    while (true == vfsFindDb(NOAH_PRO_CREATOR, WORDNET_LITE_TYPE, NULL))
-    {
-        AddDbToFoundList( DB_LEX_STD );
-    }
-}
-#endif
-
-void ScanMem(void)
-{
-    if ( ERR_NONE != GetMemVfs() )
-        return;
- 
-#ifdef SIMPLE_DICT
-    vfsIterateRestart();
-    while (true == vfsFindDb(NOAH_PRO_CREATOR, SIMPLE_TYPE, NULL))
-    {
-        AddDbToFoundList(DB_SIMPLE_DM );
-    }
-#endif
-
-#ifdef WN_PRO_DICT
-    vfsIterateRestart();
-    while (true == vfsFindDb(NOAH_PRO_CREATOR, WORDNET_PRO_TYPE, NULL))
-    {
-        AddDbToFoundList( DB_PRO_DM );
-    }
-#endif
-
-#ifdef EP_DICT
-    vfsIterateRestart();
-    while (true == vfsFindDb(NOAH_PRO_CREATOR, ENGPOL_TYPE, NULL))
-    {
-        AddDbToFoundList( DB_EP_DM );
-    }
-#endif
-}
-
 void ScanForAvailableDicts(void)
 {
-    gd.dbsCount = 0;
-
-#ifdef FS_VFS
-    ScanStd();
-#endif
-    ScanMem();
+    // TODO:
 }
 
 Boolean NP_AppStart(void)
@@ -432,7 +282,6 @@ Boolean SetCorrectDict( DBInfo *dbInfo )
 */
 Boolean DictInit(void)
 {
-    DBInfo *dbInfo = NULL;
 
     //Assert((db_num >= 0) && (db_num < gd.dbsCount));
 

@@ -52,8 +52,8 @@ typedef struct
     ScrollType              tapScrollType;
     ScrollType              hwButtonScrollType;
     DatabaseStartupAction   dbStartupAction;
-    char                    lastDbName[32];
-    char                    lastWord[32];
+    char                    lastDbName[dmDBNameLength];
+    char                    lastWord[dmDBNameLength];
 } NoahPrefs;
 
 #define HISTORY_ITEMS 5
@@ -62,7 +62,7 @@ typedef struct
 typedef struct
 {
     UInt32          recordId;
-    char            dbName[32];
+    char            dbName[dmDBNameLength];
     int             historyCount;
     long            wordHistory[HISTORY_ITEMS];
     char            lastWord[WORD_MAX_LEN];
@@ -72,12 +72,8 @@ typedef struct
 
 typedef struct
 {
-    NoahErrors          err;
-    void               *dictData;
+    NoahErrors         err;
     int                currentDb;
-    Dict               currentDict;
-    int                dbsCount;
-    DBInfo             foundDbs[MAX_DBS];
     DisplayInfo        *currDispInfo;
     ExtensibleBuffer   *helpDipsBuf;
     long               currentWord;
@@ -91,11 +87,6 @@ typedef struct
     long               selectedWord;
     NoahPrefs          prefs;
     NoahDBPrefs        dbPrefs;
-    Vfs                *currVfs;
-    Boolean             memInitedP;
-    Boolean             memWorksP;
-    Vfs                 memVfs;
-    MemData             memVfsData;
 }GlobalData;
 
 #endif

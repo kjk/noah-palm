@@ -28,14 +28,11 @@
 
 typedef struct
 {
-    NoahErrors          err;
+    NoahErrors         err;
     void               *dictData;
     int                currentDb;
-    Dict               currentDict;
-    Vfs                *currVfs;
-    MemData            dm;
+    struct MemData     dm;
     int                dbsCount;
-    DBInfo             foundDbs[MAX_DBS];
     DisplayInfo        *currDispInfo;
     ExtensibleBuffer   *helpDipsBuf;
     long               currentWord;
@@ -46,10 +43,6 @@ typedef struct
     int                penUpsToConsume;
     long               prevSelectedWord;
     long               selectedWord;
-    Boolean            memInitedP;
-    Boolean            memWorksP;
-    Vfs                memVfs;
-    MemData            memVfsData;
 } GlobalData;
 
 #endif

@@ -52,13 +52,13 @@ static void *simple_new(void)
     if (NULL == si)
         goto Error;
 
-    firstRecord = (SimpleFirstRecord *) vfsLockRecord(0);
+    firstRecord = (SimpleFirstRecord *) CurrFileLockRecord(0);
     if (NULL == firstRecord)
         goto Error;
 
-    Assert(sizeof(SimpleFirstRecord) == vfsGetRecordSize(0));
+    Assert(sizeof(SimpleFirstRecord) == CurrFileGetRecordSize(0));
 
-    si->recordsCount = vfsGetRecordsCount();
+    si->recordsCount = CurrFileGetRecordsCount();
     si->wordsCount = firstRecord->wordsCount;
 
     si->wordsRecsCount = firstRecord->wordsRecsCount;
@@ -87,7 +87,7 @@ static void *simple_new(void)
         goto Error;
 
   Exit:
-    vfsUnlockRecord(0);
+    CurrFileUnlockRecord(0);
     return (void *) si;
   Error:
     if (si)
@@ -164,12 +164,12 @@ static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInf
         {
             if (def_lens_data)
             {
-                vfsUnlockRecord(rec_with_def_lens - 1);
+                CurrFileUnlockRecord(rec_with_def_lens - 1);
             }
-            def_lens_data = (unsigned char *) vfsLockRecord(rec_with_def_lens);
+            def_lens_data = (unsigned char *) CurrFileLockRecord(rec_with_def_lens);
             if (NULL == def_lens_data)
                 return NULL;
-            def_lens_data_left = vfsGetRecordSize(rec_with_def_lens);
+            def_lens_data_left = CurrFileGetRecordSize(rec_with_def_lens);
             ++rec_with_def_lens;
             idx_in_rec = 0;
         }
@@ -187,12 +187,12 @@ static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInf
     {
         if (def_lens_data)
         {
-            vfsUnlockRecord(rec_with_def_lens - 1);
+            CurrFileUnlockRecord(rec_with_def_lens - 1);
         }
-        def_lens_data = (unsigned char *) vfsLockRecord(rec_with_def_lens);
+        def_lens_data = (unsigned char *) CurrFileLockRecord(rec_with_def_lens);
         if (!def_lens_data)
             return NULL;
-        def_lens_data_left = vfsGetRecordSize(rec_with_def_lens);
+        def_lens_data_left = CurrFileGetRecordSize(rec_with_def_lens);
         ++rec_with_def_lens;
         idx_in_rec = 0;
     }
@@ -202,11 +202,11 @@ static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInf
     {
         defDataSize = (UInt32) ((UInt32) def_lens_data[idx_in_rec] * 256 +  def_lens_data[idx_in_rec + 1]);
     }
-    vfsUnlockRecord(rec_with_def_lens - 1);
+    CurrFileUnlockRecord(rec_with_def_lens - 1);
 
-    while (def_offset >= vfsGetRecordSize(def_record))
+    while (def_offset >= CurrFileGetRecordSize(def_record))
     {
-        def_offset -= vfsGetRecordSize(def_record);
+        def_offset -= CurrFileGetRecordSize(def_record);
         ++def_record;
     }
 
@@ -214,23 +214,23 @@ static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInf
     ebufAddChar(&g_buf, ' ');
 
     Assert(si->posRecsCount <= 1);
-    pos_data = (unsigned char *) vfsLockRecord(pos_record);
+    pos_data = (unsigned char *) CurrFileLockRecord(pos_record);
     if (NULL == pos_data)
         return NULL;
     pos_data += wordNo / 4;
 
     partOfSpeech = (pos_data[0] >> (2 * (wordNo % 4))) & 3;
-    ebufAddStr(&g_buf, get_wn_pos_txt(partOfSpeech));
+    ebufAddStr(&g_buf, GetWnPosTxt(partOfSpeech));
     ebufAddChar(&g_buf, ' ');
     word = simple_get_word((void *) si, wordNo);
     ebufAddStr(&g_buf, word);
     ebufAddChar(&g_buf, '\n');
 
-    vfsUnlockRecord(pos_record);
+    CurrFileUnlockRecord(pos_record);
     Assert((def_offset >= 0) && (def_offset < 66000));
     Assert((defDataSize >= 0));
 
-    defData = (unsigned char *) vfsLockRecord(def_record);
+    defData = (unsigned char *) CurrFileLockRecord(def_record);
     if (NULL == defData)
         return NULL;
     defData += def_offset;
@@ -241,7 +241,7 @@ static Err simple_get_display_info(void *data, long wordNo, Int16 dx, DisplayInf
     Assert((unpackedLen > 0) && (unpackedLen <= si->maxDefLen));
     si->curDefLen = unpackedLen;
     unpackedDef = si->curDefData;
-    vfsUnlockRecord(def_record);
+    CurrFileUnlockRecord(def_record);
 
     ebufAddStrN(&g_buf, (char *) unpackedDef, unpackedLen);
     ebufAddChar(&g_buf, '\0');

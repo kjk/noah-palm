@@ -25,7 +25,7 @@ char helpText[] =
 #endif
 
 GlobalData gd;
-static CommonGlobalData cgd;
+CommonGlobalData cgd;
 
 void SavePreferences(NoahDBPrefs * data, UInt32 dataLen, int recursionDepth)
 {
@@ -125,81 +125,6 @@ void LoadPreferences(NoahDBPrefs * data, UInt32 dataLen)
     DmCloseDatabase(db);
 }
 
-#if 0
-/* Add a db on which a vfs is currently positioned to the list of
-found databases
-TODO: share this with noah_pro.c and noah_lite.c
-*/
-void AddDbToFoundList( VFSDBType vfsDbType )
-{
-    if (gd.dbsCount >= MAX_DBS)
-    {
-        gd.err = ERR_TOO_MANY_DBS;
-        return;
-    }
-    gd.foundDbs[gd.dbsCount].vfsDbType = vfsDbType;
-    StrCopy(gd.foundDbs[gd.dbsCount].dbName, vfsGetDbName() );
-    StrCopy(gd.foundDbs[gd.dbsCount].dbFullPath, vfsGetFullDbPath() );
-    gd.foundDbs[gd.dbsCount].historyCount = 0;
-    gd.foundDbs[gd.dbsCount].lastWord[0] = 0;
-    ++gd.dbsCount;
-}
-#endif
-
-#if 0
-/* TODO: share this with noah_pro.c and noah_lite.c */
-NoahErrors GetMemVfs(void)
-{
-    NoahErrors err;
- 
-    if (gd.memInitedP)
-    {
-        if (gd.memWorksP)
-        {
-            gd.currVfs = &gd.memVfs;
-            return ERR_NONE;
-        }
-        else
-            return ERR_GENERIC;
-    }
-    else
-    {
-        gd.memVfs.vfsData = (void*) &gd.memVfsData;
-        setVfsToMem( &gd.memVfs );
-        gd.currVfs = &gd.memVfs;
-        err = vfsInit();
-        if ( ERR_NONE != err )
-        {
-           gd.currVfs = NULL;
-           return err;
-        }
-        gd.memInitedP = true;
-        gd.memWorksP = true;
-        return ERR_NONE;
-    }
-}
-
-void DeinitMemVfs(void)
-{
-    if ( ERR_NONE == GetMemVfs() )
-        vfsDeinit();
-}
-#endif
-
-#if 0
-void ScanMemThes(void)
-{
-    if ( ERR_NONE != GetMemVfs() )
-        return;
-
-    vfsIterateRestart();
-    while (true == vfsFindDb(THES_CREATOR, ROGET_TYPE, NULL))
-    {
-        AddDbToFoundList(DB_ROGET_DM );
-    }
-}
-#endif
-
 void DictFoundCBThes( AbstractFile *file )
 {
     Assert( file );
@@ -223,23 +148,15 @@ void ScanForDictsThes(void)
     FsMemFindDb( THES_CREATOR, ROGET_TYPE, NULL, &DictFoundCBThes );
 }
 
-Err ProgramInitThes(void)
+Err InitThesaurus(void)
 {
     MemSet((void *) &gd, sizeof(GlobalData), 0);
     MemSet((void *) &cgd, sizeof(CommonGlobalData), 0);
 
 /*     gd.current_timeout = -1; */
-    gd.currentDb = -1;
-    gd.dbsCount = 0;
-    gd.penUpsToConsume = 0;
-    gd.selectedWord = 0;
     gd.prevSelectedWord = 0xfffff;
 
     gd.firstDispLine = -1;
-    gd.dictData = 0;
-    gd.currentWord = 0;
-    gd.listItemOffset = 0;
-    gd.selectedWord = 0;
     gd.prevSelectedWord = -1;
 
     /* fill out the default values for Noah preferences
@@ -259,11 +176,28 @@ Err ProgramInitThes(void)
     return errNone;
 }
 
+Boolean DictInit(AbstractFile *file)
+{
+    if ( !FsFileOpen( file ) )
+        return false;
+
+    if ( !dictNew() )
+    {
+
+    }
+    
+    gd.wordsCount = dictGetWordsCount();
+    gd.currentWord = 0;
+    gd.listItemOffset = 0;
+
+    return true;
+}
+
+#if 0
 Boolean DictInit(int db_num)
 {
-    DBInfo *dbInfo = NULL;
 
-    Assert((db_num >= 0) && (db_num < gd.dbsCount));
+    Assert((db_num >= 0) && (db_num < cgd.dictsCount));
 
     gd.currentDb = db_num;
     dbInfo = &(gd.foundDbs[db_num]);
@@ -274,31 +208,6 @@ Boolean DictInit(int db_num)
     MemMove(gd.dbPrefs.dbName, dbInfo->dbName, 32);
     gd.dbPrefs.historyCount = 0;
     LoadPreferences(&gd.dbPrefs, sizeof(NoahDBPrefs));
-
-    switch (dbInfo->vfsDbType)
-    {
-    case DB_ROGET_DM:
-        //setCurrentVfsToMem();
-        setRogetAsCurrentDict();
-        break;
-    default:
-        Assert(0);
-        break;
-    }
-
-#if 0
-    if (false == vfsInit())
-    {
-        DrawDebug("vfsInit() 2 failed");
-        goto Error;
-    }
-#endif
-    vfsIterateRestart();
-    if (!vfsFindDb(THES_CREATOR, ROGET_TYPE, dbInfo->dbName))
-    {
-        DrawDebug2("no db:", dbInfo->name);
-        goto Error;
-    }
 
     gd.dictData = dictNew();
     if (NULL == gd.dictData)
@@ -312,10 +221,11 @@ Boolean DictInit(int db_num)
     MemSet((void *) &(gd.dbPrefs.lastWord[0]), wordHistory, 0);
 #endif
     return true;
-  Error:
+Error:
     DictCurrentFree();
     return false;
 }
+#endif
 
 void DictCurrentFree(void)
 {
@@ -330,21 +240,20 @@ void DictCurrentFree(void)
         }
     }
 #endif
-    SavePreferences(&gd.dbPrefs, sizeof(NoahDBPrefs),0);
+    // SavePreferences(&gd.dbPrefs, sizeof(NoahDBPrefs),0);
 
     dictDelete();
 
+    FsFileClose( GetCurrentFile() );
     if (gd.currDispInfo)
     {
         diFree(gd.currDispInfo);
         gd.currDispInfo = NULL;
     }
 
-    gd.currentDb = -1;
-    if (gd.currVfs) vfsDeinit();
 }
 
-void ApplicationStopThes()
+void StopThesaurus()
 {
     SavePreferences((NoahDBPrefs *) & (gd.prefs), sizeof(NoahPrefs), 0);
     DictCurrentFree();
@@ -367,7 +276,11 @@ void DisplayAboutThes(void)
 #ifdef DEMO
     DrawCenteredString( "DEMO", 28 + 12 - 17 );
 #else
-    DrawCenteredString("Ver 1.0b", 28 + 12 - 17);
+  #ifdef DEBUG
+    DrawCenteredString("Ver 1.1 BETA DEBUG", 28 + 12 - 17);
+  #else
+    DrawCenteredString("Ver 1.1 BETA", 28 + 12 - 17);
+  #endif
 #endif
     FntSetFont((FontID) 1);
     DrawCenteredString( "(C) ArsLexis", 58 + 8 - 17);
@@ -413,6 +326,8 @@ int TryClipboard(void)
     MemMove(txt, clipTxt, (itemLen < 28) ? itemLen : 28);
 
     strtolower(txt);
+    RemoveWhiteSpaces( txt );
+
     idx = 0;
     while (txt[idx] && (txt[idx] == ' '))
     {
@@ -435,15 +350,16 @@ int TryClipboard(void)
 
 int LastUsedDatabase(void)
 {
+    #if 0
     int i;
-
-    for (i = 0; i < gd.dbsCount; i++)
+    for (i = 0; i < cgd.dictsCount; i++)
     {
         if (0 == StrCompare(gd.prefs.lastDbName, gd.foundDbs[i].dbName))
         {
             return i;
         }
     }
+#endif
     return -1;
 }
 
@@ -478,7 +394,7 @@ Boolean GetCharBounds(UInt16 x, UInt16 y, RectangleType * r, int *line, int *cha
     return true;
 }
 
-Boolean DictMainFormHandleEvent(EventType * event)
+Boolean MainFormHandleEventThes(EventType * event)
 {
     Boolean handled = false;
     FormType *frm;
@@ -486,6 +402,7 @@ Boolean DictMainFormHandleEvent(EventType * event)
     ListType *list;
     long wordNo;
     EventType   newEvent;
+    AbstractFile *fileToOpen;
 /*      RectangleType r; */
 /*      static     UInt16 start_x; */
 /*      static     UInt16 start_y; */
@@ -501,7 +418,7 @@ Boolean DictMainFormHandleEvent(EventType * event)
         DisplayAboutThes();
         ScanForDictsThes();
 
-        if (0 == gd.dbsCount)
+        if (0 == cgd.dictsCount)
         {
             FrmAlert(alertNoDB);
             MemSet(&newEvent, sizeof(EventType), 0);
@@ -510,29 +427,27 @@ Boolean DictMainFormHandleEvent(EventType * event)
             return true;
         }
 
-        /* if we won't find anything better we'll start with the first
-           database */
-        gd.currentDb = 0;
-        if (gd.dbsCount > 1)
+        fileToOpen = NULL;
+        if (1 == cgd.dictsCount )
+        {
+            fileToOpen = cgd.dicts[0];
+        }
+        else
         {
             if (dbStartupActionLast == gd.prefs.dbStartupAction)
             {
-                gd.currentDb = LastUsedDatabase();
-            }
-            else
-            {
-                gd.currentDb = -1;
+                /* fileToOpen = LastUsedDatabase(); */
+                fileToOpen = NULL;
             }
         }
-        if (-1 == gd.currentDb)
+        if (NULL == fileToOpen)
         {
             /* ask user which database to use */
-            gd.currentDb = -1;
             FrmPopupForm(formSelectDict);
         }
         else
         {
-            DictInit(gd.currentDb);
+            DictInit(fileToOpen);
             if (!TryClipboard())
             {
                 DisplayAboutThes();
@@ -752,7 +667,7 @@ Boolean DictMainFormHandleEvent(EventType * event)
             break;
 #ifdef STRESS
         case menuItemStress:
-            stress(5);
+            stress(1);
             break;
 #endif
         case menuItemHelp:
@@ -987,9 +902,10 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         frm = FrmGetActiveForm();
         list = (ListType *) FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, listOfDicts));
         LstSetDrawFunction(list, ListDbDrawFunc);
-        LstSetListChoices(list, NULL, gd.dbsCount);
+        LstSetListChoices(list, NULL, cgd.dictsCount);
         LstSetSelection(list, selectedDb);
         LstMakeItemVisible(list, selectedDb);
+#if 0
         if (-1 == gd.currentDb)
         {
             FrmHideObject(frm, FrmGetObjectIndex(frm, buttonCancel));
@@ -998,6 +914,7 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         {
             FrmShowObject(frm, FrmGetObjectIndex(frm, buttonCancel));
         }
+#endif
         FrmDrawForm(frm);
         return true;
         break;
@@ -1011,6 +928,7 @@ Boolean SelectDictFormHandleEvent(EventType * event)
         switch (event->data.ctlSelect.controlID)
         {
         case buttonSelect:
+#if 0
             if (gd.currentDb != selectedDb)
             {
                 if (-1 != gd.currentDb)
@@ -1018,14 +936,17 @@ Boolean SelectDictFormHandleEvent(EventType * event)
                 gd.currentDb = selectedDb;
                 DictInit(gd.currentDb);
             }
+#endif
             MemSet(&newEvent, sizeof(EventType), 0);
             newEvent.eType = (eventsEnum) evtNewDatabaseSelected;
             EvtAddEventToQueue(&newEvent);
             FrmReturnToForm(0);
             return true;
         case buttonCancel:
+#if 0
             if (-1 == gd.currentDb)
                 Assert(0);
+#endif
             FrmReturnToForm(0);
             return true;
         }
@@ -1138,7 +1059,7 @@ Boolean ApplicationHandleEvent(EventType * event)
         switch (formId)
         {
         case formDictMain:
-            FrmSetEventHandler(frm, DictMainFormHandleEvent);
+            FrmSetEventHandler(frm, MainFormHandleEventThes);
             handled = true;
             break;
         case formDictFind:
@@ -1189,12 +1110,12 @@ DWord PilotMain(Word cmd, Ptr cmdPBP, Word launchFlags)
     switch (cmd)
     {
     case sysAppLaunchCmdNormalLaunch:
-        err = ProgramInitThes();
+        err = InitThesaurus();
         if ( errNone != err )
             return err;
         FrmGotoForm(formDictMain);
         EventLoopThes();
-        ApplicationStopThes();
+        StopThesaurus();
         break;
     default:
         break;

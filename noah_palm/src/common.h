@@ -8,6 +8,7 @@
 #include <PalmOS.h>
 #include "mem_leak.h"
 #include "display_info.h"
+#include "extensible_buffer.h"
 #include "fs.h"
 
 #ifdef DEBUG
@@ -45,16 +46,6 @@ typedef enum
     ERR_SILENT,
     ERR_GENERIC,
 } NoahErrors;
-
-typedef struct
-{
-    void    *(*objectNew) (void);
-    void    (*objectDelete) (void *);
-    long    (*getWordsCount) (void *);
-    long    (*getFirstMatching) (void *, char *);
-    char    *(*getWord) (void *, long);
-    Err     (*getDisplayInfo) (void *, long, Int16, DisplayInfo *);
-} Dict;
 
 /* What type of scrolling should tapping/up and down hw buttons do:
    - none
@@ -104,8 +95,8 @@ typedef struct
 /* global data that is common for thes/noah lite/noah pro */
 typedef struct
 {
-    AbstractFile *dicts[MAX_DICTS];
-    int dictsCount;
+    AbstractFile    *dicts[MAX_DICTS];
+    int             dictsCount;
 } CommonGlobalData;
 
 extern CommonGlobalData cgd;
@@ -132,8 +123,8 @@ void    OutToFileDbg(char *filename, char *text);
 void    DrawDisplayInfo(DisplayInfo * di, int firstLine, Int16 x,
                      Int16 y, int maxLines);
 void    DrawWord(char *word, int pos_y);
-char    *get_nth_txt(int n, char *txt);
-char    *get_wn_pos_txt(int partOfSpeech);
+char    *GetNthTxt(int n, char *txt);
+char    *GetWnPosTxt(int partOfSpeech);
 
 #ifdef DEBUG
 void    MyPause(long mult);
@@ -163,7 +154,7 @@ void AddToHistory(UInt32 wordNo);
 void SetPopupLabel(FormType * frm, UInt16 listID, UInt16 popupID, Int16 txtIdx, char *txtBuf);
 #endif
 
-void    *dictNew(void);
+Boolean dictNew(void);
 void    dictDelete(void);
 long    dictGetWordsCount(void);
 long    dictGetFirstMatching(char *word);
@@ -188,7 +179,7 @@ long    CalcListOffset(long itemsCount, long itemNo);
 void    RemoveWhiteSpaces( char *src );
 void    DefScrollUp(ScrollType scroll_type);
 void    DefScrollDown(ScrollType scroll_type);
-char    *GetDatabaseName(int db_num);
+char    *GetDatabaseName(int dictNo);
 void    LstSetListChoicesEx(ListType * list, char **itemText, long itemsCount);
 void    LstSetSelectionEx(ListType * list, long itemNo);
 void    LstMakeItemVisibleEx(ListType * list, long itemNo);
@@ -211,8 +202,5 @@ void    ssInit  ( StringStack *ss );
 void    ssDeinit( StringStack *ss );
 void    ssPush  ( StringStack *ss, char *string );
 char    *ssPop  ( StringStack *ss );
-
-UInt32  GetCreatorFromVfsType( VFSDBType vfsDbType );
-UInt32  GetTypeFromVfsType( VFSDBType vfsDbType );
 
 #endif

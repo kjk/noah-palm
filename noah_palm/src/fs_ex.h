@@ -57,7 +57,7 @@ typedef struct
     /* record number for holding a cache for lock region
     This record should not be bigger than 4 kB */
     int                 lockRegionCacheRec;
-    void                *lastLockedRegion;
+    char                *lastLockedRegion;
 } DbCacheData;
 
 /* dc stands for Database Cache */

@@ -10,6 +10,7 @@
 # History:
 #  2002/11/05 - started
 #  2002/11/07 - added thesaurus
+#  2002/11/16 - added debug/release build distinction
 
 # Todo:
 # - rewrite script.gdb to load obj/foo.out instead of foo.out
@@ -17,7 +18,11 @@
 
 import string, sys, os
 
-fDoClean = 0 # should we do a clean build?
+# should we do a clean build?
+fDoClean = 0
+# should we do a debug build? It's debug by default unless "rel"
+# is given on command line
+fDoDebug = 1
 
 def CreateDirIfNotExists(dirName):
     try:
@@ -41,7 +46,6 @@ def GenObjs( objList ):
     txt = "OBJS="
     for obj in objList:
         txt += "obj/%s.o " % obj
-        #txt += "%s.o " % obj
     return txt
 
 def GenObjDepend( objList ):
@@ -54,19 +58,32 @@ def GenObjDepend( objList ):
     return txt
 
 def GenNoahProMakefile():
-    global npd_objs
+    global npd_objs, fDoDebug
     objList = npd_objs
-    txt = """
+    if fDoDebug:
+        txt = """
 CC = m68k-palmos-gcc
 LNFLAGS = -g
 CFLAGS = -g -Wall -I res -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMPLE_DICT -DFS_VFS -DMEM_LEAKS -DERROR_CHECK_LEVEL=2 -DDEBUG -DSTRESS
 """
+    else:
+        txt = """
+CC = m68k-palmos-gcc
+LNFLAGS =
+CFLAGS = -O2 -Wall -I res -DNOAH_PRO -DEP_DICT -DWNLEX_DICT -DWN_PRO_DICT -DSIMPLE_DICT -DFS_VFS -DERROR_CHECK_LEVEL=0
+"""
     txt += GenObjs(objList)
     txt += "\n\n"
     txt += GenObjDepend(objList)
-    txt += """
+    if fDoDebug:
+        txt += """
 noah_pro.prc: $(OBJS) obj/noah_pro.res
-	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH obj/*.o
+	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH obj/*.o"""
+    else:
+        txt += """
+noah_pro.prc: $(OBJS) obj/noah_pro.res
+	m68k-palmos-multilink -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid NoAH obj/*.o"""
+    txt += """
 	mv *.grc obj
 	mv *.out obj
 	build-prc --copy-prevention $@ "Noah Pro" "NoAH" obj/*.bin obj/*.grc
@@ -87,36 +104,48 @@ def GenNoahLiteMakefile():
     txt = """
 CC = m68k-palmos-gcc
 LNFLAGS = -g
-CFLAGS = -g -Wall -I res
+CFLAGS = -g -Wall -DMEM_LEAKS -DERROR_CHECK_LEVEL=2 -DDEBUG -I res
 """
     return txt
 
 def GenThesMakefile():
     global thd_objs
     objList = thd_objs
+    if fDoDebug:
+        LNFLAG = "-g"
+        CCFLAG1 = "-g"
+        PILRCFLAG = "-D STRESS"
+        CCFLAG = "-DMEM_LEAKS -DERROR_CHECK_LEVEL=2 -DDEBUG -DSTRESS"
+    else:
+        LNFLAG = ""
+        CCFLAG1 = "-O2"
+        PILRCFLAG = ""
+        CCFLAG = "-DERROR_CHECK_LEVEL=0"
     txt = """
 CC = m68k-palmos-gcc
-LNFLAGS = -g
-CFLAGS = -g -Wall -DTHESAURUS -DMEM_LEAKS -I res
-"""
+LNFLAGS = %s
+CFLAGS = %s -Wall -DTHESAURUS %s -I res
+""" % (LNFLAG, CCFLAG1, CCFLAG)
+
     txt += GenObjs(objList)
     txt += "\n\n"
     txt += GenObjDepend(objList)
     txt += """
 thes.prc: obj/thes.res $(OBJS)
-	m68k-palmos-multilink -gdb-script script.gdb -g -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid TheS obj/*.o
+	m68k-palmos-multilink -gdb-script script.gdb %s -libdir /usr/m68k-palmos/lib/ -L/usr/lib/gcc-lib/m68k-palmos/2.95.3-kgpd -L/prc-tools/m68k-palmos/lib -lgcc -fid TheS obj/*.o""" % LNFLAG
+    txt += """
 	mv *.grc obj
 	mv *.out obj
 	build-prc --copy-prevention $@ "Thesaurus" "TheS" obj/*.bin obj/*.grc
 	ls -la *.prc
 
 obj/thes.res: res/thes.rcp res/thes_rcp.h
-	pilrc -q -I res res/thes.rcp obj
+	pilrc -q %s -I res res/thes.rcp obj
 	touch $@
 
 clean:
 	rm -rf obj/*
-"""
+""" % PILRCFLAG
     return txt
 
 nameGenProcMap = [ ["noah_pro", "np", GenNoahProMakefile], ["noah_lite", "nl", GenNoahLiteMakefile], ["thes", "th", GenThesMakefile] ]
@@ -150,6 +179,8 @@ fDoNoahLite = 0
 fDoThes = 0
 for a in args:
     if a == "clean": fDoClean = 1
+    if a == "release": fDoDebug = 0
+    if a == "rel": fDoDebug = 0
     if a == "noah_pro" or a == "np":
        fDoNoahPro = 1
        if fDoNoahLite or fDoThes: PrintUsageAndQuit()

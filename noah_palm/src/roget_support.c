@@ -2,50 +2,34 @@
   Copyright (C) 2000-2002 Krzysztof Kowalczyk
   Author: Krzysztof Kowalczyk (krzysztofk@pobox.com)
  */
-#include "thes.h"
+
 #include "roget_support.h"
 #include "common.h"
-#include "fs.h"
-
-extern GlobalData gd;
 
 /* temporary buffer for keeping the data gathered during unpacking */
 ExtensibleBuffer g_buf = { 0 };
 
-static char *get_pos_txt(int pos, int type)
+static char *GetPosTxt(int pos, int type)
 {
-    return get_nth_txt(type * 4 + pos, "(noun)\0(verb)\0(adj.)\0(adv.)\0N.\0V.\0Adj.\0Adv.\0Noun\0Verb\0Adjective\0Adverb\0");
+    return GetNthTxt(type * 4 + pos, "(noun)\0(verb)\0(adj.)\0(adv.)\0N.\0V.\0Adj.\0Adv.\0Noun\0Verb\0Adjective\0Adverb\0");
 }
 
-static void roget_delete(void *data)
+struct RogetInfo *RogetNew(void)
 {
-    ebufFreeData(&g_buf);
-
-    if (!data)
-        return;
-
-    if (((RogetInfo *) data)->wci)
-        wcFree(((RogetInfo *) data)->wci);
-
-    new_free(data);
-    return;
-}
-
-static void *roget_new(void)
-{
-    RogetInfo *info = NULL;
+    struct RogetInfo *info = NULL;
     RogetFirstRecord *firstRecord;
 #ifdef DEBUG
     long recSize;
 #endif
+    Assert( GetCurrentFile() );
 
-    info = (RogetInfo *) new_malloc(sizeof(RogetInfo));
+    info = (struct RogetInfo *) new_malloc(sizeof(struct RogetInfo));
     if (NULL == info)
         goto Error;
 
-    firstRecord = (RogetFirstRecord *) vfsLockRecord(0);
+    firstRecord = (RogetFirstRecord *) CurrFileLockRecord(0);
 
-    info->recordsCount = vfsGetRecordsCount();
+    info->recordsCount = CurrFileGetRecordsCount();
     info->wordsCount = firstRecord->wordsCount;
     info->wordsRecordsCount = firstRecord->wordsRecordsCount;
     info->synsetsCount = firstRecord->synsetsCount;
@@ -64,38 +48,47 @@ static void *roget_new(void)
                         info->wordsRecordsCount, info->maxWordLen);
 
 #ifdef DEBUG
-    recSize = vfsGetRecordSize(info->wordsInSynCountRec);
+    recSize = CurrFileGetRecordSize(info->wordsInSynCountRec);
     Assert(recSize == info->synsetsCount);
 #endif
     if (NULL == info->wci)
         goto Error;
 
-  Exit:
-    vfsUnlockRecord(0);
-    return (void *) info;
-  Error:
+Exit:
+    CurrFileUnlockRecord(0);
+    return info;
+Error:
     if (info)
-        roget_delete((void *) info);
+        RogetDelete(info);
     info = NULL;
     goto Exit;
 }
 
 
-static long roget_get_words_count(void *data)
+void RogetDelete(struct RogetInfo *info)
 {
-    return ((RogetInfo *) data)->wordsCount;
+    ebufFreeData(&g_buf);
+
+    if (info)
+    {
+        if (info->wci)
+            wcFree(info->wci);
+        new_free(info);
+    }
 }
 
-static long roget_get_first_matching(void *data, char *word)
+long RogetGetWordsCount(struct RogetInfo *info)
 {
-    return wcGetFirstMatching(((RogetInfo *) data)->wci, word);
+    return info->wordsCount;
 }
 
-static char *roget_get_word(void *data, long wordNo)
+long RogetGetFirstMatching(struct RogetInfo *info, char *word)
 {
-    RogetInfo *info;
-    info = (RogetInfo *) data;
+    return wcGetFirstMatching(info->wci, word);
+}
 
+char *RogetGetWord(struct RogetInfo *info, long wordNo)
+{
     Assert(wordNo < info->wordsCount);
 
     if (wordNo >= info->wordsCount)
@@ -103,49 +96,46 @@ static char *roget_get_word(void *data, long wordNo)
     return wcGetWord(info->wci, wordNo);
 }
 
-static Err roget_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
+Err RogetGetDisplayInfo(struct RogetInfo *info, long wordNo, int dx, DisplayInfo * di)
 {
-    RogetInfo *info = NULL;
-    long word_count = 0;
-    unsigned char *pos_rec_data;
-    UInt16 *word_nums;
+    long wordCount = 0;
+    unsigned char *posRecData;
+    UInt16 *wordNums;
     long i, j;
     long thisWordNo;
     char *word;
-    char *pos_txt;
+    char *posTxt;
     char *rawTxt;
     int pos;
 
     unsigned char *words_in_syn_count_data = NULL;
     long words_left;
-    int words_in_syn_rec;
+    int wordsInSynRec;
     int word_present_p;
 
-    info = (RogetInfo *) data;
-
-    Assert(data);
+    Assert(info);
     Assert((wordNo >= 0) && (wordNo < info->wordsCount));
     Assert(dx > 0);
     Assert(di);
 
     ebufReset(&g_buf);
 
-    pos_rec_data = (unsigned char *) vfsLockRecord(info->synPosRec);
-    words_in_syn_count_data = (unsigned char *) vfsLockRecord(info->wordsInSynCountRec);
-    words_in_syn_rec = info->wordsInSynFirstRec;
-    word_nums = (UInt16 *) vfsLockRecord(words_in_syn_rec);
-    words_left = vfsGetRecordSize(words_in_syn_rec) / 2;
+    posRecData = (unsigned char *) CurrFileLockRecord(info->synPosRec);
+    words_in_syn_count_data = (unsigned char *) CurrFileLockRecord(info->wordsInSynCountRec);
+    wordsInSynRec = info->wordsInSynFirstRec;
+    wordNums = (UInt16 *) CurrFileLockRecord(wordsInSynRec);
+    words_left = CurrFileGetRecordSize(wordsInSynRec) / 2;
 
     for (i = 0; i < info->synsetsCount; i++)
     {
         word_present_p = 0;
-        word_count = (int) words_in_syn_count_data[0];
-        word_count += 2;
+        wordCount = (int) words_in_syn_count_data[0];
+        wordCount += 2;
         ++words_in_syn_count_data;
 
-        for (j = 0; j < word_count; j++)
+        for (j = 0; j < wordCount; j++)
         {
-            thisWordNo = (UInt32) word_nums[j];
+            thisWordNo = (UInt32) wordNums[j];
             if (wordNo == thisWordNo)
             {
                 word_present_p = 1;
@@ -157,41 +147,41 @@ static Err roget_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo
             ebufAddChar(&g_buf, 149);
             ebufAddChar(&g_buf, ' ');
 
-            pos = pos_rec_data[i / 4];
+            pos = posRecData[i / 4];
 
             pos = (pos >> (2 * (i % 4))) & 0x3;
 
-            pos_txt = get_pos_txt(pos, 0);
-            ebufAddStr(&g_buf, pos_txt);
+            posTxt = GetPosTxt(pos, 0);
+            ebufAddStr(&g_buf, posTxt);
             ebufAddChar(&g_buf, ' ');
 
-            for (j = 0; j < word_count; j++)
+            for (j = 0; j < wordCount; j++)
             {
-                thisWordNo = (UInt32) word_nums[j];
-                word = roget_get_word((void *) info, thisWordNo);
+                thisWordNo = (UInt32) wordNums[j];
+                word = RogetGetWord(info, thisWordNo);
                 ebufAddStr(&g_buf, word);
-                if (j != (word_count - 1))
+                if (j != (wordCount - 1))
                 {
                     ebufAddStr(&g_buf, ", ");
                 }
             }
             ebufAddChar(&g_buf, '\n');
         }
-        word_nums += word_count;
-        words_left -= word_count;
+        wordNums += wordCount;
+        words_left -= wordCount;
         Assert(words_left >= 0);
         if (0 == words_left)
         {
-            vfsUnlockRecord(words_in_syn_rec);
-            ++words_in_syn_rec;
-            word_nums = (UInt16 *) vfsLockRecord(words_in_syn_rec);
-            words_left = vfsGetRecordSize(words_in_syn_rec) / 2;
+            CurrFileUnlockRecord(wordsInSynRec);
+            ++wordsInSynRec;
+            wordNums = (UInt16 *) CurrFileLockRecord(wordsInSynRec);
+            words_left = CurrFileGetRecordSize(wordsInSynRec) / 2;
         }
     }
 
-    vfsUnlockRecord(info->wordsInSynCountRec);
-    vfsUnlockRecord(info->wordsInSynCountRec);
-    vfsUnlockRecord(info->synPosRec);
+    CurrFileUnlockRecord(info->wordsInSynCountRec);
+    CurrFileUnlockRecord(info->wordsInSynCountRec);
+    CurrFileUnlockRecord(info->synPosRec);
 
     ebufAddChar(&g_buf, '\0');
     ebufWrapBigLines(&g_buf);
@@ -201,12 +191,3 @@ static Err roget_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo
     return 0;
 }
 
-void setRogetAsCurrentDict(void)
-{
-    gd.currentDict.objectNew = &roget_new;
-    gd.currentDict.objectDelete = &roget_delete;
-    gd.currentDict.getWordsCount = &roget_get_words_count;
-    gd.currentDict.getFirstMatching = &roget_get_first_matching;
-    gd.currentDict.getWord = &roget_get_word;
-    gd.currentDict.getDisplayInfo = &roget_get_display_info;
-}

@@ -84,9 +84,9 @@ void *wnlex_new(void)
         goto Error;
     }
 
-    firstRecord = (WnLiteFirstRecord *) vfsLockRecord(0);
+    firstRecord = (WnLiteFirstRecord *) CurrFileLockRecord(0);
 
-    wi->recordsCount = vfsGetRecordsCount();
+    wi->recordsCount = CurrFileGetRecordsCount();
     DrawDebug2Num("recs count:", wi->recordsCount);
     wi->wordsCount = firstRecord->wordsCount;
     wi->synsetsCount = firstRecord->synsetsCount;
@@ -174,7 +174,7 @@ void *wnlex_new(void)
     }
 
   Exit:
-    vfsUnlockRecord(0);
+    CurrFileUnlockRecord(0);
     return (void *) wi;
   Error:
     DrawDebug("wnlex_new error");
@@ -249,11 +249,11 @@ void numIterLockRecord(numIter * ni, int record)
     Assert((record >= ni->firstRecord) &&  (record < (ni->firstRecord + ni->recordsCount)));
 
     if (-1 != ni->currentRecord)
-        vfsUnlockRecord(ni->currentRecord);
+        CurrFileUnlockRecord(ni->currentRecord);
 
     ni->currentRecord = record;
-    ni->data = (unsigned char *) vfsLockRecord(record);
-    ni->bytesLeftInRecord = vfsGetRecordSize(record);
+    ni->data = (unsigned char *) CurrFileLockRecord(record);
+    ni->bytesLeftInRecord = CurrFileGetRecordSize(record);
     Assert(0 == (ni->bytesLeftInRecord % 3));
 }
 
@@ -261,7 +261,7 @@ void numIterUnlockRecord(numIter * ni, int record)
 {
     Assert(ni);
     Assert((record >= ni->firstRecord) &&  (record < (ni->firstRecord + ni->recordsCount)));
-    vfsUnlockRecord(record);
+    CurrFileUnlockRecord(record);
     ni->data = NULL;
     ni->currentRecord = -1;
 }
@@ -394,12 +394,12 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
     currentSynset = 0;
     while (currentSynset < synsetsCount)
     {
-/*          defData = (unsigned char *)vfsLockRecord(wi->synsets[currentSynset].record); */
+/*          defData = (unsigned char *)CurrFileLockRecord(wi->synsets[currentSynset].record); */
 /*          defData += wi->synsets[currentSynset].offset; */
 /*          defDataSize = wi->synsets[currentSynset].dataSize; */
 
         defDataSize = wi->synsets[currentSynset].dataSize;
-        defData = (unsigned char *) vfsLockRegion(wi->synsets[currentSynset].record, wi->synsets[currentSynset].offset, defDataSize);
+        defData = (unsigned char *) CurrFileLockRegion(wi->synsets[currentSynset].record, wi->synsets[currentSynset].offset, defDataSize);
         Assert((defDataSize >= 4) && (defDataSize <= wi->maxComprDefLen));
         defDataCopy = defData;
 
@@ -458,8 +458,8 @@ Err wnlex_get_display_info(void *data, long wordNo, Int16 dx, DisplayInfo * di)
         wi->curDefLen = unpackedLen;
         unpackedDef = wi->curDefData;
         Assert((1 == unpackedDef[unpackedLen - 1]) || (0 == unpackedDef[unpackedLen - 1]));
-/*          vfsUnlockRecord(wi->synsets[currentSynset].record); */
-        vfsUnlockRegion(defDataCopy);
+/*          CurrFileUnlockRecord(wi->synsets[currentSynset].record); */
+        CurrFileUnlockRegion(defDataCopy);
 
         while (unpackedLen > 0)
         {
