@@ -8,7 +8,7 @@
 #include "resident_browse_form.h"
 #include "word_matching_pattern.h"
 #include "bookmarks.h"
-#include "PrefsStore.hpp"
+#include <PrefsStore.hpp>
 
 #ifdef NEVER
 static const char helpText[] =

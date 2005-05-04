@@ -53,6 +53,8 @@ enum LayoutType
 	layoutCount_
 };
 
+bool LineBreakForLayoutStyle(uint_t layout, uint_t style);
+
 void ScaleStylesFontSizes(int fontSize);
 
 #endif

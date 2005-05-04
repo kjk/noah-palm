@@ -21,10 +21,20 @@ static const StaticStyleDescriptor staticStyleDescriptors[] = {
 	{styleNameDefault, "font-size: medium; color: rgb(0, 0, 0); background-color: rgb(100%, 255, 255);"},
 	{styleNameHyperlink, "text-decoration: underline; color: rgb(0, 0, 100%);"},
 
+	{styleNameDefinition, "color: rgb(10%, 10%, 10%);"},
+	{styleNameDefinitionList, "font-weight: bold;"},
+	{styleNameExample, "font-style: italic; color: rgb(50%, 0, 50%);"},
+	{styleNameExampleList, "font-style: italic; color: rgb(50%, 0, 50%);"},
 
 
 	{styleNameHeader, "font-size: large; font-weight: bold;"},
 
+
+	{styleNamePOfSpeech, "font-weight: bold; color: rgb(0, 100%, 0);"},
+	{styleNamePOfSpeechList, "font-weight: bold;"},
+	{styleNameSynonyms, "color: rgb(0, 0, 100%)"},
+	{styleNameSynonymsList, "font-weight: bold;"},
+	{styleNameWord, "font-size: large; font-weight: bold; color: rgb(100%, 0, 0);"},
 
 /*	
 	{styleNameBold, "font-weight: bold;"},
@@ -103,6 +113,11 @@ void StylePrepareStaticStyles()
 		const char* def = staticStyleDescriptors[i].definition;
 		staticStyles[i] = StyleParse(def, strlen(def));
 
+#ifndef NDEBUG
+		if (NULL == staticStyles[i])
+			DebugBreak();
+#endif
+
 #ifdef _WIN32
 		// pre-create default fonts so that they are referenced at least once when used for the 1st time
 		ScaleStyleFont(fontSize, *staticStyles[i]);
@@ -110,6 +125,7 @@ void StylePrepareStaticStyles()
 #endif
 
 	}
+
 
 #ifdef DEBUG
 	test_StaticStyleTable();
@@ -162,3 +178,23 @@ void test_StaticStyleTable()
     s |= *ptr;
 }
 #endif
+
+typedef bool StyleLineBreaks[styleCount_];
+
+static const StyleLineBreaks layoutStyleLineBreaks[layoutCount_] =
+{
+// styleDefault, styleWord, styleDefinitionList, styleDefinition, styleExampleList, styleExample, styleSynonymsList, styleSynonyms, stylePOfSpeechList, stylePOfSpeech
+	{false,			false,				false,					false,				false,					false,				false,						false,				false,						false}, // layoutCompact
+	{false,			false,				true,					false,				true,					true,				true,						false,				false,						false}, // layoutClassic
+};
+
+bool LineBreakForLayoutStyle(uint_t layout, uint_t style)
+{
+	assert(layout < layoutCount_);
+	assert(style < styleCount_);
+	const StyleLineBreaks& breaks = layoutStyleLineBreaks[layout];
+	return breaks[style];
+}
+
+
+
